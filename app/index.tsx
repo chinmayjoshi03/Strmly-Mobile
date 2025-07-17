@@ -1,24 +1,14 @@
 import { StyleSheet } from 'react-native';
 import ThemedView from "../components/ThemedView";
-import Signin from './(auth)/signin';
+import VideoFeed from './(dashboard)/long/VideoFeed';
 
 const Home = () => {
   return (
-    <ThemedView style={styles.container}>
+    // <ThemedView style={styles.container}>
 
-      {/* <ThemedText className="text-xl">The Number 1</ThemedText>
+      <VideoFeed/>
 
-      <ThemedText style={{ marginTop: 10, marginBottom: 30 }}>
-        Signin
-      </ThemedText> */}
-
-      {/* <Link href="/(auth)/signin" style={styles.link}>
-        <Signin/>
-      </Link> */}
-
-      <Signin/>
-
-    </ThemedView>
+    // </ThemedView>
   )
 }
 
