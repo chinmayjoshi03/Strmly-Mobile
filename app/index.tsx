@@ -1,12 +1,16 @@
 import { StyleSheet } from 'react-native';
 import ThemedView from "../components/ThemedView";
 import VideoFeed from './(dashboard)/long/VideoFeed';
+import WalletPage from './(dashboard)/wallet/wallet';
+import VideoContentGifting from './(payments)/Video/VideoContentGifting';
 
 const Home = () => {
   return (
     // <ThemedView style={styles.container}>
-
-      <VideoFeed/>
+      
+      <VideoContentGifting creatorProfile='' creatorName='Irshad' creatorUsername='@User123'/>
+      // <VideoFeed/>
+      // <WalletPage/>
 
     // </ThemedView>
 
