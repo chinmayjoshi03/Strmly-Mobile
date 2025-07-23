@@ -10,6 +10,9 @@ import PublicProfilePage from './(dashboard)/profile/public/PublicProfile';
 import PersonalProfilePage from './(dashboard)/profile/personal.PersonalProfile';
 
 
+import WalletPage from './(dashboard)/wallet/wallet';
+import VideoContentGifting from './(payments)/Video/VideoContentGifting';
+
 const Home = () => {
   return (
     // <ThemedView style={styles.container}>
@@ -23,6 +26,7 @@ const Home = () => {
       <VideoFeed/>
       // <CommentsSection isOpen={true} onClose={() => {}} videoId={'1'} longVideosOnly={false} />
       // <WalletPage/>
+
 
     // </ThemedView>
 

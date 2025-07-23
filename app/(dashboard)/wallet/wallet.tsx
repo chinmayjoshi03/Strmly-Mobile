@@ -7,6 +7,7 @@ import {
   TouchableWithoutFeedback,
   Image,
 } from "react-native";
+
 import React, { useState } from "react";
 import ThemedView from "@/components/ThemedView";
 import CommonTopBar from "@/components/CommonTopBar";
@@ -78,12 +79,14 @@ const WalletPage = () => {
                 onPress={() => setIsOpenWalletBalance(!isOpenWBalance)}
               >
                 <View className="bg-[#B0B0B033] flex-grow justify-center gap-2 rounded-xl h-full items-center p-4">
+
                   <Text className="text-[14px] text-white">Wallet balance</Text>
                   <Text className="text-[28px] text-white">₹ 500.00</Text>
                 </View>
               </Pressable>
 
               {/* Card 3 */}
+
               <View className="bg-[#B0B0B033] flex-grow justify-center gap-2 items-center h-full rounded-xl py-4 px-6">
                 <Text className="text-[14px] text-white">Revenue</Text>
                 <Text className="text-[28px] text-white">₹ 120.00</Text>

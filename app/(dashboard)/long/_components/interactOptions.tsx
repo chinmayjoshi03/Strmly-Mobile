@@ -2,6 +2,7 @@ import { Image, Pressable, Text, View } from "react-native";
 import React, { useState } from "react";
 import { FontAwesome } from "@expo/vector-icons";
 
+
 // Define props type for InteractOptions
 type InteractOptionsProps = {
   onCommentPress: () => void; // Callback function for comment button press
@@ -33,6 +34,7 @@ const InteractOptions = ({ onCommentPress }: InteractOptionsProps) => { // Destr
               source={require("../../../../assets/images/comments.png")}
             />
           </Pressable>
+        
           <Text className="text-white text-sm">120K</Text>
         </View>
 

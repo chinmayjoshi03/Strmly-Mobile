@@ -14,6 +14,7 @@ import { Play } from "lucide-react-native";
 import * as ScreenOrientation from "expo-screen-orientation";
 import CommentsSection from "./_components/CommentSection";
 
+
 type Props = {
   uri: string;
   isActive: boolean;
@@ -75,6 +76,7 @@ const VideoItem = ({ uri, isActive }: Props) => {
       setVideoStatus(event.status);
       // Your original statusChange listener did not update isPaused,
       // so we will respect that and keep isPaused managed by togglePlayPause.
+
     });
     return () => subscription.remove();
   }, [player]);
@@ -137,6 +139,7 @@ const VideoItem = ({ uri, isActive }: Props) => {
   const duration = player.duration ?? 0;
   const progress = duration > 0 ? (currentTime / duration) * 100 : 0;
   const showProgressBar = duration > 0;
+
   // Use `videoStatus ?? ""` to handle null for the includes method
   const isBuffering = ["buffering", "loading"].includes(videoStatus ?? "");
 
@@ -231,6 +234,7 @@ const VideoItem = ({ uri, isActive }: Props) => {
   );
 };
 
+
 const styles = StyleSheet.create({
   container: {
     justifyContent: "center",
@@ -244,6 +248,7 @@ const styles = StyleSheet.create({
     bottom: 0,
     right: 0,
   },
+
   // Separate buffering indicator styles for better z-index control
   bufferingIndicator: {
     position: "absolute",

@@ -17,13 +17,13 @@ import {
 import CreatorInfo from "./_components/CreatorInfo";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+
 type CreatorData = {
   creatorProfile: string;
   creatorName: string;
   creatorUsername: string;
 };
 
-  
 
 const VideoContentGifting = ({
   creatorProfile,
@@ -38,6 +38,7 @@ const VideoContentGifting = ({
   const insets = useSafeAreaInsets();
   const animatedBottom = useRef(new Animated.Value(insets.bottom)).current;
   
+
   const handleAmountChange = (text: string) => {
     const filtered = text.replace(/[^0-9]/g, "");
     setAmount(filtered);
@@ -82,6 +83,7 @@ const VideoContentGifting = ({
     };
   }, []);
 
+
   return (
     <ThemedView className="flex-1 bg-black">
       <KeyboardAvoidingView
@@ -125,6 +127,7 @@ const VideoContentGifting = ({
               }}
               className="gap-2 justify-end"
             >
+
               <Pressable disabled={loading || !amount} onPress={handleProceed}>
                 <View className="bg-[#008A3C] p-4 rounded-lg items-center justify-center">
                   {loading ? (
@@ -139,6 +142,7 @@ const VideoContentGifting = ({
                 <Text className="text-white text-sm">Total balance ₹10</Text>
               </View>
             </Animated.View>
+
           </View>
         </TouchableWithoutFeedback>
       </KeyboardAvoidingView>

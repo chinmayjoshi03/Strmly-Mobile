@@ -1,9 +1,7 @@
 import React, { useRef, useState } from "react";
-import { FlatList, Dimensions } from "react-native";
+import { FlatList, View, useWindowDimensions } from "react-native";
 import VideoItem from "./VideoItem";
-import ThemedView from "@/components/ThemedView";
 
-const { height } = Dimensions.get("window");
 
 const videoData = [
   { id: "1", uri: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4" },
@@ -11,32 +9,41 @@ const videoData = [
   { id: "3", uri: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/Sintel.mp4" },
 ];
 
-const VideoFeed: React.FC = () => {
+const VideoFeed = () => {
   const [visibleIndex, setVisibleIndex] = useState(0);
+  const { height } = useWindowDimensions(); // Use hook for dimensions
+
+  // This callback updates which video is currently visible and should be active
 
   const onViewableItemsChanged = useRef(({ viewableItems }: any) => {
     if (viewableItems.length > 0) {
       const newIndex = viewableItems[0].index;
       setVisibleIndex(newIndex);
     }
-  });
+
+  }).current;
 
   return (
     <ThemedView style={{height}} className="flex-1 h-full bg-black">
       <FlatList
         data={videoData}
         keyExtractor={(item) => item.id}
-        renderItem={({ item, index }) => (
-          <VideoItem uri={item.uri} isActive={index === visibleIndex} />
+          // Pass only the necessary props to VideoItem
+          <VideoItem
+            uri={item.uri}
+            isActive={index === visibleIndex}
+          />
         )}
         pagingEnabled
-        onViewableItemsChanged={onViewableItemsChanged.current}
-        viewabilityConfig={{ itemVisiblePercentThreshold: 80 }}
         snapToInterval={height}
         decelerationRate="fast"
+        onViewableItemsChanged={onViewableItemsChanged}
+        viewabilityConfig={{ itemVisiblePercentThreshold: 80 }}
         showsVerticalScrollIndicator={false}
+        bounces={false}
       />
-    </ThemedView>
+    </View>
+
   );
 };
 
