@@ -249,7 +249,7 @@ const CommentsSection = (props: CommentsSectionProps) => {
 
   return (
     <KeyboardAvoidingView
-      className="flex-1"
+      className="w-full absolute rounded-t-lg max-h-[60%] bottom-0"
       behavior={Platform.OS === "ios" ? "padding" : "height"}
       keyboardVerticalOffset={Platform.OS === "ios" ? insets.top + 0 : 0}
       style={{ flex: 1 }}

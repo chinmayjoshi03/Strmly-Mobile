@@ -9,17 +9,18 @@ import PublicCommunityPage from './(dashboard)/Community/PublicCommunity';
 import PublicProfilePage from './(dashboard)/profile/public/PublicProfile';
 import PersonalProfilePage from './(dashboard)/profile/personal.PersonalProfile';
 
+
 const Home = () => {
   return (
     // <ThemedView style={styles.container}>
 
     // <PersonalProfilePage/>
-    <PublicProfilePage/>
+    // <PublicProfilePage/>
     // <PublicCommunityPage/>
 
       // <KYCForm/>
       // <VideoContentGifting creatorProfile='' creatorName='Irshad' creatorUsername='@User123'/>
-      // <VideoFeed/>
+      <VideoFeed/>
       // <CommentsSection isOpen={true} onClose={() => {}} videoId={'1'} longVideosOnly={false} />
       // <WalletPage/>
 
