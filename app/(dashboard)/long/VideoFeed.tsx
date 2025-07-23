@@ -24,8 +24,7 @@ const VideoFeed = () => {
   }).current;
 
   return (
-    <View style={{ flex: 1, backgroundColor: "black", position: "relative" }}>
-
+    <ThemedView style={{height}} className="flex-1 h-full bg-black">
       <FlatList
         data={videoData}
         keyExtractor={(item) => item.id}
