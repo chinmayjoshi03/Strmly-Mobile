@@ -1,6 +1,8 @@
 import { Tabs } from 'expo-router';
 import React from 'react';
 import { View, Image } from 'react-native';
+import { PaperclipIcon, Search } from 'lucide-react-native';
+import Svg, { Path } from 'react-native-svg';
 
 export default function TabLayout() {
   return (
@@ -25,8 +27,7 @@ export default function TabLayout() {
           title: 'Home',
           tabBarIcon: ({ color, focused }) => (
             <View className={`w-8 h-8 items-center justify-center ${focused ? 'opacity-100' : 'opacity-60'}`}>
-              <View className="w-6 h-6 border-2 border-white rounded-lg transform rotate-45" />
-              <View className="w-3 h-3 bg-white rounded-full absolute" />
+              <PaperclipIcon size={24} color="white" />
             </View>
           ),
         }}
@@ -38,13 +39,16 @@ export default function TabLayout() {
           title: 'Studio',
           tabBarIcon: ({ color, focused }) => (
             <View className={`w-8 h-8 items-center justify-center ${focused ? 'opacity-100' : 'opacity-60'}`}>
-              <View className="w-6 h-6 border-2 border-white rounded-full relative">
-                <View className="absolute inset-1 border border-white rounded-full" />
-                <View className="absolute top-0 left-1/2 w-0.5 h-2 bg-white transform -translate-x-0.5 -translate-y-1" />
-                <View className="absolute bottom-0 left-1/2 w-0.5 h-2 bg-white transform -translate-x-0.5 translate-y-1" />
-                <View className="absolute left-0 top-1/2 w-2 h-0.5 bg-white transform -translate-y-0.5 -translate-x-1" />
-                <View className="absolute right-0 top-1/2 w-2 h-0.5 bg-white transform -translate-y-0.5 translate-x-1" />
-              </View>
+              <Svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                <Path 
+                  d="M12 17.5c2.33 0 4.24-1.91 4.24-4.24S14.33 8.76 12 8.76s-4.24 1.91-4.24 4.24S9.67 17.5 12 17.5zM12 10.5c1.38 0 2.5 1.12 2.5 2.5s-1.12 2.5-2.5 2.5-2.5-1.12-2.5-2.5 1.12-2.5 2.5-2.5z"
+                  fill="white"
+                />
+                <Path 
+                  d="M20 4h-3.17L15 2H9L7.17 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zM20 18H4V6h4.05l.48-.64L9.88 4h4.24l1.35 1.36.48.64H20v12z"
+                  fill="white"
+                />
+              </Svg>
             </View>
           ),
         }}
@@ -56,8 +60,7 @@ export default function TabLayout() {
           title: 'Search',
           tabBarIcon: ({ color, focused }) => (
             <View className={`w-8 h-8 items-center justify-center ${focused ? 'opacity-100' : 'opacity-60'}`}>
-              <View className="w-5 h-5 border-2 border-white rounded-full" />
-              <View className="w-2 h-0.5 bg-white transform rotate-45 translate-x-2 translate-y-1" />
+              <Search size={24} color="white" />
             </View>
           ),
         }}
