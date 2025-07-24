@@ -28,6 +28,7 @@ const VideoFeed = () => {
       <FlatList
         data={videoData}
         keyExtractor={(item) => item.id}
+        renderItem={({ item, index }) => (
           // Pass only the necessary props to VideoItem
           <VideoItem
             uri={item.uri}
