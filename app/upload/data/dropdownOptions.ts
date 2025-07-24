@@ -49,6 +49,19 @@ export const formatOptions: DropdownOption[] = [
   },
 ];
 
+// Video type options for monetization
+// Backend: GET /api/video-types
+export const videoTypeOptions: DropdownOption[] = [
+  {
+    label: 'Free',
+    value: 'free',
+  },
+  {
+    label: 'Paid',
+    value: 'paid',
+  },
+];
+
 // Genre options for video classification
 // Backend: GET /api/genres
 export const genreOptions: DropdownOption[] = [
@@ -106,7 +119,7 @@ export const genreOptions: DropdownOption[] = [
  * Helper function to get options by type
  * Useful for dynamic option loading
  */
-export const getDropdownOptions = (type: 'community' | 'format' | 'genre'): DropdownOption[] => {
+export const getDropdownOptions = (type: 'community' | 'format' | 'genre' | 'videoType'): DropdownOption[] => {
   switch (type) {
     case 'community':
       return communityOptions;
@@ -114,6 +127,8 @@ export const getDropdownOptions = (type: 'community' | 'format' | 'genre'): Drop
       return formatOptions;
     case 'genre':
       return genreOptions;
+    case 'videoType':
+      return videoTypeOptions;
     default:
       return [];
   }
@@ -123,7 +138,7 @@ export const getDropdownOptions = (type: 'community' | 'format' | 'genre'): Drop
  * Helper function to find option label by value
  * Useful for displaying selected values
  */
-export const getOptionLabel = (type: 'community' | 'format' | 'genre', value: string): string => {
+export const getOptionLabel = (type: 'community' | 'format' | 'genre' | 'videoType', value: string): string => {
   const options = getDropdownOptions(type);
   const option = options.find(opt => opt.value === value);
   return option?.label || value;

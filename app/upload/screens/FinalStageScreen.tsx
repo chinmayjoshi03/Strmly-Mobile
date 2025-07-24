@@ -31,6 +31,7 @@ import { genreOptions } from '../data/dropdownOptions';
  */
 const FinalStageScreen: React.FC<FinalStageProps> = ({
   formData,
+  videoDetails,
   onFormChange,
   onUpload,
   onBack
@@ -86,7 +87,7 @@ const FinalStageScreen: React.FC<FinalStageProps> = ({
       <ScrollView className="flex-1 px-4 pt-6">
         {/* Genre Selection */}
         <View className="mb-8">
-          <Text className="text-white text-base mb-2">Genre</Text>
+          <Text className="text-white text-lg font-medium mb-3">Genre</Text>
           <Dropdown
             value={formData.genre}
             placeholder="Select"
@@ -99,7 +100,7 @@ const FinalStageScreen: React.FC<FinalStageProps> = ({
 
         {/* Autoplay Timing */}
         <View className="mb-8">
-          <Text className="text-white text-base mb-2">Autoplay Starts At</Text>
+          <Text className="text-white text-lg font-medium mb-3">Autoplay Starts At</Text>
           <TimePicker
             minutes={formData.autoplayStartMinutes}
             seconds={formData.autoplayStartSeconds}
@@ -111,22 +112,24 @@ const FinalStageScreen: React.FC<FinalStageProps> = ({
           </Text>
         </View>
 
-        {/* Unlock Timing */}
-        <View className="mb-8">
-          <Text className="text-white text-base mb-2">Unlock Full Video From</Text>
-          <TimePicker
-            minutes={formData.unlockFromMinutes}
-            seconds={formData.unlockFromSeconds}
-            onMinutesChange={handleUnlockMinutesChange}
-            onSecondsChange={handleUnlockSecondsChange}
-          />
-          <Text className="text-gray-400 text-sm mt-2 leading-5">
-            The viewer can watch for free until this point. After this, they'll need to pay to continue.
-          </Text>
-        </View>
+        {/* Unlock Timing - Only show for paid videos */}
+        {videoDetails.videoType === 'paid' && (
+          <View className="mb-8">
+            <Text className="text-white text-lg font-medium mb-3">Unlock Full Video From</Text>
+            <TimePicker
+              minutes={formData.unlockFromMinutes}
+              seconds={formData.unlockFromSeconds}
+              onMinutesChange={handleUnlockMinutesChange}
+              onSecondsChange={handleUnlockSecondsChange}
+            />
+            <Text className="text-gray-400 text-sm mt-2 leading-5">
+              The viewer can watch for free until this point. After this, they'll need to pay to continue.
+            </Text>
+          </View>
+        )}
 
-        {/* Validation Warning (optional) */}
-        {unlockTotalSeconds <= autoplayTotalSeconds && (
+        {/* Validation Warning (optional) - Only show for paid videos */}
+        {videoDetails.videoType === 'paid' && unlockTotalSeconds <= autoplayTotalSeconds && (
           <View className="bg-yellow-900 border border-yellow-600 rounded-lg p-3 mb-6">
             <Text className="text-yellow-200 text-sm">
               ⚠️ Unlock time should be after autoplay start time

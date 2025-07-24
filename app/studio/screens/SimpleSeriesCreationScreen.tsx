@@ -1,13 +1,12 @@
 import React, { useState } from 'react';
-import { 
-  View, 
-  Text, 
-  StatusBar, 
-  TouchableOpacity, 
-  TextInput, 
-  KeyboardAvoidingView, 
+import {
+  View,
+  Text,
+  StatusBar,
+  TouchableOpacity,
+  TextInput,
+  KeyboardAvoidingView,
   Platform,
-  ScrollView,
   ActivityIndicator
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
@@ -101,13 +100,13 @@ const SimpleSeriesCreationScreen: React.FC<SimpleSeriesCreationScreenProps> = ({
   };
 
   return (
-    <KeyboardAvoidingView 
+    <KeyboardAvoidingView
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       className="flex-1"
     >
       <View className="flex-1 bg-black">
         <StatusBar barStyle="light-content" backgroundColor="#000" />
-        
+
         {/* Header */}
         <View className="flex-row items-center justify-between px-4 py-3 mt-12">
           <TouchableOpacity onPress={handleClose}>
@@ -116,19 +115,26 @@ const SimpleSeriesCreationScreen: React.FC<SimpleSeriesCreationScreenProps> = ({
           <View className="w-6" />
         </View>
 
-        <ScrollView className="flex-1 px-4 pt-16" showsVerticalScrollIndicator={false}>
-          {/* Title */}
-          <View className="items-center mb-12">
+        <View className="flex-1 justify-center px-4">
+          {/* Centered Content */}
+          <View className="items-center">
+            {/* Title */}
             <Text className="text-white text-xl font-medium mb-8">Give your series name</Text>
-            
+
             {/* Series Name Input */}
-            <View className="w-full max-w-xs">
+            <View className="items-center mb-8">
               <TextInput
                 value={title}
                 onChangeText={setTitle}
                 placeholder="Series 1"
                 placeholderTextColor="#9CA3AF"
-                className="text-white text-2xl font-medium text-center border-b border-gray-600 pb-2 mb-2"
+                className="text-white text-3xl font-medium text-center pb-2 mb-2"
+                style={{
+                  borderBottomWidth: 1,
+                  borderBottomColor: '#6B7280',
+                  width: Math.max(120, (title || 'Series 1').length * 20), // Dynamic width based on text length
+                  minWidth: 120
+                }}
                 maxLength={100}
                 autoFocus
               />
@@ -136,92 +142,113 @@ const SimpleSeriesCreationScreen: React.FC<SimpleSeriesCreationScreenProps> = ({
                 <Text className="text-red-400 text-sm text-center mt-2">{errors.title}</Text>
               )}
             </View>
-          </View>
 
-          {/* Type Selection */}
-          <View className="mb-8">
-            <Text className="text-white text-base font-medium mb-4">Type</Text>
-            
-            {/* Type Dropdown */}
-            <TouchableOpacity
-              onPress={() => setShowTypeDropdown(!showTypeDropdown)}
-              className="bg-gray-800 border border-gray-600 rounded-xl px-4 py-4 flex-row items-center justify-between"
-            >
-              <Text className={`text-base ${type ? 'text-white' : 'text-gray-400'}`}>
-                {getTypeDisplayText()}
-              </Text>
-              <Ionicons 
-                name={showTypeDropdown ? "chevron-up" : "chevron-down"} 
-                size={20} 
-                color="#9CA3AF" 
-              />
-            </TouchableOpacity>
+            {/* Type Selection */}
+            <View className="w-full max-w-sm mb-6">
+              <Text className="text-white text-base font-medium mb-4">Type</Text>
 
-            {/* Dropdown Options */}
-            {showTypeDropdown && (
-              <View className="bg-gray-800 border border-gray-600 rounded-xl mt-2 overflow-hidden">
-                <TouchableOpacity
-                  onPress={() => handleTypeSelect('free')}
-                  className="px-4 py-4 border-b border-gray-600"
+              {/* Type Dropdown */}
+              <TouchableOpacity
+                onPress={() => setShowTypeDropdown(!showTypeDropdown)}
+                className="bg-black border border-gray-600 rounded-xl px-6 py-4 flex-row items-center justify-between"
+                style={{ minHeight: 56 }}
+              >
+                <Text className={`text-lg ${type ? 'text-white' : 'text-gray-400'}`}>
+                  {getTypeDisplayText()}
+                </Text>
+                <Ionicons
+                  name={showTypeDropdown ? "chevron-up" : "chevron-down"}
+                  size={24}
+                  color="#9CA3AF"
+                />
+              </TouchableOpacity>
+
+              {/* Dropdown Options */}
+              {showTypeDropdown && (
+                <View
+                  className="absolute top-20 left-0 right-0 border border-gray-500 z-10 max-h-64"
+                  style={{
+                    backgroundColor: '#2b2b2b',
+                    borderRadius: 16
+                  }}
                 >
-                  <Text className="text-white text-base">Free</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  onPress={() => handleTypeSelect('paid')}
-                  className="px-4 py-4"
-                >
-                  <Text className="text-white text-base">Paid</Text>
-                </TouchableOpacity>
+                  <TouchableOpacity
+                    onPress={() => handleTypeSelect('free')}
+                    className="px-6 py-4 border-b border-gray-500"
+                    style={{
+                      minHeight: 56,
+                      backgroundColor: type === 'free' ? '#404040' : '#2b2b2b',
+                      borderTopLeftRadius: 16,
+                      borderTopRightRadius: 16,
+                    }}
+                  >
+                    <Text className="text-white text-lg">Free</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    onPress={() => handleTypeSelect('paid')}
+                    className="px-6 py-4"
+                    style={{
+                      minHeight: 56,
+                      backgroundColor: type === 'paid' ? '#404040' : '#2b2b2b',
+                      borderBottomLeftRadius: 16,
+                      borderBottomRightRadius: 16,
+                    }}
+                  >
+                    <Text className="text-white text-lg">Paid</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
+
+              {errors.type && (
+                <Text className="text-red-400 text-sm mt-2">{errors.type}</Text>
+              )}
+            </View>
+
+            {/* Price Input - Only show for paid series */}
+            {type === 'paid' && (
+              <View className="w-full max-w-sm mb-6">
+                <Text className="text-white text-base font-medium mb-4">Price</Text>
+                <TextInput
+                  value={price?.toString() || ''}
+                  onChangeText={(priceText) => setPrice(priceText ? parseInt(priceText) : undefined)}
+                  placeholder="₹30"
+                  placeholderTextColor="#9CA3AF"
+                  className="bg-black border border-gray-600 text-white px-6 py-4 rounded-xl text-lg"
+                  keyboardType="numeric"
+                  style={{ minHeight: 56 }}
+                />
+                {errors.price && (
+                  <Text className="text-red-400 text-sm mt-2">{errors.price}</Text>
+                )}
               </View>
             )}
 
-            {errors.type && (
-              <Text className="text-red-400 text-sm mt-2">{errors.type}</Text>
+            {/* Create Button - Smaller width as shown in image */}
+            <View className="items-center mt-4">
+              <TouchableOpacity
+                onPress={handleCreate}
+                disabled={loading}
+                className="bg-gray-200 rounded-full py-4 px-12 items-center"
+                style={{
+                  backgroundColor: loading ? '#6B7280' : '#E5E7EB',
+                  width: 160 // Smaller width to match the image
+                }}
+              >
+                {loading ? (
+                  <ActivityIndicator size="small" color="black" />
+                ) : (
+                  <Text className="text-black text-lg font-medium">Create</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+
+            {/* General Error */}
+            {errors.general && (
+              <View className="w-full mt-4">
+                <Text className="text-red-400 text-sm text-center">{errors.general}</Text>
+              </View>
             )}
           </View>
-
-          {/* Price Input - Only show for paid series */}
-          {type === 'paid' && (
-            <View className="mb-8">
-              <Text className="text-white text-base font-medium mb-4">Price</Text>
-              <TextInput
-                value={price?.toString() || ''}
-                onChangeText={(priceText) => setPrice(priceText ? parseInt(priceText) : undefined)}
-                placeholder="₹30"
-                placeholderTextColor="#9CA3AF"
-                className="bg-gray-800 border border-gray-600 text-white px-4 py-4 rounded-xl text-base"
-                keyboardType="numeric"
-              />
-              {errors.price && (
-                <Text className="text-red-400 text-sm mt-2">{errors.price}</Text>
-              )}
-            </View>
-          )}
-
-          {/* General Error */}
-          {errors.general && (
-            <View className="mb-6">
-              <Text className="text-red-400 text-sm text-center">{errors.general}</Text>
-            </View>
-          )}
-        </ScrollView>
-
-        {/* Create Button */}
-        <View className="px-4 pb-8 pt-4">
-          <TouchableOpacity
-            onPress={handleCreate}
-            disabled={loading}
-            className="bg-gray-200 rounded-full py-4 items-center"
-            style={{
-              backgroundColor: loading ? '#6B7280' : '#E5E7EB'
-            }}
-          >
-            {loading ? (
-              <ActivityIndicator size="small" color="black" />
-            ) : (
-              <Text className="text-black text-lg font-medium">Create</Text>
-            )}
-          </TouchableOpacity>
         </View>
       </View>
     </KeyboardAvoidingView>

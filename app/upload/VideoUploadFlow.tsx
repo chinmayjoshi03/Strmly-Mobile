@@ -144,6 +144,7 @@ const VideoUploadFlow: React.FC<VideoUploadFlowProps> = ({
         return (
           <FinalStageScreen
             formData={state.finalStageData}
+            videoDetails={state.videoDetails}
             onFormChange={updateFinalStageData}
             onUpload={handleFinalUpload}
             onBack={handleBack}

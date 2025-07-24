@@ -5,7 +5,7 @@ import FormField from '../components/FormField';
 import Dropdown from '../components/Dropdown';
 import ContinueButton from '../components/ContinueButton';
 import { VideoDetailProps } from '../types';
-import { communityOptions, formatOptions } from '../data/dropdownOptions';
+import { communityOptions, formatOptions, videoTypeOptions } from '../data/dropdownOptions';
 
 /**
  * Video Detail Screen
@@ -31,6 +31,7 @@ const VideoDetailScreen: React.FC<VideoDetailProps> = ({
 }) => {
   const [communityDropdownOpen, setCommunityDropdownOpen] = useState(false);
   const [formatDropdownOpen, setFormatDropdownOpen] = useState(false);
+  const [videoTypeDropdownOpen, setVideoTypeDropdownOpen] = useState(false);
 
   // Handle title change
   const handleTitleChange = (title: string) => {
@@ -49,16 +50,26 @@ const VideoDetailScreen: React.FC<VideoDetailProps> = ({
     setFormatDropdownOpen(false);
   };
 
+  // Handle video type selection
+  const handleVideoTypeSelect = (videoType: 'free' | 'paid') => {
+    onFormChange({ ...formData, videoType });
+    setVideoTypeDropdownOpen(false);
+  };
+
   // Check if current step is valid
   const isStepValid = () => {
     switch (step) {
       case 1:
         return formData.title.trim() !== '' && formData.community !== null;
       case 2:
-      case 3:
         return formData.title.trim() !== '' && 
                formData.community !== null && 
                formData.format !== null;
+      case 3:
+        return formData.title.trim() !== '' && 
+               formData.community !== null && 
+               formData.format !== null &&
+               formData.videoType !== null;
       default:
         return false;
     }
@@ -87,8 +98,8 @@ const VideoDetailScreen: React.FC<VideoDetailProps> = ({
         />
 
         {/* Community Dropdown */}
-        <View className="mb-6">
-          <Text className="text-white text-base mb-2">Community</Text>
+        <View className="mb-8">
+          <Text className="text-white text-lg font-medium mb-3">Community</Text>
           <Dropdown
             value={formData.community}
             placeholder="Select"
@@ -101,8 +112,8 @@ const VideoDetailScreen: React.FC<VideoDetailProps> = ({
 
         {/* Format Dropdown - Show from step 2 onwards */}
         {step >= 2 && (
-          <View className="mb-6">
-            <Text className="text-white text-base mb-2">Format That Fits Your Content</Text>
+          <View className="mb-8">
+            <Text className="text-white text-lg font-medium mb-3">Format That Fits Your Content</Text>
             <Dropdown
               value={formData.format}
               placeholder="Select"
@@ -110,6 +121,21 @@ const VideoDetailScreen: React.FC<VideoDetailProps> = ({
               onSelect={handleFormatSelect}
               isOpen={formatDropdownOpen}
               onToggle={() => setFormatDropdownOpen(!formatDropdownOpen)}
+            />
+          </View>
+        )}
+
+        {/* Video Type Dropdown - Show from step 3 onwards */}
+        {step >= 3 && (
+          <View className="mb-8">
+            <Text className="text-white text-lg font-medium mb-3">Video Type</Text>
+            <Dropdown
+              value={formData.videoType}
+              placeholder="Select"
+              options={videoTypeOptions}
+              onSelect={handleVideoTypeSelect}
+              isOpen={videoTypeDropdownOpen}
+              onToggle={() => setVideoTypeDropdownOpen(!videoTypeDropdownOpen)}
             />
           </View>
         )}

@@ -5,6 +5,7 @@ export interface VideoFormData {
   title: string;
   community: string | null;
   format: 'Netflix' | 'Youtube' | null;
+  videoType: 'free' | 'paid' | null;
 }
 
 export interface FinalStageData {
@@ -48,6 +49,7 @@ export interface VideoDetailProps {
 
 export interface FinalStageProps {
   formData: FinalStageData;
+  videoDetails: VideoFormData;
   onFormChange: (data: FinalStageData) => void;
   onUpload: () => void;
   onBack: () => void;

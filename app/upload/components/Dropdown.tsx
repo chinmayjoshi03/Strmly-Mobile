@@ -26,25 +26,32 @@ const Dropdown: React.FC<DropdownProps> = ({
   onToggle
 }) => {
   return (
-    <View className="mb-6">
+    <View>
       {/* Dropdown Trigger */}
       <TouchableOpacity
         onPress={onToggle}
-        className="bg-transparent border border-gray-600 rounded-lg px-4 py-3 flex-row items-center justify-between"
+        className="bg-transparent border border-gray-600 rounded-xl px-6 py-4 flex-row items-center justify-between"
+        style={{ minHeight: 56 }}
       >
-        <Text className={`text-base ${value ? 'text-white' : 'text-gray-400'}`}>
+        <Text className={`text-lg ${value ? 'text-white' : 'text-gray-400'}`}>
           {value || placeholder}
         </Text>
         <Ionicons 
           name={isOpen ? "chevron-up" : "chevron-down"} 
-          size={20} 
+          size={24} 
           color="#9CA3AF" 
         />
       </TouchableOpacity>
 
       {/* Dropdown Options Overlay */}
       {isOpen && (
-        <View className="absolute top-14 left-0 right-0 bg-gray-800 rounded-lg border border-gray-600 z-10 max-h-48">
+        <View 
+          className="absolute top-20 left-0 right-0 border border-gray-500 z-10 max-h-64"
+          style={{ 
+            backgroundColor: '#2b2b2b',
+            borderRadius: 16
+          }}
+        >
           <ScrollView showsVerticalScrollIndicator={false}>
             {options.map((option, index) => (
               <TouchableOpacity
@@ -53,15 +60,19 @@ const Dropdown: React.FC<DropdownProps> = ({
                   onSelect(option.value);
                   onToggle(); // Close dropdown after selection
                 }}
-                className={`px-4 py-3 ${
-                  index !== options.length - 1 ? 'border-b border-gray-700' : ''
-                } ${
-                  option.isSelected || value === option.value 
-                    ? 'bg-gray-700' 
-                    : 'bg-gray-800'
+                className={`px-6 py-4 ${
+                  index !== options.length - 1 ? 'border-b border-gray-500' : ''
                 }`}
+                style={{ 
+                  minHeight: 56,
+                  backgroundColor: option.isSelected || value === option.value ? '#404040' : '#2b2b2b',
+                  borderTopLeftRadius: index === 0 ? 16 : 0,
+                  borderTopRightRadius: index === 0 ? 16 : 0,
+                  borderBottomLeftRadius: index === options.length - 1 ? 16 : 0,
+                  borderBottomRightRadius: index === options.length - 1 ? 16 : 0,
+                }}
               >
-                <Text className="text-white text-base">
+                <Text className="text-white text-lg">
                   {option.label}
                 </Text>
               </TouchableOpacity>

@@ -21,6 +21,7 @@ const initialVideoDetails: VideoFormData = {
   title: '',
   community: null,
   format: null,
+  videoType: null,
 };
 
 const initialFinalStageData: FinalStageData = {
@@ -189,7 +190,8 @@ export const useUploadFlow = () => {
       case 'details-3':
         return videoDetails.title.trim() !== '' && 
                videoDetails.community !== null && 
-               videoDetails.format !== null;
+               videoDetails.format !== null &&
+               videoDetails.videoType !== null;
       case 'final':
         return finalStageData.genre !== null;
       default:

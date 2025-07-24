@@ -21,19 +21,19 @@ const FormField: React.FC<FormFieldProps> = ({
   error
 }) => {
   return (
-    <View className="mb-6">
-      <Text className="text-white text-base mb-2">{label}</Text>
+    <View className="mb-8">
+      <Text className="text-white text-lg font-medium mb-3">{label}</Text>
       <TextInput
         value={value}
         onChangeText={onChangeText}
         placeholder={placeholder}
         placeholderTextColor="#666666"
-        className={`bg-transparent border rounded-lg px-4 py-3 text-white text-base ${
-          error ? 'border-red-500' : 'border-gray-600'
-        }`}
+        className={`bg-transparent border rounded-xl px-6 py-4 text-white text-lg ${error ? 'border-red-500' : 'border-gray-600'
+          }`}
+        style={{ minHeight: 56 }}
       />
       {error && (
-        <Text className="text-red-500 text-sm mt-1">{error}</Text>
+        <Text className="text-red-500 text-base mt-2">{error}</Text>
       )}
     </View>
   );
