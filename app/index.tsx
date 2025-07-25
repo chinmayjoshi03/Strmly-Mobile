@@ -8,14 +8,14 @@ import KYCForm from './(dashboard)/wallet/_components/KYCForm';
 import PublicCommunityPage from './(dashboard)/Community/PublicCommunity';
 import PublicProfilePage from './(dashboard)/profile/public/PublicProfile';
 import PersonalProfilePage from './(dashboard)/profile/personal.PersonalProfile';
+import Signin from './(auth)/signin';
 
-
-import WalletPage from './(dashboard)/wallet/wallet';
-import VideoContentGifting from './(payments)/Video/VideoContentGifting';
 
 const Home = () => {
   return (
     // <ThemedView style={styles.container}>
+
+    <Signin/>
 
     // <PersonalProfilePage/>
     // <PublicProfilePage/>
@@ -23,7 +23,7 @@ const Home = () => {
 
       // <KYCForm/>
       // <VideoContentGifting creatorProfile='' creatorName='Irshad' creatorUsername='@User123'/>
-      <VideoFeed/>
+      // <VideoFeed/>
       // <CommentsSection isOpen={true} onClose={() => {}} videoId={'1'} longVideosOnly={false} />
       // <WalletPage/>
 
