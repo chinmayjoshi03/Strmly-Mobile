@@ -10,6 +10,8 @@ interface ProfileTopbarProps {
 }
 
 const ProfileTopbar = ({ hashtag, name }: ProfileTopbarProps) => {
+  // Ensure name is always a string
+  const safeName = String(name || "");
   const [showDropdown, setShowDropdown] = useState(false);
   const router = useRouter();
   const logout = useAuthStore((state) => state.logout);
@@ -57,8 +59,8 @@ const ProfileTopbar = ({ hashtag, name }: ProfileTopbarProps) => {
         </TouchableOpacity>
 
         <View>
-          <Text className="text-lg pr-5 capitalize font-semibold text-white"> {/* Assuming text should be white */}
-            {hashtag && <Text className="text-[#F1C40F]">#</Text>} {name}
+          <Text className="text-lg pr-5 capitalize font-semibold text-white">
+            {hashtag && <Text className="text-[#F1C40F]">#</Text>}{safeName}
           </Text>
         </View>
 

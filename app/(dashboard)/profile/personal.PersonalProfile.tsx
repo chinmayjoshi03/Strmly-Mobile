@@ -157,9 +157,9 @@ export default function PersonalProfilePage() {
     website: userData?.website || "",
     joinedDate: userData?.createdAt
       ? new Date(userData.createdAt).toLocaleDateString("en-US", {
-          month: "long",
-          year: "numeric",
-        })
+        month: "long",
+        year: "numeric",
+      })
       : "N/A", // Ensure joinedDate is a string or 'N/A'
     coverImage:
       "https://images.unsplash.com/photo-1579546929518-9e396f3cc809?w=800&h=200&fit=crop",
@@ -178,7 +178,7 @@ export default function PersonalProfilePage() {
           <View className="h-48 relative">
             <ProfileTopbar
               hashtag={false}
-              name={currentProfileData.username}
+              name={String(currentProfileData.username || "user")}
             />
           </View>
         )}
@@ -214,11 +214,11 @@ export default function PersonalProfilePage() {
                   </Text>
                   {(currentProfileData.isVerified ||
                     userData?.creator_profile?.verification_status ===
-                      "verified") && (
-                    <Text className="ml-2 px-2 py-1 rounded-full text-xs font-medium bg-blue-500 text-white">
-                      Verified
-                    </Text>
-                  )}
+                    "verified") && (
+                      <Text className="ml-2 px-2 py-1 rounded-full text-xs font-medium bg-blue-500 text-white">
+                        Verified
+                      </Text>
+                    )}
                 </View>
               </View>
             </View>
@@ -227,7 +227,7 @@ export default function PersonalProfilePage() {
             <View className="mt-6 flex-row justify-around items-center">
               <TouchableOpacity
                 className="flex flex-col gap-1 items-center"
-                // onPress={() => router.push("/communities?type=followers")}
+              // onPress={() => router.push("/communities?type=followers")}
               >
                 <Text className="font-bold text-lg text-white">
                   {currentProfileData.followers}M
@@ -236,7 +236,7 @@ export default function PersonalProfilePage() {
               </TouchableOpacity>
               <TouchableOpacity
                 className="flex flex-col gap-1 items-center"
-                // onPress={() => router.push("/communities?type=community")}
+              // onPress={() => router.push("/communities?type=community")}
               >
                 <Text className="font-bold text-lg text-white">
                   {currentProfileData.communityLength}
@@ -245,7 +245,7 @@ export default function PersonalProfilePage() {
               </TouchableOpacity>
               <TouchableOpacity
                 className="flex flex-col gap-1 items-center"
-                // onPress={() => router.push("/communities?type=following")}
+              // onPress={() => router.push("/communities?type=following")}
               >
                 <Text className="font-bold text-lg text-white">
                   {currentProfileData.following}
@@ -267,7 +267,7 @@ export default function PersonalProfilePage() {
 
               {/* Dashboard Button (Gradient Border) */}
               <TouchableOpacity
-                // onPress={() => router.push("/profile/dashboard")}
+                onPress={() => router.push("/(dashboard)/profile/Dashboard")}
                 className="rounded-lg overflow-hidden" // Use rounded-md for consistency
               >
                 <LinearGradient
