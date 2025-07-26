@@ -8,14 +8,16 @@ import KYCForm from './(dashboard)/wallet/_components/KYCForm';
 import PublicCommunityPage from './(dashboard)/Community/PublicCommunity';
 import PublicProfilePage from './(dashboard)/profile/public/PublicProfile';
 import PersonalProfilePage from './(dashboard)/profile/personal.PersonalProfile';
-import Signin from './(auth)/signin';
+import CreateProfile from './CreateProfile/CreateProfile';
+import SignUp from './(auth)/Sign-up';
 
 
 const Home = () => {
   return (
     // <ThemedView style={styles.container}>
 
-    <Signin/>
+    <SignUp/>
+    // <CreateProfile/>
 
     // <PersonalProfilePage/>
     // <PublicProfilePage/>
