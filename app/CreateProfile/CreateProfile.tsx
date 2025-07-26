@@ -46,7 +46,7 @@ const CreateProfile = () => {
     throttle(async (uname: string) => {
       try {
         const res = await fetch(
-          `http://192.168.1.4:5000/api/v1/auth/check-username/${uname}`
+          `${process.env.BACKEND_API_URL}/auth/check-username/${uname}`
         );
         const data = await res.json();
         setUsernameExists(data.exists);
@@ -61,7 +61,7 @@ const CreateProfile = () => {
     throttle(async (emailVal: string) => {
       try {
         const res = await fetch(
-          `http://192.168.1.4:5000/api/v1/auth/check-email/${emailVal}`
+          `${process.env.BACKEND_API_URL}/auth/check-email/${emailVal}`
         );
         const data = await res.json();
         setEmailExists(data.exists);
@@ -82,7 +82,7 @@ const CreateProfile = () => {
 
   const handleRegisterUser = async () => {
     try {
-      const res = await fetch("http://192.168.1.4:5000/api/v1/auth/register", {
+      const res = await fetch(`${process.env.BACKEND_API_URL}/auth/register`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -116,7 +116,7 @@ const CreateProfile = () => {
   const handleVerifyOTP = async () => {
     try {
       const res = await fetch(
-        "http://192.168.1.4:5000/api/v1/auth/verify-email",
+        `${process.env.BACKEND_API_URL}/auth/verify-email`,
         {
           method: "POST",
           headers: {
@@ -154,7 +154,7 @@ const CreateProfile = () => {
       setIsLoading(true);
 
       const res = await fetch(
-        "http://192.168.1.4:5000/api/v1/auth/resend-verification",
+        `${process.env.BACKEND_API_URL}/auth/resend-verification`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
