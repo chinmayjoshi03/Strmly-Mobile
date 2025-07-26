@@ -1,7 +1,8 @@
-import React, { useRef, useState } from "react";
+import React, { useRef, useState, useEffect } from "react";
 import { FlatList, Dimensions } from "react-native";
 import VideoItem from "./VideoItem";
 import ThemedView from "@/components/ThemedView";
+import { useAuthStore } from "@/store/useAuthStore";
 
 const { height } = Dimensions.get("window");
 
@@ -13,6 +14,17 @@ const videoData = [
 
 const VideoFeed: React.FC = () => {
   const [visibleIndex, setVisibleIndex] = useState(0);
+  const { token, user, isLoggedIn } = useAuthStore();
+
+  // Debug token when VideoFeed loads
+  useEffect(() => {
+    console.log('=== VIDEO FEED TOKEN CHECK ===');
+    console.log('Token:', token);
+    console.log('Token length:', token?.length);
+    console.log('Is logged in:', isLoggedIn);
+    console.log('User:', user);
+    console.log('=============================');
+  }, [token, isLoggedIn, user]);
 
   const onViewableItemsChanged = useRef(({ viewableItems }: any) => {
     if (viewableItems.length > 0) {

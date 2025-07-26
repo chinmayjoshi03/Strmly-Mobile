@@ -14,6 +14,7 @@ import ThemedView from "@/components/ThemedView";
 import { Signinstyles } from "@/styles/signin";
 import { CreateProfileStyles } from "@/styles/createprofile";
 import { useAuthStore } from "@/store/useAuthStore";
+import { CONFIG } from "@/Constants/config";
 
 const SignIn = () => {
     const [useEmail, setUseEmail] = useState(false);
@@ -42,7 +43,7 @@ const SignIn = () => {
 
         try {
             console.log('start')
-            const res = await fetch(`http://192.168.1.4:5000/api/v1/auth/login/${loginType}`, {
+            const res = await fetch(`${CONFIG.API_BASE_URL}/api/v1/auth/login/${loginType}`, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
@@ -62,6 +63,14 @@ const SignIn = () => {
 
             // Save in zustand and secure store
             await useAuthStore.getState().login(data.token, data.user);
+
+            // Debug: Log the token that was saved
+            console.log('=== SIGN-IN SUCCESS ===');
+            console.log('Token received:', data.token);
+            console.log('Token length:', data.token?.length);
+            console.log('User data:', data.user);
+            console.log('Auth store state after login:', useAuthStore.getState());
+            console.log('=====================');
 
             alert("Login successful!");
             setTimeout(()=> router.push('/(dashboard)/long/VideoFeed'), 300)
