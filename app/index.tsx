@@ -19,8 +19,8 @@ const Home = () => {
     // <SignUp/>
     // <CreateProfile/>
 
-    // <PersonalProfilePage/>
-    <PublicProfilePage/>
+    <PersonalProfilePage/>
+    // <PublicProfilePage/>
     // <PublicCommunityPage/>
 
       // <KYCForm/>

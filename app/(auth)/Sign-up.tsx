@@ -8,6 +8,7 @@ import { CreateProfileStyles } from "@/styles/createprofile";
 import { Link, router } from "expo-router";
 import { Alert } from "react-native";
 import { useGoogleAuth } from "@/utils/authConfig";
+import Constants from "expo-constants";
 
 const SignUp = () => {
   const [useEmail, setUseEmail] = useState(false);
@@ -23,6 +24,8 @@ const SignUp = () => {
     "Inter-SemiBold": require("../../assets/fonts/inter/Inter-SemiBold.ttf"),
   });
 
+  const BACKEND_API_URL = Constants.expoConfig?.extra?.BACKEND_API_URL;
+
   const [request, response, promptAsync] = useGoogleAuth();
 
   useEffect(() => {
@@ -34,7 +37,7 @@ const SignUp = () => {
   const registerWithGoogle = async (idToken: string) => {
     try {
       const res = await fetch(
-        "${process.env.BACKEND_API_URL}/auth/register/google",
+        `${BACKEND_API_URL}/auth/register/google`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },

@@ -15,6 +15,7 @@ import ThemedView from "@/components/ThemedView";
 import { Signinstyles } from "@/styles/signin";
 import { CreateProfileStyles } from "@/styles/createprofile";
 import { useAuthStore } from "@/store/useAuthStore";
+import Constants from "expo-constants";
 
 const SignIn = () => {
   const [useEmail, setUseEmail] = useState(false);
@@ -31,6 +32,8 @@ const SignIn = () => {
     "Inter-SemiBold": require("../../assets/fonts/inter/Inter-SemiBold.ttf"),
   });
 
+  const BACKEND_API_URL = Constants.expoConfig?.extra?.BACKEND_API_URL;
+
   const handleLogin = async () => {
     if (!nameOrEmail || !password) {
       alert("Please fill in both fields");
@@ -44,7 +47,7 @@ const SignIn = () => {
     try {
       console.log("start");
       const res = await fetch(
-        `${process.env.BACKEND_API_URL}/auth/login/${loginType}`,
+        `${BACKEND_API_URL}/auth/login/${loginType}`,
         {
           method: "POST",
           headers: {

@@ -176,10 +176,7 @@ export default function PersonalProfilePage() {
         {/* Cover Image */}
         {!isLoading && (
           <View className="h-48 relative">
-            <ProfileTopbar
-              hashtag={false}
-              name={currentProfileData.username}
-            />
+            <ProfileTopbar hashtag={false} name={currentProfileData.username} />
           </View>
         )}
 
@@ -270,18 +267,9 @@ export default function PersonalProfilePage() {
                 // onPress={() => router.push("/profile/dashboard")}
                 className="rounded-lg overflow-hidden" // Use rounded-md for consistency
               >
-                <LinearGradient
-                  colors={["#4400FFA6", "#FFFFFF", "#FF00004D", "#FFFFFF"]}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 1 }}
-                  className="p-[1.5px] rounded-lg flex-1" // Use rounded-md here
-                >
-                  <View className="flex-1 px-4 py-2 rounded-lg bg-black items-center justify-center">
-                    <Text className="text-white text-center font-bold">
-                      Dashboard
-                    </Text>
-                  </View>
-                </LinearGradient>
+                <Text className="text-white text-center font-bold">
+                  Dashboard
+                </Text>
               </TouchableOpacity>
             </View>
 
@@ -294,6 +282,24 @@ export default function PersonalProfilePage() {
               </TouchableOpacity>
               <TouchableOpacity className="px-4 py-2 border border-gray-400 rounded-lg">
                 <Text className="text-white text-center">History</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                // onPress={() => router.push("/profile/dashboard")}
+                className="rounded-lg overflow-hidden" // Use rounded-md for consistency
+              >
+                <LinearGradient
+                  colors={["#4400FFA6", "#FFFFFF", "#FF00004D", "#FFFFFF"]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  className="p-[1.5px] rounded-lg flex-1" // Use rounded-md here
+                >
+                  <View className="flex-1 px-4 py-2 rounded-lg bg-black items-center justify-center">
+                    <Text className="text-white text-center font-bold">
+                      Access
+                    </Text>
+                  </View>
+                </LinearGradient>
               </TouchableOpacity>
             </View>
 

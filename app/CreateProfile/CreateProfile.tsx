@@ -14,6 +14,7 @@ import {
 } from "react-native";
 import { router } from "expo-router";
 import { useAuthStore } from "@/store/useAuthStore";
+import Constants from "expo-constants";
 
 const CreateProfile = () => {
   const [Step, setStep] = useState(1);
@@ -42,11 +43,13 @@ const CreateProfile = () => {
     "Inter-ExtraBold": require("../../assets/fonts/inter/Inter-ExtraBold.ttf"),
   });
 
+  const BACKEND_API_URL = Constants.expoConfig?.extra?.BACKEND_API_URL;
+
   const checkUsername = useCallback(
     throttle(async (uname: string) => {
       try {
         const res = await fetch(
-          `${process.env.BACKEND_API_URL}/auth/check-username/${uname}`
+          `${BACKEND_API_URL}/auth/check-username/${uname}`
         );
         const data = await res.json();
         setUsernameExists(data.exists);
@@ -61,7 +64,7 @@ const CreateProfile = () => {
     throttle(async (emailVal: string) => {
       try {
         const res = await fetch(
-          `${process.env.BACKEND_API_URL}/auth/check-email/${emailVal}`
+          `${BACKEND_API_URL}/auth/check-email/${emailVal}`
         );
         const data = await res.json();
         setEmailExists(data.exists);
@@ -82,7 +85,7 @@ const CreateProfile = () => {
 
   const handleRegisterUser = async () => {
     try {
-      const res = await fetch(`${process.env.BACKEND_API_URL}/auth/register`, {
+      const res = await fetch(`${BACKEND_API_URL}/auth/register`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -116,7 +119,7 @@ const CreateProfile = () => {
   const handleVerifyOTP = async () => {
     try {
       const res = await fetch(
-        `${process.env.BACKEND_API_URL}/auth/verify-email`,
+        `${BACKEND_API_URL}/auth/verify-email`,
         {
           method: "POST",
           headers: {
@@ -154,7 +157,7 @@ const CreateProfile = () => {
       setIsLoading(true);
 
       const res = await fetch(
-        `${process.env.BACKEND_API_URL}/auth/resend-verification`,
+        `${BACKEND_API_URL}/auth/resend-verification`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
