@@ -7,9 +7,9 @@ import CommentsSection from './(dashboard)/long/_components/CommentSection';
 import KYCForm from './(dashboard)/wallet/_components/KYCForm';
 import PublicProfilePage from './(dashboard)/profile/public/PublicProfile';
 import PersonalProfilePage from './(dashboard)/profile/personal.PersonalProfile';
-import CreateProfile from './CreateProfile/CreateProfile';
 import SignUp from './(auth)/Sign-up';
 import PublicCommunityPage from './(dashboard)/public/publicComm';
+import CreateProfile from './Profile/CreateProfile';
 
 
 const Home = () => {
