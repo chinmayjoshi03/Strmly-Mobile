@@ -10,6 +10,10 @@ import PersonalProfilePage from './(dashboard)/profile/personal.PersonalProfile'
 import SignUp from './(auth)/Sign-up';
 import PublicCommunityPage from './(dashboard)/public/publicComm';
 import CreateProfile from './Profile/CreateProfile';
+import AddCreatorPass from './Profile/AddCreatorPass';
+import EditProfilePage from './Profile/EditProfile';
+import CreateCommunityPage from './(communities)/CreateCommunityPage';
+import EditCommunityPage from './(communities)/EditCommunity';
 
 
 const Home = () => {
@@ -18,14 +22,19 @@ const Home = () => {
 
     // <SignUp/>
     // <CreateProfile/>
+    // <AddCreatorPass/>
+    // <EditProfilePage/>
 
-    <PersonalProfilePage/>
+    // <PersonalProfilePage/>
     // <PublicProfilePage/>
+    
     // <PublicCommunityPage/>
+    // <CreateCommunityPage/>
+    // <EditCommunityPage/>
 
       // <KYCForm/>
       // <VideoContentGifting creatorProfile='' creatorName='Irshad' creatorUsername='@User123'/>
-      // <VideoFeed/>
+      <VideoFeed/>
       // <CommentsSection isOpen={true} onClose={() => {}} videoId={'1'} longVideosOnly={false} />
       // <WalletPage/>
 

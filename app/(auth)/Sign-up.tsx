@@ -58,7 +58,7 @@ const SignUp = () => {
       // Save token and user info (you can use AsyncStorage or context here)
       console.log("Signed in:", data);
 
-      router.push("/CreateProfile/CreateProfile"); // Navigate after signup
+      router.push('/Profile/CreateProfile'); // Navigate after signup
     } catch (err) {
       console.error(err);
       Alert.alert("Error", "Something went wrong during signup.");
@@ -80,7 +80,7 @@ const SignUp = () => {
           platform.
         </Text>
         <TouchableOpacity
-          onPress={() => router.push("/CreateProfile/CreateProfile")}
+          onPress={() => router.push('/Profile/CreateProfile')}
           style={Signinstyles.button}
         >
           <View className="flex-row items-center justify-between w-full px-4">
