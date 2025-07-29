@@ -8,8 +8,14 @@ import KYCForm from './(dashboard)/wallet/_components/KYCForm';
 import PublicCommunityPage from './(dashboard)/public/publicComm';
 import PublicProfilePage from './(dashboard)/profile/public/PublicProfile';
 import PersonalProfilePage from './(dashboard)/profile/personal.PersonalProfile';
-// import CreateProfile from './CreateProfile/CreateProfile';
 import SignUp from './(auth)/Sign-up';
+import CreateProfile from './Profile/CreateProfile';
+import AddCreatorPass from './Profile/AddCreatorPass';
+import EditProfilePage from './Profile/EditProfile';
+import CreateCommunityPage from './(communities)/CreateCommunityPage';
+import EditCommunityPage from './(communities)/EditCommunity';
+
+// import CreateProfile from './CreateProfile/CreateProfile';
 import StrmlyStudio from './studio/StrmlyStudio';
 
 const Home = () => {
@@ -18,17 +24,22 @@ const Home = () => {
 
     // <SignUp/>
     // <CreateProfile/>
+    // <AddCreatorPass/>
+    // <EditProfilePage/>
 
     // <PersonalProfilePage/>
     // <PublicProfilePage/>
+    
     // <PublicCommunityPage/>
+    // <CreateCommunityPage/>
+    // <EditCommunityPage/>
 
       // <KYCForm/>
       // <VideoContentGifting creatorProfile='' creatorName='Irshad' creatorUsername='@User123'/>
-      // <VideoFeed/>
+      <VideoFeed/>
       // <CommentsSection isOpen={true} onClose={() => {}} videoId={'1'} longVideosOnly={false} />
       // <WalletPage/>
-      <StrmlyStudio/>
+      // <StrmlyStudio/>
 
     // </ThemedView>
   )
