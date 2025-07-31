@@ -15,16 +15,25 @@ If your new network IP is `192.168.0.100`, simply change:
 
 ```bash
 # From:
-EXPO_PUBLIC_IP_ADDRESS=192.168.1.36
+EXPO_PUBLIC_IP_ADDRESS=192.168.252.2
 
 # To:
 EXPO_PUBLIC_IP_ADDRESS=192.168.0.100
 ```
 
+## Backend Port Configuration
+
+Your backend runs on **port 8080**. The configuration automatically uses:
+- `EXPO_PUBLIC_API_URL=http://YOUR_IP:8080` - For video feeds and main API
+- `BACKEND_API_URL=http://YOUR_IP:8080` - For authentication and user actions
+
 ## What Gets Updated Automatically
 
 The app will automatically use this IP address for:
-- API calls in upload flow
+- Video feed API calls
+- Authentication (login/signup)
+- User profile and actions
+- Upload flow
 - Series management
 - Draft operations
 - Studio functionality

@@ -1,11 +1,23 @@
 import { useState, useCallback } from 'react';
 import { UploadFlowState, VideoFormData, FinalStageData } from '../types';
 import { Series } from '../../studio/types';
-import { CONFIG } from '../../../Constants/config';
+import { CONFIG } from '@/Constants/config';
+import { useAuthStore } from '@/store/useAuthStore';
 
 /**
  * Upload Flow State Management Hook
  * Manages the entire upload flow state and navigation
+ * 
+ * Backend Integration Notes:
+ * - Replace mock upload progress with real API calls
+ * - Implement proper error handling and retry logic
+ * - Add form data persistence to prevent data loss
+ * - Consider using React Query or SWR for API state management
+ * 
+ * API Integration Points:
+ * - Video upload: POST /api/videos/upload
+ * - Save draft: POST /api/videos/draft
+ * - Publish video: POST /api/videos/publish
  */
 
 const initialVideoDetails: VideoFormData = {
@@ -24,6 +36,18 @@ const initialFinalStageData: FinalStageData = {
 };
 
 export const useUploadFlow = () => {
+  const { token, isLoggedIn, user } = useAuthStore();
+  
+  // Debug auth state
+  console.log('=== UPLOAD FLOW AUTH DEBUG ===');
+  console.log('Token exists:', !!token);
+  console.log('Token length:', token?.length);
+  console.log('Token preview:', token?.substring(0, 20) + '...');
+  console.log('Is logged in:', isLoggedIn);
+  console.log('User:', user?.name);
+  console.log('API Base URL:', CONFIG.API_BASE_URL);
+  console.log('==============================');
+  
   const [state, setState] = useState<UploadFlowState>({
     currentStep: 'file-select',
     uploadProgress: 0,
@@ -38,6 +62,19 @@ export const useUploadFlow = () => {
 
   const [draftId, setDraftId] = useState<string | null>(null);
 
+  // Test API connection
+  const testApiConnection = useCallback(async () => {
+    try {
+      console.log('Testing API connection...');
+      const response = await fetch(`${CONFIG.API_BASE_URL}/health`);
+      console.log('Health check response:', response.status);
+      return response.ok;
+    } catch (error) {
+      console.error('API connection test failed:', error);
+      return false;
+    }
+  }, []);
+
   // Create initial draft when upload starts
   const createInitialDraft = useCallback(async () => {
     if (draftId) {
@@ -45,25 +82,42 @@ export const useUploadFlow = () => {
       return draftId;
     }
 
+    if (!token) {
+      console.error('No authentication token available');
+      return null;
+    }
+
+    // Test API connection first
+    const isConnected = await testApiConnection();
+    if (!isConnected) {
+      console.error('API connection failed');
+      return null;
+    }
+
     try {
       const draftData = {
-        name: 'Untitled Video',
-        description: 'No description',
-        genre: 'Action',
-        type: 'Free',
+        name: state.videoDetails.title || 'Untitled Video',
+        description: state.videoDetails.title || 'No description',
+        genre: state.finalStageData.genre || 'Action',
+        type: state.videoDetails.videoType === 'paid' ? 'Paid' : 'Free',
         language: 'english'
       };
 
       console.log('Creating initial draft with data:', draftData);
+      console.log('Using API URL:', CONFIG.API_BASE_URL);
+      console.log('Using token:', token?.substring(0, 20) + '...');
 
       const response = await fetch(`${CONFIG.API_BASE_URL}/api/v1/drafts/create-or-update`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI2ODg0Yzc0YWU3M2Q4ZDRlZjY3YjAyZTQiLCJpYXQiOjE3NTM1MzIyMzYsImV4cCI6MTc1NjEyNDIzNn0._pqT9psCN1nR5DJpB60HyA1L1pp327o1fxfZPO4BY3M'
+          'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify(draftData)
       });
+
+      console.log('Response status:', response.status);
+      console.log('Response headers:', response.headers);
 
       if (!response.ok) {
         const errorText = await response.text();
@@ -87,13 +141,18 @@ export const useUploadFlow = () => {
       console.error('Error creating initial draft:', error);
       return null;
     }
-  }, [draftId]);
+  }, [draftId, token, state, testApiConnection]);
 
   // Update existing draft with current form data
   const updateDraft = useCallback(async () => {
     if (!draftId) {
       console.log('No draft ID available, creating initial draft first');
       return await createInitialDraft();
+    }
+
+    if (!token) {
+      console.error('No authentication token available');
+      return null;
     }
 
     try {
@@ -112,7 +171,7 @@ export const useUploadFlow = () => {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI2ODg0Yzc0YWU3M2Q4ZDRlZjY3YjAyZTQiLCJpYXQiOjE3NTM1MzIyMzYsImV4cCI6MTc1NjEyNDIzNn0._pqT9psCN1nR5DJpB60HyA1L1pp327o1fxfZPO4BY3M'
+          'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify(draftData)
       });
@@ -140,12 +199,15 @@ export const useUploadFlow = () => {
       console.error('Error updating draft:', error);
       return null;
     }
-  }, [state, draftId, createInitialDraft]);
+  }, [state, draftId, createInitialDraft, token]);
 
-  // Start the upload process
+  // Start the upload process (now happens after final stage)
   const startUpload = useCallback(() => {
+    // Real upload now happens in submitUpload function
     console.log('Starting upload process...');
   }, []);
+
+
 
   // Navigate to next step
   const goToNextStep = useCallback(() => {
@@ -157,10 +219,8 @@ export const useUploadFlow = () => {
           nextStep = 'format-select';
           break;
         case 'format-select':
-          nextStep = prev.videoFormat === 'episode' ? 'episode-selection' : 'details-1';
-          break;
-        case 'episode-selection':
-          nextStep = 'details-1';
+          // If episode format, go to series selection; if single, go directly to details
+          nextStep = prev.videoFormat === 'episode' ? 'series-selection' : 'details-1';
           break;
         case 'series-selection':
           nextStep = 'series-creation';
@@ -178,9 +238,10 @@ export const useUploadFlow = () => {
           nextStep = 'final';
           break;
         case 'final':
-          nextStep = 'progress';
+          nextStep = 'progress'; // Upload happens after final stage
           break;
         case 'progress':
+          // Upload complete - handled by onUploadComplete
           break;
       }
 
@@ -197,17 +258,15 @@ export const useUploadFlow = () => {
         case 'format-select':
           prevStep = 'file-select';
           break;
-        case 'episode-selection':
-          prevStep = 'format-select';
-          break;
         case 'series-selection':
-          prevStep = 'episode-selection';
+          prevStep = 'format-select';
           break;
         case 'series-creation':
           prevStep = 'series-selection';
           break;
         case 'details-1':
-          prevStep = prev.videoFormat === 'episode' ? 'episode-selection' : 'format-select';
+          // If episode format, go back to series selection; if single, go back to format select
+          prevStep = prev.videoFormat === 'episode' ? 'series-selection' : 'format-select';
           break;
         case 'details-2':
           prevStep = 'details-1';
@@ -231,11 +290,17 @@ export const useUploadFlow = () => {
       videoDetails: { ...prev.videoDetails, ...details },
     }));
 
-    // Auto-save draft when video details are updated (with debounce)
-    setTimeout(() => {
-      updateDraft();
-    }, 1000);
-  }, [updateDraft]);
+    // Create draft when we have enough details (title is provided)
+    if (details.title && details.title.trim() !== '' && token) {
+      setTimeout(() => {
+        if (!draftId) {
+          createInitialDraft();
+        } else {
+          updateDraft();
+        }
+      }, 1000);
+    }
+  }, [updateDraft, createInitialDraft, draftId, token]);
 
   // Update final stage data
   const updateFinalStageData = useCallback((data: Partial<FinalStageData>) => {
@@ -244,11 +309,13 @@ export const useUploadFlow = () => {
       finalStageData: { ...prev.finalStageData, ...data },
     }));
 
-    // Auto-save draft when final stage data is updated
-    setTimeout(() => {
-      updateDraft();
-    }, 1000);
-  }, [updateDraft]);
+    // Auto-save draft when final stage data is updated (only if draft exists)
+    if (draftId && token) {
+      setTimeout(() => {
+        updateDraft();
+      }, 1000);
+    }
+  }, [updateDraft, draftId, token]);
 
   // Set selected file
   const setSelectedFile = useCallback((file: any) => {
@@ -257,11 +324,9 @@ export const useUploadFlow = () => {
       selectedFile: file,
     }));
 
-    // Create initial draft when file is selected
-    setTimeout(() => {
-      createInitialDraft();
-    }, 500);
-  }, [createInitialDraft]);
+    // Don't create draft immediately - wait until we have more details
+    console.log('File selected:', file?.name);
+  }, []);
 
   // Set video format
   const setVideoFormat = useCallback((format: 'episode' | 'single') => {
@@ -279,7 +344,7 @@ export const useUploadFlow = () => {
     }));
   }, []);
 
-  // Go directly to details step
+  // Go directly to details step (used after series selection/creation)
   const goToDetailsStep = useCallback(() => {
     setState(prev => ({
       ...prev,
@@ -299,7 +364,7 @@ export const useUploadFlow = () => {
       case 'series-selection':
         return selectedSeries !== null;
       case 'series-creation':
-        return true;
+        return true; // Validation handled within the series creation screen
       case 'details-1':
         return videoDetails.title.trim() !== '' && videoDetails.community !== null;
       case 'details-2':
@@ -318,10 +383,15 @@ export const useUploadFlow = () => {
     }
   }, [state]);
 
-  // Submit final upload
+  // Submit final upload (complete draft with video file)
   const submitUpload = useCallback(async () => {
     if (!state.selectedFile) {
       console.error('No selected file for upload');
+      return false;
+    }
+
+    if (!token) {
+      console.error('No authentication token available');
       return false;
     }
 
@@ -366,7 +436,8 @@ export const useUploadFlow = () => {
       const response = await fetch(`${CONFIG.API_BASE_URL}/api/v1/drafts/complete/${currentDraftId}`, {
         method: 'POST',
         headers: {
-          'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI2ODg0Yzc0YWU3M2Q4ZDRlZjY3YjAyZTQiLCJpYXQiOjE3NTM1MzIyMzYsImV4cCI6MTc1NjEyNDIzNn0._pqT9psCN1nR5DJpB60HyA1L1pp327o1fxfZPO4BY3M',
+          'Authorization': `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI2ODg4OWI2OTUwZjg0ZDJlNGIyNTk5OTMiLCJpYXQiOjE3NTM3OTQ2NzAsImV4cCI6MTc1NjM4NjY3MH0.FqMH1vIqdmu9lt9BqEIIQA4FBy7mL6JUnHPvB7DIu_Q`,
+          // Don't set Content-Type for FormData - let the browser set it
         },
         body: formData,
       });
@@ -389,7 +460,7 @@ export const useUploadFlow = () => {
       setState(prev => ({ ...prev, isUploading: false, errors: { upload: 'Network error during upload' } }));
       return false;
     }
-  }, [draftId, state.selectedFile, createInitialDraft]);
+  }, [draftId, state.selectedFile, createInitialDraft, token]);
 
   // Reset flow
   const resetFlow = useCallback(() => {
@@ -424,5 +495,6 @@ export const useUploadFlow = () => {
     createInitialDraft,
     updateDraft,
     draftId,
+    testApiConnection,
   };
 };

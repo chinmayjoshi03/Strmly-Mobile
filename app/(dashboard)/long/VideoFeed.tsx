@@ -5,6 +5,7 @@ import ThemedView from "@/components/ThemedView";
 import { useAuthStore } from "@/store/useAuthStore";
 import { CONFIG } from "@/Constants/config";
 import { VideoItemType } from "@/types/VideosType";
+import { processVideosForCDN } from "@/utils/cdnUtils";
 
 const { height } = Dimensions.get("screen");
 
@@ -44,7 +45,11 @@ const VideoFeed: React.FC = () => {
       const json = await res.json();
       console.log('✅ Videos fetched successfully:', json.data?.length || 0, 'videos');
 
-      setVideos(json.data || []);
+      // Process videos to use CDN URLs
+      const videosWithCDN = processVideosForCDN(json.data || []);
+      console.log('🚀 Videos processed with CDN URLs');
+
+      setVideos(videosWithCDN);
     } catch (err: any) {
       console.error('❌ Error fetching trending videos:', err);
       setError(err.message || "Something went wrong");
