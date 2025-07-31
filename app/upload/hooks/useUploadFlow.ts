@@ -436,7 +436,7 @@ export const useUploadFlow = () => {
       const response = await fetch(`${CONFIG.API_BASE_URL}/api/v1/drafts/complete/${currentDraftId}`, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI2ODg4OWI2OTUwZjg0ZDJlNGIyNTk5OTMiLCJpYXQiOjE3NTM3OTQ2NzAsImV4cCI6MTc1NjM4NjY3MH0.FqMH1vIqdmu9lt9BqEIIQA4FBy7mL6JUnHPvB7DIu_Q`,
+          'Authorization': `Bearer ${token}`,
           // Don't set Content-Type for FormData - let the browser set it
         },
         body: formData,
