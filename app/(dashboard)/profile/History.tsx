@@ -4,6 +4,7 @@ import {
   ActivityIndicator,
   TouchableOpacity,
   Image,
+  FlatList,
 } from "react-native";
 import React, { useEffect, useState } from "react";
 import ThemedView from "@/components/ThemedView";
@@ -11,11 +12,12 @@ import { useRouter } from "expo-router";
 import { useThumbnailsGenerate } from "@/utils/useThumbnailGenerator";
 import { useAuthStore } from "@/store/useAuthStore";
 import Constants from "expo-constants";
+import ProfileTopbar from "@/components/profileTopbar";
 
 const HistoryPage = () => {
   const [videos, setVideos] = useState<any[]>([]);
   const [isLoadingVideos, setIsLoadingVideos] = useState(false);
-  const { user, isLoggedIn, token, logout } = useAuthStore();
+  const { isLoggedIn, token, logout } = useAuthStore();
   const router = useRouter();
 
   const BACKEND_API_URL = Constants.expoConfig?.extra?.BACKEND_API_URL;
@@ -65,37 +67,49 @@ const HistoryPage = () => {
     loadHistory();
   }, [isLoggedIn, token]);
 
+  const renderGridItem = ({ item }: { item: any }) => (
+    <TouchableOpacity className="relative aspect-[9/16] flex-1 rounded-sm overflow-hidden">
+      {item.thumbnailUrl != null || "" ? (
+        <Image
+          source={{ uri: item.thumbnailUrl }}
+          alt="video thumbnail"
+          className="w-full h-full object-cover"
+        />
+      ) : thumbnails[item._id] ? (
+        <Image
+          source={{ uri: thumbnails[item._id] }}
+          alt="video thumbnail"
+          className="w-full h-full object-cover"
+        />
+      ) : (
+        <View className="w-full h-full flex items-center justify-center">
+          <Text className="text-white text-xs">Loading...</Text>
+        </View>
+      )}
+    </TouchableOpacity>
+  );
+
   return (
-    <ThemedView>
-      <View>
-        {/* Video Grid */}
-        {isLoadingVideos ? (
-          <View className="w-full h-96 flex-1 items-center justify-center mt-20">
-            <ActivityIndicator size="large" color="#F1C40F" />
-          </View>
-        ) : (
-          <View className="mt-4 flex flex-row flex-wrap justify-start px-6">
-            {videos.map((video) => (
-              <TouchableOpacity
-                key={video._id}
-                className="relative aspect-[9/16] rounded-lg overflow-hidden bg-black w-[32.33%] m-[0.5%] border border-gray-700" // Calculate width for 3 columns with small gap
-              >
-                {thumbnails[video._id] ? (
-                  <Image
-                    source={{ uri: thumbnails[video._id] }}
-                    alt="video thumbnail"
-                    className="w-full h-full object-cover"
-                  />
-                ) : (
-                  <View className="w-full h-full flex items-center justify-center">
-                    <Text className="text-white text-xs">Loading...</Text>
-                  </View>
-                )}
-              </TouchableOpacity>
-            ))}
-          </View>
-        )}
-      </View>
+    <ThemedView className="flex-1 pt-5">
+      {/* Video Grid */}
+      {isLoadingVideos ? (
+        <View className="w-full h-96 flex-1 items-center justify-center mt-20">
+          <ActivityIndicator size="large" color="white" />
+        </View>
+      ) : (
+        <>
+          <ProfileTopbar isMore={false} hashtag={false} name={"History"} />
+
+          <FlatList
+            data={videos}
+            keyExtractor={(item) => item._id}
+            renderItem={renderGridItem}
+            numColumns={3}
+            contentContainerStyle={{ paddingBottom: 30, paddingHorizontal: 0 }}
+            showsVerticalScrollIndicator={false}
+          />
+        </>
+      )}
     </ThemedView>
   );
 };

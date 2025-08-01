@@ -1,5 +1,5 @@
 import React from 'react';
-import CommunityAnalytics from '../(dashboard)/public/CommunityAnalytics';
+import CommunityAnalytics from '../(communities)/public/CommunityAnalytics';
 
 // Demo component to showcase Community Analytics screens
 const CommunityAnalyticsDemo = () => {

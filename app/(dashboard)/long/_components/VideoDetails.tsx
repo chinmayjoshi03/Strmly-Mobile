@@ -8,6 +8,8 @@ import {
 } from "react-native";
 import React, { useState } from "react";
 import { ChevronDownIcon, Hash, PlusSquare } from "lucide-react-native";
+import { useAuthStore } from "@/store/useAuthStore";
+import Constants from "expo-constants";
 
 const episodes = [
   "Episode : 01",
@@ -28,6 +30,7 @@ const paid = [
 ];
 
 type VideoDetailsProps = {
+  videoId: string;
   name: string;
   type: string;
   series?: {};
@@ -37,6 +40,7 @@ type VideoDetailsProps = {
 };
 
 const VideoDetails = ({
+  videoId,
   type,
   name,
   series,
@@ -48,8 +52,65 @@ const VideoDetails = ({
   const [showDropdown, setShowDropdown] = useState(false);
   const [selectedEpisodeIndex, setSelectedEpisodeIndex] = useState(0);
   const [showPriceDropdown, setShowPriceDropdown] = useState(false);
+  const [isFollowCreator, setIsFollowCreator] = useState<boolean>(false);
+  const [isFollowCommunity, setIsFollowCommunity] = useState<boolean>(false);
 
-  const followCreator = ()=> {}
+  const { isLoggedIn, token } = useAuthStore();
+
+  const BACKEND_API_URL = Constants.expoConfig?.extra?.BACKEND_API_URL;
+
+  const followCreator = async () => {
+    if (!token || !videoId) {
+      return;
+    }
+    
+    try {
+      const response = await fetch(
+        `${BACKEND_API_URL}/user/${isFollowCreator ? 'unfollow' : 'follow'}`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(!isFollowCreator ? { followUserId: videoId } : {unfollowUserId: videoId}),
+        }
+      );
+      if (!response.ok) throw new Error("Failed to follow user");
+      const data = await response.json();
+      setIsFollowCreator(!isFollowCreator);
+      console.log('data', data);
+    } catch (err) {
+      console.log(err);
+    }
+  };
+
+  const followCommunity = async () => {
+    if (!token || !videoId) { // change videoId -> CommunityId
+      return;
+    }
+    
+    try {
+      const response = await fetch(
+        `${BACKEND_API_URL}/community/${isFollowCommunity ? 'unfollow' : 'follow'}`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(!isFollowCommunity ? { communityId: videoId } : {unfollowUserId: videoId}),
+        }
+      );
+      if (!response.ok) throw new Error("Failed to follow user");
+      const data = await response.json();
+      setIsFollowCommunity(!isFollowCommunity);
+      console.log('data', data);
+    } catch (err) {
+      console.log(err);
+    }
+  };
+  
 
   return (
     <View className="w-full gap-3.5">
@@ -68,9 +129,14 @@ const VideoDetails = ({
       {/* Username + Paid */}
       <View className="flex-row items-center justify-between">
         <View className="flex-row items-center gap-2">
-          <Text className="text-white font-semibold">{createdBy ? createdBy.username : 'Rohith'}</Text>
-          <TouchableOpacity onPress={()=> followCreator()} className="border border-white items-center justify-center rounded-md px-2">
-            <Text className="font-semibold text-sm text-white">Follow</Text>
+          <Text className="text-white font-semibold">
+            {createdBy ? createdBy.username : "Rohith"}
+          </Text>
+          <TouchableOpacity
+            onPress={() => followCreator()}
+            className="border border-white items-center justify-center rounded-md px-2"
+          >
+            <Text className="font-semibold text-sm text-white">{isFollowCreator ? 'Following' : 'Follow'}</Text>
           </TouchableOpacity>
         </View>
 

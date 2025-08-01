@@ -14,6 +14,7 @@ import {
 } from "react-native";
 import Constants from "expo-constants";
 import * as ImagePicker from "expo-image-picker";
+import { router } from "expo-router";
 
 const EditCommunityPage: React.FC = () => {
   const [fontsLoaded] = useFonts({
@@ -128,7 +129,7 @@ const EditCommunityPage: React.FC = () => {
   return (
     <ThemedView style={CreateCommunityStyle.container}>
       <View style={CreateCommunityStyle.CreateCommunityTopBar}>
-        <TouchableOpacity style={CreateCommunityStyle.BackIcon}>
+        <TouchableOpacity onPress={()=> router.back()} style={CreateCommunityStyle.BackIcon}>
           <Image
             className="size-5"
             source={require("../../assets/images/back.png")}

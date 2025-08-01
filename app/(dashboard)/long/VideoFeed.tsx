@@ -6,8 +6,6 @@ import { useAuthStore } from "@/store/useAuthStore";
 import Constants from "expo-constants";
 import { VideoItemType } from "@/types/VideosType";
 
-const { height } = Dimensions.get("screen");
-
 const videoData = [
   {
     id: "1",
@@ -33,6 +31,25 @@ const VideoFeed: React.FC = () => {
   const [visibleIndex, setVisibleIndex] = useState(0);
   const { token, user, isLoggedIn } = useAuthStore();
 
+  const [showCommentsModal, setShowCommentsModal] = useState(false);
+
+  const { height } = Dimensions.get("screen");
+  const [screenSize, setScreenSize] = useState(Dimensions.get("screen"));
+
+  useEffect(() => {
+    const onChange = ({
+      screen,
+    }: {
+      screen: { width: number; height: number };
+    }) => {
+      setScreenSize(screen);
+    };
+
+    const sub = Dimensions.addEventListener("change", onChange);
+
+    return () => sub.remove();
+  }, []);
+
   const fetchTrendingVideos = async () => {
     try {
       console.log(token);
@@ -55,16 +72,6 @@ const VideoFeed: React.FC = () => {
   useEffect(() => {
     fetchTrendingVideos();
   }, []);
-
-  // Debug token when VideoFeed loads
-  // useEffect(() => {
-  //   console.log("=== VIDEO FEED TOKEN CHECK ===");
-  //   console.log("Token:", token);
-  //   console.log("Token length:", token?.length);
-  //   console.log("Is logged in:", isLoggedIn);
-  //   console.log("User:", user);
-  //   console.log("=============================");
-  // }, [token, isLoggedIn, user]);
 
   const onViewableItemsChanged = useRef(({ viewableItems }: any) => {
     if (viewableItems.length > 0) {
@@ -90,21 +97,25 @@ const VideoFeed: React.FC = () => {
   }
 
   return (
-    <ThemedView style={{ height }}>
+    <ThemedView style={{ height: screenSize.height  }}>
       <FlatList
         data={videos}
         keyExtractor={(item) => item._id}
         renderItem={({ item, index }) => (
           <VideoItem
+            showCommentsModal={showCommentsModal}
+            setShowCommentsModal={setShowCommentsModal}
+            key={`${item._id}-${visibleIndex === index}`}
             uri={item.videoUrl}
             isActive={index === visibleIndex}
-            videoData={item} // Pass more data if needed
+            videoData={item}
           />
         )}
         pagingEnabled
+        scrollEnabled={!showCommentsModal}
         onViewableItemsChanged={onViewableItemsChanged.current}
         viewabilityConfig={{ itemVisiblePercentThreshold: 80 }}
-        snapToInterval={height}
+        snapToInterval={screenSize.height }
         decelerationRate="fast"
         showsVerticalScrollIndicator={false}
       />

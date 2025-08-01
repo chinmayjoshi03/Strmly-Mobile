@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import {
   View,
   Text,
@@ -7,7 +7,9 @@ import {
   ScrollView, // Use ScrollView for scrollable content
   Alert,
   Image,
-  Linking, // For opening external links
+  Linking,
+  Pressable,
+  FlatList, // For opening external links
 } from "react-native";
 import {
   MapPin,
@@ -18,7 +20,7 @@ import {
   IndianRupee,
   PaperclipIcon, // Added for the gradient button
 } from "lucide-react-native";
-import { useRouter } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { useAuthStore } from "@/store/useAuthStore";
 import { useThumbnailsGenerate } from "@/utils/useThumbnailGenerator"; // Ensure this path is correct
 import ThemedView from "@/components/ThemedView"; // Assuming this is a basic wrapper for styling
@@ -33,13 +35,23 @@ export default function PublicProfilePage() {
   const [userData, setUserData] = useState<any>(null);
   const [videos, setVideos] = useState<any[]>([]);
 
+  const [isFollowing, setIsFollowing] = useState(false);
+
   const [isLoading, setIsLoading] = useState(false);
+  const [showMore, setShowMore] = useState(false);
 
   const [isLoadingVideos, setIsLoadingVideos] = useState(false);
-  const { user, isLoggedIn, token, logout } = useAuthStore();
+  const { isLoggedIn, token, logout } = useAuthStore();
   const router = useRouter();
 
   const BACKEND_API_URL = Constants.expoConfig?.extra?.BACKEND_API_URL;
+
+  const params = useLocalSearchParams<{
+    id: string;
+  }>();
+
+  const id = "6884d0776d5898b4ba5b7dfb";
+  // const id = params.id;
 
   // Access the current user's ID if this profile page is for the logged-in user
   // If this page can display OTHER users' profiles, you'd use useLocalSearchParams for `id`
@@ -47,34 +59,36 @@ export default function PublicProfilePage() {
   // If you need to fetch a specific user's profile by ID, you'd uncomment useLocalSearchParams and get the ID from there.
 
   const thumbnails = useThumbnailsGenerate(
-    videos.map((video) => ({
-      id: video._id,
-      url: video.videoUrl,
-    }))
+    useMemo(
+      () =>
+        videos.map((video) => ({
+          id: video._id,
+          url: video.videoUrl,
+        })),
+      [videos]
+    )
   );
+
+  // useEffect(() => {
+  //   videos.map((video) => console.log("thumbnail", video.thumbnailUrl));
+  // }, [videos]);
 
   useEffect(() => {
     // Re-enabled login check as it's crucial for protected routes
-    // if (!isLoggedIn) {
-    //   router.push('/(auth)/Sign-in');
-    //   return;
-    // }
+    if (!isLoggedIn) {
+      router.push("/(auth)/Sign-in");
+      return;
+    }
 
     const fetchUserVideos = async () => {
       setIsLoadingVideos(true);
       try {
-        const queryParams = new URLSearchParams();
-        queryParams.append("type", activeTab);
-
-        const response = await fetch(
-          `${BACKEND_API_URL}/user/profile/videos?${queryParams.toString()}`,
-          {
-            method: "GET",
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          }
-        );
+        const response = await fetch(`${BACKEND_API_URL}/user/videos?${id}`, {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
 
         const data = await response.json();
 
@@ -82,8 +96,7 @@ export default function PublicProfilePage() {
           throw new Error(data.message || "Failed to fetch user videos");
         }
 
-        console.log("videos", data);
-        setVideos(data);
+        setVideos(data.videos);
       } catch (err) {
         console.error("Error fetching user videos:", err);
         Alert.alert(
@@ -103,14 +116,14 @@ export default function PublicProfilePage() {
   }, [isLoggedIn, router, token, activeTab]);
 
   useEffect(() => {
-    // if (!isLoggedIn) {
-    //   router.push('/(auth)/Sign-in');
-    //   return;
-    // }
+    if (!isLoggedIn) {
+      router.push("/(auth)/Sign-in");
+      return;
+    }
 
     const fetchUserData = async () => {
       try {
-        const response = await fetch(`${BACKEND_API_URL}/user/profile`, {
+        const response = await fetch(`${BACKEND_API_URL}/user/profile/${id}`, {
           method: "GET",
           headers: {
             Authorization: `Bearer ${token}`,
@@ -124,8 +137,9 @@ export default function PublicProfilePage() {
           throw new Error(data.message || "Failed to fetch user profile");
         }
 
-        console.log(data.user);
         setUserData(data.user);
+        console.log('user', data)
+        if (data.user?.tags && data.user.tags.length > 2) setShowMore(true);
       } catch (error) {
         console.log(error);
         Alert.alert(
@@ -143,6 +157,41 @@ export default function PublicProfilePage() {
       fetchUserData();
     }
   }, [isLoggedIn, router, token]);
+
+  const followCreator = async () => {
+    try {
+      const response = await fetch(`${BACKEND_API_URL}/user/follow`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          followUserId: id,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || "Failed to follow user profile");
+      }
+
+      console.log(data);
+      setIsFollowing(true);
+      Alert.alert("You are now Following this creator");
+    } catch (error) {
+      console.log(error);
+      Alert.alert(
+        "Error",
+        error instanceof Error
+          ? error.message
+          : "An unknown error occurred while following user."
+      );
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   // Use a derived state for profileData for cleaner access
   const currentProfileData = {
@@ -171,13 +220,39 @@ export default function PublicProfilePage() {
     creatorPassPrice: userData?.creator_profile?.creator_pass_price || 0,
   };
 
+  const renderGridItem = ({ item }: { item: any }) => (
+    <TouchableOpacity className="relative aspect-[9/16] flex-1 rounded-sm overflow-hidden">
+      {item.thumbnailUrl != null || "" ? (
+        <Image
+          source={{ uri: item.thumbnailUrl }}
+          alt="video thumbnail"
+          className="w-full h-full object-cover"
+        />
+      ) : thumbnails[item._id] ? (
+        <Image
+          source={{ uri: thumbnails[item._id] }}
+          alt="video thumbnail"
+          className="w-full h-full object-cover"
+        />
+      ) : (
+        <View className="w-full h-full flex items-center justify-center">
+          <Text className="text-white text-xs">Loading...</Text>
+        </View>
+      )}
+    </TouchableOpacity>
+  );
+
   return (
     <ThemedView className="flex-1 pt-5">
-      <ScrollView className="flex-1">
+      <View className="flex-1 gap-5">
         {/* Cover Image */}
         {!isLoading && (
           <View className="h-48 relative">
-            <ProfileTopbar hashtag={false} name={currentProfileData.username} />
+            <ProfileTopbar
+              isMore={false}
+              hashtag={false}
+              name={currentProfileData.username}
+            />
           </View>
         )}
         {/* Profile Info */}
@@ -214,13 +289,15 @@ export default function PublicProfilePage() {
             </View>
 
             {/* Stats */}
-            <View className={`mt-6 flex-row justify-evenly items-center ${currentProfileData.creatorPassPrice !== 0 && "gap-4" }`}>
+            <View
+              className={`mt-6 flex-row justify-evenly items-center ${currentProfileData.creatorPassPrice !== 0 && "gap-4"}`}
+            >
               <TouchableOpacity
                 className="text-center items-center"
                 // onPress={() => router.push("/communities?type=followers")}
               >
                 <Text className="font-semibold text-lg text-white">
-                  {currentProfileData.followers}M
+                  {currentProfileData.followers}
                 </Text>
                 <Text className="text-gray-400 text-md font-thin">
                   Followers
@@ -228,15 +305,18 @@ export default function PublicProfilePage() {
               </TouchableOpacity>
 
               {/* Follow Button */}
-              <TouchableOpacity className="h-9 px-7 py-2 rounded-lg border border-white">
+              <TouchableOpacity
+                onPress={() => followCreator()}
+                className="h-9 px-7 py-2 rounded-lg border border-white"
+              >
                 <Text className="text-white text-center font-semibold">
-                  Follow
+                  {isFollowing ? "Following" : "Follow"}
                 </Text>
               </TouchableOpacity>
 
               {/* Access Button with Gradient Border */}
               <TouchableOpacity
-                className={`${currentProfileData.creatorPassPrice !== 0 && "flex-grow" } h-10 rounded-lg overflow-hidden`}
+                className={`${currentProfileData.creatorPassPrice !== 0 && "flex-grow"} h-10 rounded-lg overflow-hidden`}
               >
                 <LinearGradient
                   colors={["#4400FFA6", "#FFFFFF", "#FF00004D", "#FFFFFF"]}
@@ -268,14 +348,47 @@ export default function PublicProfilePage() {
             </View>
 
             {/* Tags/Edit Buttons */}
-            <View className="flex flex-row flex-wrap w-full items-center justify-center gap-2 mt-5">
-              <TouchableOpacity className="px-4 py-2 border border-gray-400 rounded-[8px]">
-                <Text className="text-white">#Edit</Text>
-              </TouchableOpacity>
-              <TouchableOpacity className="px-4 py-2 border border-gray-400 rounded-[8px]">
-                <Text className="text-white">#Fun</Text>
-              </TouchableOpacity>
-            </View>
+            {userData?.tags && (
+              <View className="flex flex-row flex-wrap w-full items-center justify-center gap-2 mt-5">
+                <TouchableOpacity className="px-4 py-2 border border-gray-400 rounded-[8px]">
+                  <Text className="text-white">#Edit</Text>
+                </TouchableOpacity>
+                <TouchableOpacity className="px-4 py-2 border border-gray-400 rounded-[8px]">
+                  <Text className="text-white">#Fun</Text>
+                </TouchableOpacity>
+
+                {userData?.tags.map((tag: string, index: number) => {
+                  if (index < 2) {
+                    return (
+                      <TouchableOpacity
+                        key={tag}
+                        className="px-4 py-2 border border-gray-400 rounded-[8px]"
+                      >
+                        <Text className="text-white">#{tag}</Text>
+                      </TouchableOpacity>
+                    );
+                  }
+                  if (!showMore && index > 2) {
+                    return (
+                      <TouchableOpacity
+                        key={tag}
+                        className="px-4 py-2 border border-gray-400 rounded-[8px]"
+                      >
+                        <Text className="text-white">#{tag}</Text>
+                      </TouchableOpacity>
+                    );
+                  }
+                })}
+
+                {showMore && (
+                  <Pressable onPress={() => setShowMore(false)}>
+                    <TouchableOpacity className="px-4 py-2 border border-gray-400 rounded-[8px]">
+                      <Text className="text-white">More</Text>
+                    </TouchableOpacity>
+                  </Pressable>
+                )}
+              </View>
+            )}
 
             {/* Bio */}
             <View className="mt-6 flex flex-col items-center justify-center px-4">
@@ -294,21 +407,21 @@ export default function PublicProfilePage() {
                     </Text>
                   </TouchableOpacity>
                 )}
-                {currentProfileData.joinedDate !== "N/A" && (
-                  <View className="flex-row items-center">
-                    <Calendar className="w-4 h-4 mr-1 text-gray-400" />
+                {/* {currentProfileData.joinedDate !== "N/A" && (
+                  <View className="items-center">
+                    <Calendar className="text-gray-400" />
                     <Text className="text-gray-400">
                       Joined {currentProfileData.joinedDate}
                     </Text>
                   </View>
-                )}
+                )} */}
               </View>
             </View>
           </View>
         )}
 
         {/* Tabs */}
-        <View className="mt-6 border-b border-gray-700">
+        <View className="mt-6">
           <View className="flex-1 flex-row justify-around items-center">
             <TouchableOpacity
               className={`pb-4 flex-1 items-center justify-center`}
@@ -330,11 +443,11 @@ export default function PublicProfilePage() {
 
             <TouchableOpacity
               className={`pb-4 flex-1 items-center justify-center`}
-              onPress={() => setActiveTab("likes")}
+              onPress={() => setActiveTab("liked")}
             >
               <HeartIcon
-                color={activeTab === "likes" ? "white" : "gray"}
-                fill={activeTab === "likes" ? "white" : ""}
+                color={activeTab === "liked" ? "white" : "gray"}
+                fill={activeTab === "liked" ? "white" : ""}
               />
             </TouchableOpacity>
           </View>
@@ -346,29 +459,16 @@ export default function PublicProfilePage() {
             <ActivityIndicator size="large" color="#F1C40F" />
           </View>
         ) : (
-          <View className="mt-4 grid grid-cols-3 sm:grid-cols-4 px-6">
-            {videos.map((video, index) => (
-              <TouchableOpacity
-                key={video._id}
-                // Removed dynamic border classes, as the image itself will fill the cell
-                className="relative aspect-[9/16] rounded-lg overflow-hidden bg-black mx-[1px] my-[1px]" // Added small margins for grid gap
-              >
-                {thumbnails[video._id] ? (
-                  <Image
-                    source={{ uri: thumbnails[video._id] }}
-                    alt="video thumbnail"
-                    className="w-full h-full object-cover"
-                  />
-                ) : (
-                  <View className="w-full h-full flex items-center justify-center">
-                    <Text className="text-white text-xs">Loading...</Text>
-                  </View>
-                )}
-              </TouchableOpacity>
-            ))}
-          </View>
+          <FlatList
+            data={videos}
+            keyExtractor={(item) => item._id}
+            renderItem={renderGridItem}
+            numColumns={3}
+            contentContainerStyle={{ paddingBottom: 30, paddingHorizontal: 0 }}
+            showsVerticalScrollIndicator={false}
+          />
         )}
-      </ScrollView>
+      </View>
     </ThemedView>
   );
 }

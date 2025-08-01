@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef, useCallback } from "react"; // Import useRef
+import React, { useEffect, useState, useRef, useCallback } from "react";
 import {
   View,
   StyleSheet,
@@ -6,7 +6,7 @@ import {
   ActivityIndicator,
   Pressable,
   LayoutChangeEvent,
-  Dimensions, // Import LayoutChangeEvent for onLayout
+  Dimensions,
 } from "react-native";
 import { useVideoPlayer, VideoView, type VideoPlayerStatus } from "expo-video";
 import InteractOptions from "./_components/interactOptions";
@@ -20,13 +20,15 @@ type Props = {
   uri: string;
   isActive: boolean;
   videoData: VideoItemType;
+  showCommentsModal: boolean;
+  setShowCommentsModal: any;
 };
 
 // Define constants for layout to avoid magic numbers and make adjustments easier
 const PROGRESS_BAR_HEIGHT = 2; // Keep your original height for the progress bar
 const FULL_SCREEN_PRESSABLE_BOTTOM_OFFSET = PROGRESS_BAR_HEIGHT; // 10px buffer above progress bar
 
-const VideoItem = ({ uri, isActive, videoData }: Props) => {
+const VideoItem = ({ uri, isActive, videoData, showCommentsModal, setShowCommentsModal }: Props) => {
   const { width, height } = Dimensions.get("screen");
   const player = useVideoPlayer(uri, (p) => {
     p.loop = true;
@@ -43,10 +45,51 @@ const VideoItem = ({ uri, isActive, videoData }: Props) => {
   // Ref to store the layout (width) of the progress bar container
   const progressBarContainerWidth = useRef<number>(0);
 
-  const [showCommentsModal, setShowCommentsModal] = useState(false);
+  const [screenSize, setScreenSize] = useState(Dimensions.get("screen"));
+
+  useEffect(() => {
+    const onChange = ({
+      screen,
+    }: {
+      screen: { width: number; height: number };
+    }) => {
+      setScreenSize(screen);
+    };
+
+    const sub = Dimensions.addEventListener("change", onChange);
+
+    return () => sub.remove();
+  }, [isFullScreen]);
+
+  useEffect(() => {
+    const getInitialOrientation = async () => {
+      const orientation = await ScreenOrientation.getOrientationAsync();
+      console.log("Initial orientation:", orientation);
+      // You can optionally map this to readable string:
+      switch (orientation) {
+        case ScreenOrientation.Orientation.PORTRAIT_UP:
+          console.log("Portrait Up");
+          break;
+        case ScreenOrientation.Orientation.LANDSCAPE_LEFT:
+          console.log("Landscape Left");
+          break;
+        case ScreenOrientation.Orientation.LANDSCAPE_RIGHT:
+          console.log("Landscape Right");
+          break;
+        case ScreenOrientation.Orientation.PORTRAIT_DOWN:
+          console.log("Portrait Down");
+          break;
+        default:
+          console.log("Unknown or face-up/face-down");
+      }
+    };
+
+    getInitialOrientation();
+  }, [isFullScreen]);
 
   const toggleFullScreen = async () => {
     const newState = !isFullScreen;
+    console.log("Updated screen size:", screenSize);
     setIsFullScreen(newState);
     if (newState) {
       await ScreenOrientation.lockAsync(
@@ -162,9 +205,35 @@ const VideoItem = ({ uri, isActive, videoData }: Props) => {
     <View
       style={[
         styles.container,
-        { width, height: isFullScreen ? width : height },
+        {
+          width: screenSize.width,
+          height: isFullScreen ? screenSize.width : screenSize.height,
+        },
       ]}
     >
+      {/* Double-tap Seek Left */}
+      <Pressable
+        style={styles.leftOverlay}
+        onPress={() => {
+          const newTime = Math.max(0, player.currentTime - 10);
+          player.currentTime = newTime;
+          setCurrentTime(newTime);
+        }}
+      />
+
+      {/* Double-tap Seek Right */}
+      <Pressable
+        style={styles.rightOverlay}
+        onPress={() => {
+          const newTime = Math.min(
+            player.duration ?? 0,
+            player.currentTime + 10
+          );
+          player.currentTime = newTime;
+          setCurrentTime(newTime);
+        }}
+      />
+
       {/* Updated fullScreenPressable to not cover the progress bar area */}
       <Pressable
         style={[
@@ -212,6 +281,7 @@ const VideoItem = ({ uri, isActive, videoData }: Props) => {
       {/* Interact Buttons */}
       <View style={styles.interact}>
         <InteractOptions
+          videoId={videoData._id}
           likes={videoData.likes}
           comments={videoData.comments?.length}
           onCommentPress={handleOpenComments}
@@ -224,7 +294,7 @@ const VideoItem = ({ uri, isActive, videoData }: Props) => {
           isOpen={showCommentsModal} // Pass the state controlling its visibility
           onClose={handleCloseComments}
           commentss={videoData.comments}
-          videoId="1"
+          videoId={videoData._id}
           longVideosOnly={false} // Or true, depending on your logic
         />
       )}
@@ -232,6 +302,7 @@ const VideoItem = ({ uri, isActive, videoData }: Props) => {
       {/* Video Info */}
       <View style={styles.details}>
         <VideoDetails
+          videoId={videoData._id}
           type={videoData.type}
           name={videoData.name}
           series={videoData?.series}
@@ -255,6 +326,23 @@ const styles = StyleSheet.create({
     left: 0,
     bottom: 0,
     right: 0,
+  },
+  leftOverlay: {
+    position: "absolute",
+    top: 0,
+    bottom: 0,
+    left: 0,
+    width: "35%",
+    // zIndex: 10,
+  },
+
+  rightOverlay: {
+    position: "absolute",
+    top: 0,
+    bottom: 0,
+    right: 0,
+    width: "35%",
+    // zIndex: 10,
   },
 
   // Separate buffering indicator styles for better z-index control

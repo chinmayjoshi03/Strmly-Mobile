@@ -2,8 +2,8 @@ import 'dotenv/config';
 
 export default {
   "expo": {
-    "name": "native-movie",
-    "slug": "native-movie",
+    "name": "strmly",
+    "slug": "strmly",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
@@ -14,6 +14,7 @@ export default {
       BACKEND_API_URL: process.env.BACKEND_API_URL,
     },
     "ios": {
+      bundleIdentifier: "com.anonymous.strmly",
       "supportsTablet": true
     },
     "android": {
@@ -21,6 +22,7 @@ export default {
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
+      package: "com.anonymous.strmly",
       "softwareKeyboardLayoutMode": "resize",
       "edgeToEdgeEnabled": true
     },

@@ -167,11 +167,11 @@ const SignIn = () => {
       >
         <Text className="text-lg font-semibold">Sign in</Text>
       </TouchableOpacity>
-      <ThemedText className="text-white mt-8">
+      <Link href={'/(auth)/forgotpass'} className="text-white mt-8">
         <ThemedText style={Signinstyles.Text16M}>
           Forgotten password?
         </ThemedText>
-      </ThemedText>
+      </Link>
     </>
   );
 
