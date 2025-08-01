@@ -1,19 +1,26 @@
 import { useEffect, useState } from "react";
+import * as VideoThumbnails from "expo-video-thumbnails";
 
 export function useThumbnailsGenerate(videos: { id: string; url: string }[]) {
   const [thumbnails, setThumbnails] = useState<{ [key: string]: string }>({});
 
   useEffect(() => {
-    // React Native doesn't support document.createElement
-    // For now, we'll return empty thumbnails
-    // In a real app, you'd use expo-av or react-native-video to generate thumbnails
-    console.log('Thumbnail generation not supported in React Native yet');
-    
-    // You could implement thumbnail generation using:
-    // - expo-av VideoThumbnails
-    // - react-native-video
-    // - or use server-generated thumbnails
-    
+    const generateThumbnail = async (videoUrl: string, videoId: string) => {
+      try {
+        const { uri } = await VideoThumbnails.getThumbnailAsync(videoUrl, {
+          time: 5000, // 5 seconds
+        });
+        setThumbnails((prev) => ({ ...prev, [videoId]: uri }));
+      } catch (e) {
+        console.warn(`Failed to generate thumbnail for ${videoId}`, e);
+      }
+    };
+
+    videos.forEach((vid) => {
+      if (!thumbnails[vid.id]) {
+        generateThumbnail(vid.url, vid.id);
+      }
+    });
   }, [videos]);
 
   return thumbnails;

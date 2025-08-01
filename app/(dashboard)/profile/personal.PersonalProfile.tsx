@@ -7,7 +7,8 @@ import {
   ScrollView,
   Alert,
   Linking,
-  Image, // For opening external links
+  Image,
+  FlatList, // For opening external links
 } from "react-native";
 import { CONFIG } from "@/Constants/config";
 import {
@@ -21,12 +22,13 @@ import {
   Video,
   PaperclipIcon, // For the gradient button
 } from "lucide-react-native";
-import { useRouter } from "expo-router"; // Use useRouter from expo-router
+import { useLocalSearchParams, useRouter } from "expo-router"; // Use useRouter from expo-router
 import { useAuthStore } from "@/store/useAuthStore";
 import { useThumbnailsGenerate } from "@/utils/useThumbnailGenerator";
 import ThemedView from "@/components/ThemedView"; // Assuming this is a basic wrapper for styling
 import ProfileTopbar from "@/components/profileTopbar"; // Assuming this is the converted ProfileTopbar
 import { LinearGradient } from "expo-linear-gradient";
+import Constants from "expo-constants";
 
 // Note: testVideos, api, toast, and format are not directly used in the final render
 // but if `api` or `toast` are custom internal modules, ensure they are RN compatible.
@@ -43,6 +45,10 @@ export default function PersonalProfilePage() {
   const [isLoadingVideos, setIsLoadingVideos] = useState(false);
   const { user, isLoggedIn, token, logout } = useAuthStore();
   const router = useRouter();
+  const params = useLocalSearchParams(); // Use useLocalSearchParams for route parameters
+
+  const id = "686cc5084b2928ecdc64f263";
+  const BACKEND_API_URL = Constants.expoConfig?.extra?.BACKEND_API_URL;
 
   const thumbnails = useThumbnailsGenerate(
     videos.map((video) => ({
@@ -52,24 +58,21 @@ export default function PersonalProfilePage() {
   );
 
   useEffect(() => {
-    // if (!isLoggedIn) {
-    //   router.push("/login");
-    //   return;
-    // }
+    if (!isLoggedIn) {
+      router.push("/(auth)/Sign-in");
+      return;
+    }
 
-    const fetchUserVideos = async () => {
+    const fetchUserVideos = async (page = 1) => {
       setIsLoadingVideos(true);
       try {
-        const params = new URLSearchParams();
-        params.append("type", activeTab);
-
         const response = await fetch(
-          `${CONFIG.API_BASE_URL}/api/v1/user/videos?${params.toString()}`,
+          // Assuming your API server is accessible from the Expo client
+          `${BACKEND_API_URL}/user/videos?type=${activeTab}&page=${page}`,
           {
             method: "GET",
             headers: {
               Authorization: `Bearer ${token}`,
-              "Content-Type": "application/json",
             },
           }
         );
@@ -80,7 +83,6 @@ export default function PersonalProfilePage() {
           throw new Error(data.message || "Failed to fetch user videos");
         }
 
-        console.log("videos", data);
         setVideos(data.videos); // Assuming data structure is { videos: [...] }
       } catch (err) {
         console.error("Error fetching user videos:", err);
@@ -101,14 +103,14 @@ export default function PersonalProfilePage() {
   }, [isLoggedIn, router, token, activeTab]);
 
   useEffect(() => {
-    // if (!isLoggedIn) {
-    //   router.push("/login");
-    //   return;
-    // }
+    if (!isLoggedIn) {
+      router.push("/(auth)/Sign-in");
+      return;
+    }
 
     const fetchUserData = async () => {
       try {
-        const response = await fetch(`${CONFIG.API_BASE_URL}/api/v1/user/profile`, {
+        const response = await fetch(`${BACKEND_API_URL}/user/profile`, {
           method: "GET",
           headers: {
             Authorization: `Bearer ${token}`,
@@ -124,7 +126,7 @@ export default function PersonalProfilePage() {
 
         console.log(data.user);
         setUserData(data.user);
-        setIsError(null); // Clear any previous errors
+        setIsError(null);
       } catch (error) {
         console.log("error", error);
         setIsError(
@@ -169,6 +171,28 @@ export default function PersonalProfilePage() {
     communityLength: userData?.community?.length || 0, // Added for clarity
     isVerified: userData?.isVerified || false,
   };
+
+  const renderGridItem = ({ item }: { item: any }) => (
+    <TouchableOpacity className="relative aspect-[9/16] flex-1 rounded-sm overflow-hidden">
+      {item.thumbnailUrl != null || "" ? (
+        <Image
+          source={{ uri: item.thumbnailUrl }}
+          alt="video thumbnail"
+          className="w-full h-full object-cover"
+        />
+      ) : thumbnails[item._id] ? (
+        <Image
+          source={{ uri: thumbnails[item._id] }}
+          alt="video thumbnail"
+          className="w-full h-full object-cover"
+        />
+      ) : (
+        <View className="w-full h-full flex items-center justify-center">
+          <Text className="text-white text-xs">Loading...</Text>
+        </View>
+      )}
+    </TouchableOpacity>
+  );
 
   return (
     <ThemedView className="flex-1 pt-5">
@@ -227,7 +251,7 @@ export default function PersonalProfilePage() {
                 // onPress={() => router.push("/communities?type=followers")}
               >
                 <Text className="font-bold text-lg text-white">
-                  {currentProfileData.followers}M
+                  {currentProfileData.followers}
                 </Text>
                 <Text className="text-gray-400 text-md">Followers</Text>
               </TouchableOpacity>
@@ -265,7 +289,7 @@ export default function PersonalProfilePage() {
               {/* Dashboard Button (Gradient Border) */}
               <TouchableOpacity
                 onPress={() => router.push("/(dashboard)/profile/Dashboard")}
-                className="px-4 py-2 rounded-lg border border-white"
+                className="px-4 py-2 rounded-lg border border-white" // Use rounded-md for consistency
               >
                 <Text className="text-white text-center font-bold">
                   Dashboard
@@ -275,17 +299,20 @@ export default function PersonalProfilePage() {
 
             <View className="flex-1 flex-row w-full items-center justify-center gap-2 mt-5">
               <TouchableOpacity
-                // onPress={() => router.push("/profile/edit")}
+                onPress={() => router.push("/Profile/EditProfile")}
                 className="px-4 py-2 border border-gray-400 rounded-lg"
               >
                 <Text className="text-white text-center">Edit Profile</Text>
               </TouchableOpacity>
-              <TouchableOpacity className="px-4 py-2 border border-gray-400 rounded-lg">
+              <TouchableOpacity
+                onPress={() => router.push("/(dashboard)/profile/History")}
+                className="px-4 py-2 border border-gray-400 rounded-lg"
+              >
                 <Text className="text-white text-center">History</Text>
               </TouchableOpacity>
 
               <TouchableOpacity
-                onPress={() => router.push("/(dashboard)/profile/access")}
+                onPress={() => router.push("/SeriesAccessDemo")}
                 className="rounded-lg overflow-hidden" // Use rounded-md for consistency
               >
                 <LinearGradient
@@ -363,11 +390,11 @@ export default function PersonalProfilePage() {
 
             <TouchableOpacity
               className={`pb-4 flex-1 items-center justify-center`}
-              onPress={() => setActiveTab("likes")}
+              onPress={() => setActiveTab("liked")}
             >
               <HeartIcon
                 color={"white"}
-                fill={activeTab === "likes" ? "white" : ""}
+                fill={activeTab === "liked" ? "white" : ""}
               />
             </TouchableOpacity>
           </View>
@@ -379,26 +406,14 @@ export default function PersonalProfilePage() {
             <ActivityIndicator size="large" color="#F1C40F" />
           </View>
         ) : (
-          <View className="mt-4 flex flex-row flex-wrap justify-start px-6">
-            {videos.map((video) => (
-              <TouchableOpacity
-                key={video._id}
-                className="relative aspect-[9/16] rounded-lg overflow-hidden bg-black w-[32.33%] m-[0.5%] border border-gray-700" // Calculate width for 3 columns with small gap
-              >
-                {thumbnails[video._id] ? (
-                  <Image
-                    source={{ uri: thumbnails[video._id] }}
-                    alt="video thumbnail"
-                    className="w-full h-full object-cover"
-                  />
-                ) : (
-                  <View className="w-full h-full flex items-center justify-center">
-                    <Text className="text-white text-xs">Loading...</Text>
-                  </View>
-                )}
-              </TouchableOpacity>
-            ))}
-          </View>
+          <FlatList
+            data={videos}
+            keyExtractor={(item) => item._id}
+            renderItem={renderGridItem}
+            numColumns={3}
+            contentContainerStyle={{ paddingBottom: 30, paddingHorizontal: 0 }}
+            showsVerticalScrollIndicator={false}
+          />
         )}
       </ScrollView>
     </ThemedView>

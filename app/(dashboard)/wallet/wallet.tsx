@@ -19,22 +19,11 @@ import TotalWalletHistory from "./_components/TotalWalletHistory";
 import { useWallet } from "./_components/useWallet";
 import { useAuthStore } from "@/store/useAuthStore";
 
-const { height } = Dimensions.get('screen');
+const { height } = Dimensions.get("screen");
 
 const WalletPage = () => {
   // Get token from auth store
   const { token } = useAuthStore();
-
-  // Debug token
-  useEffect(() => {
-    console.log('=== WALLET TOKEN CHECK ===');
-    console.log('Token from auth store:', token);
-    console.log('Token type:', typeof token);
-    console.log('Token length:', token?.length);
-    console.log('Is logged in:', useAuthStore.getState().isLoggedIn);
-    console.log('Auth state:', useAuthStore.getState());
-    console.log('=========================');
-  }, [token]);
 
   const {
     walletData,
@@ -45,8 +34,8 @@ const WalletPage = () => {
     createLoadOrder,
     verifyPayment,
     requestWithdrawal,
-    clearError
-  } = useWallet(token || '');
+    clearError,
+  } = useWallet(token || "");
 
   const [isOpenTBalance, setIsOpenTotalBalance] = useState<boolean>(false);
   const [isOpenWBalance, setIsOpenWalletBalance] = useState<boolean>(false);
@@ -65,9 +54,7 @@ const WalletPage = () => {
   // Show error alert when error occurs
   useEffect(() => {
     if (error) {
-      Alert.alert("Error", error, [
-        { text: "OK", onPress: clearError }
-      ]);
+      Alert.alert("Error", error, [{ text: "OK", onPress: clearError }]);
     }
   }, [error]);
 
@@ -77,15 +64,13 @@ const WalletPage = () => {
         height,
         backgroundColor: showSuccessModal ? "#B0B0B0BB" : "black",
       }}
-      className="relative gap-8 py-20 px-4"
+      className="relative gap-8 py-14 px-4"
     >
-      <CommonTopBar />
-
       {showSuccessModal && (
         <Modal transparent visible={showSuccessModal} animationType="fade">
           <TouchableWithoutFeedback onPress={() => setShowSuccessModal(false)}>
             <View className="flex-1 bg-transparent bg-opacity-80 bottom-60 items-center justify-end px-5 right-0">
-              <TouchableWithoutFeedback onPress={() => { }}>
+              <TouchableWithoutFeedback onPress={() => {}}>
                 <View className="bg-[#1E1E1E] p-6 rounded-xl">
                   <Text className="text-white text-base text-center mb-2 font-semibold">
                     Your withdrawal request of ₹500 has been successfully
@@ -103,10 +88,15 @@ const WalletPage = () => {
 
       {isOpenTBalance || isOpenWBalance ? (
         <View>
-          {isOpenTBalance ? <TotalBalanceHistory /> : <TotalWalletHistory />}
+          {isOpenTBalance ? (
+            <TotalBalanceHistory closeTBalance={setIsOpenTotalBalance} />
+          ) : (
+            <TotalWalletHistory closeTBalance={setIsOpenWalletBalance}/>
+          )}
         </View>
       ) : (
         <>
+          <CommonTopBar />
           <View className="gap-5">
             {/* Card 1 */}
             <View className="bg-[#B0B0B033] p-4 rounded-xl h-[91px]">
@@ -159,7 +149,10 @@ const WalletPage = () => {
             <Text className="text-white text-lg">Withdrawals request</Text>
             {withdrawals.length > 0 ? (
               withdrawals.slice(0, 3).map((withdrawal) => (
-                <View key={withdrawal.id} className="relative flex-row w-full items-center gap-3">
+                <View
+                  key={withdrawal.id}
+                  className="relative flex-row w-full items-center gap-3"
+                >
                   {/* Profile Picture */}
                   <Image
                     source={require("../../../assets/images/bank-icon.png")}
@@ -172,12 +165,15 @@ const WalletPage = () => {
                       Withdraw request from wallet
                     </Text>
                     <Text className="text-xs text-gray-500">
-                      {new Date(withdrawal.createdAt).toLocaleDateString('en-GB', {
-                        day: 'numeric',
-                        month: 'short',
-                        hour: '2-digit',
-                        minute: '2-digit'
-                      })}
+                      {new Date(withdrawal.createdAt).toLocaleDateString(
+                        "en-GB",
+                        {
+                          day: "numeric",
+                          month: "short",
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        }
+                      )}
                     </Text>
                     <Text className="text-xs text-gray-500">
                       Status: {withdrawal.status}
@@ -190,7 +186,9 @@ const WalletPage = () => {
                 </View>
               ))
             ) : (
-              <Text className="text-gray-400 text-center">No withdrawal requests</Text>
+              <Text className="text-gray-400 text-center">
+                No withdrawal requests
+              </Text>
             )}
           </View>
 

@@ -39,7 +39,7 @@ interface CommentsSectionProps {
   onClose: () => void;
   videoId: string | null;
   longVideosOnly: boolean;
-  commentss?: [{}]
+  commentss?: [{}];
 }
 
 const CommentsSection = (props: CommentsSectionProps) => {
@@ -88,8 +88,10 @@ const CommentsSection = (props: CommentsSectionProps) => {
   }, [token, longVideosOnly, videoId]);
 
   useEffect(() => {
-    if (isOpen && videoId) fetchComments();
-    // eslint-disable-next-line
+    if (isOpen && videoId) {
+      const timer = setTimeout(() => fetchComments(), 100); // 100ms delay
+      return () => clearTimeout(timer);
+    }
   }, [isOpen, videoId, fetchComments]);
 
   const fetchReplies = async (commentID: string) => {
@@ -256,7 +258,7 @@ const CommentsSection = (props: CommentsSectionProps) => {
       style={{ flex: 1 }}
     >
       <View
-        className="flex-1 bg-[#1A1A1A] rounded-t-3xl z-30"
+        className="flex-1 bg-[#1A1A1A] rounded-t-3xl min-h-52 z-30"
         style={{ marginTop: "auto" }}
       >
         {/* Header */}
@@ -274,9 +276,6 @@ const CommentsSection = (props: CommentsSectionProps) => {
           <View className="gap-5 p-4">
             {comments.map((comment) => (
               <View key={comment._id}>
-                {/* Only display if comment.videoId matches current */}
-                {/* For mock/testing, you can skip this check */}
-                {/* Example: if (comment.videoId !== videoId) return null */}
                 <View className="flex-row gap-1">
                   {/* Avatar */}
                   <Image
@@ -401,20 +400,29 @@ const CommentsSection = (props: CommentsSectionProps) => {
 
         {/* ---- INPUT BAR: Always at bottom, outside ScrollView ---- */}
         <Animated.View
-          className="bg-[#181818] border-t border-[#353535] px-2 pt-2 pb-3 flex-row items-center space-x-2"
-          style={{
-            position: "absolute",
-            left: 0,
-            right: 0,
-            bottom: animatedBottom,
-            paddingBottom: insets.bottom,
-          }}
+          style={[
+            {
+              backgroundColor: "#181818",
+              borderTopColor: "#353535",
+              borderTopWidth: 1,
+              flexDirection: "row",
+              alignItems: "center",
+              paddingHorizontal: 8,
+              paddingTop: 8,
+              paddingBottom: insets.bottom,
+              position: "absolute",
+              left: 0,
+              right: 0,
+              bottom: 0,
+              transform: [
+                { translateY: Animated.multiply(animatedBottom, -1) },
+              ],
+            },
+          ]}
         >
           {!!replyTo && (
             <View className="absolute flex-row -top-6 left-2 bg-[#6D6F6E] px-2 py-1 rounded">
-              <Text className="text-xs text-white">
-                to @{replyTo.username}
-              </Text>
+              <Text className="text-xs text-white">to @{replyTo.username}</Text>
               <TouchableOpacity onPress={() => setReplyTo(null)}>
                 <Text className="text-xs text-red-400">Cancel</Text>
               </TouchableOpacity>

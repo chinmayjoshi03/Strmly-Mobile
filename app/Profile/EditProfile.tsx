@@ -5,6 +5,7 @@ import { useFonts } from "expo-font";
 import { useState } from "react";
 import { Image, Modal, TextInput, TouchableOpacity, View } from "react-native";
 import * as ImagePicker from "expo-image-picker";
+import { router } from "expo-router";
 
 const EditProfilePage: React.FC = () => {
   const [fontsLoaded] = useFonts({
@@ -48,7 +49,7 @@ const EditProfilePage: React.FC = () => {
     <ThemedView style={EditProfile.container}>
       {/* Top Bar */}
       <View style={EditProfile.CreateCommunityTopBar}>
-        <TouchableOpacity style={EditProfile.BackIcon}>
+        <TouchableOpacity onPress={()=> router.back()} style={EditProfile.BackIcon}>
           <Image
             className="size-5"
             source={require("../../assets/images/back.png")}

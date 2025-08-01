@@ -10,6 +10,7 @@ import {
 } from "react-native";
 import { Picker } from "@react-native-picker/picker";
 import { ChevronDownIcon } from "lucide-react-native";
+import ProfileTopbar from "@/components/profileTopbar";
 
 const KYCForm = () => {
   const [bankName, setBankName] = useState("");
@@ -68,10 +69,10 @@ const KYCForm = () => {
   };
 
   return (
-    <ThemedView className="relative justify-between flex-1 p-5">
-      <View></View>
+    <ThemedView className="relative pt-10 gap-10 flex-1">
+      <ProfileTopbar name="Identity Verification (KYC)" hashtag={false} isMore={false}/>
 
-      <View className="">
+      <View className="px-5">
         <Text className="text-white font-thin text-sm mb-1">Bank Name</Text>
         <TextInput
           value={bankName}
@@ -137,7 +138,7 @@ const KYCForm = () => {
 
       <View></View>
 
-      <View className="absolute bottom-24 w-full right-5">
+      <View className="absolute bottom-24 w-full px-5">
         <Pressable
           onPress={handleSubmit}
           disabled={loading}

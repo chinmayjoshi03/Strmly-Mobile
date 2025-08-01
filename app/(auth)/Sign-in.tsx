@@ -15,7 +15,7 @@ import ThemedView from "@/components/ThemedView";
 import { Signinstyles } from "@/styles/signin";
 import { CreateProfileStyles } from "@/styles/createprofile";
 import { useAuthStore } from "@/store/useAuthStore";
-import { CONFIG } from "@/Constants/config";
+import Constants from "expo-constants";
 
 const SignIn = () => {
   const [useEmail, setUseEmail] = useState(false);
@@ -32,6 +32,8 @@ const SignIn = () => {
     "Inter-SemiBold": require("../../assets/fonts/inter/Inter-SemiBold.ttf"),
   });
 
+  const BACKEND_API_URL = Constants.expoConfig?.extra?.BACKEND_API_URL;
+
   const handleLogin = async () => {
     if (!nameOrEmail || !password) {
       alert("Please fill in both fields");
@@ -40,13 +42,12 @@ const SignIn = () => {
 
     const isEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(nameOrEmail);
     const loginType = isEmail ? "email" : "username";
-    console.log("Login type:", loginType);
-    console.log("API URL:", CONFIG.API_BASE_URL);
+    console.log(loginType);
 
     try {
-      console.log("Starting login request...");
+      console.log("start");
       const res = await fetch(
-        `${CONFIG.API_BASE_URL}/api/v1/auth/login/${loginType}`,
+        `${BACKEND_API_URL}/auth/login/${loginType}`,
         {
           method: "POST",
           headers: {
@@ -58,25 +59,9 @@ const SignIn = () => {
           }),
         }
       );
-      
-      console.log("Response status:", res.status);
-      console.log("Response headers:", res.headers);
-      
-      // Check if response is empty or not JSON
-      const responseText = await res.text();
-      console.log("Raw response:", responseText);
-      
-      if (!responseText) {
-        throw new Error("Empty response from server");
-      }
-      
-      let data;
-      try {
-        data = JSON.parse(responseText);
-      } catch (parseError) {
-        console.error("JSON Parse Error:", parseError);
-        throw new Error("Invalid JSON response from server");
-      }
+      console.log("res");
+
+      const data = await res.json();
 
       if (!res.ok) {
         throw new Error(data?.message || "Login failed");
@@ -182,11 +167,11 @@ const SignIn = () => {
       >
         <Text className="text-lg font-semibold">Sign in</Text>
       </TouchableOpacity>
-      <ThemedText className="text-white mt-8">
+      <Link href={'/(auth)/forgotpass'} className="text-white mt-8">
         <ThemedText style={Signinstyles.Text16M}>
           Forgotten password?
         </ThemedText>
-      </ThemedText>
+      </Link>
     </>
   );
 
