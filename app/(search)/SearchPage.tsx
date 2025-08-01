@@ -196,7 +196,7 @@ return (
         )}
 
         {/* Search suggestions when not searching */}
-        
+
 
         {/* Content */}
         {!isLoading && (

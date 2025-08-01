@@ -1,23 +1,14 @@
 import { useState, useCallback } from 'react';
 import { UploadFlowState, VideoFormData, FinalStageData } from '../types';
 import { Series } from '../../studio/types';
+
 import { CONFIG } from '@/Constants/config';
 import { useAuthStore } from '@/store/useAuthStore';
+
 
 /**
  * Upload Flow State Management Hook
  * Manages the entire upload flow state and navigation
- * 
- * Backend Integration Notes:
- * - Replace mock upload progress with real API calls
- * - Implement proper error handling and retry logic
- * - Add form data persistence to prevent data loss
- * - Consider using React Query or SWR for API state management
- * 
- * API Integration Points:
- * - Video upload: POST /api/videos/upload
- * - Save draft: POST /api/videos/draft
- * - Publish video: POST /api/videos/publish
  */
 
 const initialVideoDetails: VideoFormData = {
@@ -116,9 +107,6 @@ export const useUploadFlow = () => {
         body: JSON.stringify(draftData)
       });
 
-      console.log('Response status:', response.status);
-      console.log('Response headers:', response.headers);
-
       if (!response.ok) {
         const errorText = await response.text();
         console.error('Draft creation failed with status:', response.status);
@@ -201,13 +189,10 @@ export const useUploadFlow = () => {
     }
   }, [state, draftId, createInitialDraft, token]);
 
-  // Start the upload process (now happens after final stage)
+  // Start the upload process
   const startUpload = useCallback(() => {
-    // Real upload now happens in submitUpload function
     console.log('Starting upload process...');
   }, []);
-
-
 
   // Navigate to next step
   const goToNextStep = useCallback(() => {
@@ -219,8 +204,10 @@ export const useUploadFlow = () => {
           nextStep = 'format-select';
           break;
         case 'format-select':
-          // If episode format, go to series selection; if single, go directly to details
-          nextStep = prev.videoFormat === 'episode' ? 'series-selection' : 'details-1';
+          nextStep = prev.videoFormat === 'episode' ? 'episode-selection' : 'details-1';
+          break;
+        case 'episode-selection':
+          nextStep = 'details-1';
           break;
         case 'series-selection':
           nextStep = 'series-creation';
@@ -238,10 +225,9 @@ export const useUploadFlow = () => {
           nextStep = 'final';
           break;
         case 'final':
-          nextStep = 'progress'; // Upload happens after final stage
+          nextStep = 'progress';
           break;
         case 'progress':
-          // Upload complete - handled by onUploadComplete
           break;
       }
 
@@ -258,15 +244,17 @@ export const useUploadFlow = () => {
         case 'format-select':
           prevStep = 'file-select';
           break;
-        case 'series-selection':
+        case 'episode-selection':
           prevStep = 'format-select';
+          break;
+        case 'series-selection':
+          prevStep = 'episode-selection';
           break;
         case 'series-creation':
           prevStep = 'series-selection';
           break;
         case 'details-1':
-          // If episode format, go back to series selection; if single, go back to format select
-          prevStep = prev.videoFormat === 'episode' ? 'series-selection' : 'format-select';
+          prevStep = prev.videoFormat === 'episode' ? 'episode-selection' : 'format-select';
           break;
         case 'details-2':
           prevStep = 'details-1';
@@ -344,7 +332,7 @@ export const useUploadFlow = () => {
     }));
   }, []);
 
-  // Go directly to details step (used after series selection/creation)
+  // Go directly to details step
   const goToDetailsStep = useCallback(() => {
     setState(prev => ({
       ...prev,
@@ -364,7 +352,7 @@ export const useUploadFlow = () => {
       case 'series-selection':
         return selectedSeries !== null;
       case 'series-creation':
-        return true; // Validation handled within the series creation screen
+        return true;
       case 'details-1':
         return videoDetails.title.trim() !== '' && videoDetails.community !== null;
       case 'details-2':
@@ -383,7 +371,7 @@ export const useUploadFlow = () => {
     }
   }, [state]);
 
-  // Submit final upload (complete draft with video file)
+  // Submit final upload
   const submitUpload = useCallback(async () => {
     if (!state.selectedFile) {
       console.error('No selected file for upload');
@@ -436,8 +424,10 @@ export const useUploadFlow = () => {
       const response = await fetch(`${CONFIG.API_BASE_URL}/api/v1/drafts/complete/${currentDraftId}`, {
         method: 'POST',
         headers: {
+
           'Authorization': `Bearer ${token}`,
           // Don't set Content-Type for FormData - let the browser set it
+
         },
         body: formData,
       });
