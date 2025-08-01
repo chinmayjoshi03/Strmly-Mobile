@@ -110,7 +110,6 @@ const VideoDetails = ({
       console.log(err);
     }
   };
-  
 
   return (
     <View className="w-full gap-3.5">
@@ -130,7 +129,7 @@ const VideoDetails = ({
       <View className="flex-row items-center justify-between">
         <View className="flex-row items-center gap-2">
           <Text className="text-white font-semibold">
-            {createdBy ? createdBy.username : "Rohith"}
+            {createdBy ? createdBy?.username : "Rohith"}
           </Text>
           <TouchableOpacity
             onPress={() => followCreator()}

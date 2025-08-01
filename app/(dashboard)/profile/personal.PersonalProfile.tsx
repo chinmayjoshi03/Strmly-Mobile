@@ -10,6 +10,7 @@ import {
   Image,
   FlatList, // For opening external links
 } from "react-native";
+import { CONFIG } from "@/Constants/config";
 import {
   MapPin,
   LinkIcon,
@@ -23,7 +24,7 @@ import {
 } from "lucide-react-native";
 import { useLocalSearchParams, useRouter } from "expo-router"; // Use useRouter from expo-router
 import { useAuthStore } from "@/store/useAuthStore";
-import { useThumbnailsGenerate } from "@/utils/useThumbnailGenerator"; // Ensure this path is correct
+import { useThumbnailsGenerate } from "@/utils/useThumbnailGenerator";
 import ThemedView from "@/components/ThemedView"; // Assuming this is a basic wrapper for styling
 import ProfileTopbar from "@/components/profileTopbar"; // Assuming this is the converted ProfileTopbar
 import { LinearGradient } from "expo-linear-gradient";

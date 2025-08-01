@@ -101,7 +101,6 @@ const InteractOptions = ({
               source={require("../../../../assets/images/comments.png")}
             />
           </Pressable>
-
           <Text className="text-white text-sm">{comments}</Text>
         </View>
 

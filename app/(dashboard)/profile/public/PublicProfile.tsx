@@ -11,6 +11,7 @@ import {
   Pressable,
   FlatList, // For opening external links
 } from "react-native";
+import { CONFIG } from "@/Constants/config";
 import {
   MapPin,
   LinkIcon,
@@ -316,7 +317,7 @@ export default function PublicProfilePage() {
 
               {/* Access Button with Gradient Border */}
               <TouchableOpacity
-                className={`${currentProfileData.creatorPassPrice !== 0 && "flex-grow"} h-10 rounded-lg overflow-hidden`}
+                className={`${currentProfileData.creatorPassPrice !== 0 && "flex-grow" } h-10 rounded-lg overflow-hidden`}
               >
                 <LinearGradient
                   colors={["#4400FFA6", "#FFFFFF", "#FF00004D", "#FFFFFF"]}
