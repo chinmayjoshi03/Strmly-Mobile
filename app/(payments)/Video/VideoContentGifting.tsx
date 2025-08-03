@@ -16,20 +16,18 @@ import {
 } from "react-native";
 import CreatorInfo from "./_components/CreatorInfo";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-
+import { useLocalSearchParams } from "expo-router";
 
 type CreatorData = {
-  creatorProfile: string;
-  creatorName: string;
-  creatorUsername: string;
+  creator: {
+    _id: string;
+    profile?: string;
+    name: string;
+    username: string;
+  };
 };
 
-
-const VideoContentGifting = ({
-  creatorProfile,
-  creatorName,
-  creatorUsername,
-}: CreatorData) => {
+const VideoContentGifting = ({ creator }: CreatorData) => {
   const [amount, setAmount] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -37,7 +35,6 @@ const VideoContentGifting = ({
 
   const insets = useSafeAreaInsets();
   const animatedBottom = useRef(new Animated.Value(insets.bottom)).current;
-  
 
   const handleAmountChange = (text: string) => {
     const filtered = text.replace(/[^0-9]/g, "");
@@ -83,7 +80,6 @@ const VideoContentGifting = ({
     };
   }, []);
 
-
   return (
     <ThemedView className="flex-1 bg-black">
       <KeyboardAvoidingView
@@ -96,9 +92,9 @@ const VideoContentGifting = ({
             {/* Top section */}
             <View className="mt-10">
               <CreatorInfo
-                profile={creatorProfile}
-                name={creatorName}
-                username={creatorUsername}
+                profile={creator.profile}
+                name={creator.name}
+                username={creator.username}
               />
             </View>
 
@@ -127,13 +123,16 @@ const VideoContentGifting = ({
               }}
               className="gap-2 justify-end"
             >
-
               <Pressable disabled={loading || !amount} onPress={handleProceed}>
                 <View className="bg-[#008A3C] p-4 rounded-lg items-center justify-center">
                   {loading ? (
                     <ActivityIndicator color="#fff" />
                   ) : (
-                    <Text style={{ color: "#fff", fontSize: 16, fontWeight: "600" }}>Proceed</Text>
+                    <Text
+                      style={{ color: "#fff", fontSize: 16, fontWeight: "600" }}
+                    >
+                      Proceed
+                    </Text>
                   )}
                 </View>
               </Pressable>
@@ -142,7 +141,6 @@ const VideoContentGifting = ({
                 <Text className="text-white text-sm">Total balance ₹10</Text>
               </View>
             </Animated.View>
-
           </View>
         </TouchableWithoutFeedback>
       </KeyboardAvoidingView>

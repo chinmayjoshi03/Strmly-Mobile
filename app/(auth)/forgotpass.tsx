@@ -16,7 +16,7 @@ import { router } from "expo-router";
 import { useAuthStore } from "@/store/useAuthStore";
 import Constants from "expo-constants";
 
-const ForgotPassword = () => {
+export const ForgotPassword = () => {
   const [Step, setStep] = useState(1);
   const [password, setPassword] = useState("");
   const [email, setEmail] = useState("");
@@ -41,237 +41,245 @@ const ForgotPassword = () => {
 
   const BACKEND_API_URL = Constants.expoConfig?.extra?.BACKEND_API_URL;
 
-  const handleVerifyOTP = async () => {
+  const handleRequestResetEmail = async () => {
+    setIsLoading(true);
     try {
-      const res = await fetch(`${BACKEND_API_URL}/auth/verify-email`, {
+      const response = await fetch(`${BACKEND_API_URL}/auth/forgot-password`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          otp,
-        }),
-      });
-
-      const data = await res.json();
-
-      if (!res.ok) {
-        throw new Error(data?.message || "Verification failed");
-      }
-
-      console.log("Verification successful", data);
-
-      // Update auth store to mark email_verified
-      useAuthStore.getState().updateUser({ isVerified: true });
-
-      alert("Email verified successfully!");
-      setTimeout(() => router.replace("/(dashboard)/long/VideoFeed"), 1000);
-    } catch (err: any) {
-      console.error("OTP Verification error:", err);
-      alert(err.message || "Something went wrong");
-    }
-  };
-
-  const handleResend = async () => {
-    if (cooldown > 0) return;
-
-    try {
-      setIsLoading(true);
-
-      const res = await fetch(`${BACKEND_API_URL}/auth/resend-verification`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email }),
       });
 
-      const data = await res.json();
-
-      if (!res.ok) {
-        if (data.code === "RATE_LIMITED") {
-          Alert.alert("Too Many Requests", data.message);
-          setCooldown(60); // Start cooldown
-        } else if (data.code === "ALREADY_VERIFIED") {
-          Alert.alert("Already Verified", data.message);
-        } else {
-          Alert.alert(
-            "Resend Failed",
-            data.message || "Please try again later"
-          );
-        }
-        return;
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.message || "Failed to request password reset.");
       }
 
+      Alert.alert("Success", data.message);
+      setStep(2); // go to verification step
+    } catch (error) {
       Alert.alert(
-        "OTP Sent",
-        "A new verification code was sent to your email."
+        "Error",
+        error instanceof Error ? error.message : "Unknown error."
       );
-    } catch (error: any) {
-      Alert.alert("Error", error.message || "Network error");
     } finally {
       setIsLoading(false);
     }
   };
 
-  useEffect(() => {
-    let timer: NodeJS.Timeout | number;
+  const handleVerifyOTP = async () => {
+    setIsLoading(true);
+    try {
+      const response = await fetch(
+        `${BACKEND_API_URL}/auth/verify-reset-token`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ token: otp }),
+        }
+      );
 
-    if (cooldown > 0) {
-      timer = setInterval(() => {
-        setCooldown((prev) => prev - 1);
-      }, 1000);
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || "OTP verification failed");
+      }
+
+      Alert.alert("Verified", "You may now reset your password.");
+      setStep(3);
+    } catch (error) {
+      Alert.alert(
+        "Error",
+        error instanceof Error ? error.message : "Unknown error."
+      );
+    } finally {
+      setIsLoading(false);
     }
 
-    return () => {
-      if (timer) clearInterval(timer);
+    const handleResetPassword = async () => {
+      setIsLoading(true);
+      try {
+        const response = await fetch(`${BACKEND_API_URL}/auth/reset-password`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            token: otp,
+            newPassword: password,
+            confirmPassword: password, // assuming no separate confirm field
+          }),
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.message || "Failed to reset password.");
+        }
+
+        Alert.alert("Success", "Password reset successful. Please log in.");
+        router.replace("/(auth)/Sign-in");
+      } catch (error) {
+        Alert.alert(
+          "Error",
+          error instanceof Error ? error.message : "Unknown error."
+        );
+      } finally {
+        setIsLoading(false);
+      }
     };
-  }, [cooldown]);
 
-  const HandleStep = (next: boolean) => {
-    if (!next) {
-      setStep((prev) => Math.max(prev - 1, 1));
-      return;
-    }
-
-    if (Step === 1) {
-      if (!email.includes("@") || email.length < 5) {
-        alert("Please enter a valid email");
+    const HandleStep = (next: boolean) => {
+      if (!next) {
+        setStep((prev) => Math.max(prev - 1, 1));
         return;
       }
 
-      handleResend()
-    }
+      if (Step === 1) {
+        if (!email.includes("@") || email.length < 5) {
+          alert("Please enter a valid email");
+          return;
+        }
+      }
 
-    if (Step === 2 && confirmationCode.trim().length < 4) {
-      alert("Invalid confirmation code");
-      return;
-    }
+      if (Step === 2 && confirmationCode.trim().length < 4) {
+        alert("Invalid confirmation code");
+        return;
+      }
 
-    // validation for each step
-    if (Step === 3 && password.length < 6) {
-      alert("Password must be at least 6 characters");
-      return;
-    }
+      // validation for each step
+      if (Step === 3 && password.length < 6) {
+        alert("Password must be at least 6 characters");
+        return;
+      }
 
-    
+      setStep((prev) => prev + 1);
+    };
 
-    setStep((prev) => prev + 1);
-  };
+    if (!fontsLoaded) return null;
 
-  if (!fontsLoaded) return null;
+    if (Step === 1) {
+      return (
+        <ThemedView style={CreateProfileStyles.Container}>
+          <View className="items-center justify-between flex-row w-full pt-20 px-4 mb-10">
+            <TouchableOpacity onPress={() => router.back()} className="w-fit">
+              <Image
+                className="w-5 h-5"
+                source={require("../../assets/images/back.png")}
+              />
+            </TouchableOpacity>
+            <ThemedText className="text-white text-2xl text-center w-full">
+              Enter your email
+            </ThemedText>
+          </View>
 
-  if (Step === 1) {
-    return (
-      <ThemedView style={CreateProfileStyles.Container}>
-        <View className="items-center justify-between flex-row w-full pt-20 px-4 mb-10">
-          <TouchableOpacity onPress={() => router.back()} className="w-fit">
-            <Image
-              className="w-5 h-5"
-              source={require("../../assets/images/back.png")}
-            />
-          </TouchableOpacity>
-          <ThemedText className="text-white text-2xl text-center w-full">
-            Enter your email
-          </ThemedText>
-        </View>
-
-        <Text className="text-[#B0B0B0] text-[16px] px-4 text-center w-full">
+          <Text className="text-[#B0B0B0] text-[16px] px-4 text-center w-full">
             Please enter the email address you used to create your account.
-        </Text>
+          </Text>
 
-        <TextInput
-          style={CreateProfileStyles.Input}
-          placeholder="Email"
-          className="placeholder:text-[#B0B0B0]"
-          value={email}
-          onChangeText={setEmail}
-          keyboardType="email-address"
-        />
-        <TouchableOpacity
-          onPress={()=> email.length ==0 ? Alert.alert('Please enter your email') : HandleStep(true)}
-          style={CreateProfileStyles.button}
-        >
-          <Text className="font-semibold text-lg">Continue</Text>
-        </TouchableOpacity>
-      </ThemedView>
-    );
-  }
-
-  if (Step === 2) {
-    return (
-      <ThemedView style={CreateProfileStyles.Container}>
-        <View className="items-center justify-between flex-row w-full pt-20 px-4 mb-10">
-          <TouchableOpacity onPress={() => HandleStep(false)}>
-            <Image
-              className="w-5 h-5 mt-1"
-              source={require("../../assets/images/back.png")}
-            />
+          <TextInput
+            style={CreateProfileStyles.Input}
+            placeholder="Email"
+            className="placeholder:text-[#B0B0B0]"
+            value={email}
+            onChangeText={setEmail}
+            keyboardType="email-address"
+          />
+          <TouchableOpacity
+            onPress={() =>
+              email.length == 0
+                ? Alert.alert("Please enter your email")
+                : handleRequestResetEmail()
+            }
+            style={CreateProfileStyles.button}
+          >
+            <Text className="font-semibold text-lg">Continue</Text>
           </TouchableOpacity>
-          <ThemedText className="text-white text-2xl text-center w-full">
-            Verify email
+        </ThemedView>
+      );
+    }
+
+    if (Step === 2) {
+      return (
+        <ThemedView style={CreateProfileStyles.Container}>
+          <View className="items-center justify-between flex-row w-full pt-20 px-4 mb-10">
+            <TouchableOpacity onPress={() => HandleStep(false)}>
+              <Image
+                className="w-5 h-5 mt-1"
+                source={require("../../assets/images/back.png")}
+              />
+            </TouchableOpacity>
+            <ThemedText className="text-white text-2xl text-center w-full">
+              Verify email
+            </ThemedText>
+          </View>
+          <ThemedText style={CreateProfileStyles.Text}>
+            Enter the confirmation code that we sent to {email}
           </ThemedText>
-        </View>
-        <ThemedText style={CreateProfileStyles.Text}>
-          Enter the confirmation code that we sent to {email}
-        </ThemedText>
 
-        <TextInput
-          style={CreateProfileStyles.Input}
-          className="placeholder:text-[#B0B0B0]"
-          value={otp}
-          onChangeText={setOtp}
-          placeholder="Enter 6-digit OTP"
-        />
+          <TextInput
+            style={CreateProfileStyles.Input}
+            className="placeholder:text-[#B0B0B0]"
+            value={otp}
+            onChangeText={setOtp}
+            placeholder="Enter 6-digit OTP"
+          />
 
-        <TouchableOpacity
-          onPress={handleVerifyOTP}
-          style={CreateProfileStyles.button}
-        >
-          <Text className="font-semibold text-lg">Verify</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity onPress={handleResend} className="mt-2">
-          <ThemedText style={CreateProfileStyles.ExtraBold}>
-            Resend Code
-          </ThemedText>
-        </TouchableOpacity>
-      </ThemedView>
-    );
-  }
-
-  if (Step === 3) {
-    return (
-      <ThemedView style={CreateProfileStyles.Container}>
-        <View className="items-center justify-between flex-row w-full pt-20 px-4 mb-10">
-          <TouchableOpacity onPress={() => HandleStep(false)} className="w-fit">
-            <Image
-              className="w-5 h-5"
-              source={require("../../assets/images/back.png")}
-            />
+          <TouchableOpacity
+            onPress={handleVerifyOTP}
+            style={CreateProfileStyles.button}
+          >
+            <Text className="font-semibold text-lg">Verify</Text>
           </TouchableOpacity>
-          <ThemedText className="text-white text-2xl text-center w-full">
-            Create new password
-          </ThemedText>
-        </View>
-        
-        <TextInput
-          style={CreateProfileStyles.Input}
-          placeholder="Password"
-          className="placeholder:text-[#B0B0B0]"
-          value={password}
-          onChangeText={setPassword}
-          secureTextEntry
-        />
-        <TouchableOpacity
-          onPress={() => HandleStep(true)}
-          style={CreateProfileStyles.button}
-        >
-          <Text className="font-semibold text-lg">Create Password</Text>
-        </TouchableOpacity>
-      </ThemedView>
-    );
-  }
 
-  return "Internal Error, Try restarting the app.";
+          <TouchableOpacity onPress={handleRequestResetEmail} className="mt-2">
+            <ThemedText style={CreateProfileStyles.ExtraBold}>
+              Resend Code
+            </ThemedText>
+          </TouchableOpacity>
+        </ThemedView>
+      );
+    }
+
+    if (Step === 3) {
+      return (
+        <ThemedView style={CreateProfileStyles.Container}>
+          <View className="items-center justify-between flex-row w-full pt-20 px-4 mb-10">
+            <TouchableOpacity
+              onPress={() => HandleStep(false)}
+              className="w-fit"
+            >
+              <Image
+                className="w-5 h-5"
+                source={require("../../assets/images/back.png")}
+              />
+            </TouchableOpacity>
+            <ThemedText className="text-white text-2xl text-center w-full">
+              Create new password
+            </ThemedText>
+          </View>
+          <TextInput
+            style={CreateProfileStyles.Input}
+            placeholder="Password"
+            className="placeholder:text-[#B0B0B0]"
+            value={password}
+            onChangeText={setPassword}
+            secureTextEntry
+          />
+          <TouchableOpacity
+            onPress={handleResetPassword}
+            style={CreateProfileStyles.button}
+          >
+            <Text className="font-semibold text-lg">Create Password</Text>
+          </TouchableOpacity>
+        </ThemedView>
+      );
+    }
+
+    return "Internal Error, Try restarting the app.";
+  };
 };
-
-export default ForgotPassword;

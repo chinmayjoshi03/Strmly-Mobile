@@ -10,6 +10,7 @@ import React, { useState } from "react";
 import { ChevronDownIcon, Hash, PlusSquare } from "lucide-react-native";
 import { useAuthStore } from "@/store/useAuthStore";
 import Constants from "expo-constants";
+import { router } from "expo-router";
 
 const episodes = [
   "Episode : 01",
@@ -58,6 +59,11 @@ const VideoDetails = ({
   const { isLoggedIn, token } = useAuthStore();
 
   const BACKEND_API_URL = Constants.expoConfig?.extra?.BACKEND_API_URL;
+  console.log(videoId,
+  type,
+  name,
+  series,
+  createdBy)
 
   const followCreator = async () => {
     if (!token || !videoId) {
@@ -115,22 +121,29 @@ const VideoDetails = ({
     <View className="w-full gap-3.5">
       {/* Top tags */}
       <View className="flex-row items-center justify-start gap-2">
-        <View className="items-center flex-row gap-0.5">
+        {
+          createdBy &&
+          <>
+          <View className="items-center flex-row gap-0.5">
           <Hash color={"white"} size={14} fontWeight={800} />
-          <Text className="text-white font-semibold">Startup India</Text>
+          <Text className="text-white font-semibold"> </Text>
         </View>
         <Image
           source={require("../../../../assets/images/plus.png")}
           className="size-5"
         />
+          </>
+        }
       </View>
 
       {/* Username + Paid */}
       <View className="flex-row items-center justify-between">
         <View className="flex-row items-center gap-2">
-          <Text className="text-white font-semibold">
-            {createdBy ? createdBy?.username : "Rohith"}
+          <Pressable onPress={()=> router.push(`/profile/public/${createdBy._id}`)}>
+            <Text className="text-white font-semibold">
+            {createdBy ? createdBy?.username : ""}
           </Text>
+          </Pressable>
           <TouchableOpacity
             onPress={() => followCreator()}
             className="border border-white items-center justify-center rounded-md px-2"
@@ -158,7 +171,7 @@ const VideoDetails = ({
       <View className="flex-row items-center justify-between relative">
         <View className="flex-row items-center gap-1">
           <Text className="text-white uppercase">{name}</Text>
-          {series !== null && (
+          {/* {series !== null && (
             <TouchableOpacity
               className="border border-white rounded-xl px-2 py-0.5"
               onPress={() => {
@@ -173,7 +186,7 @@ const VideoDetails = ({
                 <ChevronDownIcon color={"white"} size={12} />
               </View>
             </TouchableOpacity>
-          )}
+          )} */}
         </View>
 
         <Pressable onPress={onToggleFullScreen}>
@@ -193,6 +206,7 @@ const VideoDetails = ({
                 onPress={() => {
                   setShowPriceDropdown(false);
                   setShowDropdown(false);
+                  router.push('/(payments)/Video/VideoContentGifting')
                 }}
               >
                 <View

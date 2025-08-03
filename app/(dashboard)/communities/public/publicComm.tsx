@@ -54,10 +54,12 @@ export default function PublicCommunityPage() {
   const [isLoadingVideos, setIsLoadingVideos] = useState(false);
   const { isLoggedIn, token } = useAuthStore();
   const router = useRouter();
-  const params = useLocalSearchParams(); // Use useLocalSearchParams for route parameters
 
   const id = "686cc5084b2928ecdc64f263"; // Get id from params
-  // const id = params.id;
+//  const { id } = useLocalSearchParams();
+
+  const params = useLocalSearchParams(); // Use useLocalSearchParams for route parameters
+
 
   const BACKEND_API_URL = Constants.expoConfig?.extra?.BACKEND_API_URL;
 
@@ -97,18 +99,7 @@ export default function PublicCommunityPage() {
           throw new Error(data.message || "Failed to fetch community videos");
         }
         console.log("videos", data);
-        setVideos(data.videos); // Assuming data is directly the array of videos
-        // If your API returns a different structure, you might need to transform it:
-        // const transformedVideos = data.map((video: any) => ({
-        //   _id: video._id,
-        //   title: video.title,
-        //   description: video.description || "",
-        //   thumbnail: video.thumbnailUrl || "/placeholder.svg",
-        //   likes: video.likesCount || 0,
-        //   views: video.viewsCount || 0,
-        //   createdAt: video.createdAt,
-        // }));
-        // setVideos(transformedVideos);
+        setVideos(data.videos);
       } catch (err) {
         console.error("Error fetching community videos:", err);
         Alert.alert(

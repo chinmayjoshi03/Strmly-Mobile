@@ -174,7 +174,7 @@ export default function PersonalProfilePage() {
 
   const renderGridItem = ({ item }: { item: any }) => (
     <TouchableOpacity className="relative aspect-[9/16] flex-1 rounded-sm overflow-hidden">
-      {item.thumbnailUrl != null || "" ? (
+      {item.thumbnailUrl !== "" ? (
         <Image
           source={{ uri: item.thumbnailUrl }}
           alt="video thumbnail"
@@ -195,7 +195,7 @@ export default function PersonalProfilePage() {
   );
 
   return (
-    <ThemedView className="flex-1 pt-5">
+    <ThemedView className="flex-1">
       <ScrollView className="flex-1">
         {/* Cover Image */}
         {!isLoading && (
@@ -222,9 +222,9 @@ export default function PersonalProfilePage() {
               <View className="relative">
                 <View className="size-24 rounded-full border border-white overflow-hidden">
                   <Image
-                    source={{
+                    source={currentProfileData?.image ?{
                       uri: currentProfileData.image,
-                    }}
+                    }: require('../../../assets/images/user.png')}
                     className="w-full h-full object-cover rounded-full"
                   />
                 </View>
@@ -278,7 +278,7 @@ export default function PersonalProfilePage() {
             <View className="flex flex-row w-full items-center justify-center gap-2 mt-5">
               {/* My Community Button */}
               <TouchableOpacity
-                // onPress={() => router.push("/communities")}
+                onPress={() => router.push("/(communities)/CommunitiesPage")}
                 className="px-4 py-2 rounded-lg border border-white"
               >
                 <Text className="text-white text-center font-bold">
@@ -355,14 +355,14 @@ export default function PersonalProfilePage() {
                     </Text>
                   </TouchableOpacity>
                 )}
-                {currentProfileData.joinedDate !== "N/A" && (
+                {/* {currentProfileData.joinedDate !== "N/A" && (
                   <View className="flex-row items-center">
                     <Calendar className="w-4 h-4 mr-1 text-gray-400" />
                     <Text className="text-gray-400">
                       Joined {currentProfileData.joinedDate}
                     </Text>
                   </View>
-                )}
+                )} */}
               </View>
             </View>
           </View>

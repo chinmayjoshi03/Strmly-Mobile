@@ -1,5 +1,5 @@
 import { Image, Pressable, Text, View } from "react-native";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { FontAwesome } from "@expo/vector-icons";
 import { useAuthStore } from "@/store/useAuthStore";
 import Constants from "expo-constants";
@@ -10,6 +10,14 @@ type InteractOptionsProps = {
   videoId: string;
   likes: number;
   comments?: number;
+  setIsWantToGift: any;
+  setGiftingData: {
+    _id: string;
+    profile?: string;
+    username: string;
+    email: string;
+  };
+  creator: {} | undefined;
 };
 
 const InteractOptions = ({
@@ -17,14 +25,20 @@ const InteractOptions = ({
   videoId,
   likes,
   comments,
+  setIsWantToGift,
+  setGiftingData,
+  creator,
 }: InteractOptionsProps) => {
   // Destructure onCommentPress from props
-  const [liked, setLiked] = useState(false);
+  const [like, setLike] = useState(0);
+  const [isLikedVideo, setIsLikedVideo] = useState(false);
   const [isResharedVideo, setIsResharedVideo] = useState(false);
 
   const { isLoggedIn, token } = useAuthStore();
 
   const BACKEND_API_URL = Constants.expoConfig?.extra?.BACKEND_API_URL;
+
+  console.log("creator", creator);
 
   const LikeVideo = async () => {
     if (!token || !videoId) {
@@ -33,42 +47,74 @@ const InteractOptions = ({
 
     try {
       const response = await fetch(
-        `${BACKEND_API_URL}/interaction/${liked ? "unlike" : "like"}`,
+        `${BACKEND_API_URL}/interaction/${isLikedVideo ? "unlike" : "like"}`,
         {
           method: "POST",
           headers: {
             Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({videoId: videoId}),
+          body: JSON.stringify({ videoId: videoId }),
         }
       );
       if (!response.ok) throw new Error("Failed while like video");
       const data = await response.json();
-      setLiked(!liked);
+      setLike(data.likes);
+      setIsLikedVideo(data.isLiked);
       console.log("data", data);
     } catch (err) {
       console.log(err);
     }
   };
 
+  useEffect(() => {
+    const checkIfVideoLike = async () => {
+      if (!token || !videoId) {
+        return;
+      }
+
+      try {
+        const response = await fetch(
+          `${BACKEND_API_URL}/interaction/like/status`,
+          {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${token}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ videoId: videoId }),
+          }
+        );
+        if (!response.ok) throw new Error("Failed while like video");
+        const data = await response.json();
+        console.log("data", data);
+        setLike(data.likes);
+        setIsLikedVideo(data.isLiked);
+      } catch (err) {
+        console.log(err);
+      }
+    };
+
+    if (token && videoId) {
+      checkIfVideoLike();
+    }
+  }, [token, videoId]);
+
   const ReshareVideo = async () => {
     if (!token || !videoId) {
+      console.log("videoId", token);
       return;
     }
 
     try {
-      const response = await fetch(
-        `${BACKEND_API_URL}/interaction/reshare`,
-        {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({videoId: videoId}),
-        }
-      );
+      const response = await fetch(`${BACKEND_API_URL}/interaction/reshare`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ videoId: videoId }),
+      });
       if (!response.ok) throw new Error("Failed to reshare video");
       const data = await response.json();
       setIsResharedVideo(!isResharedVideo);
@@ -78,19 +124,24 @@ const InteractOptions = ({
     }
   };
 
+  const openGifting = () => {
+    setGiftingData(creator);
+    setIsWantToGift(true);
+  };
+
   return (
     <View className="p-1">
       <View className="gap-5">
         <View className="items-center gap-1">
           <Pressable onPress={() => LikeVideo()}>
             <FontAwesome
-              name={liked ? "heart" : "heart-o"}
+              name={isLikedVideo ? "heart" : "heart-o"}
               size={27}
-              color={liked ? "red" : "white"}
+              color={isLikedVideo ? "red" : "white"}
             />
           </Pressable>
 
-          <Text className="text-white text-sm">{likes}</Text>
+          <Text className="text-white text-sm">{like}</Text>
         </View>
 
         <View className="items-center gap-1">
@@ -105,21 +156,30 @@ const InteractOptions = ({
         </View>
 
         <View className="items-center gap-1">
-          <Image
-            className="size-7"
-            source={require("../../../../assets/images/repost.png")}
-          />
-          <Text className="text-white text-sm">999</Text>
+          <Pressable onPress={ReshareVideo}>
+            {isResharedVideo ? (
+              <Image
+                className="size-7"
+                source={require("../../../../assets/images/reshare-green.png")}
+              />
+            ) : (
+              <Image
+                className="size-7"
+                source={require("../../../../assets/images/repost.png")}
+              />
+            )}
+          </Pressable>
+          <Text className="text-white text-sm"> </Text>
         </View>
 
         <View className="items-center gap-1">
-          <Pressable onPress={() => alert("Donate")}>
+          <Pressable onPress={() => openGifting()}>
             <Image
               className="size-7"
               source={require("../../../../assets/images/rupee.png")}
             />
           </Pressable>
-          <Text className="text-white text-sm">100</Text>
+          <Text className="text-white text-sm"></Text>
         </View>
       </View>
     </View>

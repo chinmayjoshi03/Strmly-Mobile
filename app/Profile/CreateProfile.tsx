@@ -143,7 +143,7 @@ const CreateProfile = () => {
       useAuthStore.getState().updateUser({ isVerified: true });
 
       alert("Email verified successfully!");
-      setTimeout(() => router.replace("/(dashboard)/long/VideoFeed"), 1000); // or push to dashboard if already logged in
+      setTimeout(() => router.replace('/Interests'), 1000); // or push to dashboard if already logged in
     } catch (err: any) {
       console.error("OTP Verification error:", err);
       alert(err.message || "Something went wrong");

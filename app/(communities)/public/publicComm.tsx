@@ -50,14 +50,14 @@ export default function PublicCommunityPage() {
   const [videos, setVideos] = useState<any[]>([]);
 
   const [isLoading, setIsLoading] = useState(false);
+  const [isFollowing, setIsFollowing] = useState(false);
 
   const [isLoadingVideos, setIsLoadingVideos] = useState(false);
   const { isLoggedIn, token } = useAuthStore();
   const router = useRouter();
-  const params = useLocalSearchParams(); // Use useLocalSearchParams for route parameters
 
   const id = "686cc5084b2928ecdc64f263"; // Get id from params
-  // const id = params.id;
+//  const { id } = useLocalSearchParams();
 
   const BACKEND_API_URL = Constants.expoConfig?.extra?.BACKEND_API_URL;
 
@@ -97,18 +97,7 @@ export default function PublicCommunityPage() {
           throw new Error(data.message || "Failed to fetch community videos");
         }
         console.log("videos", data);
-        setVideos(data.videos); // Assuming data is directly the array of videos
-        // If your API returns a different structure, you might need to transform it:
-        // const transformedVideos = data.map((video: any) => ({
-        //   _id: video._id,
-        //   title: video.title,
-        //   description: video.description || "",
-        //   thumbnail: video.thumbnailUrl || "/placeholder.svg",
-        //   likes: video.likesCount || 0,
-        //   views: video.viewsCount || 0,
-        //   createdAt: video.createdAt,
-        // }));
-        // setVideos(transformedVideos);
+        setVideos(data.videos);
       } catch (err) {
         console.error("Error fetching community videos:", err);
         Alert.alert(
@@ -170,9 +159,47 @@ export default function PublicCommunityPage() {
     }
   }, [isLoggedIn, router, id, token]);
 
+  const followCommunity = async () => {
+    try {
+      setIsFollowing(true);
+      const response = await fetch(`${BACKEND_API_URL}/community/follow`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ communityId: id }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || "Failed to follow community profile");
+      }
+
+      console.log(data);
+    } catch (error) {
+      console.log(error);
+      Alert.alert(
+        "Error",
+        error instanceof Error
+          ? error.message
+          : "An unknown error occurred while following community."
+      );
+    } finally {
+      setIsFollowing(false);
+    }
+  };
+
   const renderVideoItem = ({ item }: { item: any }) => (
     <Pressable className="w-full h-[100vh] mb-4 relative rounded-lg overflow-hidden bg-black">
-      {thumbnails[item._id] ? (
+      {item.thumbnailUrl !== "" ? (
+        <Image
+          source={{ uri: item.thumbnailUrl }}
+          alt="video thumbnail"
+          className="w-full h-full object-cover"
+        />
+      ) : thumbnails[item._id] ? (
         <Image
           source={{ uri: thumbnails[item._id] }}
           alt="video thumbnail"
@@ -187,8 +214,14 @@ export default function PublicCommunityPage() {
   );
 
   const renderGridItem = ({ item }: { item: any }) => (
-    <TouchableOpacity className="relative aspect-[9/16] m-1 flex-1 rounded-sm overflow-hidden">
-      {thumbnails[item._id] ? (
+    <TouchableOpacity className="relative aspect-[9/16] flex-1 rounded-sm overflow-hidden">
+      {item.thumbnailUrl !== "" ? (
+        <Image
+          source={{ uri: item.thumbnailUrl }}
+          alt="video thumbnail"
+          className="w-full h-full object-cover"
+        />
+      ) : thumbnails[item._id] ? (
         <Image
           source={{ uri: thumbnails[item._id] }}
           alt="video thumbnail"
@@ -203,7 +236,7 @@ export default function PublicCommunityPage() {
   );
 
   return (
-    <ThemedView className="flex-1 pt-5">
+    <ThemedView className="flex-1">
       {/* Cover Image */}
       {!isLoading && (
         <View className="h-48 relative">
@@ -279,7 +312,7 @@ export default function PublicCommunityPage() {
 
           {/* Buttons */}
           <View className="flex flex-row w-full items-center justify-center gap-2 mt-5 md:mt-0">
-            <TouchableOpacity className="flex-1 px-4 py-2 rounded-xl bg-transparent border border-gray-400">
+            <TouchableOpacity onPress={()=> followCommunity()} className="flex-1 px-4 py-2 rounded-xl bg-transparent border border-gray-400">
               <Text className="text-white text-center">Follow</Text>
             </TouchableOpacity>
 
@@ -365,7 +398,7 @@ export default function PublicCommunityPage() {
             keyExtractor={(item) => item._id}
             renderItem={renderGridItem}
             numColumns={3}
-            contentContainerStyle={{ paddingBottom: 30, paddingHorizontal: 0}}
+            contentContainerStyle={{ paddingBottom: 30, paddingHorizontal: 0 }}
             showsVerticalScrollIndicator={false}
           />
         )}

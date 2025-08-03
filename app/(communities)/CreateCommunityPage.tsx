@@ -130,7 +130,7 @@ const CreateCommunityPage: React.FC = () => {
           source={
             imageUri
               ? { uri: imageUri }
-              : require("../../assets/icons/ProfilePlaceHolder.svg")
+              : require("../../assets/images/user.png")
           }
           style={CreateCommunityStyle.CommunityAvatar}
         />
