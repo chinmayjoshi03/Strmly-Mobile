@@ -7,14 +7,15 @@ import {
   Pressable,
   LayoutChangeEvent,
   Dimensions,
+  Image,
 } from "react-native";
 import { useVideoPlayer, VideoView, type VideoPlayerStatus } from "expo-video";
 import InteractOptions from "./_components/interactOptions";
 import VideoDetails from "./_components/VideoDetails";
 import { Play } from "lucide-react-native";
-import * as ScreenOrientation from "expo-screen-orientation";
 import CommentsSection from "./_components/CommentSection";
 import { VideoItemType } from "@/types/VideosType";
+import { router } from "expo-router";
 
 type Props = {
   uri: string;
@@ -22,13 +23,28 @@ type Props = {
   videoData: VideoItemType;
   showCommentsModal: boolean;
   setShowCommentsModal: any;
+  setIsWantToGift: any;
+  setGiftingData: {
+    _id: string;
+    profile?: string | undefined;
+    username: string;
+    email: string;
+  };
 };
 
 // Define constants for layout to avoid magic numbers and make adjustments easier
 const PROGRESS_BAR_HEIGHT = 2; // Keep your original height for the progress bar
 const FULL_SCREEN_PRESSABLE_BOTTOM_OFFSET = PROGRESS_BAR_HEIGHT; // 10px buffer above progress bar
 
-const VideoItem = ({ uri, isActive, videoData, showCommentsModal, setShowCommentsModal }: Props) => {
+const VideoItem = ({
+  uri,
+  isActive,
+  videoData,
+  showCommentsModal,
+  setShowCommentsModal,
+  setGiftingData,
+  setIsWantToGift,
+}: Props) => {
   const { width, height } = Dimensions.get("screen");
   const player = useVideoPlayer(uri, (p) => {
     p.loop = true;
@@ -42,69 +58,35 @@ const VideoItem = ({ uri, isActive, videoData, showCommentsModal, setShowComment
   const [isPaused, setIsPaused] = useState(false);
   const [isFullScreen, setIsFullScreen] = useState(false);
 
+  // ADDED: State to track if the watch function has been called for this video
+  const [hasCalledWatchFunction, setHasCalledWatchFunction] = useState(false);
+
   // Ref to store the layout (width) of the progress bar container
   const progressBarContainerWidth = useRef<number>(0);
 
   const [screenSize, setScreenSize] = useState(Dimensions.get("screen"));
 
-  useEffect(() => {
-    const onChange = ({
-      screen,
-    }: {
-      screen: { width: number; height: number };
-    }) => {
-      setScreenSize(screen);
-    };
-
-    const sub = Dimensions.addEventListener("change", onChange);
-
-    return () => sub.remove();
-  }, [isFullScreen]);
-
-  useEffect(() => {
-    const getInitialOrientation = async () => {
-      const orientation = await ScreenOrientation.getOrientationAsync();
-      console.log("Initial orientation:", orientation);
-      // You can optionally map this to readable string:
-      switch (orientation) {
-        case ScreenOrientation.Orientation.PORTRAIT_UP:
-          console.log("Portrait Up");
-          break;
-        case ScreenOrientation.Orientation.LANDSCAPE_LEFT:
-          console.log("Landscape Left");
-          break;
-        case ScreenOrientation.Orientation.LANDSCAPE_RIGHT:
-          console.log("Landscape Right");
-          break;
-        case ScreenOrientation.Orientation.PORTRAIT_DOWN:
-          console.log("Portrait Down");
-          break;
-        default:
-          console.log("Unknown or face-up/face-down");
-      }
-    };
-
-    getInitialOrientation();
-  }, [isFullScreen]);
+  // ADDED: The function to be called when the 2% watch time is reached
+  const handleTwoPercentWatch = useCallback(() => {
+    // You can replace this console.log with any function call you need, like an API request.
+    console.log(
+      `User has watched more than 2% of the video: ${videoData._id}`
+    );
+  }, [videoData._id]);
 
   const toggleFullScreen = async () => {
-    const newState = !isFullScreen;
-    console.log("Updated screen size:", screenSize);
-    setIsFullScreen(newState);
-    if (newState) {
-      await ScreenOrientation.lockAsync(
-        ScreenOrientation.OrientationLock.LANDSCAPE // Use LANDSCAPE as per your original
-      );
-    } else {
-      await ScreenOrientation.lockAsync(
-        ScreenOrientation.OrientationLock.PORTRAIT_UP
-      );
-    }
-
-    // Original return, but this effect cleans up automatically on unmount
-    // return () => {
-    //   ScreenOrientation.unlockAsync();
-    // };
+    // const newState = !isFullScreen;
+    // console.log("Updated screen size:", screenSize);
+    // setIsFullScreen(newState);
+    // if (newState) {
+    //   await ScreenOrientation.lockAsync(
+    //     ScreenOrientation.OrientationLock.LANDSCAPE // Use LANDSCAPE as per your original
+    //   );
+    // } else {
+    //   await ScreenOrientation.lockAsync(
+    //     ScreenOrientation.OrientationLock.PORTRAIT_UP
+    //   );
+    // }
   };
 
   const togglePlayPause = () => {
@@ -125,24 +107,45 @@ const VideoItem = ({ uri, isActive, videoData, showCommentsModal, setShowComment
     return () => subscription.remove();
   }, [player]);
 
+  // MODIFIED: useEffect for isActive changes
   useEffect(() => {
     if (isActive) {
       player.play();
     } else {
       player.pause();
       player.currentTime = 0; // Keep your original currentTime reset
+      // ADDED: Reset the flag when the video is no longer active
+      setHasCalledWatchFunction(false);
     }
   }, [isActive, player]);
 
-  // This effect now starts the timer whenever the video is active.
+  // MODIFIED: This effect now starts the timer and checks for the 2% watch condition.
   useEffect(() => {
     let interval: ReturnType<typeof setInterval>; // Corrected type for setInterval return
 
     // We only need the timer when the video is the active one.
     if (isActive) {
       interval = setInterval(() => {
+        const currentPlaybackTime = player.currentTime;
+        const videoDuration = player.duration ?? 0;
+
         // This will now run consistently for the active video.
-        setCurrentTime(player.currentTime);
+        setCurrentTime(currentPlaybackTime);
+
+        // --- START: NEW LOGIC FOR 2% WATCH ---
+        // 1. Find out 2% of video length
+        const twoPercentMark = videoDuration * 0.02;
+
+        // 2. Check if the user has crossed that margin and the function hasn't been called yet
+        if (
+          videoDuration > 0 &&
+          !hasCalledWatchFunction &&
+          currentPlaybackTime > twoPercentMark
+        ) {
+          handleTwoPercentWatch();
+          setHasCalledWatchFunction(true); // Set the flag to true to prevent repeated calls
+        }
+        // --- END: NEW LOGIC FOR 2% WATCH ---
       }, 250);
     }
     // The cleanup function is crucial to stop the timer when the video is no longer active.
@@ -152,7 +155,7 @@ const VideoItem = ({ uri, isActive, videoData, showCommentsModal, setShowComment
         clearInterval(interval);
       }
     };
-  }, [isActive, player]); // Keep original dependencies
+  }, [isActive, player, hasCalledWatchFunction, handleTwoPercentWatch]); // MODIFIED: Added dependencies
 
   // Callback for when the progress bar container's layout is measured
   const handleProgressBarLayout = (event: LayoutChangeEvent) => {
@@ -278,9 +281,22 @@ const VideoItem = ({ uri, isActive, videoData, showCommentsModal, setShowComment
         </Pressable>
       )}
 
+      {/* Wallet Button */}
+      <View className="absolute w-fit top-16 left-5">
+        <Pressable onPress={() => router.push("/(dashboard)/wallet/wallet")}>
+          <Image
+            source={require("../../../assets/images/Wallet.png")}
+            className="size-8"
+          />
+        </Pressable>
+      </View>
+
       {/* Interact Buttons */}
       <View style={styles.interact}>
         <InteractOptions
+          creator={videoData.created_by}
+          setGiftingData={setGiftingData}
+          setIsWantToGift={setIsWantToGift}
           videoId={videoData._id}
           likes={videoData.likes}
           comments={videoData.comments?.length}

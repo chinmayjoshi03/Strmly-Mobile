@@ -41,90 +41,95 @@ const ForgotPassword = () => {
 
   const BACKEND_API_URL = Constants.expoConfig?.extra?.BACKEND_API_URL;
 
-  const handleVerifyOTP = async () => {
+  const handleRequestResetEmail = async () => {
+    setIsLoading(true);
     try {
-      const res = await fetch(`${BACKEND_API_URL}/auth/verify-email`, {
+      const response = await fetch(`${BACKEND_API_URL}/auth/forgot-password`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          otp,
-        }),
-      });
-
-      const data = await res.json();
-
-      if (!res.ok) {
-        throw new Error(data?.message || "Verification failed");
-      }
-
-      console.log("Verification successful", data);
-
-      // Update auth store to mark email_verified
-      useAuthStore.getState().updateUser({ isVerified: true });
-
-      alert("Email verified successfully!");
-      setTimeout(() => router.replace("/(dashboard)/long/VideoFeed"), 1000);
-    } catch (err: any) {
-      console.error("OTP Verification error:", err);
-      alert(err.message || "Something went wrong");
-    }
-  };
-
-  const handleResend = async () => {
-    if (cooldown > 0) return;
-
-    try {
-      setIsLoading(true);
-
-      const res = await fetch(`${BACKEND_API_URL}/auth/resend-verification`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email }),
       });
 
-      const data = await res.json();
-
-      if (!res.ok) {
-        if (data.code === "RATE_LIMITED") {
-          Alert.alert("Too Many Requests", data.message);
-          setCooldown(60); // Start cooldown
-        } else if (data.code === "ALREADY_VERIFIED") {
-          Alert.alert("Already Verified", data.message);
-        } else {
-          Alert.alert(
-            "Resend Failed",
-            data.message || "Please try again later"
-          );
-        }
-        return;
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.message || "Failed to request password reset.");
       }
 
+      Alert.alert("Success", data.message);
+      setStep(2); // go to verification step
+    } catch (error) {
       Alert.alert(
-        "OTP Sent",
-        "A new verification code was sent to your email."
+        "Error",
+        error instanceof Error ? error.message : "Unknown error."
       );
-    } catch (error: any) {
-      Alert.alert("Error", error.message || "Network error");
     } finally {
       setIsLoading(false);
     }
   };
 
-  useEffect(() => {
-    let timer: NodeJS.Timeout | number;
+  const handleVerifyOTP = async () => {
+    setIsLoading(true);
+    try {
+      const response = await fetch(`${BACKEND_API_URL}/auth/verify-reset-token`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ token: otp }),
+      });
 
-    if (cooldown > 0) {
-      timer = setInterval(() => {
-        setCooldown((prev) => prev - 1);
-      }, 1000);
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || "OTP verification failed");
+      }
+
+      Alert.alert("Verified", "You may now reset your password.");
+      setStep(3);
+    } catch (error) {
+      Alert.alert(
+        "Error",
+        error instanceof Error ? error.message : "Unknown error."
+      );
+    } finally {
+      setIsLoading(false);
     }
+  };
 
-    return () => {
-      if (timer) clearInterval(timer);
-    };
-  }, [cooldown]);
+  const handleResetPassword = async () => {
+    setIsLoading(true);
+    try {
+      const response = await fetch(`${BACKEND_API_URL}/auth/reset-password`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          token: otp,
+          newPassword: password,
+          confirmPassword: password, // assuming no separate confirm field
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || "Failed to reset password.");
+      }
+
+      Alert.alert("Success", "Password reset successful. Please log in.");
+      router.replace("/(auth)/Sign-in");
+    } catch (error) {
+      Alert.alert(
+        "Error",
+        error instanceof Error ? error.message : "Unknown error."
+      );
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const HandleStep = (next: boolean) => {
     if (!next) {
@@ -137,8 +142,6 @@ const ForgotPassword = () => {
         alert("Please enter a valid email");
         return;
       }
-
-      handleResend()
     }
 
     if (Step === 2 && confirmationCode.trim().length < 4) {
@@ -151,8 +154,6 @@ const ForgotPassword = () => {
       alert("Password must be at least 6 characters");
       return;
     }
-
-    
 
     setStep((prev) => prev + 1);
   };
@@ -175,7 +176,7 @@ const ForgotPassword = () => {
         </View>
 
         <Text className="text-[#B0B0B0] text-[16px] px-4 text-center w-full">
-            Please enter the email address you used to create your account.
+          Please enter the email address you used to create your account.
         </Text>
 
         <TextInput
@@ -187,7 +188,11 @@ const ForgotPassword = () => {
           keyboardType="email-address"
         />
         <TouchableOpacity
-          onPress={()=> email.length ==0 ? Alert.alert('Please enter your email') : HandleStep(true)}
+          onPress={() =>
+            email.length == 0
+              ? Alert.alert("Please enter your email")
+              : handleRequestResetEmail()
+          }
           style={CreateProfileStyles.button}
         >
           <Text className="font-semibold text-lg">Continue</Text>
@@ -229,7 +234,7 @@ const ForgotPassword = () => {
           <Text className="font-semibold text-lg">Verify</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity onPress={handleResend} className="mt-2">
+        <TouchableOpacity onPress={handleRequestResetEmail} className="mt-2">
           <ThemedText style={CreateProfileStyles.ExtraBold}>
             Resend Code
           </ThemedText>
@@ -252,7 +257,7 @@ const ForgotPassword = () => {
             Create new password
           </ThemedText>
         </View>
-        
+
         <TextInput
           style={CreateProfileStyles.Input}
           placeholder="Password"
@@ -262,7 +267,7 @@ const ForgotPassword = () => {
           secureTextEntry
         />
         <TouchableOpacity
-          onPress={() => HandleStep(true)}
+          onPress={handleResetPassword}
           style={CreateProfileStyles.button}
         >
           <Text className="font-semibold text-lg">Create Password</Text>

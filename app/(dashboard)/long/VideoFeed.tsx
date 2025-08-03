@@ -5,6 +5,7 @@ import ThemedView from "@/components/ThemedView";
 import { useAuthStore } from "@/store/useAuthStore";
 import Constants from "expo-constants";
 import { VideoItemType } from "@/types/VideosType";
+import VideoContentGifting from "@/app/(payments)/Video/VideoContentGifting";
 
 const videoData = [
   {
@@ -21,6 +22,13 @@ const videoData = [
   },
 ];
 
+type GiftType = {
+  _id: string;
+  profile?: string;
+  username: string;
+  email: string;
+};
+
 const VideoFeed: React.FC = () => {
   const [videos, setVideos] = useState<VideoItemType[]>([]);
   const [loading, setLoading] = useState(true);
@@ -32,27 +40,13 @@ const VideoFeed: React.FC = () => {
   const { token, user, isLoggedIn } = useAuthStore();
 
   const [showCommentsModal, setShowCommentsModal] = useState(false);
+  const [isWantToGift, setIsWantToGift] = useState(false);
+  const [giftingData, setGiftingData] = useState<GiftType | undefined>();
 
   const { height } = Dimensions.get("screen");
-  const [screenSize, setScreenSize] = useState(Dimensions.get("screen"));
-
-  useEffect(() => {
-    const onChange = ({
-      screen,
-    }: {
-      screen: { width: number; height: number };
-    }) => {
-      setScreenSize(screen);
-    };
-
-    const sub = Dimensions.addEventListener("change", onChange);
-
-    return () => sub.remove();
-  }, []);
 
   const fetchTrendingVideos = async () => {
     try {
-      console.log(token);
       const res = await fetch(
         `${BACKEND_API_URL}/videos/trending?page=1&limit=10`
       );
@@ -97,29 +91,36 @@ const VideoFeed: React.FC = () => {
   }
 
   return (
-    <ThemedView style={{ height: screenSize.height  }}>
-      <FlatList
-        data={videos}
-        keyExtractor={(item) => item._id}
-        renderItem={({ item, index }) => (
-          <VideoItem
-            showCommentsModal={showCommentsModal}
-            setShowCommentsModal={setShowCommentsModal}
-            key={`${item._id}-${visibleIndex === index}`}
-            uri={item.videoUrl}
-            isActive={index === visibleIndex}
-            videoData={item}
+    <>
+      {isWantToGift ? (
+        <VideoContentGifting creator={giftingData} />
+      ) : (
+        <ThemedView style={{ height }}>
+          <FlatList
+            data={videos}
+            keyExtractor={(item) => item._id}
+            renderItem={({ item, index }) => (
+              <VideoItem
+                setGiftingData={setGiftingData}
+                showCommentsModal={showCommentsModal}
+                setShowCommentsModal={setShowCommentsModal}
+                setIsWantToGift={setIsWantToGift}
+                key={`${item._id}-${visibleIndex === index}`}
+                uri={item.videoUrl}
+                isActive={index === visibleIndex}
+                videoData={item}
+              />
+            )}
+            pagingEnabled
+            scrollEnabled={!showCommentsModal}
+            onViewableItemsChanged={onViewableItemsChanged.current}
+            viewabilityConfig={{ itemVisiblePercentThreshold: 80 }}
+            decelerationRate="fast"
+            showsVerticalScrollIndicator={false}
           />
-        )}
-        pagingEnabled
-        scrollEnabled={!showCommentsModal}
-        onViewableItemsChanged={onViewableItemsChanged.current}
-        viewabilityConfig={{ itemVisiblePercentThreshold: 80 }}
-        snapToInterval={screenSize.height }
-        decelerationRate="fast"
-        showsVerticalScrollIndicator={false}
-      />
-    </ThemedView>
+        </ThemedView>
+      )}
+    </>
   );
 };
 

@@ -80,6 +80,7 @@ const CommentsSection = (props: CommentsSectionProps) => {
       );
       if (!response.ok) throw new Error("Failed to fetch comments");
       const data = await response.json();
+      console.log(data)
       setComments(data);
     } catch (err) {
       // Optionally use an Alert here
@@ -118,6 +119,7 @@ const CommentsSection = (props: CommentsSectionProps) => {
       );
       const data = await response.json();
       setOpenReplies((prev) => ({ ...prev, [commentID]: data }));
+      console.log(data)
     } catch (err) {
       // Optionally handle error
     } finally {

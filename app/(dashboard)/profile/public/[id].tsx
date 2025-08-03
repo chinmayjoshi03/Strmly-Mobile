@@ -31,7 +31,7 @@ import Constants from "expo-constants";
 
 // No need for mockPosts, as you're fetching real data now.
 
-export default function PublicProfilePage() {
+export default function PublicProfilePageWithId() {
   const [activeTab, setActiveTab] = useState("long");
   const [userData, setUserData] = useState<any>(null);
   const [videos, setVideos] = useState<any[]>([]);
@@ -47,17 +47,11 @@ export default function PublicProfilePage() {
 
   const BACKEND_API_URL = Constants.expoConfig?.extra?.BACKEND_API_URL;
 
-  const params = useLocalSearchParams<{
-    id: string;
-  }>();
+  const { id } = useLocalSearchParams();
 
-  const id = "6884d0776d5898b4ba5b7dfb";
-  // const id = params.id;
-
-  // Access the current user's ID if this profile page is for the logged-in user
-  // If this page can display OTHER users' profiles, you'd use useLocalSearchParams for `id`
-  // For now, assuming it's for the *logged-in user's* profile based on the original code's API calls
-  // If you need to fetch a specific user's profile by ID, you'd uncomment useLocalSearchParams and get the ID from there.
+  useEffect(() => {
+    console.log("ID from params:", id);
+  }, [id]);
 
   const thumbnails = useThumbnailsGenerate(
     useMemo(
@@ -70,26 +64,21 @@ export default function PublicProfilePage() {
     )
   );
 
-  // useEffect(() => {
-  //   videos.map((video) => console.log("thumbnail", video.thumbnailUrl));
-  // }, [videos]);
-
   useEffect(() => {
-    // Re-enabled login check as it's crucial for protected routes
-    if (!isLoggedIn) {
-      router.push("/(auth)/Sign-in");
-      return;
-    }
+    if (!id) return;
 
     const fetchUserVideos = async (page = 1) => {
       setIsLoadingVideos(true);
       try {
-        const response = await fetch(`${BACKEND_API_URL}/user/videos/${id}?type=${activeTab}&page=${page}`, {
-          method: "GET",
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
+        const response = await fetch(
+          `${BACKEND_API_URL}/user/videos/${id}?type=${activeTab}&page=${page}`,
+          {
+            method: "GET",
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
 
         const data = await response.json();
 
@@ -111,16 +100,14 @@ export default function PublicProfilePage() {
       }
     };
 
-    if (token) {
+    if (token && id) {
       fetchUserVideos();
+      console.log('videosssssssssss')
     }
-  }, [isLoggedIn, router, token, activeTab]);
+  }, [token, activeTab, id]);
 
   useEffect(() => {
-    if (!isLoggedIn) {
-      router.push("/(auth)/Sign-in");
-      return;
-    }
+    if (!id) return;
 
     const fetchUserData = async () => {
       try {
@@ -139,7 +126,7 @@ export default function PublicProfilePage() {
         }
 
         setUserData(data.user);
-        console.log('user', data)
+        console.log("user", data);
         if (data.user?.tags && data.user.tags.length > 2) setShowMore(true);
       } catch (error) {
         console.log(error);
@@ -154,10 +141,11 @@ export default function PublicProfilePage() {
       }
     };
 
-    if (token) {
+    if (token && id) {
       fetchUserData();
+      console.log('huhuhdhuwdhuwd')
     }
-  }, [isLoggedIn, router, token]);
+  }, [isLoggedIn, router, token, id]);
 
   const followCreator = async () => {
     try {
@@ -200,8 +188,7 @@ export default function PublicProfilePage() {
     email: userData?.email || "",
     image:
       userData?.avatar ||
-      userData?.image ||
-      "https://api.dicebear.com/7.x/avataaars/svg?seed=default",
+      userData?.image,
     username: userData?.username || userData?.email?.split("@")[0] || "user",
     bio: userData?.bio || "Welcome to my profile! 👋",
     location: userData?.location || "Not specified",
@@ -267,9 +254,9 @@ export default function PublicProfilePage() {
               <View className="relative">
                 <View className="size-24 rounded-full border border-white overflow-hidden">
                   <Image
-                    source={{
-                      uri: currentProfileData.image,
-                    }}
+                    source={userData?.image ?{
+                      uri: userData.image
+                    }: require('../../../../assets/images/user.png')}
                     className="w-full h-full object-cover rounded-full"
                   />
                 </View>
@@ -317,7 +304,7 @@ export default function PublicProfilePage() {
 
               {/* Access Button with Gradient Border */}
               <TouchableOpacity
-                className={`${currentProfileData.creatorPassPrice !== 0 && "flex-grow" } h-10 rounded-lg overflow-hidden`}
+                className={`${currentProfileData.creatorPassPrice !== 0 && "flex-grow"} h-10 rounded-lg overflow-hidden`}
               >
                 <LinearGradient
                   colors={["#4400FFA6", "#FFFFFF", "#FF00004D", "#FFFFFF"]}

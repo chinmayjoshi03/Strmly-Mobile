@@ -193,25 +193,15 @@ export default function PersonalCommunityPage() {
     }
   };
 
-  const renderVideoItem = ({ item }: { item: any }) => (
-    <Pressable className="w-full h-[100vh] mb-4 relative rounded-lg overflow-hidden bg-black">
-      {thumbnails[item._id] ? (
+  const renderGridItem = ({ item }: { item: any }) => (
+    <TouchableOpacity className="relative aspect-[9/16] flex-1 rounded-sm overflow-hidden">
+      {item.thumbnailUrl !== "" ? (
         <Image
-          source={{ uri: thumbnails[item._id] }}
+          source={{ uri: item.thumbnailUrl }}
           alt="video thumbnail"
           className="w-full h-full object-cover"
         />
-      ) : (
-        <View className="w-full h-full flex items-center justify-center">
-          <Text className="text-white text-xs">Loading...</Text>
-        </View>
-      )}
-    </Pressable>
-  );
-
-  const renderGridItem = ({ item }: { item: any }) => (
-    <TouchableOpacity className="relative aspect-[9/16] m-1 flex-1 rounded-sm overflow-hidden">
-      {thumbnails[item._id] ? (
+      ) : thumbnails[item._id] ? (
         <Image
           source={{ uri: thumbnails[item._id] }}
           alt="video thumbnail"
@@ -226,7 +216,7 @@ export default function PersonalCommunityPage() {
   );
 
   return (
-    <ThemedView className="flex-1 pt-5">
+    <ThemedView className="flex-1">
       {/* Cover Image */}
       {!isLoading && (
         <View className="h-48 relative">
@@ -315,14 +305,14 @@ export default function PersonalCommunityPage() {
             >
               <Text className="text-white text-center">View Analytics</Text>
             </TouchableOpacity>
-
           </View>
-            <TouchableOpacity
-              onPress={() => changeCommunityFounder()}
-              className="px-4 w-fit items-center justify-center mt-3 py-2 rounded-xl border border-gray-400"
-            >
-              <Text className="text-white text-center">Transfer Ownership</Text>
-            </TouchableOpacity>
+
+          {/* <TouchableOpacity
+            onPress={() => changeCommunityFounder()}
+            className="px-4 w-fit items-center justify-center mt-3 py-2 rounded-xl border border-gray-400"
+          >
+            <Text className="text-white text-center">Transfer Ownership</Text>
+          </TouchableOpacity> */}
 
           {/* Bio */}
           <View className="mt-6 flex flex-col items-center justify-center px-4">
@@ -366,12 +356,9 @@ export default function PersonalCommunityPage() {
           <FlatList
             data={videos}
             keyExtractor={(item) => item._id}
-            renderItem={renderVideoItem}
-            contentContainerStyle={{
-              paddingBottom: 30,
-              paddingTop: 10,
-              paddingHorizontal: 0,
-            }}
+            renderItem={renderGridItem}
+            numColumns={3}
+            contentContainerStyle={{ paddingBottom: 30, paddingTop: 10, paddingHorizontal: 0 }}
             showsVerticalScrollIndicator={false}
           />
         )}

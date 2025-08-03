@@ -3,12 +3,20 @@ import ThemedView from "@/components/ThemedView";
 import React, { useEffect, useState } from "react";
 import { useFonts } from "expo-font";
 import { Signinstyles } from "@/styles/signin";
-import { Image, Text, TextInput, TouchableOpacity, View } from "react-native";
+import {
+  Image,
+  Platform,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from "react-native";
 import { CreateProfileStyles } from "@/styles/createprofile";
 import { Link, router } from "expo-router";
 import { Alert } from "react-native";
-import { useGoogleAuth } from "@/utils/authConfig";
-import Constants from "expo-constants";
+import { useGoogleAuth, BACKEND_API_URL, getGoogleClientId } from "@/utils/authConfig";
+import axios from "axios";
+
 
 const SignUp = () => {
   const [useEmail, setUseEmail] = useState(false);
@@ -24,41 +32,43 @@ const SignUp = () => {
     "Inter-SemiBold": require("../../assets/fonts/inter/Inter-SemiBold.ttf"),
   });
 
-  const BACKEND_API_URL = Constants.expoConfig?.extra?.BACKEND_API_URL;
+  const { promptAsync, response } = useGoogleAuth();
 
-  const [request, response, promptAsync] = useGoogleAuth();
-
-  useEffect(() => {
-    if (response?.type === "success" && response.authentication?.idToken) {
-      registerWithGoogle(response.authentication.idToken);
-    }
-  }, [response]);
-
-  const registerWithGoogle = async (idToken: string) => {
+  const registerWithGoogle = async () => {
     try {
-      const res = await fetch(
-        `${BACKEND_API_URL}/auth/register/google`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            credential: idToken,
-            clientId: "YOUR_WEB_CLIENT_ID.apps.googleusercontent.com",
+      const clientId = getGoogleClientId();
+      const result = await promptAsync();
+      console.log(clientId, result);
+
+      if (result.type === "success") {
+        const id_token = result.authentication?.idToken;
+
+        const res = await axios.post(
+          `${BACKEND_API_URL}/auth/register/google`,
+          {
+            credential: id_token,
+            clientId,
             select_by: "user",
-          }),
+          }
+        );
+
+        console.log("User registered:", res.data);
+        // Store token, navigate, etc.
+
+        const data = res.data;
+
+        if (res.status !== 201) {
+          return Alert.alert("Error", data.message || "Google signup failed");
         }
-      );
 
-      const data = await res.json();
+        console.log("Signed in:", data);
 
-      if (!res.ok) {
-        return Alert.alert("Error", data.message || "Google signup failed");
+        router.push("/Profile/CreateProfile"); // Navigate after signup
+      } else if (result.type === "dismiss") {
+        console.log("User dismissed Google login");
+      } else {
+        console.log("Unexpected result:", result);
       }
-
-      // Save token and user info (you can use AsyncStorage or context here)
-      console.log("Signed in:", data);
-
-      router.push('/Profile/CreateProfile'); // Navigate after signup
     } catch (err) {
       console.error(err);
       Alert.alert("Error", "Something went wrong during signup.");
@@ -80,7 +90,7 @@ const SignUp = () => {
           platform.
         </Text>
         <TouchableOpacity
-          onPress={() => router.push('/Profile/CreateProfile')}
+          onPress={() => router.push("/Profile/CreateProfile")}
           style={Signinstyles.button}
         >
           <View className="flex-row items-center justify-between w-full px-4">
@@ -93,7 +103,7 @@ const SignUp = () => {
           </View>
         </TouchableOpacity>
         <TouchableOpacity
-          onPress={() => promptAsync()}
+          onPress={registerWithGoogle}
           style={Signinstyles.button}
         >
           <View className="flex-row items-center justify-between w-full px-4">

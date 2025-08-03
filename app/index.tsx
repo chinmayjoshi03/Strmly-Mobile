@@ -2,7 +2,6 @@ import { StyleSheet } from 'react-native';
 import ThemedView from "../components/ThemedView";
 import VideoFeed from './(dashboard)/long/VideoFeed';
 import WalletPage from './(dashboard)/wallet/wallet';
-import VideoContentGifting from './(payments)/Video/VideoContentGifting';
 import CommentsSection from './(dashboard)/long/_components/CommentSection';
 import KYCForm from './(dashboard)/wallet/_components/KYCForm';
 import PublicProfilePage from './(dashboard)/profile/public/PublicProfile';
@@ -18,6 +17,10 @@ import HistoryPage from './(dashboard)/profile/History';
 import ForgotPassword from './(auth)/forgotpass';
 import PersonalCommunityPage from './(dashboard)/communities/personal/PersonalComm';
 import Dashboard from './(dashboard)/profile/Dashboard';
+import PublicCommunityPage from './(communities)/public/publicComm';
+import Interests from './(InterestsSection)/Interests';
+import VideoContentGifting from './(payments)/Video/VideoContentGifting';
+import Setting from './Setting/Setting';
 
 const Home = () => {
   return (
@@ -25,12 +28,16 @@ const Home = () => {
 
     // <SignUp/>
     // <ForgotPassword/>
+    
+    // <Interests/>
+    
     // <CreateProfile/>
     // <AddCreatorPass/>
     // <EditProfilePage/>
 
     // <HistoryPage/>
 
+    // <Setting/>
     // <PersonalProfilePage/>
     // <PublicProfilePage/>
 

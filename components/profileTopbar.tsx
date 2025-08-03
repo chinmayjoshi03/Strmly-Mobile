@@ -46,14 +46,14 @@ const ProfileTopbar = ({ hashtag, name, isMore=true }: ProfileTopbarProps) => {
   };
 
   return (
-    <View className="mx-4 top-6 z-20">
+    <View className="top-6 z-20">
       <View className="flex-row items-center justify-between">
         <TouchableOpacity onPress={() => router.back()} className="p-2">
           <ChevronLeft size={28} color={"white"} className="text-white" />
         </TouchableOpacity>
 
         <View>
-          <Text className={`text-lg ${isMore ? 'pr-3' : 'pr-16'} capitalize font-semibold text-white`}>
+          <Text className={`text-xl ${isMore ? 'pr-3' : 'pr-16'} capitalize font-semibold text-white`}>
             {hashtag && <Text className="text-white font-bold">#</Text>}
             <Text>{safeName}</Text> {/* Wrap safeName in a Text component */}
           </Text>
