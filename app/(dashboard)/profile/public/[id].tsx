@@ -137,6 +137,7 @@ export default function PublicProfilePageWithId() {
 
     if (token && id) {
       fetchUserData();
+      console.log('huhuhdhuwdhuwd')
     }
   }, [token, id]);
 
