@@ -55,10 +55,9 @@ export default function PublicCommunityPage() {
   const [isLoadingVideos, setIsLoadingVideos] = useState(false);
   const { isLoggedIn, token } = useAuthStore();
   const router = useRouter();
-  const params = useLocalSearchParams(); // Use useLocalSearchParams for route parameters
 
   const id = "686cc5084b2928ecdc64f263"; // Get id from params
-  // const id = params.id;
+//  const { id } = useLocalSearchParams();
 
   const BACKEND_API_URL = Constants.expoConfig?.extra?.BACKEND_API_URL;
 

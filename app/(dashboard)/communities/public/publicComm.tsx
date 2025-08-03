@@ -58,6 +58,9 @@ export default function PublicCommunityPage() {
   const id = "686cc5084b2928ecdc64f263"; // Get id from params
 //  const { id } = useLocalSearchParams();
 
+  const params = useLocalSearchParams(); // Use useLocalSearchParams for route parameters
+
+
   const BACKEND_API_URL = Constants.expoConfig?.extra?.BACKEND_API_URL;
 
   const thumbnails = useThumbnailsGenerate(
