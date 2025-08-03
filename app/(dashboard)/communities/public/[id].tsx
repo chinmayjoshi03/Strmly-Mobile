@@ -12,16 +12,15 @@ import {
 import {
   IndianRupee,
   HeartIcon,
-  VideoIcon,
   PaperclipIcon,
 } from "lucide-react-native"; // React Native Lucide icons
 import { useAuthStore } from "@/store/useAuthStore";
-import { useLocalSearchParams, useRouter } from "expo-router"; // Expo Router for navigation
 import { useThumbnailsGenerate } from "@/utils/useThumbnailGenerator";
 import ThemedView from "@/components/ThemedView";
 import ProfileTopbar from "@/components/profileTopbar";
 import { LinearGradient } from "expo-linear-gradient";
 import Constants from "expo-constants";
+import { useRoute } from "@react-navigation/native";
 
 const profileData = {
   id: 1,
@@ -52,13 +51,11 @@ export default function PublicCommunityPage() {
   const [isLoading, setIsLoading] = useState(false);
 
   const [isLoadingVideos, setIsLoadingVideos] = useState(false);
-  const { isLoggedIn, token } = useAuthStore();
-  const router = useRouter();
+  const { token } = useAuthStore();
 
-  const id = "686cc5084b2928ecdc64f263"; // Get id from params
 //  const { id } = useLocalSearchParams();
-
-  const params = useLocalSearchParams(); // Use useLocalSearchParams for route parameters
+  const route = useRoute();
+  const { id } = route.params as { id: string };
 
 
   const BACKEND_API_URL = Constants.expoConfig?.extra?.BACKEND_API_URL;
@@ -75,16 +72,10 @@ export default function PublicCommunityPage() {
   );
 
   useEffect(() => {
-    if (!isLoggedIn) {
-      router.push("/(auth)/Sign-in"); // Use router.push for navigation in Expo Router
-      return;
-    }
 
     const fetchUserVideos = async () => {
       setIsLoadingVideos(true);
       try {
-        const queryParams = new URLSearchParams();
-        queryParams.append("type", activeTab);
         const response = await fetch(
           `${BACKEND_API_URL}/community/${id}/videos?videoType=${activeTab}`,
           {
@@ -116,13 +107,9 @@ export default function PublicCommunityPage() {
     if (token && id) {
       fetchUserVideos();
     }
-  }, [isLoggedIn, activeTab, router, token, id]);
+  }, [activeTab, token, id]);
 
   useEffect(() => {
-    if (!isLoggedIn) {
-      router.push("/(auth)/Sign-in");
-      return;
-    }
 
     const fetchCommunityData = async () => {
       try {
@@ -159,7 +146,7 @@ export default function PublicCommunityPage() {
     if (token && id) {
       fetchCommunityData();
     }
-  }, [isLoggedIn, router, id, token]);
+  }, [id, token]);
 
   const renderVideoItem = ({ item }: { item: any }) => (
     <Pressable className="w-full h-[100vh] mb-4 relative rounded-lg overflow-hidden bg-black">

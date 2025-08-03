@@ -10,7 +10,7 @@ const ThemedView = ({ style, safe = false, ...props }: ThemedViewProps) => {
   if(!colorScheme){
     return null;
   }
-  const theme = Colors[colorScheme] ?? Colors.light;
+  const theme = Colors[colorScheme] ?? Colors.dark;
 
   if (!safe)
     return (

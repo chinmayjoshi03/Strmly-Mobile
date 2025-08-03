@@ -6,6 +6,7 @@ import { useAuthStore } from "@/store/useAuthStore";
 import Constants from "expo-constants";
 import { VideoItemType } from "@/types/VideosType";
 import VideoContentGifting from "@/app/(payments)/Video/VideoContentGifting";
+import GiftingMessage from "./_components/GiftingMessage";
 
 const videoData = [
   {
@@ -35,15 +36,18 @@ const VideoFeed: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
 
   const BACKEND_API_URL = Constants.expoConfig?.extra?.BACKEND_API_URL;
+  const { height } = Dimensions.get("screen");
 
   const [visibleIndex, setVisibleIndex] = useState(0);
   const { token, user, isLoggedIn } = useAuthStore();
 
   const [showCommentsModal, setShowCommentsModal] = useState(false);
   const [isWantToGift, setIsWantToGift] = useState(false);
-  const [giftingData, setGiftingData] = useState<GiftType | undefined>();
+  const [giftingData, setGiftingData] = useState<GiftType | null>();
+  const [isGifted, setIsGifted] = useState<boolean>(false);
+  const [giftSuccessMessage, setGiftSuccessMessage] = useState<any>();
 
-  const { height } = Dimensions.get("screen");
+  const [modalVisible, setModalVisible] = useState<boolean>(false);
 
   const fetchTrendingVideos = async () => {
     try {
@@ -92,8 +96,22 @@ const VideoFeed: React.FC = () => {
 
   return (
     <>
-      {isWantToGift ? (
-        <VideoContentGifting creator={giftingData} />
+      {isGifted ? (
+        <GiftingMessage
+          isVisible={modalVisible}
+          giftData={giftingData}
+          setGiftData={setGiftingData}
+          onClose={setModalVisible}
+          message={giftSuccessMessage}
+          giftMessage={setGiftSuccessMessage}
+        />
+      ) : isWantToGift ? (
+        <VideoContentGifting
+          giftData={giftingData}
+          setIsGifted={setIsGifted}
+          setIsWantToGift={setIsWantToGift}
+          giftMessage={setGiftSuccessMessage}
+        />
       ) : (
         <ThemedView style={{ height }}>
           <FlatList

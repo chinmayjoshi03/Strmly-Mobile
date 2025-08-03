@@ -299,6 +299,8 @@ const VideoItem = ({
           setIsWantToGift={setIsWantToGift}
           videoId={videoData._id}
           likes={videoData.likes}
+          gifts={videoData.gifts}
+          shares= {videoData.shares}
           comments={videoData.comments?.length}
           onCommentPress={handleOpenComments}
         />
