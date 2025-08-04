@@ -70,7 +70,7 @@ const CreateCommunityPage: React.FC = () => {
     const formData = new FormData();
     formData.append("name", communityName);
     formData.append("bio", bio);
-    formData.append("accessType", selected);
+    formData.append("type", selected);
 
     if (selected === "Paid") {
       formData.append("strength", strength);

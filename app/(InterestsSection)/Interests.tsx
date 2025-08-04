@@ -3,12 +3,19 @@ import ThemedView from '@/components/ThemedView'
 import React, { useState } from 'react'
 import { useFonts } from 'expo-font';
 import { CreateProfileStyles } from '@/styles/createprofile'
-import { Image, Text, TouchableOpacity, View, ScrollView } from 'react-native';
+import { Image, Text, TouchableOpacity, View, ScrollView, Alert, ActivityIndicator } from 'react-native';
+import { useAuthStore } from '@/store/useAuthStore';
+import Constants from 'expo-constants';
+import { router } from 'expo-router';
 
 const Interests = () => {
     const [Step, setStep] = useState(1)
     const [Type, setType] = useState("Netflix")
     const [Interests, setInterests] = useState<string[]>([]);
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const { token } = useAuthStore();
+    const BACKEND_API_URL = Constants.expoConfig?.extra?.BACKEND_API_URL;
+
     const [fontsLoaded] = useFonts({
         'Poppins-Regular': require('../../assets/fonts/poppins/Poppins-Regular.ttf'),
         'Poppins-Bold': require('../../assets/fonts/poppins/Poppins-Bold.ttf'),
@@ -21,13 +28,51 @@ const Interests = () => {
         'Inter-ExtraBold': require('../../assets/fonts/inter/Inter-ExtraBold.ttf'),
     });
 
+    const submitInterests = async () => {
+        if (!token || Interests.length !== 3) return;
+
+        setIsSubmitting(true);
+        try {
+            const response = await fetch(`${BACKEND_API_URL}/user/interests`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({
+                    interests: Interests,
+                    type: Type
+                })
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                throw new Error(data.message || 'Failed to update interests');
+            }
+
+            // Success - navigate to next screen or show success message
+            Alert.alert('Success', 'Your interests have been updated successfully!');
+            router.push('/(dashboard)/long/VideoFeed');
+
+        } catch (error) {
+            Alert.alert('Error', error.message || 'Failed to update interests');
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
+
     const HandleStep = (val: boolean) => {
         if (Step > 1 && !val) {
             setStep(prev => prev - 1);
         }
 
         if (val) {
-            setStep(prev => prev + 1);
+            if (Step === 3) {
+                submitInterests();
+            } else {
+                setStep(prev => prev + 1);
+            }
         }
     }
 
@@ -122,11 +167,17 @@ const Interests = () => {
                     <ThemedText>Select only 3 of your interest from {isCinema ? '“Cinema content”' : '“Non-cinema content”'}</ThemedText>
                     <View style={{ marginTop: 20 }}>{renderGrid(items)}</View>
                     <TouchableOpacity
-                        disabled={Interests.length !== 3}
+                        disabled={Interests.length !== 3 || isSubmitting}
                         onPress={() => HandleStep(true)}
-                        style={CreateProfileStyles.button}
+                        className='rounded-3xl bg-white items-center justify-center h-[55px]'
                     >
-                        Continue
+                        {isSubmitting ? (
+                            <ActivityIndicator color="black" />
+                        ) : (
+                            <Text className='text-black text-xl'>
+                                {Step === 3 ? 'Submit' : 'Continue'}
+                            </Text>
+                        )}
                     </TouchableOpacity>
                 </ScrollView>
             </ThemedView>

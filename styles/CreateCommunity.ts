@@ -40,6 +40,7 @@ export const CreateCommunityStyle = StyleSheet.create({
     },
     TextLabel: {
         borderBottomWidth: 1,
+        color: 'white',
         borderColor: '#FFFFFF33',
         width: '100%',
         fontFamily: 'Poppins-Regular',

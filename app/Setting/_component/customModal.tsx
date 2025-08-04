@@ -1,5 +1,5 @@
 import { Link } from "expo-router";
-import React from "react";
+import React, { useState } from "react";
 import { Modal, View, Text, Pressable, StyleSheet } from "react-native";
 
 type ActionModalProps = {
@@ -12,6 +12,8 @@ type ActionModalProps = {
   onPrimaryButtonPress?: () => void;
   secondaryButtonText?: string;
   onSecondaryButtonPress?: () => void;
+  info?: string;
+  confirmRequest?: string;
 };
 
 const ActionModal = ({
@@ -20,25 +22,50 @@ const ActionModal = ({
   title,
   specialText,
   useButtons,
-  primaryButtonText,
+  primaryButtonText = "",
   onPrimaryButtonPress,
-  secondaryButtonText,
+  secondaryButtonText = "",
   onSecondaryButtonPress,
+  info,
+  confirmRequest
 }: ActionModalProps) => {
+  const [isPressed, setIsPressed] = useState(false);
+  const [isConfirmationStage, setIsConfirmationStage] = useState(false);
+
+  const handlePrimaryPress = () => {
+    if (info && confirmRequest && !isConfirmationStage) {
+      // First press - show confirmation
+      setIsConfirmationStage(true);
+    } else {
+      // Second press (or normal case) - execute the action
+      onPrimaryButtonPress?.();
+      onClose();
+    }
+  };
+
+  const handleSecondaryPress = () => {
+    if (isConfirmationStage) {
+      // Go back to initial state if in confirmation stage
+      setIsConfirmationStage(false);
+    } else {
+      // Normal secondary button behavior
+      onSecondaryButtonPress?.();
+      onClose();
+    }
+  };
+
   return (
     <Modal
       animationType="fade"
       transparent={true}
       visible={isVisible}
-      onRequestClose={onClose} // Allows closing with the back button on Android
+      onRequestClose={onClose}
     >
-      {/* Semi-transparent backdrop */}
       <Pressable style={styles.backdrop} onPress={onClose}>
-        {/* We add another Pressable inside to prevent the modal from closing when pressing its content */}
         <Pressable style={styles.modalContainer}>
           <Text className="text-white text-sm text-center">
-            {title}
-            {specialText && (
+            {isConfirmationStage && confirmRequest ? confirmRequest : title}
+            {specialText && !confirmRequest && (
               <>
                 <Link href={"https://strmly.com/terms"}>
                   <Text className="text-blue-500 text-sm text-center">
@@ -61,18 +88,24 @@ const ActionModal = ({
             <View className="flex-row items-center gap-1.5 mt-8 justify-between">
               <Pressable
                 className="rounded-3xl items-center flex-1 bg-[#B0B0B0] px-6 py-2.5"
-                onPress={onSecondaryButtonPress}
+                onPress={handleSecondaryPress}
               >
                 <Text className="text-black text-[16px]">
-                  {secondaryButtonText}
+                  {isConfirmationStage ? "Back" : secondaryButtonText}
                 </Text>
               </Pressable>
+              
               <Pressable
-                className="rounded-3xl flex-1 items-center bg-[#B0B0B0] px-6 py-2.5"
-                onPress={onPrimaryButtonPress}
+                className="rounded-3xl flex-1 items-center px-6 py-2.5"
+                style={{
+                  backgroundColor: isPressed ? "#34C759" : "#B0B0B0",
+                }}
+                onPressIn={() => setIsPressed(true)}
+                onPressOut={() => setIsPressed(false)}
+                onPress={handlePrimaryPress}
               >
                 <Text className="text-black text-[16px]">
-                  {primaryButtonText}
+                  {isConfirmationStage ? "Send request" : primaryButtonText}
                 </Text>
               </Pressable>
             </View>
@@ -93,7 +126,7 @@ const styles = StyleSheet.create({
   },
   modalContainer: {
     width: "100%",
-    backgroundColor: "black", // A dark grey, fitting for a dark theme
+    backgroundColor: "black",
     borderRadius: 14,
     padding: 24,
     alignItems: "center",

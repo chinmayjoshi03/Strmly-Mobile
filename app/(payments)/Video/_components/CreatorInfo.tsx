@@ -1,21 +1,31 @@
-import { View, Text, Image } from "react-native";
+import { View, Text, Image, Pressable } from "react-native";
 import React from "react";
 
 type CreatorData = {
+  setIsWantToGift: (value: boolean) => void;
   profile: string;
   name: string;
   username: string;
 };
 
-const CreatorInfo = ({ profile, name, username }: CreatorData) => {
+const CreatorInfo = ({ setIsWantToGift, profile, name, username }: CreatorData) => {
   return (
     <View>
       <View className="flex-row items-center gap-3 mb-4">
-
+        <Pressable onPress={()=> setIsWantToGift(false)}>
+          <Image
+            source={require("../../../../assets/images/back.png")}
+            className="size-5 rounded-full"
+          />
+        </Pressable>
         <View className="flex-row items-center justify-center gap-2">
           <View className="rounded-full bg-gray-500">
             <Image
-              source={profile  ? { uri: profile } : require("../../../../assets/images/user.png")}
+              source={
+                profile
+                  ? { uri: profile }
+                  : require("../../../../assets/images/user.png")
+              }
               className="size-10 rounded-full"
             />
           </View>
