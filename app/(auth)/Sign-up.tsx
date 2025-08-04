@@ -17,8 +17,7 @@ import { Alert } from "react-native";
 import { useGoogleAuth, BACKEND_API_URL, getGoogleClientId } from "@/utils/authConfig";
 import axios from "axios";
 
-
-const SignUp = () => {
+export const SignUp = () => {
   const [useEmail, setUseEmail] = useState(false);
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
@@ -170,4 +169,106 @@ const SignUp = () => {
   }
 };
 
-export default SignUp;
+
+// // export default SignUp;
+// import * as React from "react";
+// import { Button, Platform, View, Text, StyleSheet } from "react-native";
+// import * as WebBrowser from "expo-web-browser";
+// import * as AuthSession from "expo-auth-session";
+// import * as Crypto from "expo-crypto";
+// import Constants from "expo-constants";
+
+// // This is a necessary boilerplate for the web platform.
+// WebBrowser.maybeCompleteAuthSession();
+
+// // The discovery document contains all of Google's OAuth endpoints.
+// const discovery = {
+//   authorizationEndpoint: "https://accounts.google.com/o/oauth2/v2/auth",
+//   tokenEndpoint: "https://oauth2.googleapis.com/token",
+//   revocationEndpoint: "https://oauth2.googleapis.com/revoke",
+// };
+
+// export const SignUp = () => {
+//   // 1. Select the correct NATIVE Client ID for the platform.
+//   //    With development builds, we always use the native client IDs.
+//   //    The Web Client ID is no longer needed for mobile sign-in.
+//   const clientId = React.useMemo(() => {
+//     return Platform.select({
+//       ios: Constants.expoConfig?.extra?.googleClientIdIOS,
+//       android: Constants.expoConfig?.extra?.googleClientIdAndroid,
+//     });
+//   }, []);
+
+//   // 2. Configure the deep link redirect URI.
+//   //    This uses the "scheme" from your app.config.js. The proxy is no longer used.
+//   const redirectUri = AuthSession.makeRedirectUri({
+//     scheme: 'strmly', // IMPORTANT: This must match the scheme in your app config.
+//     path: 'auth'      // You can add a path for specific routing if needed.
+//   });
+
+//   // This log will now show your app's deep link, e.g., "strmly://auth"
+//   console.log("EXACT REDIRECT URI:", redirectUri);
+
+//   // 3. Set up the `useAuthRequest` hook.
+//   //    The `useProxy` option is now false by default, which is what we want.
+//   const [request, response, promptAsync] = AuthSession.useAuthRequest(
+//     {
+//       clientId: clientId || "", // Fallback to empty string if not loaded
+//       scopes: ["openid", "profile", "email"],
+//       redirectUri, // This is now your deep link, e.g., "strmly://auth"
+//       responseType: "id_token",
+//       extraParams: {
+//         // A nonce is a random string used to prevent replay attacks.
+//         nonce: Crypto.randomUUID(),
+//       },
+//     },
+//     discovery
+//   );
+
+//   // 4. Handle the authentication response (NO CHANGE NEEDED HERE).
+//   React.useEffect(() => {
+//     if (response?.type === "success") {
+//       const { id_token } = response.params;
+//       if (id_token) {
+//         console.log("✅ Authentication successful! Got ID token.");
+//         // TODO: Send this id_token to your backend server for verification.
+//       }
+//     } else if (response?.type === "error") {
+//       console.error("❌ Authentication Error:", response.error?.message);
+//     }
+//   }, [response]);
+
+//   // 5. Render the sign-in button and UI feedback (NO CHANGE NEEDED HERE).
+//   return (
+//     <View style={styles.container}>
+//       <Button
+//         title="Sign in with Google"
+//         disabled={!request || !clientId}
+//         onPress={() => {
+//           promptAsync();
+//         }}
+//       />
+//       {!clientId && (
+//         <Text style={styles.errorText}>
+//           Google Client ID is not configured. Check your app.config.js and .env
+//           file.
+//         </Text>
+//       )}
+//     </View>
+//   );
+// };
+
+// // Basic styling for the component
+// const styles = StyleSheet.create({
+//   container: {
+//     flex: 1,
+//     justifyContent: "center",
+//     alignItems: "center",
+//   },
+//   errorText: {
+//     color: "red",
+//     marginTop: 10,
+//     textAlign: "center",
+//     paddingHorizontal: 20,
+//   },
+// });

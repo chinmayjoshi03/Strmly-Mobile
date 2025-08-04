@@ -9,6 +9,8 @@ type InteractOptionsProps = {
   onCommentPress: () => void; // Callback function for comment button press
   videoId: string;
   likes: number;
+  gifts: number;
+  shares: number;
   comments?: number;
   setIsWantToGift: any;
   setGiftingData: {
@@ -24,6 +26,8 @@ const InteractOptions = ({
   onCommentPress,
   videoId,
   likes,
+  gifts,
+  shares,
   comments,
   setIsWantToGift,
   setGiftingData,
@@ -31,14 +35,17 @@ const InteractOptions = ({
 }: InteractOptionsProps) => {
   // Destructure onCommentPress from props
   const [like, setLike] = useState(0);
+  const [reshares, setReshares] = useState(0);
+  const [gift, setGifts] = useState(0);
   const [isLikedVideo, setIsLikedVideo] = useState(false);
   const [isResharedVideo, setIsResharedVideo] = useState(false);
+  const [isGiftedVideo, setIsGiftedVideo] = useState(false);
 
-  const { isLoggedIn, token } = useAuthStore();
+  const { token } = useAuthStore();
 
   const BACKEND_API_URL = Constants.expoConfig?.extra?.BACKEND_API_URL;
 
-  console.log("creator", creator);
+  // console.log("creator", creator);
 
   const LikeVideo = async () => {
     if (!token || !videoId) {
@@ -61,7 +68,7 @@ const InteractOptions = ({
       const data = await response.json();
       setLike(data.likes);
       setIsLikedVideo(data.isLiked);
-      console.log("data", data);
+      // console.log("data", data);
     } catch (err) {
       console.log(err);
     }
@@ -87,7 +94,7 @@ const InteractOptions = ({
         );
         if (!response.ok) throw new Error("Failed while like video");
         const data = await response.json();
-        console.log("data", data);
+        // console.log("data", data);
         setLike(data.likes);
         setIsLikedVideo(data.isLiked);
       } catch (err) {
@@ -98,7 +105,43 @@ const InteractOptions = ({
     if (token && videoId) {
       checkIfVideoLike();
     }
-  }, [token, videoId]);
+  }, [token, videoId, likes]);
+
+  // ------------- Reshare ------------
+  useEffect(()=> setReshares(shares), [shares]);
+
+  useEffect(() => {
+    const checkIfReshare = async () => {
+      if (!token || !videoId) {
+        return;
+      }
+
+      try {
+        const response = await fetch(
+          `${BACKEND_API_URL}/interaction/reshare/status`,
+          {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${token}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ videoId: videoId }),
+          }
+        );
+        if (!response.ok) throw new Error("Failed while checking reshare status");
+        const data = await response.json();
+        console.log("data", data);
+        // setReshares(data.video_reshares); 
+        setIsResharedVideo(data.isReshared);
+      } catch (err) {
+        console.log(err);
+      }
+    };
+
+    if (token && videoId) {
+      checkIfReshare();
+    }
+  }, [token, videoId, shares]);
 
   const ReshareVideo = async () => {
     if (!token || !videoId) {
@@ -118,14 +161,17 @@ const InteractOptions = ({
       if (!response.ok) throw new Error("Failed to reshare video");
       const data = await response.json();
       setIsResharedVideo(!isResharedVideo);
-      console.log("data", data);
+      setReshares(data.totalReshares);
     } catch (err) {
       console.log(err);
     }
   };
 
+  // ---------------- Gifting API ----------------
+  useEffect(()=> setGifts(gifts), [gifts]);
+
   const openGifting = () => {
-    setGiftingData(creator);
+    setGiftingData({creator, videoId});
     setIsWantToGift(true);
   };
 
@@ -169,7 +215,7 @@ const InteractOptions = ({
               />
             )}
           </Pressable>
-          <Text className="text-white text-sm"> </Text>
+          <Text className="text-white text-sm">{reshares}</Text>
         </View>
 
         <View className="items-center gap-1">
@@ -179,7 +225,7 @@ const InteractOptions = ({
               source={require("../../../../assets/images/rupee.png")}
             />
           </Pressable>
-          <Text className="text-white text-sm"></Text>
+          <Text className="text-white text-sm">{gift}</Text>
         </View>
       </View>
     </View>
