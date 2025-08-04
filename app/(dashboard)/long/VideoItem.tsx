@@ -36,6 +36,7 @@ type Props = {
 const PROGRESS_BAR_HEIGHT = 2; // Keep your original height for the progress bar
 const FULL_SCREEN_PRESSABLE_BOTTOM_OFFSET = PROGRESS_BAR_HEIGHT; // 10px buffer above progress bar
 
+<<<<<<< Updated upstream
 const VideoItem = ({
   uri,
   isActive,
@@ -45,17 +46,25 @@ const VideoItem = ({
   setGiftingData,
   setIsWantToGift,
 }: Props) => {
+=======
+const VideoItem = React.memo(({ uri, isActive, videoData }: Props) => {
+>>>>>>> Stashed changes
   const { width, height } = Dimensions.get("screen");
   const player = useVideoPlayer(uri, (p) => {
     p.loop = true;
     p.volume = 1;
+    p.muted = false;
+    // Try to preload the video
+    if (isActive) {
+      p.play();
+    }
   });
 
   const [videoStatus, setVideoStatus] = useState<VideoPlayerStatus | null>(
     null
   );
   const [currentTime, setCurrentTime] = useState(0);
-  const [isPaused, setIsPaused] = useState(false);
+  const [isPaused, setIsPaused] = useState(!isActive);
   const [isFullScreen, setIsFullScreen] = useState(false);
 
   // ADDED: State to track if the watch function has been called for this video
@@ -101,31 +110,60 @@ const VideoItem = ({
   useEffect(() => {
     const subscription = player.addListener("statusChange", (event) => {
       setVideoStatus(event.status);
-      // Your original statusChange listener did not update isPaused,
-      // so we will respect that and keep isPaused managed by togglePlayPause.
+      
+      // Auto-play when video becomes ready and is active
+      if (isActive && (event.status === "readyToPlay" || event.status === "idle")) {
+        player.play();
+        setIsPaused(false);
+      }
     });
     return () => subscription.remove();
-  }, [player]);
+  }, [player, isActive]);
 
   // MODIFIED: useEffect for isActive changes
   useEffect(() => {
+    console.log('🎬 Video isActive changed:', isActive, 'for video:', videoData.name);
+    
     if (isActive) {
+      // Immediately try to play
       player.play();
+      setIsPaused(false);
+      console.log('▶️ Attempting to play video:', videoData.name);
+      
+      // Also try again after a short delay in case the video wasn't ready
+      const playTimeout = setTimeout(() => {
+        if (isActive) { // Check if still active
+          player.play();
+          setIsPaused(false);
+          console.log('▶️ Retry play for video:', videoData.name);
+        }
+      }, 200);
+      
+      return () => clearTimeout(playTimeout);
     } else {
       player.pause();
+<<<<<<< Updated upstream
       player.currentTime = 0; // Keep your original currentTime reset
       // ADDED: Reset the flag when the video is no longer active
       setHasCalledWatchFunction(false);
+=======
+      setIsPaused(true);
+      console.log('⏸️ Pausing video:', videoData.name);
+>>>>>>> Stashed changes
     }
-  }, [isActive, player]);
+  }, [isActive, player, videoData.name]);
 
+<<<<<<< Updated upstream
   // MODIFIED: This effect now starts the timer and checks for the 2% watch condition.
+=======
+  // Optimized timer with less frequent updates to reduce re-renders
+>>>>>>> Stashed changes
   useEffect(() => {
-    let interval: ReturnType<typeof setInterval>; // Corrected type for setInterval return
+    let interval: ReturnType<typeof setInterval>;
 
-    // We only need the timer when the video is the active one.
-    if (isActive) {
+    if (isActive && !isPaused) {
       interval = setInterval(() => {
+<<<<<<< Updated upstream
         const currentPlaybackTime = player.currentTime;
         const videoDuration = player.duration ?? 0;
 
@@ -147,15 +185,22 @@ const VideoItem = ({
         }
         // --- END: NEW LOGIC FOR 2% WATCH ---
       }, 250);
+=======
+        setCurrentTime(player.currentTime);
+      }, 1000); // Reduced frequency from 250ms to 1000ms
+>>>>>>> Stashed changes
     }
-    // The cleanup function is crucial to stop the timer when the video is no longer active.
+    
     return () => {
-      // Ensure interval is defined before clearing it
       if (interval) {
         clearInterval(interval);
       }
     };
+<<<<<<< Updated upstream
   }, [isActive, player, hasCalledWatchFunction, handleTwoPercentWatch]); // MODIFIED: Added dependencies
+=======
+  }, [isActive, isPaused, player]);
+>>>>>>> Stashed changes
 
   // Callback for when the progress bar container's layout is measured
   const handleProgressBarLayout = (event: LayoutChangeEvent) => {
@@ -184,7 +229,7 @@ const VideoItem = ({
   };
 
   const duration = player.duration ?? 0;
-  const progress = duration > 0 ? (currentTime / duration) * 100 : 0;
+  const progress = duration > 0 ? Math.floor((currentTime / duration) * 100) : 0;
   const showProgressBar = duration > 0;
 
   // Use `videoStatus ?? ""` to handle null for the includes method
@@ -301,17 +346,23 @@ const VideoItem = ({
           likes={videoData.likes}
           comments={videoData.comments?.length}
           onCommentPress={handleOpenComments}
+          videoId={videoData._id}
+          shares={videoData.shares}
         />
       </View>
 
       {/* Conditionally render the CommentSection modal */}
       {showCommentsModal && (
         <CommentsSection
-          isOpen={showCommentsModal} // Pass the state controlling its visibility
+          isOpen={showCommentsModal}
           onClose={handleCloseComments}
           commentss={videoData.comments}
           videoId={videoData._id}
+<<<<<<< Updated upstream
           longVideosOnly={false} // Or true, depending on your logic
+=======
+          longVideosOnly={true}
+>>>>>>> Stashed changes
         />
       )}
 
@@ -329,7 +380,7 @@ const VideoItem = ({
       </View>
     </View>
   );
-};
+});
 
 const styles = StyleSheet.create({
   container: {
@@ -401,13 +452,13 @@ const styles = StyleSheet.create({
   },
   interact: {
     position: "absolute",
-    bottom: "15%",
+    bottom: "23%", // Adjusted to 15% for better spacing with navigation bar
     right: 10,
     width: "auto",
   },
   details: {
     position: "absolute",
-    bottom: "2%",
+    bottom: "11%", // Adjusted to 4% for better spacing with navigation bar
     width: "100%",
     paddingLeft: 10,
     paddingRight: 16,

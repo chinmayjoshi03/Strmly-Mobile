@@ -52,6 +52,8 @@ export const EditProfile = StyleSheet.create({
         fontFamily: 'Poppins-Regular',
         fontSize: 14,
         marginTop: 10,
+        color: '#FFFFFF',
+        paddingVertical: 8,
     },
     InfoFrame: {
         alignItems: 'center',

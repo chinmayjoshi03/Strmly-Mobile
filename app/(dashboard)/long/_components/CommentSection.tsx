@@ -12,46 +12,43 @@ import {
   Keyboard,
   Animated,
   Easing,
+  ActivityIndicator,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
   Smile,
   ArrowBigUp,
   ArrowBigDown,
-  IndianRupee,
   ChevronDown,
   SendHorizonal,
   ReplyIcon,
 } from "lucide-react-native";
 import { useAuthStore } from "@/store/useAuthStore";
-import {
-  upvoteComment,
-  downvoteComment,
-  giftComment,
-} from "@/api/Long/CommentAction";
 import { Comment, reply } from "@/types/Comments";
-import { mockComments as DebugComments } from "@/utils/CommentGenerator";
-
-const mockComments: Comment[] = DebugComments;
+import { useComments } from "./useComments";
 
 interface CommentsSectionProps {
   isOpen: boolean;
   onClose: () => void;
   videoId: string | null;
   longVideosOnly: boolean;
+<<<<<<< Updated upstream
   commentss?: [{}];
+=======
+  commentss?: Comment[];
+>>>>>>> Stashed changes
 }
 
 const CommentsSection = (props: CommentsSectionProps) => {
   const { isOpen, onClose, videoId, longVideosOnly, commentss } = props;
-  const [comments, setComments] = useState<Comment[]>([]);
   const [comment, setComment] = useState("");
   const [openReplies, setOpenReplies] = useState<{ [key: string]: reply[] }>(
     {}
   );
   const [loadingReplies, setLoadingReplies] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const token = useAuthStore((state) => state.token);
+  const [votingReply, setVotingReply] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [votingComment, setVotingComment] = useState<string | null>(null);
   const [replyTo, setReplyTo] = useState<{
     commentId: string;
     username: string;
@@ -59,7 +56,9 @@ const CommentsSection = (props: CommentsSectionProps) => {
 
   const insets = useSafeAreaInsets();
   const animatedBottom = useRef(new Animated.Value(insets.bottom)).current;
+  const scrollViewRef = useRef<ScrollView>(null);
 
+<<<<<<< Updated upstream
   // --- Fetch functions, reused/stable ---
   const fetchComments = useCallback(async () => {
     if (!token || !videoId) {
@@ -92,6 +91,29 @@ const CommentsSection = (props: CommentsSectionProps) => {
     if (isOpen && videoId) {
       const timer = setTimeout(() => fetchComments(), 100); // 100ms delay
       return () => clearTimeout(timer);
+=======
+  // Use the custom hook for comments
+  const {
+    comments,
+    loading,
+    error,
+    fetchComments,
+    addComment,
+    addReply,
+    upvoteComment,
+    downvoteComment,
+    fetchReplies: fetchRepliesFromHook,
+    upvoteReply,
+    downvoteReply,
+    isConnected,
+  } = useComments({ videoId });
+
+  useEffect(() => {
+    if (isOpen && videoId) {
+      fetchComments();
+      // Don't auto-scroll to bottom when opening comments
+      // Let users see the most recent comments at the top
+>>>>>>> Stashed changes
     }
   }, [isOpen, videoId, fetchComments]);
 
@@ -104,8 +126,10 @@ const CommentsSection = (props: CommentsSectionProps) => {
       });
       return;
     }
+    
     try {
       setLoadingReplies(commentID);
+<<<<<<< Updated upstream
       const response = await fetch(
         `${process.env.NEXT_PUBLIC_API_URL}/api/v1/interaction/videos/${videoId}/comments/${commentID}/replies`,
         {
@@ -120,102 +144,121 @@ const CommentsSection = (props: CommentsSectionProps) => {
       const data = await response.json();
       setOpenReplies((prev) => ({ ...prev, [commentID]: data }));
       console.log(data)
+=======
+      const replies = await fetchRepliesFromHook(commentID);
+      setOpenReplies((prev) => ({ ...prev, [commentID]: replies }));
+>>>>>>> Stashed changes
     } catch (err) {
-      // Optionally handle error
+      console.log('❌ Error fetching replies:', err);
     } finally {
       setLoadingReplies(null);
     }
   };
 
   const handleUpvote = async (commentID: string) => {
+    if (votingComment) return;
+    setVotingComment(commentID);
     try {
-      const data = await upvoteComment({
-        token,
-        commentId: commentID,
-        videoId,
-        videoType: longVideosOnly ? "long" : "short",
-      });
-      setComments((prev) =>
-        prev.map((comment) =>
-          comment._id === commentID
-            ? {
-                ...comment,
-                upvotes: data.upvotes,
-                downvotes: data.downvotes,
-                upvoted: !comment.upvoted,
-                downvoted: false,
-              }
-            : comment
-        )
-      );
-    } catch (err) {}
-  };
-  const handleDownvote = async (commentID: string) => {
-    try {
-      const data = await downvoteComment({
-        token,
-        commentId: commentID,
-        videoId,
-        videoType: longVideosOnly ? "long" : "short",
-      });
-      setComments((prev) =>
-        prev.map((comment) =>
-          comment._id === commentID
-            ? {
-                ...comment,
-                upvotes: data.upvotes,
-                downvotes: data.downvotes,
-                downvoted: !comment.downvoted,
-                upvoted: false,
-              }
-            : comment
-        )
-      );
-    } catch (err) {}
+      await upvoteComment(commentID);
+    } finally {
+      setVotingComment(null);
+    }
   };
 
-  const handleGiftComment = async (commentID: string) => {
-    // Replace with a modal or a separate gifting screen for input instead of 'prompt'
-    // For now, skip gifting UI.
+  const handleDownvote = async (commentID: string) => {
+    if (votingComment) return;
+    setVotingComment(commentID);
+    try {
+      await downvoteComment(commentID);
+    } finally {
+      setVotingComment(null);
+    }
+  };
+
+  const handleUpvoteReply = async (replyId: string, commentId: string) => {
+    if (votingReply) return; // Prevent multiple simultaneous votes
+    
+    setVotingReply(replyId);
+    try {
+      const result = await upvoteReply(replyId, commentId);
+      
+      // Optimistically update the reply in the UI
+      setOpenReplies(prev => ({
+        ...prev,
+        [commentId]: prev[commentId]?.map(reply => 
+          reply._id === replyId 
+            ? { 
+                ...reply, 
+                upvoted: result?.upvoted ?? !reply.upvoted,
+                downvoted: false,
+                upvotes: result?.upvotes ?? (reply.upvoted ? reply.upvotes - 1 : reply.upvotes + 1),
+                downvotes: reply.downvoted ? reply.downvotes - 1 : reply.downvotes
+              }
+            : reply
+        ) || []
+      }));
+    } catch (err) {
+      console.log('❌ Error upvoting reply:', err);
+    } finally {
+      setVotingReply(null);
+    }
+  };
+
+  const handleDownvoteReply = async (replyId: string, commentId: string) => {
+    if (votingReply) return; // Prevent multiple simultaneous votes
+    
+    setVotingReply(replyId);
+    try {
+      const result = await downvoteReply(replyId, commentId);
+      
+      // Optimistically update the reply in the UI
+      setOpenReplies(prev => ({
+        ...prev,
+        [commentId]: prev[commentId]?.map(reply => 
+          reply._id === replyId 
+            ? { 
+                ...reply, 
+                downvoted: result?.downvoted ?? !reply.downvoted,
+                upvoted: false,
+                downvotes: result?.downvotes ?? (reply.downvoted ? reply.downvotes - 1 : reply.downvotes + 1),
+                upvotes: reply.upvoted ? reply.upvotes - 1 : reply.upvotes
+              }
+            : reply
+        ) || []
+      }));
+    } catch (err) {
+      console.log('❌ Error downvoting reply:', err);
+    } finally {
+      setVotingReply(null);
+    }
   };
 
   const handleSendComment = async () => {
-    if (!token || !videoId || !comment.trim()) return;
-    setIsLoading(true);
+    if (!comment.trim()) return;
+    
+    setIsSubmitting(true);
     try {
-      const body = replyTo
-        ? {
-            reply: comment,
-            videoType: longVideosOnly ? "long" : "short",
-            commentId: replyTo.commentId,
-            videoId: videoId,
-          }
-        : {
-            videoId,
-            videoType: longVideosOnly ? "long" : "short",
-            comment,
-          };
-      const endpoint = replyTo
-        ? `${process.env.NEXT_PUBLIC_API_URL}/api/v1/interaction/comments/reply`
-        : `${process.env.NEXT_PUBLIC_API_URL}/api/v1/interaction/comment`;
-      const response = await fetch(endpoint, {
-        method: "POST",
-        credentials: "include",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(body),
-      });
-      if (!response.ok) throw new Error("Failed to post");
-      await fetchComments();
-      if (replyTo) await fetchReplies(replyTo.commentId);
+      if (replyTo) {
+        await addReply(replyTo.commentId, comment);
+        await fetchReplies(replyTo.commentId);
+      } else {
+        await addComment(comment);
+        // Force a re-render to ensure the comment appears
+        setTimeout(() => {
+          console.log('🔄 Refreshing comments after posting');
+          fetchComments();
+          // Scroll to the top to see the new comment (since newest comments are at the top)
+          setTimeout(() => {
+            scrollViewRef.current?.scrollTo({ y: 0, animated: true });
+          }, 100);
+        }, 500);
+      }
       setComment("");
       setReplyTo(null);
     } catch (err) {
-      // Optionally handle
+      console.log('❌ Error sending comment:', err);
     } finally {
-      setIsLoading(false);
+      setIsSubmitting(false);
     }
   };
 
@@ -253,6 +296,7 @@ const CommentsSection = (props: CommentsSectionProps) => {
   if (!isOpen) return null;
 
   return (
+<<<<<<< Updated upstream
     <KeyboardAvoidingView
       className="w-full absolute rounded-t-lg max-h-[60%] bottom-0"
       behavior={Platform.OS === "ios" ? "padding" : "height"}
@@ -262,23 +306,89 @@ const CommentsSection = (props: CommentsSectionProps) => {
       <View
         className="flex-1 bg-[#1A1A1A] rounded-t-3xl min-h-52 z-30"
         style={{ marginTop: "auto" }}
+=======
+    <View className="absolute inset-0 z-50">
+      {/* Background overlay - tap to close */}
+      <Pressable 
+        className="absolute inset-0 bg-black/50"
+        onPress={onClose}
+      />
+      
+      <KeyboardAvoidingView
+        className="w-full absolute rounded-t-lg max-h-[70%] bottom-0"
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        keyboardVerticalOffset={Platform.OS === "ios" ? insets.top + 0 : 0}
+        style={{ flex: 1 }}
+>>>>>>> Stashed changes
       >
-        {/* Header */}
-        <View className="items-center justify-center p-4 rounded-t-3xl">
-          <View className="w-20 h-1 bg-white/80 rounded-full my-2" />
-          <Text className="text-2xl font-bold text-white">Comments</Text>
-        </View>
+        <View
+          className="flex-1 bg-[#1A1A1A] rounded-t-3xl"
+          style={{ marginTop: "auto", maxHeight: "100%" }}
+        >
+          {/* Header */}
+          <View className="items-center justify-center p-4 rounded-t-3xl relative">
+            {/* Drag handle */}
+            <Pressable onPress={onClose}>
+              <View className="w-20 h-1 bg-white/80 rounded-full my-2" />
+            </Pressable>
+            
+            <View className="flex-row items-center justify-between w-full">
+              <View className="w-8" />
+              <Text className="text-2xl font-bold text-white">Comments</Text>
+              {/* Close button */}
+              <TouchableOpacity onPress={onClose} className="p-2">
+                <Text className="text-white text-lg">✕</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
 
         {/* Comments List */}
         <ScrollView
+          ref={scrollViewRef}
           keyboardShouldPersistTaps="handled"
-          contentContainerStyle={{ paddingBottom: 16 }}
+          contentContainerStyle={{ paddingBottom: 150 }} // Increased padding for input bar
           className="flex-1"
+          style={{ maxHeight: '70%' }}
+          showsVerticalScrollIndicator={true}
+          scrollEnabled={true}
+          bounces={true}
+          automaticallyAdjustContentInsets={false}
+          maintainVisibleContentPosition={{
+            minIndexForVisible: 0,
+            autoscrollToTopThreshold: 10
+          }}
         >
           <View className="gap-5 p-4">
+<<<<<<< Updated upstream
             {comments.map((comment) => (
               <View key={comment._id}>
                 <View className="flex-row gap-1">
+=======
+            {loading && (
+              <View className="flex-row justify-center py-4">
+                <ActivityIndicator size="large" color="#4ade80" />
+                <Text className="text-white ml-2">Loading comments...</Text>
+              </View>
+            )}
+            
+            {error && (
+              <View className="bg-red-500/20 p-3 rounded-lg mb-4">
+                <Text className="text-red-400 text-center">{error}</Text>
+              </View>
+            )}
+            
+            {!loading && comments.length === 0 && (
+              <View className="py-8">
+                <Text className="text-[#B0B0B0] text-center">No comments yet. Be the first to comment!</Text>
+              </View>
+            )}
+            
+            {comments.map((comment) => {
+              console.log('🎨 Rendering comment:', comment._id, 'content:', comment.content);
+              return (
+                <View key={comment._id}>
+                  <View className="flex-row gap-1">
+>>>>>>> Stashed changes
                   {/* Avatar */}
                   <Image
                     source={{ uri: comment.user?.avatar ?? "" }}
@@ -294,12 +404,12 @@ const CommentsSection = (props: CommentsSectionProps) => {
                         {comment.user?.name || "Anonymous User"}
                       </Text>
                     </View>
-                    <View className="flex-row gap-1 items-center">
+                    <View className="mb-2">
                       <Text className="text-base text-white">
-                        {comment.content.slice(0, 15)}...
+                        {comment.content && comment.content.trim() ? comment.content : 'Comment content unavailable'}
                       </Text>
-                      <Text className="text-xs text-[#B0B0B0]">
-                        {new Date(comment.timestamp).toLocaleDateString()}
+                      <Text className="text-xs text-[#B0B0B0] mt-1">
+                        {comment.timestamp ? new Date(comment.timestamp).toLocaleDateString() : 'Unknown date'}
                       </Text>
                     </View>
                     {/* Actions Row */}
@@ -328,25 +438,65 @@ const CommentsSection = (props: CommentsSectionProps) => {
                     {!!openReplies[comment._id]?.length && (
                       <View className="ml-8 mt-2 py-2">
                         {openReplies[comment._id].map((reply) => (
-                          <View key={reply._id} className="flex-row space-x-2">
-                            <Image
-                              source={{ uri: reply.user?.avatar || "" }}
-                              className="w-6 h-6 rounded-full"
-                            />
-                            <View>
-                              <View className="flex-row items-center space-x-2 mb-1">
-                                <Text className="font-medium text-xs text-white">
-                                  {reply.user.name}
+                          <View key={reply._id} className="mb-3">
+                            <View className="flex-row space-x-2">
+                              <Image
+                                source={{ uri: reply.user?.avatar || "" }}
+                                className="w-6 h-6 rounded-full"
+                                defaultSource={require("@/assets/images/back.png")}
+                              />
+                              <View className="flex-1">
+                                <View className="flex-row items-center space-x-2 mb-1">
+                                  <Text className="font-medium text-xs text-white">
+                                    {reply.user.name}
+                                  </Text>
+                                  <Text className="text-xs text-[#B0B0B0]">
+                                    {new Date(
+                                      reply.timestamp
+                                    ).toLocaleDateString()}
+                                  </Text>
+                                </View>
+                                <Text className="text-sm text-white mb-2">
+                                  {reply.content}
                                 </Text>
-                                <Text className="text-xs text-[#B0B0B0]">
-                                  {new Date(
-                                    reply.timestamp
-                                  ).toLocaleDateString()}
-                                </Text>
+                                {/* Reply voting actions */}
+                                <View className="flex-row gap-4 items-center">
+                                  <TouchableOpacity
+                                    onPress={() => handleUpvoteReply(reply._id, comment._id)}
+                                    className="flex-row items-center gap-1"
+                                    disabled={votingReply === reply._id}
+                                  >
+                                    {votingReply === reply._id ? (
+                                      <ActivityIndicator size="small" color="#4ade80" />
+                                    ) : (
+                                      <ArrowBigUp
+                                        size={16}
+                                        color={reply.upvoted ? "#4ade80" : "#B0B0B0"}
+                                      />
+                                    )}
+                                    <Text className="text-xs text-[#B0B0B0]">
+                                      {reply.upvotes || 0}
+                                    </Text>
+                                  </TouchableOpacity>
+                                  <TouchableOpacity
+                                    onPress={() => handleDownvoteReply(reply._id, comment._id)}
+                                    className="flex-row items-center gap-1"
+                                    disabled={votingReply === reply._id}
+                                  >
+                                    {votingReply === reply._id ? (
+                                      <ActivityIndicator size="small" color="#f87171" />
+                                    ) : (
+                                      <ArrowBigDown
+                                        size={16}
+                                        color={reply.downvoted ? "#f87171" : "#B0B0B0"}
+                                      />
+                                    )}
+                                    <Text className="text-xs text-[#B0B0B0]">
+                                      {reply.downvotes || 0}
+                                    </Text>
+                                  </TouchableOpacity>
+                                </View>
                               </View>
-                              <Text className="text-sm text-white">
-                                {reply.content}
-                              </Text>
                             </View>
                           </View>
                         ))}
@@ -358,25 +508,21 @@ const CommentsSection = (props: CommentsSectionProps) => {
                       </Text>
                     )}
                   </View>
-                  {/* Upvote / Downvote / Gift actions */}
+                  {/* Upvote / Downvote actions */}
                   <View className="flex-row gap-2 items-center">
-                    <TouchableOpacity
-                      onPress={() => handleGiftComment(comment._id)}
-                      className="items-center pt-1"
-                    >
-                      <IndianRupee size={16} color="#fdde86" />
-                      <Text className="text-xs pt-1 text-[#B0B0B0]">
-                        {comment.donations ?? 0}
-                      </Text>
-                    </TouchableOpacity>
                     <TouchableOpacity
                       onPress={() => handleUpvote(comment._id)}
                       className="items-center"
+                      disabled={votingComment === comment._id}
                     >
-                      <ArrowBigUp
-                        size={22}
-                        color={comment.upvoted ? "#4ade80" : "#B0B0B0"}
-                      />
+                      {votingComment === comment._id ? (
+                        <ActivityIndicator size="small" color="#4ade80" />
+                      ) : (
+                        <ArrowBigUp
+                          size={22}
+                          color={comment.upvoted ? "#4ade80" : "#B0B0B0"}
+                        />
+                      )}
                       <Text className="text-xs text-[#B0B0B0]">
                         {comment.upvotes}
                       </Text>
@@ -384,11 +530,16 @@ const CommentsSection = (props: CommentsSectionProps) => {
                     <TouchableOpacity
                       onPress={() => handleDownvote(comment._id)}
                       className="items-center"
+                      disabled={votingComment === comment._id}
                     >
-                      <ArrowBigDown
-                        size={22}
-                        color={comment.downvoted ? "#f87171" : "#B0B0B0"}
-                      />
+                      {votingComment === comment._id ? (
+                        <ActivityIndicator size="small" color="#f87171" />
+                      ) : (
+                        <ArrowBigDown
+                          size={22}
+                          color={comment.downvoted ? "#f87171" : "#B0B0B0"}
+                        />
+                      )}
                       <Text className="text-xs text-[#B0B0B0]">
                         {comment.downvotes}
                       </Text>
@@ -396,12 +547,14 @@ const CommentsSection = (props: CommentsSectionProps) => {
                   </View>
                 </View>
               </View>
-            ))}
+            );
+            })}
           </View>
         </ScrollView>
 
         {/* ---- INPUT BAR: Always at bottom, outside ScrollView ---- */}
         <Animated.View
+<<<<<<< Updated upstream
           style={[
             {
               backgroundColor: "#181818",
@@ -421,6 +574,12 @@ const CommentsSection = (props: CommentsSectionProps) => {
               ],
             },
           ]}
+=======
+          className="bg-[#181818] border-t border-[#353535] px-2 pt-2 flex-row items-center space-x-2"
+          style={{
+            paddingBottom: Math.max(insets.bottom + 60, 60), // Adjusted padding for better spacing with navigation bar
+          }}
+>>>>>>> Stashed changes
         >
           {!!replyTo && (
             <View className="absolute flex-row -top-6 left-2 bg-[#6D6F6E] px-2 py-1 rounded">
@@ -440,17 +599,22 @@ const CommentsSection = (props: CommentsSectionProps) => {
           />
           <TouchableOpacity
             onPress={handleSendComment}
-            disabled={!comment.trim()}
+            disabled={!comment.trim() || isSubmitting}
           >
-            <SendHorizonal
-              size={20}
-              color={comment.trim() ? "#4ade80" : "#888"}
-            />
+            {isSubmitting ? (
+              <ActivityIndicator size="small" color="#4ade80" />
+            ) : (
+              <SendHorizonal
+                size={20}
+                color={comment.trim() && !isSubmitting ? "#4ade80" : "#888"}
+              />
+            )}
           </TouchableOpacity>
         </Animated.View>
         {/* ---- END INPUT BAR ---- */}
-      </View>
-    </KeyboardAvoidingView>
+        </View>
+      </KeyboardAvoidingView>
+    </View>
   );
 };
 

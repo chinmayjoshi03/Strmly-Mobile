@@ -187,6 +187,7 @@ export default function PublicProfilePageWithId() {
     name: userData?.name || "User",
     email: userData?.email || "",
     image:
+      userData?.profile_photo ||
       userData?.avatar ||
       userData?.image,
     username: userData?.username || userData?.email?.split("@")[0] || "user",
@@ -252,12 +253,13 @@ export default function PublicProfilePageWithId() {
           <View className="max-w-4xl -mt-28 relative mx-6">
             <View className="flex flex-col items-center md:flex-row md:items-end space-y-4 md:space-y-0 md:space-x-4">
               <View className="relative">
-                <View className="size-24 rounded-full border border-white overflow-hidden">
+                <View className="w-24 h-24 rounded-full border-2 border-white overflow-hidden">
                   <Image
                     source={userData?.image ?{
                       uri: userData.image
                     }: require('../../../../assets/images/user.png')}
                     className="w-full h-full object-cover rounded-full"
+                    style={{ width: 96, height: 96 }}
                   />
                 </View>
 

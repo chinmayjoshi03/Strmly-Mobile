@@ -1,3 +1,5 @@
+import { Comment } from './Comments';
+
 export type VideoItemType = {
   _id: string;
   video: string; // or `videoUrl` if your backend returns it that way
@@ -22,7 +24,7 @@ export type VideoItemType = {
   season_number: number;
   is_standalone: boolean;
 
-  comments?: [{}];
+  comments?: Comment[];
 
   created_by?: {
     _id: string;

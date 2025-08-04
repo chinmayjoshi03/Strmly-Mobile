@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import {
   View,
   Text,
@@ -22,7 +22,12 @@ import {
   Video,
   PaperclipIcon, // For the gradient button
 } from "lucide-react-native";
+<<<<<<< Updated upstream
 import { useLocalSearchParams, useRouter } from "expo-router"; // Use useRouter from expo-router
+=======
+import { useRouter } from "expo-router"; // Use useRouter from expo-router
+import { useFocusEffect } from '@react-navigation/native';
+>>>>>>> Stashed changes
 import { useAuthStore } from "@/store/useAuthStore";
 import { useThumbnailsGenerate } from "@/utils/useThumbnailGenerator";
 import ThemedView from "@/components/ThemedView"; // Assuming this is a basic wrapper for styling
@@ -57,6 +62,7 @@ export default function PersonalProfilePage() {
     }))
   );
 
+<<<<<<< Updated upstream
   useEffect(() => {
     if (!isLoggedIn) {
       router.push("/(auth)/Sign-in");
@@ -73,16 +79,89 @@ export default function PersonalProfilePage() {
             method: "GET",
             headers: {
               Authorization: `Bearer ${token}`,
-            },
+=======
+  useFocusEffect(
+    React.useCallback(() => {
+      const fetchUserVideos = async () => {
+        setIsLoadingVideos(true);
+        try {
+          const params = new URLSearchParams();
+          params.append("type", activeTab);
+
+          const response = await fetch(
+            `${CONFIG.API_BASE_URL}/api/v1/user/videos?${params.toString()}`,
+            {
+              method: "GET",
+              headers: {
+                Authorization: `Bearer ${token}`,
+                "Content-Type": "application/json",
+              },
+            }
+          );
+
+          const data = await response.json();
+
+          if (!response.ok) {
+            throw new Error(data.message || "Failed to fetch user videos");
           }
-        );
 
-        const data = await response.json();
-
-        if (!response.ok) {
-          throw new Error(data.message || "Failed to fetch user videos");
+          console.log("videos", data);
+          setVideos(data.videos); // Assuming data structure is { videos: [...] }
+        } catch (err) {
+          console.error("Error fetching user videos:", err);
+          Alert.alert(
+            "Error",
+            err instanceof Error
+              ? err.message
+              : "An unknown error occurred while fetching videos."
+          );
+        } finally {
+          setIsLoadingVideos(false);
         }
+      };
 
+      const fetchUserData = async () => {
+        setIsLoading(true);
+        try {
+          // Add a cache-busting parameter to force a fresh fetch
+          const timestamp = new Date().getTime();
+          const response = await fetch(`${CONFIG.API_BASE_URL}/api/v1/user/profile?_=${timestamp}`, {
+            method: "GET",
+            headers: {
+              Authorization: `Bearer ${token}`,
+              "Content-Type": "application/json",
+              // Add a cache control header to prevent caching
+              "Cache-Control": "no-cache, no-store, must-revalidate",
+              "Pragma": "no-cache",
+              "Expires": "0"
+>>>>>>> Stashed changes
+            },
+          });
+
+          const data = await response.json();
+
+          if (!response.ok) {
+            throw new Error(data.message || "Failed to fetch user profile");
+          }
+
+          console.log("Fetched fresh user data:", data.user);
+          setUserData(data.user);
+          setIsError(null); // Clear any previous errors
+        } catch (error) {
+          console.log("error", error);
+          setIsError(
+            error instanceof Error ? error.message : "An unknown error occurred."
+          );
+          Alert.alert(
+            "Error",
+            error instanceof Error ? error.message : "An unknown error occurred."
+          );
+        } finally {
+          setIsLoading(false);
+        }
+      };
+
+<<<<<<< Updated upstream
         setVideos(data.videos); // Assuming data structure is { videos: [...] }
       } catch (err) {
         console.error("Error fetching user videos:", err);
@@ -145,11 +224,20 @@ export default function PersonalProfilePage() {
       fetchUserData();
     }
   }, [isLoggedIn, router, token]);
+=======
+      if (token) {
+        fetchUserData();
+        fetchUserVideos();
+      }
+    }, [token, activeTab])
+  );
+>>>>>>> Stashed changes
 
   const currentProfileData = {
     name: userData?.name || "User",
     email: userData?.email || "",
     image:
+      userData?.profile_photo ||
       userData?.avatar ||
       userData?.image ||
       "https://api.dicebear.com/7.x/avataaars/svg?seed=default",
@@ -220,12 +308,13 @@ export default function PersonalProfilePage() {
           <View className="max-w-4xl -mt-28 relative mx-6">
             <View className="flex flex-col items-center md:flex-row md:items-end space-y-4 md:space-y-0 md:space-x-4">
               <View className="relative">
-                <View className="size-24 rounded-full border border-white overflow-hidden">
+                <View className="w-24 h-24 rounded-full border-2 border-white overflow-hidden">
                   <Image
                     source={currentProfileData?.image ?{
                       uri: currentProfileData.image,
                     }: require('../../../assets/images/user.png')}
                     className="w-full h-full object-cover rounded-full"
+                    style={{ width: 96, height: 96 }}
                   />
                 </View>
 
@@ -248,7 +337,10 @@ export default function PersonalProfilePage() {
             <View className="mt-6 flex-row justify-around items-center">
               <TouchableOpacity
                 className="flex flex-col gap-1 items-center"
-                // onPress={() => router.push("/communities?type=followers")}
+                onPress={() => router.push({
+                  pathname: "/(dashboard)/profile/ProfileSections",
+                  params: { section: "followers", userName: currentProfileData.username }
+                })}
               >
                 <Text className="font-bold text-lg text-white">
                   {currentProfileData.followers}
@@ -257,7 +349,10 @@ export default function PersonalProfilePage() {
               </TouchableOpacity>
               <TouchableOpacity
                 className="flex flex-col gap-1 items-center"
-                // onPress={() => router.push("/communities?type=community")}
+                onPress={() => router.push({
+                  pathname: "/(dashboard)/profile/ProfileSections",
+                  params: { section: "myCommunity", userName: currentProfileData.username }
+                })}
               >
                 <Text className="font-bold text-lg text-white">
                   {currentProfileData.communityLength}
@@ -266,7 +361,10 @@ export default function PersonalProfilePage() {
               </TouchableOpacity>
               <TouchableOpacity
                 className="flex flex-col gap-1 items-center"
-                // onPress={() => router.push("/communities?type=following")}
+                onPress={() => router.push({
+                  pathname: "/(dashboard)/profile/ProfileSections",
+                  params: { section: "following", userName: currentProfileData.username }
+                })}
               >
                 <Text className="font-bold text-lg text-white">
                   {currentProfileData.following}
@@ -278,7 +376,14 @@ export default function PersonalProfilePage() {
             <View className="flex flex-row w-full items-center justify-center gap-2 mt-5">
               {/* My Community Button */}
               <TouchableOpacity
+<<<<<<< Updated upstream
                 onPress={() => router.push("/(communities)/CommunitiesPage")}
+=======
+                onPress={() => router.push({
+                  pathname: "/(dashboard)/profile/ProfileSections",
+                  params: { section: "myCommunity", userName: currentProfileData.username }
+                })}
+>>>>>>> Stashed changes
                 className="px-4 py-2 rounded-lg border border-white"
               >
                 <Text className="text-white text-center font-bold">

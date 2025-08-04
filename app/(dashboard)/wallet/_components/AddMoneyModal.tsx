@@ -47,7 +47,7 @@ const AddMoneyModal: React.FC<AddMoneyModalProps> = ({
     try {
       // Create order
       const order = await onCreateOrder(numAmount);
-      
+
       // Initiate Google Play Billing
       const billingResponse = await initiateGooglePlayBilling({
         id: order.id,
@@ -66,7 +66,7 @@ const AddMoneyModal: React.FC<AddMoneyModalProps> = ({
       setAmount('');
       onClose();
       Alert.alert('Success', `₹${numAmount} added to your wallet successfully!`);
-      
+
     } catch (error: any) {
       Alert.alert('Error', error.message || 'Google Play Billing failed');
     } finally {
@@ -128,9 +128,8 @@ const AddMoneyModal: React.FC<AddMoneyModalProps> = ({
             <Pressable
               onPress={handleAddMoney}
               disabled={isProcessing || !amount}
-              className={`flex-1 p-4 rounded-lg ${
-                isProcessing || !amount ? 'bg-gray-500' : 'bg-white'
-              }`}
+              className={`flex-1 p-4 rounded-lg ${isProcessing || !amount ? 'bg-gray-500' : 'bg-white'
+                }`}
             >
               {isProcessing ? (
                 <View className="flex-row items-center justify-center gap-2">

@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Series } from '../../studio/types';
 import { CONFIG } from '../../../Constants/config';
+import { useAuthStore } from '@/store/useAuthStore';
 
 interface EpisodeSelectionScreenProps {
   onBack: () => void;
@@ -28,9 +29,18 @@ const EpisodeSelectionScreen: React.FC<EpisodeSelectionScreenProps> = ({
   const loadSeries = async () => {
     setLoading(true);
     try {
-      const response = await fetch(`${CONFIG.API_BASE_URL}/api/v1/series/all`, {
+      const { token } = useAuthStore.getState();
+      
+      if (!token) {
+        console.error('No authentication token available');
+        setSeries([]);
+        setLoading(false);
+        return;
+      }
+
+      const response = await fetch(`${CONFIG.API_BASE_URL}/api/v1/series/user`, {
         headers: {
-          'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI2ODg0Yzc0YWU3M2Q4ZDRlZjY3YjAyZTQiLCJpYXQiOjE3NTM1MzIyMzYsImV4cCI6MTc1NjEyNDIzNn0._pqT9psCN1nR5DJpB60HyA1L1pp327o1fxfZPO4BY3M'
+          'Authorization': `Bearer ${token}`
         }
       });
 

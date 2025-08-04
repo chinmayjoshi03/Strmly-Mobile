@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { CONFIG } from '../../../Constants/config';
+import { useAuthStore } from '@/store/useAuthStore';
 
 interface SeriesAnalytics {
   total_likes: number;
@@ -88,10 +89,16 @@ export const useSeries = () => {
       setLoading(true);
       setError(null);
 
+      const { token } = useAuthStore.getState();
+      
+      if (!token) {
+        throw new Error('Authentication required');
+      }
+
       const response = await fetch(`${CONFIG.API_BASE_URL}/api/v1/series/all/`, {
         method: 'GET',
         headers: {
-          'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI2ODg0Yzc0YWU3M2Q4ZDRlZjY3YjAyZTQiLCJpYXQiOjE3NTM1MzIyMzYsImV4cCI6MTc1NjEyNDIzNn0._pqT9psCN1nR5DJpB60HyA1L1pp327o1fxfZPO4BY3M',
+          'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
       });

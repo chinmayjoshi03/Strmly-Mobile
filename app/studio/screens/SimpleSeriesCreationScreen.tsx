@@ -8,39 +8,23 @@ import {
   KeyboardAvoidingView,
   Platform,
   ActivityIndicator,
-  ScrollView
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Series } from '../types';
-import { CONFIG } from '../../../Constants/config';
-
-// Genre options based on the backend enum
-const genreOptions = [
-  { label: 'Action', value: 'Action' },
-  { label: 'Comedy', value: 'Comedy' },
-  { label: 'Drama', value: 'Drama' },
-  { label: 'Horror', value: 'Horror' },
-  { label: 'Sci-Fi', value: 'Sci-Fi' },
-  { label: 'Romance', value: 'Romance' },
-  { label: 'Documentary', value: 'Documentary' },
-  { label: 'Thriller', value: 'Thriller' },
-  { label: 'Fantasy', value: 'Fantasy' },
-  { label: 'Animation', value: 'Animation' }
-];
+import { CONFIG } from '@/Constants/config';
+import { useAuthStore } from '@/store/useAuthStore';
 
 interface SimpleSeriesCreationScreenProps {
   onBack: () => void;
   onSeriesCreated: (series: Series) => void;
 }
 
-/**
- * Simple Series Creation Screen
- * Simplified version without useSeriesManagement hook to test duplicate screen issue
- */
 const SimpleSeriesCreationScreen: React.FC<SimpleSeriesCreationScreenProps> = ({
   onBack,
   onSeriesCreated
 }) => {
+  console.log('🎬 SimpleSeriesCreationScreen component rendered');
+  
   // Series creation form state
   const [title, setTitle] = useState('');
   const [type, setType] = useState<'free' | 'paid' | null>(null);
@@ -48,18 +32,6 @@ const SimpleSeriesCreationScreen: React.FC<SimpleSeriesCreationScreenProps> = ({
   const [showTypeDropdown, setShowTypeDropdown] = useState(false);
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
-
-  // Two-step flow state
-  const [currentStep, setCurrentStep] = useState<'creation' | 'details'>('creation');
-
-  // Video detail form state
-  const [videoDetails, setVideoDetails] = useState({
-    description: '',
-    genre: null as string | null,
-    language: 'english' // Default language
-  });
-
-  const [genreDropdownOpen, setGenreDropdownOpen] = useState(false);
 
   const handleClose = () => {
     onBack();
@@ -95,44 +67,39 @@ const SimpleSeriesCreationScreen: React.FC<SimpleSeriesCreationScreenProps> = ({
 
     setLoading(true);
 
-    // Move to details step
-    setTimeout(() => {
-      setLoading(false);
-      setCurrentStep('details');
-    }, 500);
-  };
-
-  const handleContinue = async () => {
-    if (!isVideoDetailsValid()) {
-      return;
-    }
-
-    setLoading(true);
-
     try {
+      const { token } = useAuthStore.getState();
+      
+      if (!token) {
+        setErrors({ general: 'Authentication required. Please log in again.' });
+        setLoading(false);
+        return;
+      }
+
       const seriesData = {
         title: title.trim(),
-        description: videoDetails.description.trim(),
-        genre: videoDetails.genre!,
-        language: videoDetails.language,
+        description: `${title.trim()} series`, // Basic description
+        genre: 'Action', // Default genre - you can add genre selection later
+        language: 'english',
         type: type === 'free' ? 'Free' : 'Paid',
-        price: type === 'paid' ? price : 0
+        price: type === 'paid' ? price : 0,
+        age_restriction: false,
+        seasons: 1
       };
 
-      console.log("Creating series with data:", seriesData);
+      console.log('Creating series with data:', seriesData);
 
-      const response = await fetch(`${CONFIG.API_BASE_URL}/api/v1/series/create/`, {
+      const response = await fetch(`${CONFIG.API_BASE_URL}/api/v1/series/create`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          // Add authorization header if needed
-          'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI2ODg0Yzc0YWU3M2Q4ZDRlZjY3YjAyZTQiLCJpYXQiOjE3NTM1MzIyMzYsImV4cCI6MTc1NjEyNDIzNn0._pqT9psCN1nR5DJpB60HyA1L1pp327o1fxfZPO4BY3M'
+          'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify(seriesData)
       });
 
       const result = await response.json();
-      console.log("API Response:", result);
+      console.log('API Response:', result);
 
       if (response.ok && result.data) {
         // Convert backend response to frontend Series format
@@ -151,23 +118,19 @@ const SimpleSeriesCreationScreen: React.FC<SimpleSeriesCreationScreenProps> = ({
           updatedAt: result.data.updatedAt
         };
 
-        console.log("Series created successfully:", newSeries);
+        console.log('Series created successfully:', newSeries);
         setLoading(false);
         onSeriesCreated(newSeries);
       } else {
-        console.error("API Error:", result);
+        console.error('API Error:', result);
         setLoading(false);
         setErrors({ general: result.error || 'Failed to create series' });
       }
     } catch (error) {
-      console.error("Network Error:", error);
+      console.error('Network Error:', error);
       setLoading(false);
-      setErrors({ general: 'Network error occurred' });
+      setErrors({ general: 'Network error occurred. Please check your connection.' });
     }
-  };
-
-  const handleBackFromDetails = () => {
-    setCurrentStep('creation');
   };
 
   const handleTypeSelect = (selectedType: 'free' | 'paid') => {
@@ -181,124 +144,7 @@ const SimpleSeriesCreationScreen: React.FC<SimpleSeriesCreationScreenProps> = ({
     return type === 'free' ? 'Free' : 'Paid';
   };
 
-  // Render series creation step
-  const renderSeriesCreationStep = () => (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      className="flex-1"
-    >
-      <View className="flex-1 bg-black">
-        <StatusBar barStyle="light-content" backgroundColor="#000" />
-
-        {/* Header */}
-        <View className="flex-row items-center justify-between px-4 py-3 mt-12">
-          <TouchableOpacity onPress={handleBackFromDetails}>
-            <Ionicons name="chevron-back" size={24} color="white" />
-          </TouchableOpacity>
-          <Text className="text-white text-xl font-medium">Video detail</Text>
-          <View className="w-6" />
-        </View>
-
-        <ScrollView className="flex-1 px-4 pt-6">
-          {/* Description Field */}
-          <View className="mb-8">
-            <Text className="text-white text-lg font-medium mb-3">Description</Text>
-            <TextInput
-              value={videoDetails.description}
-              onChangeText={(description) => handleVideoDetailChange('description', description)}
-              placeholder="Enter series description..."
-              placeholderTextColor="#9CA3AF"
-              className="bg-black border border-gray-600 text-white px-4 py-4 rounded-xl text-base"
-              multiline
-              numberOfLines={4}
-              textAlignVertical="top"
-              maxLength={1000}
-            />
-          </View>
-
-          {/* Genre Dropdown */}
-          <View className="mb-8">
-            <Text className="text-white text-lg font-medium mb-3">Genre</Text>
-            <TouchableOpacity
-              onPress={() => setGenreDropdownOpen(!genreDropdownOpen)}
-              className="bg-black border border-gray-600 rounded-xl px-4 py-4 flex-row items-center justify-between"
-            >
-              <Text className={`text-base ${videoDetails.genre ? 'text-white' : 'text-gray-400'}`}>
-                {videoDetails.genre || 'Select Genre'}
-              </Text>
-              <Ionicons
-                name={genreDropdownOpen ? "chevron-up" : "chevron-down"}
-                size={20}
-                color="#9CA3AF"
-              />
-            </TouchableOpacity>
-
-            {genreDropdownOpen && (
-              <View className="bg-gray-800 border border-gray-600 rounded-xl mt-2 max-h-48">
-                <ScrollView>
-                  {genreOptions.map((option) => (
-                    <TouchableOpacity
-                      key={option.value}
-                      onPress={() => {
-                        handleVideoDetailChange('genre', option.value);
-                        setGenreDropdownOpen(false);
-                      }}
-                      className="px-4 py-3 border-b border-gray-600"
-                    >
-                      <Text className="text-white text-base">{option.label}</Text>
-                    </TouchableOpacity>
-                  ))}
-                </ScrollView>
-              </View>
-            )}
-          </View>
-
-          {/* Add some bottom padding for better scrolling */}
-          <View className="h-20" />
-        </ScrollView>
-
-        {/* Continue Button */}
-        <View className="px-4 pb-8 pt-4">
-          <TouchableOpacity
-            onPress={handleContinue}
-            disabled={!isVideoDetailsValid() || loading}
-            className="bg-gray-200 rounded-full py-4 items-center"
-            style={{
-              backgroundColor: (!isVideoDetailsValid() || loading) ? '#6B7280' : '#E5E7EB'
-            }}
-          >
-            {loading ? (
-              <ActivityIndicator size="small" color="black" />
-            ) : (
-              <Text className="text-black text-lg font-medium">Continue</Text>
-            )}
-          </TouchableOpacity>
-        </View>
-
-        {/* General Error */}
-        {errors.general && (
-          <View className="px-4 pb-4">
-            <Text className="text-red-400 text-sm text-center">{errors.general}</Text>
-          </View>
-        )}
-      </View>
-    </KeyboardAvoidingView>
-  );
-
-  // Handle video detail form changes
-  const handleVideoDetailChange = (field: string, value: string) => {
-    setVideoDetails(prev => ({ ...prev, [field]: value }));
-  };
-
-  // Check if video details form is valid
-  const isVideoDetailsValid = () => {
-    return videoDetails.description.trim() !== '' &&
-      videoDetails.genre !== null;
-  };
-
-  // Render video details step
-  const renderVideoDetailsStep = () => (
-
+  return (
     <KeyboardAvoidingView
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       className="flex-1"
@@ -331,7 +177,7 @@ const SimpleSeriesCreationScreen: React.FC<SimpleSeriesCreationScreenProps> = ({
                 style={{
                   borderBottomWidth: 1,
                   borderBottomColor: '#6B7280',
-                  width: Math.max(120, (title || 'Series 1').length * 20), // Dynamic width based on text length
+                  width: Math.max(120, (title || 'Series 1').length * 20),
                   minWidth: 120
                 }}
                 maxLength={100}
@@ -422,7 +268,7 @@ const SimpleSeriesCreationScreen: React.FC<SimpleSeriesCreationScreenProps> = ({
               </View>
             )}
 
-            {/* Create Button - Smaller width as shown in image */}
+            {/* Create Button */}
             <View className="items-center mt-4">
               <TouchableOpacity
                 onPress={handleCreate}
@@ -430,7 +276,7 @@ const SimpleSeriesCreationScreen: React.FC<SimpleSeriesCreationScreenProps> = ({
                 className="bg-gray-200 rounded-full py-4 px-12 items-center"
                 style={{
                   backgroundColor: loading ? '#6B7280' : '#E5E7EB',
-                  width: 160 // Smaller width to match the image
+                  width: 160
                 }}
               >
                 {loading ? (
@@ -452,9 +298,6 @@ const SimpleSeriesCreationScreen: React.FC<SimpleSeriesCreationScreenProps> = ({
       </View>
     </KeyboardAvoidingView>
   );
-
-  // Main render - show appropriate step
-  return currentStep === 'creation' ? renderSeriesCreationStep() : renderVideoDetailsStep();
 };
 
 export default SimpleSeriesCreationScreen;

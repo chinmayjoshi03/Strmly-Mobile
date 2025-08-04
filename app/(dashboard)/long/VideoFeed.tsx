@@ -70,9 +70,23 @@ const VideoFeed: React.FC = () => {
   const onViewableItemsChanged = useRef(({ viewableItems }: any) => {
     if (viewableItems.length > 0) {
       const newIndex = viewableItems[0].index;
+      console.log('📺 Video changed to index:', newIndex);
       setVisibleIndex(newIndex);
     }
   });
+
+  const renderItem = ({ item, index }: { item: VideoItemType; index: number }) => {
+    const isActive = index === visibleIndex;
+    console.log(`🎯 Rendering video ${index} (${item.name}): isActive = ${isActive}, visibleIndex = ${visibleIndex}`);
+    
+    return (
+      <VideoItem
+        uri={item.videoUrl}
+        isActive={isActive}
+        videoData={item}
+      />
+    );
+  };
 
   if (loading) {
     return (
@@ -91,6 +105,7 @@ const VideoFeed: React.FC = () => {
   }
 
   return (
+<<<<<<< Updated upstream
     <>
       {isWantToGift ? (
         <VideoContentGifting creator={giftingData} />
@@ -121,6 +136,39 @@ const VideoFeed: React.FC = () => {
         </ThemedView>
       )}
     </>
+=======
+    <ThemedView style={{ height }}>
+      <FlatList
+        data={videos}
+        keyExtractor={(item) => item._id}
+        renderItem={renderItem}
+        pagingEnabled
+        onViewableItemsChanged={onViewableItemsChanged.current}
+        viewabilityConfig={{ 
+          itemVisiblePercentThreshold: 70,
+          minimumViewTime: 50
+        }}
+        snapToInterval={height}
+        decelerationRate="fast"
+        showsVerticalScrollIndicator={false}
+        removeClippedSubviews={true}
+        maxToRenderPerBatch={2}
+        windowSize={3}
+        initialNumToRender={1}
+        getItemLayout={(data, index) => ({
+          length: height,
+          offset: height * index,
+          index,
+        })}
+        scrollEventThrottle={16}
+        disableIntervalMomentum={true}
+        snapToAlignment="start"
+        bounces={false}
+        overScrollMode="never"
+        nestedScrollEnabled={false}
+      />
+    </ThemedView>
+>>>>>>> Stashed changes
   );
 };
 
