@@ -178,7 +178,7 @@ const SignIn = () => {
   const renderLink = () => (
     <Link
       className="mt-14"
-      href={"/(auth)/Sign-up"}
+      href={'/(auth)/Sign-up'}
       style={Signinstyles.Text16R}
     >
       Don't have an account?

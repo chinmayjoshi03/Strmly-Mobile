@@ -3,6 +3,7 @@ import React, { useEffect, useState } from "react";
 import { FontAwesome } from "@expo/vector-icons";
 import { useAuthStore } from "@/store/useAuthStore";
 import Constants from "expo-constants";
+import { GiftType } from "../VideoFeed";
 
 // Define props type for InteractOptions
 type InteractOptionsProps = {
@@ -13,13 +14,12 @@ type InteractOptionsProps = {
   shares: number;
   comments?: number;
   setIsWantToGift: any;
-  setGiftingData: {
+  setGiftingData: (type: GiftType)=> void;
+  creator: {
     _id: string;
-    profile?: string;
     username: string;
-    email: string;
+    profile_photo: string;
   };
-  creator: {} | undefined;
 };
 
 const InteractOptions = ({
@@ -68,7 +68,7 @@ const InteractOptions = ({
       const data = await response.json();
       setLike(data.likes);
       setIsLikedVideo(data.isLiked);
-      // console.log("data", data);
+      console.log("Like video", data);
     } catch (err) {
       console.log(err);
     }
@@ -94,7 +94,7 @@ const InteractOptions = ({
         );
         if (!response.ok) throw new Error("Failed while like video");
         const data = await response.json();
-        // console.log("data", data);
+        console.log("check like", data);
         setLike(data.likes);
         setIsLikedVideo(data.isLiked);
       } catch (err) {
@@ -139,7 +139,7 @@ const InteractOptions = ({
     };
 
     if (token && videoId) {
-      checkIfReshare();
+      // checkIfReshare();
     }
   }, [token, videoId, shares]);
 

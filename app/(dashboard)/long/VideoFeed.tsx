@@ -23,11 +23,13 @@ const videoData = [
   },
 ];
 
-type GiftType = {
-  _id: string;
-  profile?: string;
-  username: string;
-  email: string;
+export type GiftType = {
+  creator: {
+    _id: string;
+    username: string;
+    profile_photo: string;
+  };
+  videoId: string;
 };
 
 const VideoFeed: React.FC = () => {
@@ -40,10 +42,11 @@ const VideoFeed: React.FC = () => {
 
   const [visibleIndex, setVisibleIndex] = useState(0);
   const { token, user, isLoggedIn } = useAuthStore();
+  const [videosPage, setVideosPage] = useState(1);
 
   const [showCommentsModal, setShowCommentsModal] = useState(false);
   const [isWantToGift, setIsWantToGift] = useState(false);
-  const [giftingData, setGiftingData] = useState<GiftType | null>();
+  const [giftingData, setGiftingData] = useState<GiftType | null>(null);
   const [isGifted, setIsGifted] = useState<boolean>(false);
   const [giftSuccessMessage, setGiftSuccessMessage] = useState<any>();
 
@@ -52,13 +55,19 @@ const VideoFeed: React.FC = () => {
   const fetchTrendingVideos = async () => {
     try {
       const res = await fetch(
-        `${BACKEND_API_URL}/videos/trending?page=1&limit=10`
+        `${BACKEND_API_URL}/videos/trending`,
+        {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        }
       );
 
       if (!res.ok) throw new Error("Failed to fetch videos");
 
       const json = await res.json();
-
       setVideos(json.data);
     } catch (err: any) {
       setError(err.message || "Something went wrong");
@@ -119,11 +128,12 @@ const VideoFeed: React.FC = () => {
             keyExtractor={(item) => item._id}
             renderItem={({ item, index }) => (
               <VideoItem
+                BACKEND_API_URL={BACKEND_API_URL}
                 setGiftingData={setGiftingData}
                 showCommentsModal={showCommentsModal}
                 setShowCommentsModal={setShowCommentsModal}
                 setIsWantToGift={setIsWantToGift}
-                key={`${item._id}-${visibleIndex === index}`}
+                key={item._id}
                 uri={item.videoUrl}
                 isActive={index === visibleIndex}
                 videoData={item}

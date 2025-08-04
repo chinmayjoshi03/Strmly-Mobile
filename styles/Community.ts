@@ -42,7 +42,7 @@ export const CommunitiesStyles = StyleSheet.create({
         fontSize: 16,
     },
     RightTab: {
-        textAlign: 'right',
+        textAlign: 'center',
         fontFamily: 'Poppins-Medium',
         fontSize: 16,
         color:'#0088FF'

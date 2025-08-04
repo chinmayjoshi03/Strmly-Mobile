@@ -6,27 +6,25 @@ import {
   Pressable,
   FlatList,
 } from "react-native";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { ChevronDownIcon, Hash, PlusSquare } from "lucide-react-native";
 import { useAuthStore } from "@/store/useAuthStore";
 import Constants from "expo-constants";
 import { router } from "expo-router";
 
-const episodes = [
-  "Episode : 01",
-  "Episode : 02",
-  "Episode : 03",
-  "Episode : 04",
-  "Episode : 05",
-];
+// const episodes = [
+//   "Episode : 01",
+//   "Episode : 02",
+//   "Episode : 03",
+//   "Episode : 04",
+//   "Episode : 05",
+// ];
 const paid = [
   {
     content: "Content access",
-    price: "29",
   },
   {
     content: "Creator pass",
-    price: "99/month",
   },
 ];
 
@@ -34,8 +32,28 @@ type VideoDetailsProps = {
   videoId: string;
   name: string;
   type: string;
-  series?: {};
-  createdBy?: {};
+  is_monetized: boolean;
+  createdBy?: {
+    _id: string;
+    username: string;
+    profile_photo: string;
+  };
+
+  community: {
+    _id: string;
+    name: string;
+  } | null;
+
+  series: {
+    _id: string;
+    title: string;
+    type: string;
+    price: number;
+    total_episodes: number;
+    episodes: [];
+  } | null;
+
+  episode_number: number | null;
   onToggleFullScreen: () => void;
   isFullScreen: boolean;
 };
@@ -43,9 +61,12 @@ type VideoDetailsProps = {
 const VideoDetails = ({
   videoId,
   type,
+  is_monetized,
   name,
   series,
+  episode_number,
   createdBy,
+  community,
   onToggleFullScreen,
   isFullScreen,
 }: VideoDetailsProps) => {
@@ -59,59 +80,66 @@ const VideoDetails = ({
   const { token } = useAuthStore();
 
   const BACKEND_API_URL = Constants.expoConfig?.extra?.BACKEND_API_URL;
-  console.log(videoId,
-  type,
-  name,
-  series,
-  createdBy)
+
+  useEffect(() => {
+    setSelectedEpisodeIndex(episode_number || 0);
+  }, [episode_number]);
 
   const followCreator = async () => {
     if (!token || !videoId) {
       return;
     }
-    
+
     try {
       const response = await fetch(
-        `${BACKEND_API_URL}/user/${isFollowCreator ? 'unfollow' : 'follow'}`,
+        `${BACKEND_API_URL}/user/${isFollowCreator ? "unfollow" : "follow"}`,
         {
           method: "POST",
           headers: {
             Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
           },
-          body: JSON.stringify(!isFollowCreator ? { followUserId: videoId } : {unfollowUserId: videoId}),
+          body: JSON.stringify(
+            !isFollowCreator
+              ? { followUserId: videoId }
+              : { unfollowUserId: videoId }
+          ),
         }
       );
       if (!response.ok) throw new Error("Failed to follow user");
       const data = await response.json();
-      setIsFollowCreator(!isFollowCreator);
-      console.log('data', data);
+      setIsFollowCreator(data.isFollowingCommunity);
+      console.log("data", data);
     } catch (err) {
       console.log(err);
     }
   };
 
   const followCommunity = async () => {
-    if (!token || !videoId) { // change videoId -> CommunityId
+    if (!token || !community?._id) {
       return;
     }
-    
+
     try {
       const response = await fetch(
-        `${BACKEND_API_URL}/community/${isFollowCommunity ? 'unfollow' : 'follow'}`,
+        `${BACKEND_API_URL}/community/${isFollowCommunity ? "unfollow" : "follow"}`,
         {
           method: "POST",
           headers: {
             Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
           },
-          body: JSON.stringify(!isFollowCommunity ? { communityId: videoId } : {unfollowUserId: videoId}),
+          body: JSON.stringify(
+            !isFollowCommunity
+              ? { communityId: videoId }
+              : { unfollowUserId: videoId }
+          ),
         }
       );
       if (!response.ok) throw new Error("Failed to follow user");
       const data = await response.json();
       setIsFollowCommunity(!isFollowCommunity);
-      console.log('data', data);
+      console.log("data", data);
     } catch (err) {
       console.log(err);
     }
@@ -121,57 +149,68 @@ const VideoDetails = ({
     <View className="w-full gap-3.5">
       {/* Top tags */}
       <View className="flex-row items-center justify-start gap-2">
-        {
-          createdBy &&
+        {community && (
           <>
-          <View className="items-center flex-row gap-0.5">
-          <Hash color={"white"} size={14} fontWeight={800} />
-          <Text className="text-white font-semibold"> </Text>
-        </View>
-        <Image
-          source={require("../../../../assets/images/plus.png")}
-          className="size-5"
-        />
+            <View className="items-center flex-row gap-0.5">
+              <Hash color={"white"} size={14} fontWeight={800} />
+              <Text className="text-white font-semibold">{community.name}</Text>
+            </View>
+            <Pressable onPress={() => followCommunity()}>
+              <Image
+                source={require("../../../../assets/images/plus.png")}
+                className="size-5"
+              />
+            </Pressable>
           </>
-        }
+        )}
       </View>
 
       {/* Username + Paid */}
       <View className="flex-row items-center justify-between">
         <View className="flex-row items-center gap-2">
-          <Pressable onPress={()=> router.push(`/profile/public/${createdBy._id}`)}>
+          <Pressable
+            className="flex-row items-center gap-2"
+            onPress={() => router.push(`/profile/public/${createdBy?._id}`)}
+          >
+            <Image
+              source={{ uri: createdBy?.profile_photo }}
+              className="size-8 rounded-full"
+            />
             <Text className="text-white font-semibold">
-            {createdBy ? createdBy?.username : ""}
-          </Text>
+              {createdBy ? createdBy.username : ""}
+            </Text>
           </Pressable>
           <TouchableOpacity
             onPress={() => followCreator()}
             className="border border-white items-center justify-center rounded-md px-2"
           >
-            <Text className="font-semibold text-sm text-white">{isFollowCreator ? 'Following' : 'Follow'}</Text>
+            <Text className="font-semibold text-sm text-white">
+              {isFollowCreator ? "Following" : "Follow"}
+            </Text>
           </TouchableOpacity>
         </View>
 
-        {type == "Paid" && (
-          <View>
-            <TouchableOpacity
-              onPress={() => {
-                setShowPriceDropdown((prev) => !prev);
-                setShowDropdown(false);
-              }}
-              className="border border-white rounded-md px-2"
-            >
-              <Text className="font-semibold text-sm text-white">Paid</Text>
-            </TouchableOpacity>
-          </View>
-        )}
+        {type !== "Free" ||
+          (is_monetized && (
+            <View>
+              <TouchableOpacity
+                onPress={() => {
+                  setShowPriceDropdown((prev) => !prev);
+                  setShowDropdown(false);
+                }}
+                className="border border-white rounded-md px-2"
+              >
+                <Text className="font-semibold text-sm text-white">Paid</Text>
+              </TouchableOpacity>
+            </View>
+          ))}
       </View>
 
       {/* Episode + Fullscreen */}
       <View className="flex-row items-center justify-between relative">
         <View className="flex-row items-center gap-1">
           <Text className="text-white uppercase">{name}</Text>
-          {/* {series !== null && (
+          {series !== null && (
             <TouchableOpacity
               className="border border-white rounded-xl px-2 py-0.5"
               onPress={() => {
@@ -186,7 +225,7 @@ const VideoDetails = ({
                 <ChevronDownIcon color={"white"} size={12} />
               </View>
             </TouchableOpacity>
-          )} */}
+          )}
         </View>
 
         <Pressable onPress={onToggleFullScreen}>
@@ -199,35 +238,79 @@ const VideoDetails = ({
         {/* Paid Dropdown */}
         {showPriceDropdown && (
           <View className="absolute bottom-12 -right-2 rounded-xl p-2 w-80">
-            {paid.map((sub, idx) => (
+            {series?.type !== "free" && is_monetized ? (
               <TouchableOpacity
-                key={idx}
                 className="mb-0.5"
                 onPress={() => {
                   setShowPriceDropdown(false);
                   setShowDropdown(false);
-                  router.push('/(payments)/Video/VideoContentGifting')
                 }}
               >
-                <View
-                  className={`bg-black h-11 px-2 py-1 flex-row items-center justify-between ${
-                    idx == 0 && "rounded-t-xl"
-                  } ${idx == paid.length - 1 && "rounded-b-xl"}`}
+                <Pressable
+                  onPress={() => router.push("/(demo)/SeriesAccessDemo")}
                 >
-                  <Text className="text-white text-[16px] flex-row items-center">
-                    {sub.content}
-                  </Text>
-                  <Text className="text-white text-[16px]">₹{sub.price}</Text>
-                </View>
+                  <View
+                    className={`bg-black h-11 px-2 py-1 flex-row items-center justify-between rounded-t-xl`}
+                  >
+                    <Text className="text-white text-[16px] flex-row items-center">
+                      Content access
+                    </Text>
+                    <Text className="text-white text-[16px]">
+                      ₹{series?.price}
+                    </Text>
+                  </View>
+                </Pressable>
+
+                <Pressable
+                  onPress={() => router.push("/(demo)/CreatorPassDemo")}
+                >
+                  <View
+                    className={`bg-black h-11 px-2 py-1 flex-row items-center justify-between rounded-b-xl`}
+                  >
+                    <Text className="text-white text-[16px] flex-row items-center">
+                      Creator Pass
+                    </Text>
+                    <Text className="text-white text-[16px]">
+                      ₹{series?.price}
+                    </Text>
+                  </View>
+                </Pressable>
               </TouchableOpacity>
-            ))}
+            ) : (
+              <TouchableOpacity
+                className="mb-0.5"
+                onPress={() => {
+                  setShowPriceDropdown(false);
+                  setShowDropdown(false);
+                }}
+              >
+                <Pressable onPress={()=> router.push(!is_monetized ? "/(demo)/SeriesAccessDemo" : "/(demo)/CreatorPassDemo")}>
+                  <View
+                    className={`bg-black h-11 px-2 py-1 flex-row items-center justify-between rounded-t-xl`}
+                  >
+                    {!is_monetized ? (
+                      <Text className="text-white text-[16px] flex-row items-center">
+                        Content access
+                      </Text>
+                    ) : (
+                      <Text className="text-white text-[16px] flex-row items-center">
+                        Creator Pass
+                      </Text>
+                    )}
+                    <Text className="text-white text-[16px]">
+                      ₹{series?.price}
+                    </Text>
+                  </View>
+                </Pressable>
+              </TouchableOpacity>
+            )}
           </View>
         )}
 
         {/* Episode Dropdown */}
         {showDropdown && (
           <View className="absolute bottom-3.5 left-11 rounded-xl p-2 w-56">
-            {episodes.map((ep, idx) => (
+            {series?.episodes.map((ep, idx) => (
               <TouchableOpacity
                 key={idx}
                 className="mb-[0.5px]"
@@ -239,10 +322,10 @@ const VideoDetails = ({
                 <View
                   className={`bg-black px-2 py-2 flex-row items-center ${
                     idx == 0 && "rounded-t-xl"
-                  } ${idx == episodes.length - 1 && "rounded-b-xl"} ${selectedEpisodeIndex === idx && "gap-2"}`}
+                  } ${idx == series.total_episodes - 1 && "rounded-b-xl"} ${selectedEpisodeIndex === idx && "gap-2"}`}
                 >
                   <Text className="text-white text-[18px] flex-row items-center">
-                    {ep}
+                    Episode: {idx + 1}
                   </Text>
                   {selectedEpisodeIndex === idx && (
                     <Text className="text-white">✔</Text>

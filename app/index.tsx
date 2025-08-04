@@ -19,6 +19,8 @@ import VideoContentGifting from './(payments)/Video/VideoContentGifting';
 import Setting from './Setting/Setting';
 import { SignUp } from './(auth)/Sign-up';
 import PublicProfilePageWithId from './(dashboard)/profile/public/[id]';
+import CreateCommunityPage from './(communities)/CreateCommunityPage';
+import SearchTab from './(tabs)/search';
 
 const Home = () => {
   return (
@@ -27,6 +29,8 @@ const Home = () => {
     // <SignUp/>
     // <ForgotPassword/>
     
+    // <SearchTab/>
+
     // <Interests/>
     
     // <CreateProfile/>
