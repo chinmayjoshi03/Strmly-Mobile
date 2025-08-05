@@ -1,456 +1,398 @@
-import React, { useState, useEffect, useCallback, useRef } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   View,
   Text,
   TextInput,
-  ScrollView,
   TouchableOpacity,
-  Pressable,
-  Image,
+  ScrollView,
   KeyboardAvoidingView,
   Platform,
-  Keyboard,
   Animated,
-  Easing,
+  ActivityIndicator,
+  Image,
+  Alert,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import {
-  Smile,
-  ArrowBigUp,
-  ArrowBigDown,
-  IndianRupee,
-  ChevronDown,
-  SendHorizonal,
-  ReplyIcon,
-} from "lucide-react-native";
+import { X, Send, Heart, MessageCircle } from "lucide-react-native";
 import { useAuthStore } from "@/store/useAuthStore";
-import {
-  upvoteComment,
-  downvoteComment,
-  giftComment,
-} from "@/api/Long/CommentAction";
-import { Comment, reply } from "@/types/Comments";
-import { mockComments as DebugComments } from "@/utils/CommentGenerator";
-
-const mockComments: Comment[] = DebugComments;
+import { useComments } from "./useComments";
+import { Comment } from "@/types/Comments";
 
 interface CommentsSectionProps {
-  isOpen: boolean;
   onClose: () => void;
   videoId: string | null;
   longVideosOnly: boolean;
-  commentss?: [{}];
+  commentss?: Comment[];
 }
 
-const CommentsSection = (props: CommentsSectionProps) => {
-  const { isOpen, videoId, longVideosOnly, commentss } = props;
-  const [comments, setComments] = useState<Comment[]>([]);
+const CommentsSection = ({ onClose, videoId, longVideosOnly, commentss }: CommentsSectionProps) => {
   const [comment, setComment] = useState("");
-  const [openReplies, setOpenReplies] = useState<{ [key: string]: reply[] }>(
-    {}
-  );
-  const [loadingReplies, setLoadingReplies] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const token = useAuthStore((state) => state.token);
-  const [replyTo, setReplyTo] = useState<{
-    commentId: string;
-    username: string;
-  } | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [replyingTo, setReplyingTo] = useState<string | null>(null);
+  const [replyingToUser, setReplyingToUser] = useState<string>("");
+  const [viewingReplies, setViewingReplies] = useState<string | null>(null);
+  const [repliesData, setRepliesData] = useState<{ [key: string]: any[] }>({});
 
+  const { token } = useAuthStore();
   const insets = useSafeAreaInsets();
   const animatedBottom = useRef(new Animated.Value(insets.bottom)).current;
+  const scrollViewRef = useRef<ScrollView>(null);
 
-  // --- Fetch functions, reused/stable ---
-  const fetchComments = useCallback(async () => {
-    if (!token || !videoId) {
-      setComments(mockComments);
-      return;
-    }
-    try {
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/v1/interaction/videos/${videoId}/comments?videoType=${longVideosOnly ? "long" : "short"}`,
-        {
-          method: "GET",
-          credentials: "include",
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-        }
-      );
-      if (!response.ok) throw new Error("Failed to fetch comments");
-      const data = await response.json();
-      console.log(data)
-      setComments(data);
-    } catch (err) {
-      // Optionally use an Alert here
-      setComments(mockComments);
-    }
-  }, [token, longVideosOnly, videoId]);
+  // Use the existing useComments hook
+  const {
+    comments,
+    loading: isLoading,
+    error,
+    fetchComments,
+    addComment,
+    upvoteComment,
+    downvoteComment,
+    addReply,
+    fetchReplies
+  } = useComments({ videoId });
 
+  // Fetch comments when component mounts with throttling
   useEffect(() => {
-    if (isOpen && videoId) {
-      const timer = setTimeout(() => fetchComments(), 100); // 100ms delay
+    if (videoId) {
+      // Add a small delay to prevent rate limiting
+      const timer = setTimeout(() => {
+        fetchComments();
+      }, 100);
+
       return () => clearTimeout(timer);
     }
-  }, [isOpen, videoId, fetchComments]);
+  }, [videoId, fetchComments]);
 
-  const fetchReplies = async (commentID: string) => {
-    if (openReplies[commentID]) {
-      setOpenReplies((prev) => {
-        const newReplies = { ...prev };
-        delete newReplies[commentID];
-        return newReplies;
-      });
-      return;
-    }
+  const handleSubmitComment = async () => {
+    if (!comment.trim() || isSubmitting) return;
+
+    setIsSubmitting(true);
     try {
-      setLoadingReplies(commentID);
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/v1/interaction/videos/${videoId}/comments/${commentID}/replies`,
-        {
-          method: "GET",
-          credentials: "include",
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
+      if (replyingTo) {
+        // Submit as reply
+        console.log('Submitting reply to comment:', replyingTo, 'content:', comment.trim());
+        const replyResult = await addReply(replyingTo, comment.trim());
+        console.log('Reply result:', replyResult);
+
+        // Refresh replies for this comment
+        try {
+          console.log('Fetching updated replies for comment:', replyingTo);
+          const updatedReplies = await fetchReplies(replyingTo);
+          console.log('Updated replies:', updatedReplies);
+
+          setRepliesData(prev => ({
+            ...prev,
+            [replyingTo]: updatedReplies || []
+          }));
+
+          // Keep viewing replies to show the new reply
+          setViewingReplies(replyingTo);
+        } catch (error) {
+          console.error('Error refreshing replies:', error);
         }
-      );
-      const data = await response.json();
-      setOpenReplies((prev) => ({ ...prev, [commentID]: data }));
-      console.log(data)
-    } catch (err) {
-      // Optionally handle error
+
+        handleCancelReply();
+      } else {
+        // Submit as new comment
+        await addComment(comment.trim());
+        setComment("");
+      }
+
+      // Scroll to top to show the new comment
+      scrollViewRef.current?.scrollTo({ y: 0, animated: true });
+    } catch (error: any) {
+      console.error('Error submitting comment:', error);
+      const errorMessage = error.message || 'Failed to post comment';
+      Alert.alert('Error', `Failed to post comment: ${errorMessage}`);
     } finally {
-      setLoadingReplies(null);
+      setIsSubmitting(false);
     }
   };
 
-  const handleUpvote = async (commentID: string) => {
-    try {
-      const data = await upvoteComment({
-        token,
-        commentId: commentID,
-        videoId,
-        videoType: longVideosOnly ? "long" : "short",
-      });
-      setComments((prev) =>
-        prev.map((comment) =>
-          comment._id === commentID
-            ? {
-                ...comment,
-                upvotes: data.upvotes,
-                downvotes: data.downvotes,
-                upvoted: !comment.upvoted,
-                downvoted: false,
-              }
-            : comment
-        )
-      );
-    } catch (err) {}
-  };
-  const handleDownvote = async (commentID: string) => {
-    try {
-      const data = await downvoteComment({
-        token,
-        commentId: commentID,
-        videoId,
-        videoType: longVideosOnly ? "long" : "short",
-      });
-      setComments((prev) =>
-        prev.map((comment) =>
-          comment._id === commentID
-            ? {
-                ...comment,
-                upvotes: data.upvotes,
-                downvotes: data.downvotes,
-                downvoted: !comment.downvoted,
-                upvoted: false,
-              }
-            : comment
-        )
-      );
-    } catch (err) {}
+  const handleReplyToComment = (commentId: string, userName: string) => {
+    setReplyingTo(commentId);
+    setReplyingToUser(userName);
+    setComment(`@${userName} `);
   };
 
-  const handleGiftComment = async (commentID: string) => {
-    // Replace with a modal or a separate gifting screen for input instead of 'prompt'
-    // For now, skip gifting UI.
+  const handleCancelReply = () => {
+    setReplyingTo(null);
+    setReplyingToUser("");
+    setComment("");
   };
 
-  const handleSendComment = async () => {
-    if (!token || !videoId || !comment.trim()) return;
-    setIsLoading(true);
-    try {
-      const body = replyTo
-        ? {
-            reply: comment,
-            videoType: longVideosOnly ? "long" : "short",
-            commentId: replyTo.commentId,
-            videoId: videoId,
-          }
-        : {
-            videoId,
-            videoType: longVideosOnly ? "long" : "short",
-            comment,
-          };
-      const endpoint = replyTo
-        ? `${process.env.NEXT_PUBLIC_API_URL}/api/v1/interaction/comments/reply`
-        : `${process.env.NEXT_PUBLIC_API_URL}/api/v1/interaction/comment`;
-      const response = await fetch(endpoint, {
-        method: "POST",
-        credentials: "include",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(body),
-      });
-      if (!response.ok) throw new Error("Failed to post");
-      await fetchComments();
-      if (replyTo) await fetchReplies(replyTo.commentId);
-      setComment("");
-      setReplyTo(null);
-    } catch (err) {
-      // Optionally handle
-    } finally {
-      setIsLoading(false);
+  const handleViewReplies = async (commentId: string) => {
+    if (viewingReplies === commentId) {
+      setViewingReplies(null);
+    } else {
+      setViewingReplies(commentId);
+
+      // Fetch replies if we don't have them already
+      if (!repliesData[commentId]) {
+        try {
+          const replies = await fetchReplies(commentId);
+          setRepliesData(prev => ({
+            ...prev,
+            [commentId]: replies || []
+          }));
+        } catch (error) {
+          console.error('Error fetching replies:', error);
+          setRepliesData(prev => ({
+            ...prev,
+            [commentId]: []
+          }));
+        }
+      }
     }
   };
 
-  useEffect(() => {
-    const showSub = Keyboard.addListener(
-      Platform.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow",
-      (e) => {
-        Animated.timing(animatedBottom, {
-          toValue: e.endCoordinates.height,
-          duration: 250,
-          useNativeDriver: false,
-          easing: Easing.out(Easing.ease),
-        }).start();
-      }
+  const renderComment = (comment: Comment) => {
+    // Safety check to ensure comment and user exist
+    if (!comment || !comment._id) return null;
+
+    return (
+      <View key={comment._id} className="mb-3 px-4 py-3">
+        <View className="flex-row items-start justify-between">
+          <View className="flex-row items-start space-x-3 flex-1">
+            <Image
+              source={
+                comment.user?.avatar
+                  ? { uri: comment.user.avatar }
+                  : require('@/assets/images/user.png')
+              }
+              className="w-8 h-8 rounded-full"
+            />
+            <View className="flex-1">
+              <Text className="text-white font-medium text-sm">
+                {comment.user?.name || 'Anonymous User'}
+              </Text>
+              <Text className="text-gray-300 text-sm mt-1">
+                {comment.content || 'No content'}
+              </Text>
+              <View className="flex-row items-center mt-2 space-x-6">
+                <TouchableOpacity onPress={() => handleReplyToComment(comment._id, comment.user?.name || 'Anonymous User')}>
+                  <Text className="text-gray-400 text-xs">Reply</Text>
+                </TouchableOpacity>
+                <TouchableOpacity onPress={() => handleViewReplies(comment._id)}>
+                  <Text className="text-gray-500 text-xs">
+                    {viewingReplies === comment._id ? 'Hide replies' : `View replies (${comment.replies || comment.repliesCount || 0})`}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+
+              {/* Show replies if viewing */}
+              {viewingReplies === comment._id && (
+                <View className="mt-3 ml-4 pl-4 border-l border-gray-600">
+                  {repliesData[comment._id] && repliesData[comment._id].length > 0 ? (
+                    repliesData[comment._id].map((reply: any) => (
+                      <View key={reply._id} className="mb-2 flex-row items-start space-x-2">
+                        <Image
+                          source={
+                            reply.user?.avatar
+                              ? { uri: reply.user.avatar }
+                              : require('@/assets/images/user.png')
+                          }
+                          className="w-6 h-6 rounded-full"
+                        />
+                        <View className="flex-1">
+                          <Text className="text-white font-medium text-xs">
+                            {reply.user?.name || reply.user?.username || 'Anonymous'}
+                          </Text>
+                          <Text className="text-gray-300 text-xs mt-1">
+                            {reply.content}
+                          </Text>
+                        </View>
+                      </View>
+                    ))
+                  ) : (
+                    <Text className="text-gray-400 text-xs">
+                      No replies yet
+                    </Text>
+                  )}
+                </View>
+              )}
+            </View>
+          </View>
+
+          {/* Right side actions - Properly aligned in single row */}
+          <View
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              marginLeft: 16,
+              gap: 12,
+            }}
+          >
+            {/* Rupee/Gift button */}
+            <TouchableOpacity
+              style={{
+                alignItems: 'center',
+                justifyContent: 'center',
+                minWidth: 24,
+              }}
+            >
+              <Text style={{ color: '#FBBF24', fontSize: 14, lineHeight: 16 }}>₹</Text>
+              <Text style={{ color: '#9CA3AF', fontSize: 10, lineHeight: 12 }}>
+                {comment.donations || 0}
+              </Text>
+            </TouchableOpacity>
+
+            {/* Upvote button */}
+            <TouchableOpacity
+              onPress={() => upvoteComment(comment._id)}
+              style={{
+                alignItems: 'center',
+                justifyContent: 'center',
+                minWidth: 24,
+              }}
+            >
+              <Text
+                style={{
+                  fontSize: 18,
+                  lineHeight: 20,
+                  color: comment.upvoted ? '#10B981' : '#FFFFFF'
+                }}
+              >
+                ↑
+              </Text>
+              <Text style={{ color: '#9CA3AF', fontSize: 10, lineHeight: 12 }}>
+                {comment.upvotes || 0}
+              </Text>
+            </TouchableOpacity>
+
+            {/* Downvote button */}
+            <TouchableOpacity
+              onPress={() => downvoteComment(comment._id)}
+              style={{
+                alignItems: 'center',
+                justifyContent: 'center',
+                minWidth: 24,
+              }}
+            >
+              <Text
+                style={{
+                  fontSize: 18,
+                  lineHeight: 20,
+                  color: comment.downvoted ? '#EF4444' : '#FFFFFF'
+                }}
+              >
+                ↓
+              </Text>
+              <Text style={{ color: '#9CA3AF', fontSize: 10, lineHeight: 12 }}>
+                {comment.downvotes || 0}
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </View>
     );
-
-    const hideSub = Keyboard.addListener(
-      Platform.OS === "ios" ? "keyboardWillHide" : "keyboardDidHide",
-      () => {
-        Animated.timing(animatedBottom, {
-          toValue: insets.bottom,
-          duration: 200,
-          useNativeDriver: false,
-          easing: Easing.out(Easing.ease),
-        }).start();
-      }
-    );
-
-    return () => {
-      showSub.remove();
-      hideSub.remove();
-    };
-  }, [insets.bottom]);
-
-  if (!isOpen) return null;
+  };
 
   return (
-    <KeyboardAvoidingView
-      className="w-full absolute rounded-t-lg max-h-[60%] bottom-0"
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
-      keyboardVerticalOffset={Platform.OS === "ios" ? insets.top + 0 : 0}
-      style={{ flex: 1 }}
-    >
-      <View
-        className="flex-1 bg-[#1A1A1A] rounded-t-3xl min-h-52 z-30"
-        style={{ marginTop: "auto" }}
+    <>
+      {/* Backdrop overlay */}
+      <TouchableOpacity
+        style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0, 0, 0, 0.3)',
+          zIndex: 999,
+          elevation: 999,
+        }}
+        onPress={onClose}
+        activeOpacity={1}
+      />
+
+      <KeyboardAvoidingView
+        className="w-full absolute rounded-t-lg max-h-[60%] bottom-0"
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        style={{
+          backgroundColor: "#1A1A1A",
+          borderTopLeftRadius: 20,
+          borderTopRightRadius: 20,
+          zIndex: 1000,
+          elevation: 1000, // For Android
+        }}
       >
         {/* Header */}
-        <View className="items-center justify-center p-4 rounded-t-3xl">
-          <View className="w-20 h-1 bg-white/80 rounded-full my-2" />
-          <Text className="text-2xl font-bold text-white">Comments</Text>
+        <View className="items-center py-4">
+          <Text className="text-white text-xl font-semibold">
+            Comments
+          </Text>
         </View>
 
         {/* Comments List */}
         <ScrollView
-          keyboardShouldPersistTaps="handled"
-          contentContainerStyle={{ paddingBottom: 16 }}
+          ref={scrollViewRef}
           className="flex-1"
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
         >
-          <View className="gap-5 p-4">
-            {comments.map((comment) => (
-              <View key={comment._id}>
-                <View className="flex-row gap-1">
-                  {/* Avatar */}
-                  <Image
-                    source={{ uri: comment.user?.avatar ?? "" }}
-                    className="size-10 rounded-full bg-white mr-2"
-                    defaultSource={require("@/assets/images/back.png")}
-                  />
-                  <View className="flex-1">
-                    <View className="flex-row items-center space-x-2 mb-1">
-                      <Text
-                        className="text-sm text-[#B0B0B0] font-semibold flex-1"
-                        numberOfLines={1}
-                      >
-                        {comment.user?.name || "Anonymous User"}
-                      </Text>
-                    </View>
-                    <View className="flex-row gap-1 items-center">
-                      <Text className="text-base text-white">
-                        {comment.content.slice(0, 15)}...
-                      </Text>
-                      <Text className="text-xs text-[#B0B0B0]">
-                        {new Date(comment.timestamp).toLocaleDateString()}
-                      </Text>
-                    </View>
-                    {/* Actions Row */}
-                    <View className="flex-row gap-5 items-center">
-                      <Pressable
-                        onPress={() =>
-                          setReplyTo({
-                            commentId: comment._id,
-                            username: comment.user?.name || "Anonymous",
-                          })
-                        }
-                      >
-                        <Text className="text-sm text-[#B0B0B0]">Reply</Text>
-                      </Pressable>
-                      <Pressable
-                        onPress={() => fetchReplies(comment._id)}
-                        className="flex-row gap-1 mt-0.5 items-center"
-                      >
-                        <Text className="text-sm text-[#B0B0B0]">
-                          View replies ({comment.replies})
-                        </Text>
-                        <ChevronDown size={16} color="#B0B0B0" />
-                      </Pressable>
-                    </View>
-                    {/* Replies */}
-                    {!!openReplies[comment._id]?.length && (
-                      <View className="ml-8 mt-2 py-2">
-                        {openReplies[comment._id].map((reply) => (
-                          <View key={reply._id} className="flex-row space-x-2">
-                            <Image
-                              source={{ uri: reply.user?.avatar || "" }}
-                              className="w-6 h-6 rounded-full"
-                            />
-                            <View>
-                              <View className="flex-row items-center space-x-2 mb-1">
-                                <Text className="font-medium text-xs text-white">
-                                  {reply.user.name}
-                                </Text>
-                                <Text className="text-xs text-[#B0B0B0]">
-                                  {new Date(
-                                    reply.timestamp
-                                  ).toLocaleDateString()}
-                                </Text>
-                              </View>
-                              <Text className="text-sm text-white">
-                                {reply.content}
-                              </Text>
-                            </View>
-                          </View>
-                        ))}
-                      </View>
-                    )}
-                    {loadingReplies === comment._id && (
-                      <Text className="text-xs ml-10 text-[#B0B0B0]">
-                        Loading replies...
-                      </Text>
-                    )}
-                  </View>
-                  {/* Upvote / Downvote / Gift actions */}
-                  <View className="flex-row gap-2 items-center">
-                    <TouchableOpacity
-                      onPress={() => handleGiftComment(comment._id)}
-                      className="items-center pt-1"
-                    >
-                      <IndianRupee size={16} color="#fdde86" />
-                      <Text className="text-xs pt-1 text-[#B0B0B0]">
-                        {comment.donations ?? 0}
-                      </Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      onPress={() => handleUpvote(comment._id)}
-                      className="items-center"
-                    >
-                      <ArrowBigUp
-                        size={22}
-                        color={comment.upvoted ? "#4ade80" : "#B0B0B0"}
-                      />
-                      <Text className="text-xs text-[#B0B0B0]">
-                        {comment.upvotes}
-                      </Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      onPress={() => handleDownvote(comment._id)}
-                      className="items-center"
-                    >
-                      <ArrowBigDown
-                        size={22}
-                        color={comment.downvoted ? "#f87171" : "#B0B0B0"}
-                      />
-                      <Text className="text-xs text-[#B0B0B0]">
-                        {comment.downvotes}
-                      </Text>
-                    </TouchableOpacity>
-                  </View>
-                </View>
-              </View>
-            ))}
-          </View>
+          {isLoading ? (
+            <View className="flex-1 items-center justify-center py-8">
+              <ActivityIndicator size="large" color="#F1C40F" />
+              <Text className="text-gray-400 mt-2">Loading comments...</Text>
+            </View>
+          ) : comments.length === 0 ? (
+            <View className="flex-1 items-center justify-center py-8">
+              <Text className="text-gray-400 text-center">
+                No comments yet. Be the first to comment!
+              </Text>
+            </View>
+          ) : (
+            <View className="gap-2 py-4">
+              {comments.map(renderComment)}
+            </View>
+          )}
         </ScrollView>
 
-        {/* ---- INPUT BAR: Always at bottom, outside ScrollView ---- */}
+        {/* Input Bar */}
         <Animated.View
-          style={[
-            {
-              backgroundColor: "#181818",
-              borderTopColor: "#353535",
-              borderTopWidth: 1,
-              flexDirection: "row",
-              alignItems: "center",
-              paddingHorizontal: 8,
-              paddingTop: 8,
-              paddingBottom: insets.bottom,
-              position: "absolute",
-              left: 0,
-              right: 0,
-              bottom: 0,
-              transform: [
-                { translateY: Animated.multiply(animatedBottom, -1) },
-              ],
-            },
-          ]}
+          style={{
+            paddingBottom: animatedBottom,
+            backgroundColor: "#1A1A1A",
+          }}
+          className="p-4"
         >
-          {!!replyTo && (
-            <View className="absolute flex-row -top-6 left-2 bg-[#6D6F6E] px-2 py-1 rounded">
-              <Text className="text-xs text-white">to @{replyTo.username}</Text>
-              <TouchableOpacity onPress={() => setReplyTo(null)}>
-                <Text className="text-xs text-red-400">Cancel</Text>
+          {/* Reply indicator */}
+          {replyingTo && (
+            <View className="flex-row items-center justify-between mb-2 p-2 bg-gray-800 rounded">
+              <Text className="text-gray-300 text-sm">
+                Replying to @{replyingToUser}
+              </Text>
+              <TouchableOpacity onPress={handleCancelReply}>
+                <Text className="text-red-400 text-sm">Cancel</Text>
               </TouchableOpacity>
             </View>
           )}
-          <TextInput
-            value={comment}
-            onChangeText={setComment}
-            placeholder="Add a comment..."
-            placeholderTextColor="#999"
-            className="flex-1 text-white px-3 py-2"
-            multiline
-          />
-          <TouchableOpacity
-            onPress={handleSendComment}
-            disabled={!comment.trim()}
-          >
-            <SendHorizonal
-              size={20}
-              color={comment.trim() ? "#4ade80" : "#888"}
+
+          <View className="flex-row items-center space-x-3">
+            <TextInput
+              className="flex-1 bg-transparent text-white px-4 py-3 border-b border-gray-600"
+              placeholder="Add comment........."
+              placeholderTextColor="#6b7280"
+              value={comment}
+              onChangeText={setComment}
+              multiline={false}
+              maxLength={500}
             />
-          </TouchableOpacity>
+            <TouchableOpacity
+              onPress={handleSubmitComment}
+              disabled={!comment.trim() || isSubmitting}
+            >
+              {isSubmitting ? (
+                <ActivityIndicator size="small" color="white" />
+              ) : (
+                <Text className="text-white text-2xl">▷</Text>
+              )}
+            </TouchableOpacity>
+          </View>
         </Animated.View>
-        {/* ---- END INPUT BAR ---- */}
-      </View>
-    </KeyboardAvoidingView>
+      </KeyboardAvoidingView>
+    </>
   );
 };
 

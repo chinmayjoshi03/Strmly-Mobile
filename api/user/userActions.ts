@@ -356,3 +356,129 @@ export const getUserInteractions = async (
     return { interactions: [] };
   }
 };
+
+// FCM Token API
+export const sendFCMToken = async (token: string, fcmToken: string) => {
+  try {
+    const url = `${API_BASE_URL}/api/v1/user/fcm_token`;
+    console.log(`Sending FCM token to: ${url}`);
+
+    const res = await fetch(url, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        fcm_token: fcmToken
+      })
+    });
+
+    console.log(`FCM token response status: ${res.status}`);
+
+    if (!res.ok) {
+      const errorText = await res.text();
+      console.error(`❌ FCM token endpoint error: ${res.status}`, errorText);
+      return false;
+    }
+
+    const responseText = await res.text();
+    console.log('✅ FCM token sent successfully:', responseText);
+    return true;
+  } catch (error) {
+    console.error("Failed to send FCM token:", error);
+    return false;
+  }
+};
+
+// User Interests API
+export const submitUserInterests = async (token: string, interests: string[]) => {
+  try {
+    const url = `${API_BASE_URL}/api/v1/user/interests`;
+    console.log(`📤 Submitting user interests to: ${url}`);
+    console.log(`📋 Interests:`, interests);
+
+    const requestBody = JSON.stringify({ interests: interests });
+    console.log(`📦 Request body:`, requestBody);
+
+    const res = await fetch(url, {
+      method: "PUT",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json"
+      },
+      body: requestBody
+    });
+
+    console.log(`📊 Response status: ${res.status}`);
+
+    if (!res.ok) {
+      const errorText = await res.text();
+      console.error(`❌ Interests API error: ${res.status}`);
+      console.error(`❌ Error response:`, errorText.substring(0, 500));
+      throw new Error(`Failed to submit interests: ${res.status} - ${errorText}`);
+    }
+
+    const responseText = await res.text();
+    console.log('✅ Interests submitted successfully');
+    
+    try {
+      const data = JSON.parse(responseText);
+      console.log('✅ Response:', data.message);
+      return data;
+    } catch (parseError) {
+      console.log('ℹ️ Response is not JSON, treating as success');
+      return { success: true, message: responseText };
+    }
+  } catch (error) {
+    console.error("❌ Failed to submit user interests:", error);
+    throw error;
+  }
+};
+
+// Update User Profile API
+export const updateUserProfile = async (token: string, profileData: {
+  username?: string;
+  bio?: string;
+  interests?: string[];
+  profile_photo?: string;
+}) => {
+  try {
+    const url = `${API_BASE_URL}/api/v1/user/profile`;
+    console.log(`📤 Updating user profile to: ${url}`);
+    console.log(`📋 Profile data:`, profileData);
+
+    const res = await fetch(url, {
+      method: "PUT",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify(profileData)
+    });
+
+    console.log(`📊 Response status: ${res.status}`);
+
+    if (!res.ok) {
+      const errorText = await res.text();
+      console.error(`❌ Profile update API error: ${res.status}`);
+      console.error(`❌ Error response:`, errorText.substring(0, 500));
+      throw new Error(`Failed to update profile: ${res.status} - ${errorText}`);
+    }
+
+    const responseText = await res.text();
+    console.log('✅ Profile updated successfully');
+    
+    try {
+      const data = JSON.parse(responseText);
+      console.log('✅ Response:', data.message);
+      return data;
+    } catch (parseError) {
+      console.log('ℹ️ Response is not JSON, treating as success');
+      return { success: true, message: responseText };
+    }
+  } catch (error) {
+    console.error("❌ Failed to update user profile:", error);
+    throw error;
+  }
+};

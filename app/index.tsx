@@ -1,13 +1,13 @@
-import { StyleSheet } from 'react-native';
-import ThemedView from "../components/ThemedView";
-import VideoFeed from './(dashboard)/long/VideoFeed';
-import WalletPage from './(dashboard)/wallet/wallet';
-import CommentsSection from './(dashboard)/long/_components/CommentSection';
-import KYCForm from './(dashboard)/wallet/_components/KYCForm';
-import PersonalProfilePage from './(dashboard)/profile/personal.PersonalProfile';
-import CreateProfile from './Profile/CreateProfile';
-import AddCreatorPass from './Profile/AddCreatorPass';
-import EditProfilePage from './Profile/EditProfile';
+// import { StyleSheet } from 'react-native';
+// import ThemedView from "../components/ThemedView";
+// import VideoFeed from './(dashboard)/long/VideoFeed';
+// import WalletPage from './(dashboard)/wallet/wallet';
+// import CommentsSection from './(dashboard)/long/_components/CommentSection';
+// import KYCForm from './(dashboard)/wallet/_components/KYCForm';
+// import PersonalProfilePage from './(dashboard)/profile/personal.PersonalProfile';
+// import CreateProfile from './Profile/CreateProfile';
+// import AddCreatorPass from './Profile/AddCreatorPass';
+// import EditProfilePage from './Profile/EditProfile';
 
 import StrmlyStudio from './studio/StrmlyStudio';
 import HistoryPage from './(dashboard)/profile/History';
@@ -15,7 +15,6 @@ import PersonalCommunityPage from './(dashboard)/communities/personal/PersonalCo
 import Dashboard from './(dashboard)/profile/Dashboard';
 import PublicCommunityPage from './(communities)/public/publicComm';
 import Interests from './(InterestsSection)/Interests';
-import VideoContentGifting from './(payments)/Video/VideoContentGifting';
 import Setting from './Setting/Setting';
 import { SignUp } from './(auth)/Sign-up';
 import PublicProfilePageWithId from './(dashboard)/profile/public/[id]';

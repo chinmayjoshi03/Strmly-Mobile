@@ -44,6 +44,7 @@ const VideoItem = ({
   setShowCommentsModal,
   setGiftingData,
   setIsWantToGift,
+  containerHeight,
 }: Props) => {
   const player = useVideoPlayer(uri, (p) => {
     p.loop = true;
@@ -224,7 +225,12 @@ const VideoItem = ({
 
       <View style={styles.interact}>
         <InteractOptions
-          creator={videoData.created_by}
+          creator={{
+            _id: videoData.created_by?._id || '',
+            username: videoData.created_by?.username || '',
+            name: videoData.created_by?.username || '', // Use username as name fallback
+            profile_photo: videoData.created_by?.profile_photo || ''
+          }}
           setGiftingData={setGiftingData}
           setIsWantToGift={setIsWantToGift}
           videoId={videoData._id}
@@ -319,6 +325,8 @@ const styles = StyleSheet.create({
     bottom: "15%",
     right: 10,
     width: "auto",
+    zIndex: 1,
+    elevation: 1,
   },
   details: {
     position: "absolute",
@@ -326,6 +334,8 @@ const styles = StyleSheet.create({
     width: "100%",
     paddingLeft: 10,
     paddingRight: 16,
+    zIndex: 1,
+    elevation: 1,
   },
 });
 

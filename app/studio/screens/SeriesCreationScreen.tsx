@@ -86,23 +86,34 @@ const SeriesCreationScreen: React.FC<SeriesCreationScreenProps> = ({
     setLoading(true);
 
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-
-      // Create series object
-      const newSeries = {
-        id: Date.now().toString(),
+      const { createSeries } = await import('../../../api/series/seriesActions');
+      
+      const seriesData = {
         title: seriesForm.title.trim(),
-        description: '',
-        totalEpisodes: 0,
-        accessType: seriesForm.type!,
+        description: seriesForm.title.trim(), // Use title as description for now
+        genre: 'Action', // Default genre, you may want to add genre selection
+        language: 'english',
+        type: seriesForm.type === 'paid' ? 'Paid' : 'Free' as 'Free' | 'Paid',
         price: seriesForm.type === 'paid' ? seriesForm.price : undefined,
-        launchDate: new Date().toISOString(),
+        promisedEpisodesCount: 2, // Minimum required episodes
+      };
+
+      const response = await createSeries(seriesData);
+      
+      // Transform API response to match expected format
+      const newSeries = {
+        id: response.data._id,
+        title: response.data.title,
+        description: response.data.description,
+        totalEpisodes: response.data.total_episodes,
+        accessType: response.data.type.toLowerCase() as 'paid' | 'free',
+        price: response.data.price,
+        launchDate: response.data.release_date,
         totalViews: 0,
         totalEarnings: 0,
-        episodes: [],
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
+        episodes: response.data.episodes,
+        createdAt: response.data.createdAt,
+        updatedAt: response.data.updatedAt
       };
 
       console.log('Series created successfully:', newSeries);
@@ -116,7 +127,7 @@ const SeriesCreationScreen: React.FC<SeriesCreationScreenProps> = ({
     } catch (error) {
       console.log('Error creating series:', error);
       setLoading(false);
-      setErrors({ general: 'Failed to create series' });
+      setErrors({ general: error instanceof Error ? error.message : 'Failed to create series' });
     }
   };
 

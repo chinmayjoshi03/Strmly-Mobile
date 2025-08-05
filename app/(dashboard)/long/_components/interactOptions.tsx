@@ -6,6 +6,16 @@ import Constants from "expo-constants";
 import { GiftType } from "../VideoFeed";
 
 // Define props type for InteractOptions
+type GiftDataType = {
+  creator: {
+    _id: string;
+    profile_photo: string;
+    name: string;
+    username: string;
+  };
+  videoId: string;
+};
+
 type InteractOptionsProps = {
   onCommentPress: () => void; // Callback function for comment button press
   videoId: string;

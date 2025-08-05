@@ -1,4 +1,5 @@
-import React from 'react';
+import React, { useEffect } from 'react';
+import { Alert } from 'react-native';
 import { useUploadFlow } from './hooks/useUploadFlow';
 import FileSelectScreen from './screens/FileSelectScreen';
 import FormatSelectScreen from './screens/FormatSelectScreen';
@@ -13,6 +14,7 @@ import { Series } from '../studio/types';
 interface VideoUploadFlowProps {
   onComplete: () => void;
   onCancel: () => void;
+  draftData?: any; // Optional draft data to initialize from
 }
 
 /**
@@ -33,7 +35,8 @@ interface VideoUploadFlowProps {
  */
 const VideoUploadFlow: React.FC<VideoUploadFlowProps> = ({
   onComplete,
-  onCancel
+  onCancel,
+  draftData
 }) => {
   const {
     state,
@@ -48,7 +51,16 @@ const VideoUploadFlow: React.FC<VideoUploadFlowProps> = ({
     validateCurrentStep,
     submitUpload,
     resetFlow,
+    initializeFromDraft,
+    saveToDraft,
   } = useUploadFlow();
+
+  // Initialize from draft data if provided
+  useEffect(() => {
+    if (draftData) {
+      initializeFromDraft(draftData);
+    }
+  }, [draftData, initializeFromDraft]);
 
   // Handle upload completion from progress screen
   const handleUploadComplete = () => {
@@ -58,10 +70,20 @@ const VideoUploadFlow: React.FC<VideoUploadFlowProps> = ({
 
   // Handle back navigation
   const handleBack = () => {
-    if (state.currentStep === 'file-select') {
-      // If user goes back from first screen, cancel the flow
+    if (state.currentStep === 'format-select' && !state.isEditingDraft) {
+      // If user goes back from first screen (and not editing draft), cancel the flow
       onCancel();
+    } else if (state.currentStep === 'format-select' && state.isEditingDraft) {
+      // If editing draft and on format select, go back to studio
+      onCancel();
+    } else if (state.currentStep === 'file-select' && state.isEditingDraft) {
+      // When editing draft and on file-select, allow going back to previous steps
+      goToPreviousStep();
+    } else if (state.currentStep === 'file-select' && !state.isEditingDraft) {
+      // When creating new video and on file-select (last step), go back to final
+      goToPreviousStep();
     } else {
+      // For all other cases, allow normal navigation
       goToPreviousStep();
     }
   };
@@ -69,7 +91,38 @@ const VideoUploadFlow: React.FC<VideoUploadFlowProps> = ({
   // Handle file selection
   const handleFileSelected = (file: any) => {
     setSelectedFile(file);
-    goToNextStep();
+    // Don't automatically go to next step - let user choose to upload or save draft
+  };
+
+  // Handle save to draft from file selection screen
+  const handleSaveToDraftFromFileSelect = async () => {
+    try {
+      console.log('💾 Save to Draft button pressed');
+      console.log('Current state:', {
+        currentStep: state.currentStep,
+        videoDetails: state.videoDetails,
+        finalStageData: state.finalStageData,
+        draftId: state.draftId
+      });
+      
+      await saveToDraft();
+      console.log('✅ Draft saved successfully, navigating back to studio');
+      
+      // Navigate back to studio/drafts after saving
+      onComplete();
+    } catch (error) {
+      console.error('❌ Failed to save draft:', error);
+      Alert.alert(
+        'Save Failed',
+        `Failed to save draft. ${error instanceof Error ? error.message : 'Please try again.'}`,
+        [{ text: 'OK' }]
+      );
+    }
+  };
+
+  // Handle continue upload from file selection screen
+  const handleContinueUpload = async () => {
+    await submitUpload();
   };
 
   // Handle format selection
@@ -110,10 +163,12 @@ const VideoUploadFlow: React.FC<VideoUploadFlowProps> = ({
     goToDetailsStep();
   };
 
-  // Handle final upload submission
-  const handleFinalUpload = async () => {
-    await submitUpload();
-    // Don't reset flow or complete here - let the upload progress screen handle completion
+
+
+  // Handle final upload submission - navigate to file selection
+  const handleFinalUpload = () => {
+    // Don't call submitUpload here - just navigate to file selection
+    goToNextStep(); // This will go to file-select
   };
 
   // No need for auto-start effect since submitUpload handles it directly
@@ -126,6 +181,8 @@ const VideoUploadFlow: React.FC<VideoUploadFlowProps> = ({
           <FileSelectScreen
             onFileSelected={handleFileSelected}
             onBack={handleBack}
+            onSaveToDraft={handleSaveToDraftFromFileSelect}
+            onContinueUpload={handleContinueUpload}
           />
         );
 
@@ -143,6 +200,7 @@ const VideoUploadFlow: React.FC<VideoUploadFlowProps> = ({
             onBack={handleBack}
             onSeriesSelected={handleSeriesSelected}
             onAddNewSeries={handleAddNewSeries}
+            selectedSeries={state.selectedSeries}
           />
         );
 
@@ -173,6 +231,7 @@ const VideoUploadFlow: React.FC<VideoUploadFlowProps> = ({
             onBack={handleBack}
             selectedSeries={state.selectedSeries}
             videoFormat={state.videoFormat}
+            isEditingDraft={state.isEditingDraft}
           />
         );
 
@@ -186,6 +245,7 @@ const VideoUploadFlow: React.FC<VideoUploadFlowProps> = ({
             onBack={handleBack}
             selectedSeries={state.selectedSeries}
             videoFormat={state.videoFormat}
+            isEditingDraft={state.isEditingDraft}
           />
         );
 
@@ -199,6 +259,7 @@ const VideoUploadFlow: React.FC<VideoUploadFlowProps> = ({
             onBack={handleBack}
             selectedSeries={state.selectedSeries}
             videoFormat={state.videoFormat}
+            isEditingDraft={state.isEditingDraft}
           />
         );
 
@@ -212,6 +273,7 @@ const VideoUploadFlow: React.FC<VideoUploadFlowProps> = ({
             onBack={handleBack}
             selectedSeries={state.selectedSeries}
             videoFormat={state.videoFormat}
+            isEditingDraft={state.isEditingDraft}
           />
         );
 

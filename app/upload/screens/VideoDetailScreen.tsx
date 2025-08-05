@@ -29,7 +29,8 @@ const VideoDetailScreen: React.FC<VideoDetailProps> = ({
   onContinue,
   onBack,
   selectedSeries,
-  videoFormat
+  videoFormat,
+  isEditingDraft
 }) => {
   const [communityDropdownOpen, setCommunityDropdownOpen] = useState(false);
   const [formatDropdownOpen, setFormatDropdownOpen] = useState(false);
@@ -86,7 +87,9 @@ const VideoDetailScreen: React.FC<VideoDetailProps> = ({
         <TouchableOpacity onPress={onBack}>
           <Ionicons name="chevron-back" size={24} color="white" />
         </TouchableOpacity>
-        <Text className="text-white text-xl font-medium">Video detail</Text>
+        <Text className="text-white text-xl font-medium">
+          {isEditingDraft ? 'Edit Draft' : 'Video detail'}
+        </Text>
         <View className="w-6" />
       </View>
 
@@ -149,11 +152,13 @@ const VideoDetailScreen: React.FC<VideoDetailProps> = ({
       </ScrollView>
 
       {/* Continue Button */}
-      <ContinueButton
-        title="Continue"
-        onPress={onContinue}
-        disabled={!isStepValid()}
-      />
+      <View style={{ marginBottom: 80 }}>
+        <ContinueButton
+          title="Continue"
+          onPress={onContinue}
+          disabled={!isStepValid()}
+        />
+      </View>
     </View>
   );
 };

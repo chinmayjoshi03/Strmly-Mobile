@@ -20,6 +20,8 @@ type User = {
   createdAt?: string;
   updatedAt?: string;
   joinedDate?: string;
+  interests?: string[];
+  profile_photo?: string;
 };
 
 type AuthStore = {

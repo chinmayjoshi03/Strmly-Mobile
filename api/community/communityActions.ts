@@ -1,0 +1,379 @@
+import { CONFIG } from '@/Constants/config';
+
+export interface CreateCommunityRequest {
+  name: string;
+  bio?: string;
+  type: 'free' | 'paid';
+  amount?: number;
+  fee_description?: string;
+  imageFile?: any; // For image upload
+}
+
+export interface Community {
+  _id: string;
+  name: string;
+  bio: string;
+  founder: string;
+  followers: string[];
+  community_fee_type: 'free' | 'paid';
+  community_fee_amount: number;
+  community_fee_description: string;
+  profile_photo?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateCommunityResponse {
+  message: string;
+  community: Community;
+}
+
+export class CommunityAPI {
+  private static getHeaders(token: string, isFormData: boolean = false) {
+    const headers: any = {
+      'Authorization': `Bearer ${token}`,
+    };
+    
+    if (!isFormData) {
+      headers['Content-Type'] = 'application/json';
+    }
+    
+    return headers;
+  }
+
+  // Create a new community
+  static async createCommunity(
+    token: string,
+    communityData: CreateCommunityRequest
+  ): Promise<CreateCommunityResponse> {
+    const formData = new FormData();
+    
+    formData.append('name', communityData.name);
+    if (communityData.bio) {
+      formData.append('bio', communityData.bio);
+    }
+    formData.append('type', communityData.type);
+    
+    if (communityData.type === 'paid') {
+      if (communityData.amount) {
+        formData.append('amount', communityData.amount.toString());
+      }
+      if (communityData.fee_description) {
+        formData.append('fee_description', communityData.fee_description);
+      }
+    }
+    
+    if (communityData.imageFile) {
+      formData.append('imageFile', communityData.imageFile);
+    }
+
+    console.log('📤 Sending FormData to backend:', {
+      name: communityData.name,
+      bio: communityData.bio,
+      type: communityData.type,
+      amount: communityData.amount,
+      fee_description: communityData.fee_description,
+      hasImage: !!communityData.imageFile
+    });
+
+    const response = await fetch(
+      `${CONFIG.API_BASE_URL}/api/v1/community/create`,
+      {
+        method: 'POST',
+        headers: CommunityAPI.getHeaders(token, true),
+        body: formData,
+      }
+    );
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('❌ Create community error response:', errorText);
+      throw new Error(`Failed to create community: ${response.status} - ${errorText}`);
+    }
+
+    return response.json();
+  }
+
+  // Follow a community
+  static async followCommunity(
+    token: string,
+    communityId: string
+  ): Promise<{ message: string }> {
+    const response = await fetch(
+      `${CONFIG.API_BASE_URL}/api/v1/community/follow`,
+      {
+        method: 'POST',
+        headers: CommunityAPI.getHeaders(token),
+        body: JSON.stringify({ communityId }),
+      }
+    );
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('❌ Follow community error response:', errorText);
+      throw new Error(`Failed to follow community: ${response.status} - ${errorText}`);
+    }
+
+    return response.json();
+  }
+
+  // Get community details
+  static async getCommunityDetails(
+    token: string,
+    communityId: string
+  ): Promise<any> {
+    const response = await fetch(
+      `${CONFIG.API_BASE_URL}/api/v1/community/profile/${communityId}`,
+      {
+        method: 'GET',
+        headers: CommunityAPI.getHeaders(token),
+      }
+    );
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('❌ Get community details error response:', errorText);
+      throw new Error(`Failed to get community details: ${response.status} - ${errorText}`);
+    }
+
+    return response.json();
+  }
+
+  // Get community followers
+  static async getCommunityFollowers(
+    token: string,
+    communityId: string
+  ): Promise<{ followers: any[] }> {
+    const response = await fetch(
+      `${CONFIG.API_BASE_URL}/api/v1/community/followers/${communityId}`,
+      {
+        method: 'GET',
+        headers: CommunityAPI.getHeaders(token),
+      }
+    );
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('❌ Get community followers error response:', errorText);
+      throw new Error(`Failed to get community followers: ${response.status} - ${errorText}`);
+    }
+
+    return response.json();
+  }
+
+  // Get community creators
+  static async getCommunityCreators(
+    token: string,
+    communityId: string
+  ): Promise<{ creators: any[] }> {
+    const response = await fetch(
+      `${CONFIG.API_BASE_URL}/api/v1/community/creators/${communityId}`,
+      {
+        method: 'GET',
+        headers: CommunityAPI.getHeaders(token),
+      }
+    );
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('❌ Get community creators error response:', errorText);
+      throw new Error(`Failed to get community creators: ${response.status} - ${errorText}`);
+    }
+
+    return response.json();
+  }
+
+  // Get community videos
+  static async getCommunityVideos(
+    token: string,
+    communityId: string,
+    videoType: 'long' | 'series' = 'long'
+  ): Promise<{ videos: any[] }> {
+    const response = await fetch(
+      `${CONFIG.API_BASE_URL}/api/v1/community/${communityId}/videos?videoType=${videoType}`,
+      {
+        method: 'GET',
+        headers: CommunityAPI.getHeaders(token),
+      }
+    );
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('❌ Get community videos error response:', errorText);
+      throw new Error(`Failed to get community videos: ${response.status} - ${errorText}`);
+    }
+
+    return response.json();
+  }
+
+  // Rename a community
+  static async renameCommunity(
+    token: string,
+    communityId: string,
+    newName: string
+  ): Promise<{ message: string; community: Community }> {
+    const response = await fetch(
+      `${CONFIG.API_BASE_URL}/api/v1/community/rename`,
+      {
+        method: 'PUT',
+        headers: CommunityAPI.getHeaders(token),
+        body: JSON.stringify({ communityId, newName }),
+      }
+    );
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('❌ Rename community error response:', errorText);
+      throw new Error(`Failed to rename community: ${response.status} - ${errorText}`);
+    }
+
+    return response.json();
+  }
+
+  // Update community bio
+  static async updateCommunityBio(
+    token: string,
+    communityId: string,
+    bio: string
+  ): Promise<{ message: string; community: Community }> {
+    const response = await fetch(
+      `${CONFIG.API_BASE_URL}/api/v1/community/add-bio`,
+      {
+        method: 'PUT',
+        headers: CommunityAPI.getHeaders(token),
+        body: JSON.stringify({ communityId, bio }),
+      }
+    );
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('❌ Update community bio error response:', errorText);
+      throw new Error(`Failed to update community bio: ${response.status} - ${errorText}`);
+    }
+
+    return response.json();
+  }
+
+  // Update community profile photo
+  static async updateCommunityPhoto(
+    token: string,
+    communityId: string,
+    imageFile: any
+  ): Promise<{ message: string; community: Community }> {
+    const formData = new FormData();
+    formData.append('communityId', communityId);
+    formData.append('imageFile', imageFile);
+
+    const response = await fetch(
+      `${CONFIG.API_BASE_URL}/api/v1/community/change-profile-photo`,
+      {
+        method: 'PUT',
+        headers: CommunityAPI.getHeaders(token, true),
+        body: formData,
+      }
+    );
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('❌ Update community photo error response:', errorText);
+      throw new Error(`Failed to update community photo: ${response.status} - ${errorText}`);
+    }
+
+    return response.json();
+  }
+
+  // Get community analytics
+  static async getCommunityAnalytics(
+    token: string,
+    communityId: string
+  ): Promise<{
+    totalFollowers: number;
+    totalCreators: number;
+    totalVideos: number;
+    communityFee: number;
+    recentActivity: any[];
+  }> {
+    const response = await fetch(
+      `${CONFIG.API_BASE_URL}/api/v1/community/profile/${communityId}`,
+      {
+        method: 'GET',
+        headers: CommunityAPI.getHeaders(token),
+      }
+    );
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('❌ Get community analytics error response:', errorText);
+      throw new Error(`Failed to get community analytics: ${response.status} - ${errorText}`);
+    }
+
+    const data = await response.json();
+    return {
+      totalFollowers: data.totalFollowers || 0,
+      totalCreators: data.totalCreators || 0,
+      totalVideos: data.totalVideos || 0,
+      communityFee: data.community_fee_amount || 0,
+      recentActivity: [] // This would need a separate endpoint for activity logs
+    };
+  }
+
+  // Get user communities
+  static async getUserCommunities(
+    token: string,
+    type: 'all' | 'created' | 'joined' = 'all'
+  ): Promise<{ communities: Community[]; createdCount: number; joinedCount: number; totalCount: number }> {
+    const response = await fetch(
+      `${CONFIG.API_BASE_URL}/api/v1/community/user-communities?type=${type}`,
+      {
+        method: 'GET',
+        headers: CommunityAPI.getHeaders(token),
+      }
+    );
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('❌ Get user communities error response:', errorText);
+      throw new Error(`Failed to get user communities: ${response.status} - ${errorText}`);
+    }
+
+    return response.json();
+  }
+
+  // Get trending community videos
+  static async getTrendingVideos(
+    token: string,
+    limit: number = 20
+  ): Promise<{ videos: any[] }> {
+    const response = await fetch(
+      `${CONFIG.API_BASE_URL}/api/v1/community/trending-videos?limit=${limit}`,
+      {
+        method: 'GET',
+        headers: CommunityAPI.getHeaders(token),
+      }
+    );
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('❌ Get trending videos error response:', errorText);
+      throw new Error(`Failed to get trending videos: ${response.status} - ${errorText}`);
+    }
+
+    return response.json();
+  }
+}
+
+// Convenience functions for easier usage
+export const communityActions = {
+  createCommunity: CommunityAPI.createCommunity,
+  getCommunityDetails: CommunityAPI.getCommunityDetails,
+  getCommunityFollowers: CommunityAPI.getCommunityFollowers,
+  getCommunityCreators: CommunityAPI.getCommunityCreators,
+  getCommunityVideos: CommunityAPI.getCommunityVideos,
+  followCommunity: CommunityAPI.followCommunity,
+  renameCommunity: CommunityAPI.renameCommunity,
+  updateCommunityBio: CommunityAPI.updateCommunityBio,
+  updateCommunityPhoto: CommunityAPI.updateCommunityPhoto,
+  getCommunityAnalytics: CommunityAPI.getCommunityAnalytics,
+  getUserCommunities: CommunityAPI.getUserCommunities,
+  getTrendingVideos: CommunityAPI.getTrendingVideos,
+};

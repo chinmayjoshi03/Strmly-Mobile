@@ -11,11 +11,17 @@ import {
   TextInput,
   TouchableOpacity,
   View,
+  ActivityIndicator,
 } from "react-native";
-import Constants from "expo-constants";
+import { useRouter } from "expo-router";
+import { useAuthStore } from "@/store/useAuthStore";
+import { communityActions } from "@/api/community/communityActions";
 import * as ImagePicker from "expo-image-picker";
 
 const CreateCommunityPage: React.FC = () => {
+  const router = useRouter();
+  const { token } = useAuthStore();
+
   const [fontsLoaded] = useFonts({
     "Poppins-Regular": require("../../assets/fonts/poppins/Poppins-Regular.ttf"),
     "Poppins-Bold": require("../../assets/fonts/poppins/Poppins-Bold.ttf"),
@@ -30,14 +36,13 @@ const CreateCommunityPage: React.FC = () => {
     "Poppins-ExtraLight": require("../../assets/fonts/poppins/Poppins-ExtraLight.ttf"),
   });
 
-  const BACKEND_API_URL = Constants.expoConfig?.extra?.BACKEND_API_URL;
-
   const [visible, setVisible] = useState(false);
   const [selected, setSelected] = useState("");
   const [communityName, setCommunityName] = useState("");
   const [bio, setBio] = useState("");
-  const [strength, setStrength] = useState("");
-  const [fee, setFee] = useState("");
+  const [amount, setAmount] = useState("");
+  const [feeDescription, setFeeDescription] = useState("");
+  const [isCreating, setIsCreating] = useState(false);
 
   const [imageUri, setImageUri] = useState<string | null>(null);
 
@@ -50,7 +55,7 @@ const CreateCommunityPage: React.FC = () => {
 
   const pickImage = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      mediaTypes: ['images'],
       allowsEditing: true,
       aspect: [1, 1],
       quality: 0.7,
@@ -62,65 +67,100 @@ const CreateCommunityPage: React.FC = () => {
   };
 
   const handleCreate = async () => {
-    if (!communityName || !bio || !selected) {
-      Alert.alert("Error", "Please fill all required fields.");
+    if (!communityName || !selected) {
+      Alert.alert("Error", "Please fill all required fields (name and access type).");
       return;
     }
 
-    const formData = new FormData();
-    formData.append("name", communityName);
-    formData.append("bio", bio);
-    formData.append("type", selected);
-
-    if (selected === "Paid") {
-      formData.append("strength", strength);
-      formData.append("fee", fee);
+    if (!token) {
+      Alert.alert("Error", "You must be logged in to create a community.");
+      return;
     }
 
-    if (imageUri) {
-      const fileName = imageUri.split("/").pop()!;
-      const fileType = fileName.split(".").pop();
-      formData.append("image", {
-        uri: imageUri,
-        name: fileName,
-        type: `image/${fileType}`,
-      } as any);
+    if (selected === "Paid" && (!amount || !feeDescription)) {
+      Alert.alert("Error", "Please fill amount and fee description for paid community.");
+      return;
     }
-    
+
+    setIsCreating(true);
+
     try {
-      const res = await fetch(`${BACKEND_API_URL}/create`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "multipart/form-data",
-        },
-        body: formData,
-      });
+      let imageFile = null;
 
-      const data = await res.json();
+      if (imageUri) {
+        const fileName = imageUri.split("/").pop()!;
+        const fileType = fileName.split(".").pop();
+        imageFile = {
+          uri: imageUri,
+          name: fileName,
+          type: `image/${fileType}`,
+        } as any;
 
-      if (res.ok) {
-        Alert.alert("Success", "Community created!");
-      } else {
-        Alert.alert("Failed", data.message || "Something went wrong.");
+        console.log('📷 Image file prepared:', { fileName, fileType, uri: imageUri });
       }
+
+      const communityData = {
+        name: communityName,
+        bio: bio || "",
+        type: selected.toLowerCase() as 'free' | 'paid',
+        amount: selected === "Paid" ? parseFloat(amount) : undefined,
+        fee_description: selected === "Paid" ? feeDescription : undefined,
+        imageFile,
+      };
+
+      console.log('🏗️ Creating community with data:', communityData);
+
+      const result = await communityActions.createCommunity(token, communityData);
+
+      console.log('✅ Community created successfully:', result);
+
+      Alert.alert(
+        "Success",
+        "Community created successfully!",
+        [
+          {
+            text: "OK",
+            onPress: () => {
+              // Navigate back to profile sections with myCommunity tab
+              router.push({
+                pathname: "/(communities)/CommunitiesPage",
+                params: { section: "myCommunity" }
+              });
+            }
+          }
+        ]
+      );
+
     } catch (error) {
-      console.error(error);
-      Alert.alert("Error", "Network error. Please try again.");
+      console.error('❌ Error creating community:', error);
+      Alert.alert(
+        "Error",
+        error instanceof Error ? error.message : "Failed to create community. Please try again."
+      );
+    } finally {
+      setIsCreating(false);
     }
   };
 
   return (
     <ThemedView style={CreateCommunityStyle.container}>
       <View style={CreateCommunityStyle.CreateCommunityTopBar}>
-        <TouchableOpacity style={CreateCommunityStyle.BackIcon}>
+        <TouchableOpacity
+          style={CreateCommunityStyle.BackIcon}
+          onPress={() => router.back()}
+        >
           <Image
             className="size-5"
             source={require("../../assets/images/back.png")}
           />
         </TouchableOpacity>
         <ThemedText style={CommunitiesStyles.Tab}>Create Community</ThemedText>
-        <TouchableOpacity onPress={handleCreate}>
-          <ThemedText style={CommunitiesStyles.RightTab}>Create</ThemedText>
+        <TouchableOpacity onPress={handleCreate} disabled={isCreating}>
+          {isCreating ? (
+            <ActivityIndicator size="small" color="#fff" />
+          ) : (
+            <ThemedText style={CommunitiesStyles.RightTab}>Create</ThemedText>
+          )}
         </TouchableOpacity>
       </View>
 
@@ -141,33 +181,34 @@ const CreateCommunityPage: React.FC = () => {
 
       {/* Community Fields */}
       <View style={CreateCommunityStyle.InfoContainer}>
-        <View style={CreateCommunityStyle.InfoFrame}>
+        <View style={[CreateCommunityStyle.InfoFrame, { flexDirection: 'column', alignItems: 'flex-start' }]}>
           <ThemedText style={CreateCommunityStyle.InfoLabel}>
             Community name
           </ThemedText>
           <TextInput
             placeholder="Add name"
             placeholderTextColor="#B0B0B0"
-            style={CreateCommunityStyle.TextLabel}
+            style={[CreateCommunityStyle.TextLabel, { width: '90%', color: '#fff', paddingVertical: 8 }]}
             value={communityName}
             onChangeText={setCommunityName}
           />
         </View>
-        <View style={CreateCommunityStyle.InfoFrame}>
+        <View style={[CreateCommunityStyle.InfoFrame, { flexDirection: 'column', alignItems: 'flex-start' }]}>
           <ThemedText style={CreateCommunityStyle.InfoLabel}>Bio</ThemedText>
           <TextInput
             placeholder="Add bio"
             placeholderTextColor="#B0B0B0"
-            style={CreateCommunityStyle.TextLabel}
+            style={[CreateCommunityStyle.TextLabel, { width: '90%', color: '#fff', paddingVertical: 8 }]}
             value={bio}
             onChangeText={setBio}
+            multiline
           />
         </View>
-        <View style={CreateCommunityStyle.InfoFrame}>
+        <View style={[CreateCommunityStyle.InfoFrame, { flexDirection: 'column', alignItems: 'flex-start' }]}>
           <ThemedText style={CreateCommunityStyle.InfoLabel}>Access</ThemedText>
           <TouchableOpacity
             onPress={() => setVisible(true)}
-            style={CreateCommunityStyle.dropdownTrigger}
+            style={[CreateCommunityStyle.dropdownTrigger, { width: '90%', marginTop: 8 }]}
           >
             <ThemedText
               style={[
@@ -203,33 +244,33 @@ const CreateCommunityPage: React.FC = () => {
         </View>
 
         {selected === "Paid" && (
-          <View style={CreateCommunityStyle.InfoFrame}>
-            <View>
+          <>
+            <View style={[CreateCommunityStyle.InfoFrame, { flexDirection: 'column', alignItems: 'flex-start' }]}>
               <ThemedText style={CreateCommunityStyle.InfoLabel}>
-                Creator Strength
+                Community fee amount
               </ThemedText>
               <TextInput
-                placeholder="500"
+                placeholder="29"
                 placeholderTextColor="#B0B0B0"
-                style={CreateCommunityStyle.TextLabel}
-                value={strength}
-                onChangeText={setStrength}
+                style={[CreateCommunityStyle.TextLabel, { width: '90%', color: '#fff', paddingVertical: 8 }]}
+                value={amount}
+                onChangeText={setAmount}
                 keyboardType="numeric"
               />
             </View>
-            <View>
+            <View style={[CreateCommunityStyle.InfoFrame, { flexDirection: 'column', alignItems: 'flex-start' }]}>
               <ThemedText style={CreateCommunityStyle.InfoLabel}>
-                Community fee
+                Fee description
               </ThemedText>
               <TextInput
-                placeholder="₹29/m"
+                placeholder="Monthly subscription fee"
                 placeholderTextColor="#B0B0B0"
-                style={CreateCommunityStyle.TextLabel}
-                value={fee}
-                onChangeText={setFee}
+                style={[CreateCommunityStyle.TextLabel, { width: '90%', color: '#fff', paddingVertical: 8 }]}
+                value={feeDescription}
+                onChangeText={setFeeDescription}
               />
             </View>
-          </View>
+          </>
         )}
       </View>
 

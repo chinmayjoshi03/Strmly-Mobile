@@ -1,7 +1,9 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, StatusBar, TouchableOpacity, ScrollView, ActivityIndicator } from 'react-native';
+import React, { useState, useEffect, useCallback } from 'react';
+import { View, Text, StatusBar, TouchableOpacity, ScrollView, ActivityIndicator, RefreshControl } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Series } from '../types';
+import { CONFIG } from '@/Constants/config';
+import { useAuthStore } from '@/store/useAuthStore';
 
 interface SeriesSelectionScreenProps {
   onBack: () => void;
@@ -18,66 +20,61 @@ const SeriesSelectionScreen: React.FC<SeriesSelectionScreenProps> = ({
   onSeriesSelected,
   onAddNewSeries
 }) => {
-  const [series, setSeries] = useState<Series[]>([]);
+  const [series, setSeries] = useState<any[]>([]);
   const [selectedSeriesId, setSelectedSeriesId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
 
-  // Mock data - same as in the hook
-  const mockSeries: Series[] = [
-    {
-      id: '1',
-      title: 'Squid Game Season 1',
-      description: 'A thrilling survival series',
-      totalEpisodes: 6,
-      accessType: 'paid',
-      price: 29,
-      launchDate: '2025-06-15T11:29:00Z',
-      totalViews: 500000,
-      totalEarnings: 43000,
-      episodes: [
-        {
-          id: '1',
-          seriesId: '1',
-          title: 'Death',
-          description: 'The first episode',
-          thumbnail: 'https://via.placeholder.com/150x100/8B5CF6/FFFFFF?text=Death',
-          videoUrl: '/videos/death.mp4',
-          uploadDate: '2025-06-15T11:29:00Z',
-          views: 500000,
-          conversions: 2100,
-          duration: 3600,
-          status: 'ready'
-        }
-      ],
-      createdAt: '2025-06-15T11:29:00Z',
-      updatedAt: '2025-06-15T11:29:00Z'
-    },
-    {
-      id: '2',
-      title: 'Tech Tutorials',
-      description: 'Free programming tutorials',
-      totalEpisodes: 0,
-      accessType: 'free',
-      launchDate: '2025-05-01T10:00:00Z',
-      totalViews: 0,
-      totalEarnings: 0,
-      episodes: [],
-      createdAt: '2025-05-01T10:00:00Z',
-      updatedAt: '2025-05-01T10:00:00Z'
+  const loadSeries = async (showRefreshIndicator = true) => {
+    if (showRefreshIndicator) {
+      setLoading(true);
     }
-  ];
+    try {
+      // Get token from auth store
+      const { token } = useAuthStore.getState();
 
-  const loadSeries = async () => {
-    setLoading(true);
-    // Simulate API call
-    setTimeout(() => {
-      setSeries(mockSeries);
+      // Check if token exists and is valid
+      if (!token) {
+        console.error('Authentication token is missing');
+        setSeries([]);
+        setLoading(false);
+        return;
+      }
+
+      // Try to fetch user's series
+      // Using a different endpoint that's known to work better with the current auth system
+      const response = await fetch(`${CONFIG.API_BASE_URL}/api/v1/series/all`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      const result = await response.json();
+      console.log('User series response:', result);
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to fetch series');
+      }
+
+      setSeries(result.data || []);
+    } catch (error) {
+      console.error('Error fetching series:', error);
+      setSeries([]);
+    } finally {
       setLoading(false);
-    }, 500);
+      setRefreshing(false);
+    }
   };
 
   useEffect(() => {
     loadSeries();
+  }, []);
+
+  const onRefresh = useCallback(() => {
+    setRefreshing(true);
+    loadSeries(false);
   }, []);
 
   const handleSeriesPress = (seriesId: string) => {
@@ -85,9 +82,24 @@ const SeriesSelectionScreen: React.FC<SeriesSelectionScreenProps> = ({
   };
 
   const handleSelectPress = () => {
-    const selectedSeries = series.find(s => s.id === selectedSeriesId);
+    const selectedSeries = series.find(s => s._id === selectedSeriesId);
     if (selectedSeries) {
-      onSeriesSelected(selectedSeries);
+      // Convert backend format to frontend format
+      const frontendSeries: Series = {
+        id: selectedSeries._id,
+        title: selectedSeries.title,
+        description: selectedSeries.description,
+        totalEpisodes: selectedSeries.total_episodes || 0,
+        accessType: selectedSeries.type?.toLowerCase() === 'paid' ? 'paid' : 'free',
+        price: selectedSeries.price,
+        launchDate: selectedSeries.release_date || selectedSeries.createdAt,
+        totalViews: selectedSeries.views || 0,
+        totalEarnings: selectedSeries.total_earned || 0,
+        episodes: [],
+        createdAt: selectedSeries.createdAt,
+        updatedAt: selectedSeries.updatedAt
+      };
+      onSeriesSelected(frontendSeries);
     }
   };
 
@@ -96,7 +108,7 @@ const SeriesSelectionScreen: React.FC<SeriesSelectionScreenProps> = ({
   };
 
   const formatPrice = (price?: number) => {
-    return price ? `₹${price}` : '';
+    return price ? `₹${price}` : 'Free';
   };
 
   const formatDate = (dateString: string) => {
@@ -107,7 +119,7 @@ const SeriesSelectionScreen: React.FC<SeriesSelectionScreenProps> = ({
       hour: '2-digit',
       minute: '2-digit',
       hour12: true
-    }).replace(',', ',');
+    }).replace(',', '');
   };
 
   if (loading && series.length === 0) {
@@ -151,14 +163,25 @@ const SeriesSelectionScreen: React.FC<SeriesSelectionScreenProps> = ({
       </View>
 
       {/* Series List */}
-      <ScrollView className="flex-1 px-4" showsVerticalScrollIndicator={false}>
+      <ScrollView
+        className="flex-1 px-4"
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor="#FFFFFF"
+            colors={["#FFFFFF"]}
+          />
+        }
+      >
         {series.map((seriesItem) => (
           <TouchableOpacity
-            key={seriesItem.id}
-            onPress={() => handleSeriesPress(seriesItem.id)}
+            key={seriesItem._id}
+            onPress={() => handleSeriesPress(seriesItem._id)}
             className="bg-gray-800 rounded-2xl p-4 mb-3 flex-row items-center"
             style={{
-              backgroundColor: selectedSeriesId === seriesItem.id ? '#374151' : '#1F2937'
+              backgroundColor: selectedSeriesId === seriesItem._id ? '#374151' : '#1F2937'
             }}
           >
             {/* Series Icon */}
@@ -173,22 +196,22 @@ const SeriesSelectionScreen: React.FC<SeriesSelectionScreenProps> = ({
               </Text>
               <View className="flex-row items-center mb-1">
                 <Text className="text-gray-400 text-sm">
-                  Total episode: {seriesItem.totalEpisodes.toString().padStart(2, '0')}
+                  Total episode: {(seriesItem.total_episodes || 0).toString().padStart(2, '0')}
                 </Text>
                 <Text className="text-gray-400 text-sm mx-2">•</Text>
                 <Text className="text-gray-400 text-sm">
-                  Access: {formatPrice(seriesItem.price) || 'Free'}
+                  Access: {formatPrice(seriesItem.price)}
                 </Text>
               </View>
               <Text className="text-gray-400 text-sm">
-                Launch on {formatDate(seriesItem.launchDate)}
+                Launch on {formatDate(seriesItem.release_date || seriesItem.createdAt)}
               </Text>
             </View>
 
-            {/* Selection Indicator */}
+            {/* Radio Button */}
             <View className="w-6 h-6 rounded-full border-2 border-gray-500 items-center justify-center">
-              {selectedSeriesId === seriesItem.id && (
-                <View className="w-3 h-3 bg-green-500 rounded-full" />
+              {selectedSeriesId === seriesItem._id && (
+                <View className="w-3 h-3 bg-white rounded-full" />
               )}
             </View>
           </TouchableOpacity>

@@ -1,12 +1,7 @@
 import React, { useRef, useState, useEffect, useCallback } from "react";
-import {
-  FlatList,
-  Dimensions,
-  ActivityIndicator,
-  Text,
-  View,
-} from "react-native";
-import VideoItem from "./VideoItem"; // Make sure this is the memoized version
+import { FlatList, Dimensions, ActivityIndicator, Text, Pressable } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import VideoItem from "./VideoItem";
 import ThemedView from "@/components/ThemedView";
 import { useAuthStore } from "@/store/useAuthStore";
 import Constants from "expo-constants";
@@ -27,10 +22,25 @@ const VideoFeed: React.FC = () => {
   const [videos, setVideos] = useState<VideoItemType[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [visibleIndex, setVisibleIndex] = useState(0);
 
-  const { token } = useAuthStore();
   const BACKEND_API_URL = Constants.expoConfig?.extra?.BACKEND_API_URL;
+  const { height } = Dimensions.get("screen");
+  const insets = useSafeAreaInsets();
+  const TAB_BAR_HEIGHT = 55; // Height of the bottom navigation bar (reduced from 70)
+  const TAB_BAR_PADDING = 10; // paddingBottom from tab bar (reduced from 15)
+  const BUFFER = 10; // Additional buffer to ensure no overlap
+
+  // Calculate available height more precisely
+  // We need to account for the tab bar height plus its padding plus safe area
+  const adjustedHeight = height - TAB_BAR_HEIGHT - TAB_BAR_PADDING - BUFFER;
+
+  console.log('Screen height:', height);
+  console.log('Tab bar total space needed:', TAB_BAR_HEIGHT + TAB_BAR_PADDING + BUFFER);
+  console.log('Adjusted height:', adjustedHeight);
+
+  const [visibleIndex, setVisibleIndex] = useState(0);
+  const { token, user, isLoggedIn } = useAuthStore();
+  const [videosPage, setVideosPage] = useState(1);
 
   // State for overlays
   const [isWantToGift, setIsWantToGift] = useState(false);
@@ -43,17 +53,27 @@ const VideoFeed: React.FC = () => {
     // This function is fine as is.
     setLoading(true);
     try {
-      const res = await fetch(`${BACKEND_API_URL}/videos/trending`, {
-        method: "GET",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-      });
-      if (!res.ok) throw new Error("Failed to fetch videos");
+      if (!BACKEND_API_URL) {
+        throw new Error('Backend API URL is not configured');
+      }
+
+      console.log('Fetching videos from:', `${BACKEND_API_URL}/api/v1/videos/trending?page=1&limit=10`);
+
+      const res = await fetch(
+        `${BACKEND_API_URL}/api/v1/videos/trending?page=1&limit=10`
+      );
+
+      if (!res.ok) {
+        console.error('Fetch failed with status:', res.status, res.statusText);
+        throw new Error(`Failed to fetch videos: ${res.status} ${res.statusText}`);
+      }
+
       const json = await res.json();
+      console.log('Videos fetched successfully:', json.data?.length, 'videos');
+
       setVideos(json.data);
     } catch (err: any) {
+      console.error('Error fetching videos:', err);
       setError(err.message || "Something went wrong");
     } finally {
       setLoading(false);
@@ -103,7 +123,14 @@ const VideoFeed: React.FC = () => {
 
   if (loading) {
     return (
-      <ThemedView style={{ height }} className="justify-center items-center">
+      <ThemedView style={{
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        height: adjustedHeight,
+        backgroundColor: 'black'
+      }} className="justify-center items-center">
         <ActivityIndicator size="large" color="white" />
       </ThemedView>
     );
@@ -111,8 +138,25 @@ const VideoFeed: React.FC = () => {
 
   if (error) {
     return (
-      <ThemedView style={{ height }} className="justify-center items-center">
-        <Text className="text-white">{error}</Text>
+      <ThemedView style={{
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        height: adjustedHeight,
+        backgroundColor: 'black'
+      }} className="justify-center items-center px-4">
+        <Text className="text-white text-center mb-4">Failed to load videos</Text>
+        <Text className="text-red-400 text-center text-sm mb-4">{error}</Text>
+        <Text className="text-gray-400 text-center text-xs">
+          API URL: {BACKEND_API_URL || 'Not configured'}
+        </Text>
+        <Pressable
+          onPress={fetchTrendingVideos}
+          className="mt-4 bg-blue-600 px-4 py-2 rounded"
+        >
+          <Text className="text-white">Retry</Text>
+        </Pressable>
       </ThemedView>
     );
   }
@@ -120,41 +164,62 @@ const VideoFeed: React.FC = () => {
   // OPTIMIZATION 4: Refactored UI structure.
   // The FlatList is always rendered. Gifting components are rendered as overlays.
   return (
-    <ThemedView style={{ flex: 1, backgroundColor: "black" }}>
-      <FlatList
-        data={videos}
-        renderItem={renderItem}
-        keyExtractor={(item) => item._id}
-        getItemLayout={getItemLayout}
-        pagingEnabled
-        scrollEnabled={!showCommentsModal}
-        onViewableItemsChanged={onViewableItemsChanged}
-        viewabilityConfig={{ itemVisiblePercentThreshold: 80 }}
-        initialNumToRender={3}
-        maxToRenderPerBatch={3}
-        windowSize={5}
-        decelerationRate="fast"
-        showsVerticalScrollIndicator={false}
-      />
-
-      {/* Gifting components are now rendered on top of the list, not in place of it */}
-      {isWantToGift && !isGifted && (
+    <ThemedView style={{
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      right: 0,
+      height: adjustedHeight,
+      backgroundColor: 'black'
+    }}>
+      {isGifted && giftingData ? (
+        <GiftingMessage
+          isVisible={modalVisible}
+          giftData={giftingData}
+          setGiftData={setGiftingData}
+          onClose={setModalVisible}
+          message={giftSuccessMessage}
+          giftMessage={setGiftSuccessMessage}
+        />
+      ) : isWantToGift && giftingData ? (
         <VideoContentGifting
           giftData={giftingData}
           setIsGifted={setIsGifted}
           setIsWantToGift={setIsWantToGift}
           giftMessage={setGiftSuccessMessage}
         />
-      )}
-
-      {isGifted && (
-        <GiftingMessage
-          isVisible={isGifted} // Control visibility with a boolean
-          giftData={giftingData}
-          setGiftData={setGiftingData}
-          onClose={() => setIsGifted(false)} // Provide a way to close the message
-          message={giftSuccessMessage}
-          giftMessage={setGiftSuccessMessage}
+      ) : (
+        <FlatList
+          data={videos}
+          keyExtractor={(item) => item._id}
+          renderItem={({ item, index }) => (
+            <VideoItem
+              BACKEND_API_URL={BACKEND_API_URL || ''}
+              setGiftingData={setGiftingData}
+              showCommentsModal={showCommentsModal}
+              setShowCommentsModal={setShowCommentsModal}
+              setIsWantToGift={setIsWantToGift}
+              key={`${item._id}-${visibleIndex === index}`}
+              uri={item.videoUrl}
+              isActive={index === visibleIndex}
+              videoData={item}
+              containerHeight={adjustedHeight}
+            />
+          )}
+          style={{ flex: 1 }}
+          getItemLayout={(_, index) => ({
+            length: adjustedHeight,
+            offset: adjustedHeight * index,
+            index,
+          })}
+          pagingEnabled
+          scrollEnabled={!showCommentsModal}
+          onViewableItemsChanged={onViewableItemsChanged.current}
+          viewabilityConfig={{ itemVisiblePercentThreshold: 80 }}
+          decelerationRate="fast"
+          showsVerticalScrollIndicator={false}
+          snapToInterval={adjustedHeight}
+          snapToAlignment="start"
         />
       )}
     </ThemedView>

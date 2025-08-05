@@ -11,23 +11,48 @@ const extra = Constants.expoConfig?.extra || Constants.manifest?.extra || {};
 export const BACKEND_API_URL = extra.BACKEND_API_URL;
 
 export const getGoogleClientId = () => {
-  if (Platform.OS === "android") return extra.googleClientIdAndroid;
-  if (Platform.OS === "ios") return extra.googleClientIdIOS;
-  return extra.googleClientIdWeb;
+  let clientId;
+  if (Platform.OS === "android") {
+    clientId = extra.googleClientIdAndroid;
+  } else if (Platform.OS === "ios") {
+    clientId = extra.googleClientIdIOS;
+  } else {
+    clientId = extra.googleClientIdWeb;
+  }
+  
+  if (!clientId) {
+    console.warn(`Google Client ID not found for platform: ${Platform.OS}`);
+    console.warn('Available extra config:', extra);
+    // Return a placeholder to prevent the error, but Google auth won't work
+    return "placeholder-client-id";
+  }
+  
+  return clientId;
 };
 
 export const useGoogleAuth = () => {
   console.log("Redirect URI:", makeRedirectUri());
 
   const redirectUri = makeRedirectUri();
-
   const clientId = getGoogleClientId();
 
-  const [request, response, promptAsync] = Google.useAuthRequest({
-    clientId,
-    redirectUri,
-    scopes: ["profile", "email"],
-  });
+  console.log("Google Client ID:", clientId);
+  console.log("Platform:", Platform.OS);
+
+  // Only initialize Google auth if we have a valid client ID
+  const [request, response, promptAsync] = Google.useAuthRequest(
+    clientId && clientId !== "placeholder-client-id" 
+      ? {
+          clientId,
+          redirectUri,
+          scopes: ["profile", "email"],
+        }
+      : {
+          clientId: "", // This will cause the hook to not initialize properly
+          redirectUri,
+          scopes: ["profile", "email"],
+        }
+  );
 
   return { promptAsync, response, request };
 };

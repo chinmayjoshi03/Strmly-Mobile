@@ -17,6 +17,7 @@ export interface Comment {
   upvoted?: boolean
   downvoted?: boolean
   replies: number
+  is_monetized: boolean
 }
 
 export interface reply {
