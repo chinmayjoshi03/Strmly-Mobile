@@ -12,6 +12,8 @@ import { ChevronLeft, ChevronDown } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { useAuthStore } from '@/store/useAuthStore';
+import { CONFIG } from '@/Constants/config';
+import { communityActions } from '@/api/community/communityActions';
 
 interface CommunityStats {
     communityFee?: number;
@@ -53,68 +55,87 @@ const CommunityAnalytics = () => {
     }, [activeTab, timeFilter]);
 
     const fetchCommunityData = async () => {
+        if (!token) {
+            console.error('❌ No token available');
+            return;
+        }
+
         setLoading(true);
         try {
-            // Mock data for development
-            setStats({
-                communityFee: 345.5,
-                totalCreators: 120,
-                totalVideos: 23000,
-                totalFollowers: 23000
-            });
+            // First, get user's communities to get a real community ID
+            const userCommunitiesResponse = await fetch(
+                `${CONFIG.API_BASE_URL}/api/v1/community/user-communities?type=created`,
+                {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                }
+            );
 
-            if (activeTab === 'revenue') {
-                setRecentActivity([
-                    {
-                        id: '1',
-                        user: { name: 'Rishab raj', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=rishab' },
-                        action: 'Join your community',
-                        timestamp: '13 June 2025'
-                    },
-                    {
-                        id: '2',
-                        user: { name: 'Rishab raj', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=rishab2' },
-                        action: 'Join your community',
-                        timestamp: '13 June 2025'
-                    },
-                    {
-                        id: '3',
-                        user: { name: 'Rishab raj', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=rishab3' },
-                        action: 'Join your community',
-                        timestamp: '13 June 2025'
-                    },
-                    {
-                        id: '4',
-                        user: { name: 'Rishab raj', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=rishab4' },
-                        action: 'Join your community',
-                        timestamp: '13 June 2025'
-                    },
-                    {
-                        id: '5',
-                        user: { name: 'Rishab raj', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=rishab5' },
-                        action: 'Join your community',
-                        timestamp: '13 June 2025'
+            if (userCommunitiesResponse.ok) {
+                const userCommunitiesData = await userCommunitiesResponse.json();
+                const userCommunities = userCommunitiesData.communities || [];
+                
+                if (userCommunities.length > 0) {
+                    // Use the first community the user created
+                    const firstCommunity = userCommunities[0];
+                    
+                    try {
+                        // Use the real community analytics API function
+                        const analyticsData = await communityActions.getCommunityAnalytics(token, firstCommunity._id);
+                        setStats({
+                            communityFee: analyticsData.communityFee,
+                            totalCreators: analyticsData.totalCreators,
+                            totalVideos: analyticsData.totalVideos,
+                            totalFollowers: analyticsData.totalFollowers
+                        });
+                        
+                        // Only set recent activity if there is actual activity
+                        if (analyticsData.recentActivity && analyticsData.recentActivity.length > 0) {
+                            setRecentActivity(analyticsData.recentActivity);
+                        } else {
+                            setRecentActivity([]); // Don't show anything if no activity
+                        }
+                    } catch (apiError) {
+                        console.log('Analytics API call failed:', apiError);
+                        // Use basic community data as fallback
+                        setStats({
+                            communityFee: firstCommunity.community_fee_amount || 0,
+                            totalCreators: firstCommunity.creators?.length || 0,
+                            totalVideos: (firstCommunity.long_videos?.length || 0) + (firstCommunity.series?.length || 0),
+                            totalFollowers: firstCommunity.followers?.length || 0
+                        });
+                        setRecentActivity([]); // Don't show error messages
                     }
-                ]);
+                } else {
+                    // User has no communities
+                    setStats({
+                        communityFee: 0,
+                        totalCreators: 0,
+                        totalVideos: 0,
+                        totalFollowers: 0
+                    });
+                    setRecentActivity([]);
+                }
             } else {
-                setRecentActivity([
-                    {
-                        id: '1',
-                        user: { name: 'Rishab raj', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=rishab' },
-                        action: 'follow your community',
-                        timestamp: '13 June 2025'
-                    },
-                    {
-                        id: '2',
-                        user: { name: 'Rishab raj', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=rishab2' },
-                        action: 'post a video on your community',
-                        timestamp: '13 June 2025'
-                    }
-                ]);
+                // Fallback to zero stats if can't get user communities
+                setStats({
+                    communityFee: 0,
+                    totalCreators: 0,
+                    totalVideos: 0,
+                    totalFollowers: 0
+                });
+                setRecentActivity([]);
             }
+
         } catch (error) {
             console.error('Error fetching community data:', error);
-            Alert.alert('Error', 'Failed to load community data');
+            // Set empty stats on error
+            setStats({
+                communityFee: 0,
+                totalCreators: 0,
+                totalVideos: 0,
+                totalFollowers: 0
+            });
+            setRecentActivity([]);
         } finally {
             setLoading(false);
         }
@@ -235,27 +256,29 @@ const CommunityAnalytics = () => {
                             )}
                         </LinearGradient>
 
-                        {/* Recent Activity */}
-                        <View className="mb-6">
-                            <Text className="text-white text-2xl font-semibold mb-4">Recent</Text>
-                            <View className="space-y-4">
-                                {recentActivity.map((activity) => (
-                                    <View key={activity.id} className="flex-row items-center">
-                                        <Image
-                                            source={{ uri: activity.user.avatar }}
-                                            className="w-10 h-10 rounded-full mr-3"
-                                        />
-                                        <View className="flex-1">
-                                            <Text className="text-white text-lg">
-                                                <Text className="font-semibold">{activity.user.name}</Text>
-                                                <Text className="text-gray-400"> {activity.action}</Text>
-                                            </Text>
-                                            <Text className="text-gray-500 text-base">{activity.timestamp}</Text>
+                        {/* Recent Activity - Only show if there's actual activity */}
+                        {recentActivity.length > 0 && (
+                            <View className="mb-6">
+                                <Text className="text-white text-2xl font-semibold mb-4">Recent</Text>
+                                <View className="space-y-4">
+                                    {recentActivity.map((activity) => (
+                                        <View key={activity.id} className="flex-row items-center">
+                                            <Image
+                                                source={{ uri: activity.user.avatar }}
+                                                className="w-10 h-10 rounded-full mr-3"
+                                            />
+                                            <View className="flex-1">
+                                                <Text className="text-white text-lg">
+                                                    <Text className="font-semibold">{activity.user.name}</Text>
+                                                    <Text className="text-gray-400"> {activity.action}</Text>
+                                                </Text>
+                                                <Text className="text-gray-500 text-base">{activity.timestamp}</Text>
+                                            </View>
                                         </View>
-                                    </View>
-                                ))}
+                                    ))}
+                                </View>
                             </View>
-                        </View>
+                        )}
                     </>
                 )}
             </ScrollView>

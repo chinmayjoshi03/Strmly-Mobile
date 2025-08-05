@@ -31,9 +31,23 @@ export const SignUp = () => {
     "Inter-SemiBold": require("../../assets/fonts/inter/Inter-SemiBold.ttf"),
   });
 
-  const { promptAsync, response } = useGoogleAuth();
+  // Conditionally use Google Auth only if properly configured
+  let googleAuth;
+  try {
+    googleAuth = useGoogleAuth();
+  } catch (error) {
+    console.warn("Google Auth not properly configured:", error);
+    googleAuth = { promptAsync: null, response: null };
+  }
+  
+  const { promptAsync, response } = googleAuth;
 
   const registerWithGoogle = async () => {
+    if (!promptAsync) {
+      Alert.alert("Error", "Google authentication is not properly configured");
+      return;
+    }
+    
     try {
       const clientId = getGoogleClientId();
       const result = await promptAsync();

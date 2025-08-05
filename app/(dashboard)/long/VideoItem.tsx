@@ -15,9 +15,17 @@ import CommentsSection from "./_components/CommentSection";
 import { VideoItemType } from "@/types/VideosType";
 import { router } from "expo-router";
 import { useAuthStore } from "@/store/useAuthStore";
-import { GiftType } from "./VideoFeed";
-// ADDED: Import the new self-contained progress bar component
 import VideoProgressBar from "./_components/VideoProgressBar";
+
+type GiftDataType = {
+  creator: {
+    _id: string;
+    profile_photo: string;
+    name: string;
+    username: string;
+  };
+  videoId: string;
+};
 
 type Props = {
   BACKEND_API_URL: string;
@@ -27,11 +35,13 @@ type Props = {
   showCommentsModal: boolean;
   setShowCommentsModal: any;
   setIsWantToGift: any;
-  setGiftingData: (type: GiftType) => void;
+  setGiftingData: (data: GiftDataType) => void;
+  containerHeight?: number;
 };
 
-const PROGRESS_BAR_HEIGHT = 2;
-const FULL_SCREEN_PRESSABLE_BOTTOM_OFFSET = PROGRESS_BAR_HEIGHT;
+// Define constants for layout to avoid magic numbers and make adjustments easier
+const PROGRESS_BAR_HEIGHT = 2; // Keep your original height for the progress bar
+const FULL_SCREEN_PRESSABLE_BOTTOM_OFFSET = PROGRESS_BAR_HEIGHT; // 10px buffer above progress bar
 
 const VideoItem = ({
   BACKEND_API_URL,
@@ -42,6 +52,7 @@ const VideoItem = ({
   setShowCommentsModal,
   setGiftingData,
   setIsWantToGift,
+  containerHeight,
 }: Props) => {
   const { width, height } = Dimensions.get("screen");
   const player = useVideoPlayer(uri, (p) => {
@@ -159,7 +170,7 @@ const VideoItem = ({
         styles.container,
         {
           width: screenSize.width,
-          height: isFullScreen ? screenSize.width : screenSize.height,
+          height: isFullScreen ? screenSize.width : (containerHeight || screenSize.height),
         },
       ]}
     >
@@ -223,7 +234,12 @@ const VideoItem = ({
 
       <View style={styles.interact}>
         <InteractOptions
-          creator={videoData.created_by}
+          creator={{
+            _id: videoData.created_by?._id || '',
+            username: videoData.created_by?.username || '',
+            name: videoData.created_by?.username || '', // Use username as name fallback
+            profile_photo: videoData.created_by?.profile_photo || ''
+          }}
           setGiftingData={setGiftingData}
           setIsWantToGift={setIsWantToGift}
           videoId={videoData._id}
@@ -237,7 +253,6 @@ const VideoItem = ({
 
       {showCommentsModal && (
         <CommentsSection
-          isOpen={showCommentsModal}
           onClose={handleCloseComments}
           commentss={videoData.comments}
           videoId={videoData._id}
@@ -318,6 +333,8 @@ const styles = StyleSheet.create({
     bottom: "15%",
     right: 10,
     width: "auto",
+    zIndex: 1,
+    elevation: 1,
   },
   details: {
     position: "absolute",
@@ -325,6 +342,8 @@ const styles = StyleSheet.create({
     width: "100%",
     paddingLeft: 10,
     paddingRight: 16,
+    zIndex: 1,
+    elevation: 1,
   },
 });
 

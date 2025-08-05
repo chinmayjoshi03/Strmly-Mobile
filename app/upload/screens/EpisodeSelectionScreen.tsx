@@ -4,11 +4,13 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Series } from '../../studio/types';
 import { CONFIG } from '../../../Constants/config';
+import { useAuthStore } from '@/store/useAuthStore';
 
 interface EpisodeSelectionScreenProps {
   onBack: () => void;
   onSeriesSelected: (series: Series) => void;
   onAddNewSeries: () => void;
+  selectedSeries?: Series | null; // Pre-selected series when editing draft
 }
 
 /**
@@ -18,7 +20,8 @@ interface EpisodeSelectionScreenProps {
 const EpisodeSelectionScreen: React.FC<EpisodeSelectionScreenProps> = ({
   onBack,
   onSeriesSelected,
-  onAddNewSeries
+  onAddNewSeries,
+  selectedSeries
 }) => {
   const [series, setSeries] = useState<Series[]>([]);
   const [selectedSeriesId, setSelectedSeriesId] = useState<string | null>(null);
@@ -28,39 +31,29 @@ const EpisodeSelectionScreen: React.FC<EpisodeSelectionScreenProps> = ({
   const loadSeries = async () => {
     setLoading(true);
     try {
-      const response = await fetch(`${CONFIG.API_BASE_URL}/api/v1/series/all`, {
-        headers: {
-          'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI2ODg0Yzc0YWU3M2Q4ZDRlZjY3YjAyZTQiLCJpYXQiOjE3NTM1MzIyMzYsImV4cCI6MTc1NjEyNDIzNn0._pqT9psCN1nR5DJpB60HyA1L1pp327o1fxfZPO4BY3M'
-        }
-      });
+      const { getUserSeries } = await import('../../../api/series/seriesActions');
+      
+      const response = await getUserSeries();
+      console.log('Series data:', response);
 
-      if (response.ok) {
-        const data = await response.json();
-        console.log(data);
+      // Transform API response to match expected format
+      const rawSeriesArray = response.data || [];
+      const seriesData = Array.isArray(rawSeriesArray) ? rawSeriesArray.map(item => ({
+        id: item._id,
+        title: item.title,
+        description: item.description,
+        totalEpisodes: item.total_episodes || 0,
+        accessType: (item.type === 'Paid' ? 'paid' : 'free') as 'paid' | 'free',
+        price: item.price || 0,
+        launchDate: item.release_date,
+        totalViews: 0, // Not available in current API response
+        totalEarnings: 0, // Not available in current API response
+        episodes: item.episodes || [],
+        createdAt: item.createdAt,
+        updatedAt: item.updatedAt
+      })) : [];
 
-        // API returns array directly, map to our expected format
-        // API returns data wrapped in an object with 'data' property
-        const rawSeriesArray = data.data || [];
-        const seriesData = Array.isArray(rawSeriesArray) ? rawSeriesArray.map(item => ({
-          id: item._id,
-          title: item.title,
-          description: item.description,
-          totalEpisodes: item.total_episodes || 0,
-          accessType: (item.type === 'Paid' ? 'paid' : 'free') as 'paid' | 'free',
-          price: item.price || 0,
-          launchDate: item.release_date,
-          totalViews: item.views || 0,
-          totalEarnings: item.total_earned || 0,
-          episodes: item.episodes || [],
-          createdAt: item.createdAt,
-          updatedAt: item.updatedAt
-        })) : [];
-
-        setSeries(seriesData);
-      } else {
-        console.error('Failed to load series, status:', response.status);
-        setSeries([]);
-      }
+      setSeries(seriesData);
     } catch (error) {
       console.error('Error loading series:', error);
       setSeries([]);
@@ -74,6 +67,13 @@ const EpisodeSelectionScreen: React.FC<EpisodeSelectionScreenProps> = ({
   useEffect(() => {
     loadSeries();
   }, []);
+
+  // Set pre-selected series when available
+  useEffect(() => {
+    if (selectedSeries) {
+      setSelectedSeriesId(selectedSeries.id);
+    }
+  }, [selectedSeries]);
 
 
 
@@ -335,6 +335,7 @@ const styles = StyleSheet.create({
   bottomButton: {
     paddingHorizontal: 16,
     paddingBottom: 32,
+    marginBottom: 80,
   },
   selectButton: {
     backgroundColor: '#E5E7EB',

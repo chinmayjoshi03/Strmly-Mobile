@@ -4,14 +4,14 @@ export const EditProfile = StyleSheet.create({
     container: {
         flex: 1,
         backgroundColor: "#000",
-        paddingTop: 40,
+        paddingTop: 50,
         width: '100%',
         alignItems: 'center'
     },
     CreateCommunityTopBar: {
         width: '100%',
         height: 60,
-        paddingHorizontal: 8,
+        paddingHorizontal: 16,
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
@@ -42,21 +42,23 @@ export const EditProfile = StyleSheet.create({
     InfoLabel: {
         fontFamily: 'Poppins-Regular',
         fontSize: 14,
-        marginTop: 10,
-        marginBottom:2,
+        color: '#fff',
+        width: 80,
+        textAlign: 'left',
     },
     TextLabel: {
-        width: '100%',
+        flex: 1,
         borderBottomWidth: 0.5,
         borderColor: '#FFFFFF33',
         fontFamily: 'Poppins-Regular',
         fontSize: 14,
-        marginTop: 10,
+        color: '#FFFFFF',
+        paddingVertical: 8,
     },
     InfoFrame: {
         alignItems: 'center',
         marginTop: 20,
-        marginLeft: 20,
+        paddingHorizontal: 20,
         display: 'flex',
         flexDirection: 'row',
         gap: 20
@@ -85,13 +87,13 @@ export const EditProfile = StyleSheet.create({
     },
     CreatorPassButton: {
         flexDirection: "row",
-        justifyContent: "space-between",
+        justifyContent: "center",
         alignItems: "center",
         borderColor: "white",
         borderWidth: 1,
         borderRadius: 8,
         marginTop: 20,
-        marginHorizontal:10,
+        marginHorizontal: 10,
         paddingHorizontal: 12,
         paddingVertical: 10,
         backgroundColor: "#000",
@@ -154,11 +156,15 @@ export const EditProfile = StyleSheet.create({
         fontSize: 16,
         color: "#fff",
         textAlign: "center",
+        flex: 1,
+        marginHorizontal: 10,
     },
     SaveText: {
         fontFamily: "Poppins-Medium",
         fontSize: 14,
         color: "#2196F3",
+        minWidth: 40,
+        textAlign: "right",
     },
     EditProfilePicText: {
         fontFamily: 'Poppins-Medium',
@@ -183,4 +189,5 @@ export const EditProfile = StyleSheet.create({
         textAlign: 'center',
         width: '100%',
     },
+
 });

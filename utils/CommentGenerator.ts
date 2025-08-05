@@ -22,6 +22,7 @@ export const mockComments = Array.from({ length: 50 }, (_, i) => {
     },
     upvoted: Math.random() > 0.7,
     downvoted: Math.random() > 0.8,
-    replies: Math.floor(Math.random() * 50)
+    replies: Math.floor(Math.random() * 50),
+    is_monetized: Math.random() > 0.8 // Randomly make some comments monetized
   };
 });

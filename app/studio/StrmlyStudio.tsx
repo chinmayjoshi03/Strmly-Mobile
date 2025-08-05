@@ -1,106 +1,208 @@
 import React, { useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StatusBar, Image, ActivityIndicator } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, StatusBar, Image, ActivityIndicator, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import Svg, { Path } from 'react-native-svg';
 import VideoUploadFlow from '../upload/VideoUploadFlow';
 import { SeriesSelectionScreen, SeriesAnalyticsScreen } from './screens';
 import SimpleSeriesCreationScreen from './screens/SimpleSeriesCreationScreen';
+import SeriesDetailsScreen from './screens/SeriesDetailsScreen';
 import { Series } from './types';
 import { useStudioDrafts } from './hooks/useStudioDrafts';
 import { useSeries } from './hooks/useSeries';
+import { useDeleteActions } from './hooks/useDeleteActions';
+import DropdownMenu from './components/DropdownMenu';
+import { CONFIG } from '../../Constants/config';
 
 
 
 const StrmlyStudio = () => {
     const [activeTab, setActiveTab] = useState<'draft' | 'series'>('draft');
     const [selectedSeries, setSelectedSeries] = useState<string | null>('3');
-    const [showUploadFlow, setShowUploadFlow] = useState(false);
-    const [showSeriesSelection, setShowSeriesSelection] = useState(false);
-    const [showSeriesCreationScreen, setShowSeriesCreationScreen] = useState(false);
-    const [showSeriesAnalytics, setShowSeriesAnalytics] = useState(false);
+    const [currentScreen, setCurrentScreen] = useState<'main' | 'upload' | 'series-creation' | 'series-selection' | 'series-analytics' | 'series-details'>('main');
     const [selectedSeriesForAnalytics, setSelectedSeriesForAnalytics] = useState<Series | null>(null);
+    const [selectedSeriesId, setSelectedSeriesId] = useState<string | null>(null);
+    const [editingDraftId, setEditingDraftId] = useState<string | null>(null);
+    const [editingDraftData, setEditingDraftData] = useState<any>(null);
+
+    // Debug state changes
+    console.log('🎬 Studio State:', {
+        activeTab,
+        currentScreen,
+        selectedSeriesId
+    });
 
     // Use the real drafts and series hooks
     const { drafts, loading: draftsLoading, error: draftsError, refetch: refetchDrafts } = useStudioDrafts();
-    const { series, loading: seriesLoading, error: seriesError, refetch: refetchSeries } = useSeries();
+    const { series, loading: seriesLoading, error: seriesError, refetch: refetchSeries, refreshKey } = useSeries();
+    const { deleteDraft, deleteSeries, confirmDelete } = useDeleteActions();
+
+    // Navigation handlers
+    const goToUploadFlow = () => {
+        console.log('📤 Going to upload flow');
+        setCurrentScreen('upload');
+    };
+
+    const goToSeriesCreation = () => {
+        console.log('🎬 Going to series creation');
+        setCurrentScreen('series-creation');
+    };
+
+    const goToSeriesSelection = () => {
+        console.log('📋 Going to series selection');
+        setCurrentScreen('series-selection');
+    };
+
+    const goToMain = () => {
+        console.log('🏠 Going back to main');
+        setCurrentScreen('main');
+        setSelectedSeriesId(null);
+    };
+
+    const goToSeriesDetails = (seriesId: string) => {
+        console.log('📊 Going to series details for:', seriesId);
+        setSelectedSeriesId(seriesId);
+        setCurrentScreen('series-details');
+    };
 
     // Handle upload flow completion
     const handleUploadComplete = () => {
-        setShowUploadFlow(false);
-        // Refresh drafts list from API
         refetchDrafts();
-
+        setEditingDraftId(null);
+        setEditingDraftData(null);
+        goToMain();
     };
 
     // Handle upload flow cancellation
     const handleUploadCancel = () => {
-        setShowUploadFlow(false);
+        setEditingDraftId(null);
+        setEditingDraftData(null);
+        goToMain();
     };
 
-    // Handle series selection - now shows creation screen first
-    const handleSeriesSelected = (series: Series) => {
-        setShowSeriesSelection(false);
-        setShowSeriesCreationScreen(true);
+    // Handle draft editing
+    const handleEditDraft = async (draftId: string) => {
+        console.log('📝 Editing draft:', draftId);
+        try {
+            // Fetch full draft data
+            const { token } = require('@/store/useAuthStore').useAuthStore.getState();
+            if (!token) {
+                console.error('No auth token available');
+                return;
+            }
 
+            const response = await fetch(`${CONFIG.API_BASE_URL}/api/v1/drafts/${draftId}`, {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json',
+                },
+            });
+
+            if (!response.ok) {
+                throw new Error('Failed to fetch draft details');
+            }
+
+            const data = await response.json();
+            console.log('📋 Fetched draft data for editing:', data.draft);
+            setEditingDraftId(draftId);
+            setEditingDraftData(data.draft);
+            setCurrentScreen('upload');
+        } catch (error) {
+            console.error('Error fetching draft for editing:', error);
+            // Could show an alert here
+        }
     };
 
-    // Handle series creation from selection screen - now also uses full screen
-    const handleAddNewSeries = () => {
-        setShowSeriesSelection(false);
-        setShowSeriesCreationScreen(true);
-    };
-
-    // Handle series creation screen back
-    const handleSeriesCreationScreenBack = () => {
-        setShowSeriesCreationScreen(false);
-        setShowSeriesSelection(true); // Go back to series selection
-    };
-
-    // Handle series creation completion - go back to series tab
-    const handleSeriesCreatedFromScreen = (series: Series) => {
-        setShowSeriesCreationScreen(false);
-        // Refresh series list to show the new series
+    // Handle series creation completion
+    const handleSeriesCreated = (series: Series) => {
         refetchSeries();
-        // Make sure we're on the series tab
         setActiveTab('series');
+        goToMain();
     };
 
-    // Handle back from series selection
+    // Handle series creation back
+    const handleSeriesCreationBack = () => {
+        goToMain();
+    };
+
+    // Handle series selection
+    const handleSeriesSelected = (series: Series) => {
+        goToSeriesCreation();
+    };
+
+    // Handle add new series from selection
+    const handleAddNewSeries = () => {
+        goToSeriesCreation();
+    };
+
+    // Handle series selection back
     const handleSeriesSelectionBack = () => {
-        setShowSeriesSelection(false);
+        goToMain();
     };
 
-    // Handle series analytics navigation
-    const handleSeriesAnalyticsBack = () => {
-        setShowSeriesAnalytics(false);
-        setSelectedSeriesForAnalytics(null);
+    // Handle draft deletion
+    const handleDeleteDraft = async (draftId: string, draftName: string) => {
+        confirmDelete('draft', draftName, async () => {
+            try {
+                await deleteDraft(draftId);
+                refetchDrafts(); // Refresh the drafts list
+            } catch (error) {
+                console.error('Failed to delete draft:', error);
+                Alert.alert(
+                    'Delete Failed',
+                    `Failed to delete draft "${draftName}". ${error instanceof Error ? error.message : 'Please try again.'}`,
+                    [{ text: 'OK' }]
+                );
+            }
+        });
     };
 
-    const handleEditAccess = () => {
-        // TODO: Show edit access modal
+    // Handle series deletion
+    const handleDeleteSeries = async (seriesId: string, seriesName: string) => {
+        confirmDelete('series', seriesName, async () => {
+            try {
+                console.log('🗑️ Starting series deletion for:', seriesId);
+                await deleteSeries(seriesId);
+                console.log('✅ Series deleted successfully, refreshing list...');
+                
+                // Immediately refresh the series list
+                refetchSeries();
+                console.log('🔄 Series list refresh triggered immediately');
+                
+            } catch (error) {
+                console.error('Failed to delete series:', error);
+                Alert.alert(
+                    'Delete Failed',
+                    `Failed to delete series "${seriesName}". ${error instanceof Error ? error.message : 'Please try again.'}`,
+                    [{ text: 'OK' }]
+                );
+            }
+        });
     };
 
-    const handleAddNewEpisode = () => {
-        // TODO: Navigate to episode creation
-    };
-
-    const handleEpisodeMenuPress = (episodeId: string) => {
-        // TODO: Show episode options menu
-    };
-
-    // Show upload flow if active
-    if (showUploadFlow) {
+    // Render screens based on currentScreen state
+    if (currentScreen === 'upload') {
         return (
             <VideoUploadFlow
                 onComplete={handleUploadComplete}
                 onCancel={handleUploadCancel}
+                draftData={editingDraftData}
             />
         );
     }
 
-    // Show series selection if active
-    if (showSeriesSelection) {
+    if (currentScreen === 'series-creation') {
+        console.log('🎬 Rendering SimpleSeriesCreationScreen');
+        return (
+            <SimpleSeriesCreationScreen
+                onBack={handleSeriesCreationBack}
+                onSeriesCreated={handleSeriesCreated}
+            />
+        );
+    }
+
+    if (currentScreen === 'series-selection') {
         return (
             <SeriesSelectionScreen
                 onBack={handleSeriesSelectionBack}
@@ -110,25 +212,27 @@ const StrmlyStudio = () => {
         );
     }
 
-    // Show series creation screen if active
-    if (showSeriesCreationScreen) {
+    if (currentScreen === 'series-details' && selectedSeriesId) {
         return (
-            <SimpleSeriesCreationScreen
-                onBack={handleSeriesCreationScreenBack}
-                onSeriesCreated={handleSeriesCreatedFromScreen}
+            <SeriesDetailsScreen
+                seriesId={selectedSeriesId}
+                onBack={goToMain}
+                onAddNewEpisode={() => {
+                    console.log('📤 Going to upload flow from series details');
+                    goToUploadFlow();
+                }}
             />
         );
     }
 
-    // Show series analytics if active
-    if (showSeriesAnalytics && selectedSeriesForAnalytics) {
+    if (currentScreen === 'series-analytics' && selectedSeriesForAnalytics) {
         return (
             <SeriesAnalyticsScreen
                 series={selectedSeriesForAnalytics}
-                onBack={handleSeriesAnalyticsBack}
-                onEditAccess={handleEditAccess}
-                onAddNewEpisode={handleAddNewEpisode}
-                onEpisodeMenuPress={handleEpisodeMenuPress}
+                onBack={goToMain}
+                onEditAccess={() => { }}
+                onAddNewEpisode={() => { }}
+                onEpisodeMenuPress={() => { }}
             />
         );
     }
@@ -140,7 +244,7 @@ const StrmlyStudio = () => {
             <StatusBar barStyle="light-content" backgroundColor="#000" />
 
             {/* Header */}
-            <View className="flex-row items-center justify-between px-4 py-3 mt-12">
+            <View className="flex-row items-center justify-between px-4 py-3 mt-8">
                 <TouchableOpacity>
                     <Ionicons name="chevron-back" size={24} color="white" />
                 </TouchableOpacity>
@@ -169,7 +273,7 @@ const StrmlyStudio = () => {
             </View>
 
             {/* Content List */}
-            <ScrollView className="flex-1 px-4">
+            <ScrollView className="flex-1 px-4" contentContainerStyle={{ paddingBottom: 20 }}>
                 {activeTab === 'draft' ? (
                     // Drafts List
                     <>
@@ -202,52 +306,67 @@ const StrmlyStudio = () => {
                             </View>
                         ) : (
                             drafts.map((draft) => (
-                                <LinearGradient
+                                <TouchableOpacity
                                     key={draft.id}
-                                    colors={['#000000', '#0a0a0a', '#1a1a1a']}
-                                    start={{ x: 0, y: 0 }}
-                                    end={{ x: 1, y: 0 }}
-                                    className="flex-row items-center rounded-lg p-3 mb-3"
-                                    style={{
-                                        shadowColor: '#ffffff',
-                                        shadowOffset: { width: 0, height: 1 },
-                                        shadowOpacity: 0.1,
-                                        shadowRadius: 2,
-                                        elevation: 3,
+                                    onPress={() => {
+                                        console.log('🎬 Opening draft for editing:', draft.id);
+                                        handleEditDraft(draft.id);
                                     }}
                                 >
-                                    <View className="w-12 h-12 rounded-lg mr-3 overflow-hidden">
-                                        {draft.thumbnail ? (
-                                            <Image
-                                                source={{ uri: draft.thumbnail }}
-                                                className="w-full h-full"
-                                                resizeMode="cover"
-                                            />
-                                        ) : (
-                                            <View className="w-full h-full items-center justify-center">
+                                    <LinearGradient
+                                        colors={['#000000', '#0a0a0a', '#1a1a1a']}
+                                        start={{ x: 0, y: 0 }}
+                                        end={{ x: 1, y: 0 }}
+                                        className="flex-row items-center rounded-lg p-3 mb-3"
+                                        style={{
+                                            shadowColor: '#ffffff',
+                                            shadowOffset: { width: 0, height: 1 },
+                                            shadowOpacity: 0.1,
+                                            shadowRadius: 2,
+                                            elevation: 3,
+                                        }}
+                                    >
+                                        <View className="w-12 h-12 rounded-lg mr-3 overflow-hidden">
+                                            {draft.thumbnail ? (
                                                 <Image
-                                                    source={require('../../assets/drafts-icon.png')}
-                                                    style={{ width: 50, height: 50 }}
-                                                    resizeMode="contain"
+                                                    source={{ uri: draft.thumbnail }}
+                                                    className="w-full h-full"
+                                                    resizeMode="cover"
                                                 />
-                                            </View>
-                                        )}
-                                    </View>
+                                            ) : (
+                                                <View className="w-full h-full items-center justify-center">
+                                                    <Image
+                                                        source={require('../../assets/drafts-icon.png')}
+                                                        style={{ width: 50, height: 50 }}
+                                                        resizeMode="contain"
+                                                    />
+                                                </View>
+                                            )}
+                                        </View>
 
-                                    <View className="flex-1">
-                                        <Text className="text-white text-lg font-medium">{draft.title}</Text>
-                                        <Text className="text-gray-400 text-base">{draft.date}</Text>
-                                        {draft.description && (
-                                            <Text className="text-gray-500 text-sm mt-1" numberOfLines={1}>
-                                                {draft.description}
-                                            </Text>
-                                        )}
-                                    </View>
+                                        <View className="flex-1">
+                                            <Text className="text-white text-lg font-medium">{draft.title}</Text>
+                                            <Text className="text-gray-400 text-base">{draft.date}</Text>
+                                            {draft.description && (
+                                                <Text className="text-gray-500 text-sm mt-1" numberOfLines={1}>
+                                                    {draft.description}
+                                                </Text>
+                                            )}
+                                        </View>
 
-                                    <TouchableOpacity className="p-2">
-                                        <Ionicons name="ellipsis-vertical" size={20} color="#9CA3AF" />
-                                    </TouchableOpacity>
-                                </LinearGradient>
+                                        <DropdownMenu
+                                            options={[
+                                                {
+                                                    id: 'delete',
+                                                    label: 'Delete',
+                                                    icon: 'trash-outline',
+                                                    color: '#EF4444',
+                                                    onPress: () => handleDeleteDraft(draft.id, draft.title),
+                                                },
+                                            ]}
+                                        />
+                                    </LinearGradient>
+                                </TouchableOpacity>
                             ))
                         )}
                     </>
@@ -306,10 +425,11 @@ const StrmlyStudio = () => {
                                 </Text>
                             </View>
                         ) : (
-                            series.map((seriesItem) => (
+                            <View key={refreshKey}>
+                                {series.map((seriesItem) => (
                                 <TouchableOpacity
                                     key={seriesItem.id}
-                                    onPress={() => setSelectedSeries(seriesItem.id)}
+                                    onPress={() => goToSeriesDetails(seriesItem.id)}
                                 >
                                     <LinearGradient
                                         colors={['#000000', '#0a0a0a', '#1a1a1a']}
@@ -360,25 +480,38 @@ const StrmlyStudio = () => {
                                                 {seriesItem.views} views
                                             </Text>
                                         </View>
+
+                                        <DropdownMenu
+                                            options={[
+                                                {
+                                                    id: 'delete',
+                                                    label: 'Delete',
+                                                    icon: 'trash-outline',
+                                                    color: '#EF4444',
+                                                    onPress: () => handleDeleteSeries(seriesItem.id, seriesItem.title),
+                                                },
+                                            ]}
+                                        />
                                     </LinearGradient>
                                 </TouchableOpacity>
-                            ))
+                                ))}
+                            </View>
                         )}
                     </>
                 )}
             </ScrollView>
 
             {/* Bottom Section */}
-            <View className="px-4 pb-8">
+            <View className="px-4 py-4" style={{ marginBottom: 80 }}>
                 {/* Action Button */}
                 <TouchableOpacity
                     className="bg-gray-200 rounded-full py-4 items-center"
                     onPress={() => {
                         if (activeTab === 'draft') {
-                            setShowUploadFlow(true);
+                            goToUploadFlow();
                         } else {
-                            // Go directly to series creation screen
-                            setShowSeriesCreationScreen(true);
+                            // Go directly to series creation screen from studio
+                            goToSeriesCreation();
                         }
                     }}
                 >

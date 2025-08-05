@@ -34,9 +34,11 @@ const FinalStageScreen: React.FC<FinalStageProps> = ({
   videoDetails,
   onFormChange,
   onUpload,
+  onSaveToDraft,
   onBack,
   selectedSeries,
-  videoFormat
+  videoFormat,
+  isEditingDraft
 }) => {
   const [genreDropdownOpen, setGenreDropdownOpen] = useState(false);
 
@@ -82,7 +84,9 @@ const FinalStageScreen: React.FC<FinalStageProps> = ({
         <TouchableOpacity onPress={onBack}>
           <Ionicons name="chevron-back" size={24} color="white" />
         </TouchableOpacity>
-        <Text className="text-white text-xl font-medium">Final stage</Text>
+        <Text className="text-white text-xl font-medium">
+          {isEditingDraft ? 'Edit Draft - Final' : 'Final stage'}
+        </Text>
         <View className="w-6" />
       </View>
 
@@ -145,12 +149,20 @@ const FinalStageScreen: React.FC<FinalStageProps> = ({
         <View className="h-20" />
       </ScrollView>
 
-      {/* Upload Button */}
-      <ContinueButton
-        title="Upload"
-        onPress={onUpload}
-        disabled={!isFormValid()}
-      />
+      {/* Action Button */}
+      <View className="px-4 pb-8" style={{ marginBottom: 80 }}>
+        {/* Continue Button */}
+        <TouchableOpacity
+          onPress={onUpload}
+          disabled={!isFormValid()}
+          className="bg-gray-200 rounded-full py-4 items-center"
+          style={{
+            backgroundColor: !isFormValid() ? '#6B7280' : '#E5E7EB'
+          }}
+        >
+          <Text className="text-black text-lg font-medium">Continue</Text>
+        </TouchableOpacity>
+      </View>
     </View>
   );
 };

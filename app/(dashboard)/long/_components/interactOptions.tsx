@@ -3,9 +3,18 @@ import React, { useEffect, useState } from "react";
 import { FontAwesome } from "@expo/vector-icons";
 import { useAuthStore } from "@/store/useAuthStore";
 import Constants from "expo-constants";
-import { GiftType } from "../VideoFeed";
 
 // Define props type for InteractOptions
+type GiftDataType = {
+  creator: {
+    _id: string;
+    profile_photo: string;
+    name: string;
+    username: string;
+  };
+  videoId: string;
+};
+
 type InteractOptionsProps = {
   onCommentPress: () => void; // Callback function for comment button press
   videoId: string;
@@ -14,11 +23,12 @@ type InteractOptionsProps = {
   shares: number;
   comments?: number;
   setIsWantToGift: any;
-  setGiftingData: (type: GiftType)=> void;
+  setGiftingData: (data: GiftDataType) => void;
   creator: {
     _id: string;
-    username: string;
     profile_photo: string;
+    name: string;
+    username: string;
   };
 };
 
@@ -171,7 +181,7 @@ const InteractOptions = ({
   useEffect(()=> setGifts(gifts), [gifts]);
 
   const openGifting = () => {
-    setGiftingData({creator, videoId});
+    setGiftingData({ creator, videoId });
     setIsWantToGift(true);
   };
 

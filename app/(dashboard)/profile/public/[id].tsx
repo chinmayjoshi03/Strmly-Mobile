@@ -180,28 +180,31 @@ export default function PublicProfilePageWithId() {
   };
 
   // Use a derived state for profileData for cleaner access
-  // const currentProfileData = {
-  //   name: userData?.name || "User",
-  //   email: userData?.email || "",
-  //   image: userData?.avatar || userData?.image,
-  //   username: userData?.username || userData?.email?.split("@")[0] || "user",
-  //   bio: userData?.bio || "Welcome to my profile! 👋",
-  //   location: userData?.location || "Not specified",
-  //   website: userData?.website || "",
-  //   joinedDate: userData?.createdAt
-  //     ? new Date(userData?.createdAt).toLocaleDateString("en-US", {
-  //         month: "long",
-  //         year: "numeric",
-  //       })
-  //     : "N/A",
-  //   coverImage:
-  //     "https://images.unsplash.com/photo-1579546929518-9e396f3cc809?w=800&h=200&fit=crop", // Placeholder, consider dynamic cover image
-  //   followers: userData?.stats?.followersCount || 0,
-  //   following: userData?.stats?.followingCount || 0,
-  //   posts: userData?.stats?.videosCount || 0,
-  //   isVerified: userData?.isVerified || false,
-  //   creatorPassPrice: userData?.creator_profile?.creator_pass_price || 0,
-  // };
+  const currentProfileData = {
+    name: userData?.name || "User",
+    email: userData?.email || "",
+    image:
+      userData?.profile_photo ||
+      userData?.avatar ||
+      userData?.image,
+    username: userData?.username || userData?.email?.split("@")[0] || "user",
+    bio: userData?.bio || "Welcome to my profile! 👋",
+    location: userData?.location || "Not specified",
+    website: userData?.website || "",
+    joinedDate: userData?.createdAt
+      ? new Date(userData?.createdAt).toLocaleDateString("en-US", {
+          month: "long",
+          year: "numeric",
+        })
+      : "N/A",
+    coverImage:
+      "https://images.unsplash.com/photo-1579546929518-9e396f3cc809?w=800&h=200&fit=crop", // Placeholder, consider dynamic cover image
+    followers: userData?.stats?.followersCount || 0,
+    following: userData?.stats?.followingCount || 0,
+    posts: userData?.stats?.videosCount || 0,
+    isVerified: userData?.isVerified || false,
+    creatorPassPrice: userData?.creator_profile?.creator_pass_price || 0,
+  };
 
   const renderGridItem = ({ item }: { item: any }) => (
     <TouchableOpacity className="relative aspect-[9/16] flex-1 rounded-sm overflow-hidden">
@@ -240,28 +243,24 @@ export default function PublicProfilePageWithId() {
             <ProfileTopbar hashtag={false} name={userData?.username} />
           </View>
         )}
-
-          {/* Profile Info */}
-          {isLoading ? (
-            <View className="w-full h-96 flex items-center justify-center -mt-20 relative">
-              <ActivityIndicator size="large" color="#F1C40F" />
-            </View>
-          ) : (
-            <View className="max-w-4xl -mt-28 relative mx-6">
-              <View className="flex flex-col items-center md:flex-row md:items-end space-y-4 md:space-y-0 md:space-x-4">
-                <View className="relative">
-                  <View className="size-24 rounded-full overflow-hidden">
-                    <Image
-                      source={
-                        userData?.image
-                          ? {
-                              uri: userData.image,
-                            }
-                          : require("../../../../assets/images/user.png")
-                      }
-                      className="w-full h-full object-cover rounded-full"
-                    />
-                  </View>
+        {/* Profile Info */}
+        {isLoading ? (
+          <View className="w-full h-96 flex items-center justify-center -mt-20 relative">
+            <ActivityIndicator size="large" color="#F1C40F" />
+          </View>
+        ) : (
+          <View className="max-w-4xl -mt-28 relative mx-6">
+            <View className="flex flex-col items-center md:flex-row md:items-end space-y-4 md:space-y-0 md:space-x-4">
+              <View className="relative">
+                <View className="w-24 h-24 rounded-full border-2 border-white overflow-hidden">
+                  <Image
+                    source={userData?.image ?{
+                      uri: userData.image
+                    }: require('../../../../assets/images/user.png')}
+                    className="w-full h-full object-cover rounded-full"
+                    style={{ width: 96, height: 96 }}
+                  />
+                </View>
 
                   <View className="flex flex-row gap-2 items-center justify-center mt-2">
                     <Text className="text-gray-400">

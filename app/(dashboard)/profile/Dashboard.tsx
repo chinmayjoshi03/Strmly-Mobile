@@ -89,52 +89,9 @@ const Dashboard = () => {
         'Last Year'
     ];
 
-    // Mock recent activity since there's no specific API endpoint for this
+    // Initialize with empty recent activity
     useEffect(() => {
-        if (activeTab === 'non-revenue') {
-            setRecentActivity([
-                {
-                    id: '1',
-                    user: { name: 'User', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=user1' },
-                    action: 'comment',
-                    content: 'commented on your post',
-                    timestamp: new Date().toLocaleDateString()
-                },
-                {
-                    id: '2',
-                    user: { name: 'User', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=user2' },
-                    action: 'like',
-                    content: 'liked your post',
-                    timestamp: new Date().toLocaleDateString()
-                },
-                {
-                    id: '3',
-                    user: { name: 'User', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=user3' },
-                    action: 'follow',
-                    content: 'started following you',
-                    timestamp: new Date().toLocaleDateString()
-                }
-            ]);
-        } else {
-            setRecentActivity([
-                {
-                    id: '1',
-                    user: { name: 'User', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=revenue1' },
-                    action: 'gift',
-                    content: 'sent you a gift',
-                    timestamp: new Date().toLocaleDateString(),
-                    amount: 5.0
-                },
-                {
-                    id: '2',
-                    user: { name: 'User', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=revenue2' },
-                    action: 'creator_pass',
-                    content: 'purchased your creator pass',
-                    timestamp: new Date().toLocaleDateString(),
-                    amount: 10.0
-                }
-            ]);
-        }
+        setRecentActivity([]);
     }, [activeTab]);
 
     const formatNumber = (num: number): string => {
@@ -296,32 +253,36 @@ const Dashboard = () => {
                             )}
                         </LinearGradient>
 
-                        {/* Recent Activity */}
-                        <View className="mb-6">
+                        {/* Recent Activity - Hidden until API integration */}
+                        {/* <View className="mb-6">
                             <Text className="text-white text-2xl font-semibold mb-4">Recent</Text>
                             <View className="space-y-4">
-                                {recentActivity.map((activity) => (
-                                    <View key={activity.id} className="flex-row items-center">
-                                        <Image
-                                            source={{ uri: activity.user.avatar }}
-                                            className="w-10 h-10 rounded-full mr-3"
-                                        />
-                                        <View className="flex-1">
-                                            <Text className="text-white text-lg">
-                                                <Text className="font-semibold">{activity.user.name}</Text>
-                                                <Text className="text-gray-400"> {getActionText(activity)}</Text>
-                                            </Text>
-                                            <Text className="text-gray-500 text-base">{activity.timestamp}</Text>
+                                {recentActivity.length > 0 ? (
+                                    recentActivity.map((activity) => (
+                                        <View key={activity.id} className="flex-row items-center">
+                                            <Image
+                                                source={{ uri: activity.user.avatar }}
+                                                className="w-10 h-10 rounded-full mr-3"
+                                            />
+                                            <View className="flex-1">
+                                                <Text className="text-white text-lg">
+                                                    <Text className="font-semibold">{activity.user.name}</Text>
+                                                    <Text className="text-gray-400"> {getActionText(activity)}</Text>
+                                                </Text>
+                                                <Text className="text-gray-500 text-base">{activity.timestamp}</Text>
+                                            </View>
+                                            {activeTab === 'revenue' && activity.amount && (
+                                                <Text className="text-white text-lg font-medium">
+                                                    +₹{activity.amount.toFixed(1)}
+                                                </Text>
+                                            )}
                                         </View>
-                                        {activeTab === 'revenue' && activity.amount && (
-                                            <Text className="text-white text-lg font-medium">
-                                                +₹{activity.amount.toFixed(1)}
-                                            </Text>
-                                        )}
-                                    </View>
-                                ))}
+                                    ))
+                                ) : (
+                                    <Text className="text-gray-400 text-base">No recent activity to display</Text>
+                                )}
                             </View>
-                        </View>
+                        </View> */}
                     </>
                 )}
             </ScrollView>
