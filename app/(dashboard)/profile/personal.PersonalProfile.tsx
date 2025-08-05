@@ -309,7 +309,7 @@ export default function PersonalProfilePage() {
               </TouchableOpacity>
 
               <TouchableOpacity
-                onPress={() => router.push("/SeriesAccessDemo")}
+                onPress={() => router.push("/(dashboard)/profile/access")}
                 className="rounded-lg overflow-hidden"
               >
                 <LinearGradient

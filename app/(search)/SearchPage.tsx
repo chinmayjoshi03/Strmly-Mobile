@@ -2,8 +2,9 @@ import React, { useState, useEffect } from "react";
 import { View, Text, TextInput, FlatList, Dimensions, TouchableOpacity, ActivityIndicator, Image, StyleSheet, ImageBackground, StatusBar, ScrollView } from "react-native";
 import { useFonts } from "expo-font";
 import ThemedText from "@/components/ThemedText";
-
-// We'll use trending videos from communities instead of hardcoded content
+import { useSearch } from "./hooks/useSearch";
+import { communityActions } from "@/api/community/communityActions";
+import { useAuthStore } from "@/store/useAuthStore";
 
 const { width } = Dimensions.get("window");
 const itemSize = width / 3;
@@ -12,37 +13,13 @@ const SearchScreen: React.FC = () => {
     const [selectedTab, setSelectedTab] = useState<number>(0);
     const [searchQuery, setSearchQuery] = useState<string>('');
     const [isSearchActive, setIsSearchActive] = useState<boolean>(false);
-    const [isLoading, setIsLoading] = useState<boolean>(false);
-    const [searchLoading, setSearchLoading] = useState<boolean>(false);
+    const [trendingVideos, setTrendingVideos] = useState<any[]>([]);
     const [trendingLoading, setTrendingLoading] = useState<boolean>(false);
-    const [searchError, setSearchError] = useState<string>('');
     const [trendingError, setTrendingError] = useState<string>('');
-    const [searchResults, setSearchResults] = useState<any>({
-        videos: [],
-        accounts: [],
-        communities: []
-    });
-    const [trendingVideos, setTrendingVideos] = useState<any[]>([
-        {
-            _id: '1',
-            name: 'Trending Video 1',
-            thumbnailUrl: 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=800&q=80',
-            community: { name: 'Tech Community' }
-        },
-        {
-            _id: '2',
-            name: 'Trending Video 2',
-            thumbnailUrl: 'https://images.unsplash.com/photo-1518709268805-4e9042af2176?auto=format&fit=crop&w=800&q=80',
-            community: { name: 'Gaming Community' }
-        },
-        {
-            _id: '3',
-            name: 'Trending Video 3',
-            thumbnailUrl: 'https://images.unsplash.com/photo-1542831371-29b0f74f9713?auto=format&fit=crop&w=800&q=80',
-            community: { name: 'Music Community' }
-        }
-    ]);
     const tabs = ["Videos", "Accounts", "Communities"];
+    
+    const { token } = useAuthStore();
+    const { searchResults, isLoading: searchLoading, error: searchError, performSearch, clearSearch } = useSearch();
 
     const [fontsLoaded] = useFonts({
         'Poppins-Regular': require('../../assets/fonts/poppins/Poppins-Regular.ttf'),
@@ -56,20 +33,64 @@ const SearchScreen: React.FC = () => {
         'Inter-ExtraBold': require('../../assets/fonts/inter/Inter-ExtraBold.ttf'),
     });
 
-    // Handle search with debouncing - temporarily disabled
+    // Load trending videos on component mount
+    useEffect(() => {
+        loadTrendingVideos();
+    }, []);
+
+    // Handle search with debouncing
     useEffect(() => {
         const timeoutId = setTimeout(() => {
             if (searchQuery.trim()) {
                 setIsSearchActive(true);
-                // performSearch(searchQuery);
+                performSearch(searchQuery);
             } else {
                 setIsSearchActive(false);
-                // clearSearch();
+                clearSearch();
             }
         }, 500);
 
         return () => clearTimeout(timeoutId);
-    }, [searchQuery]);
+    }, [searchQuery, performSearch, clearSearch]);
+
+    const loadTrendingVideos = async () => {
+        if (!token) return;
+        
+        setTrendingLoading(true);
+        setTrendingError('');
+        
+        try {
+            const response = await communityActions.getTrendingVideos(token, 20);
+            console.log('Trending videos response:', response);
+            setTrendingVideos(response.videos || []);
+        } catch (error) {
+            console.error('Error loading trending videos:', error);
+            setTrendingError(error instanceof Error ? error.message : 'Failed to load trending videos');
+            // Fallback to sample data if API fails
+            setTrendingVideos([
+                {
+                    _id: '1',
+                    title: 'Trending Video 1',
+                    thumbnailUrl: 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=800&q=80',
+                    community: { name: 'Tech Community' }
+                },
+                {
+                    _id: '2',
+                    title: 'Trending Video 2',
+                    thumbnailUrl: 'https://images.unsplash.com/photo-1518709268805-4e9042af2176?auto=format&fit=crop&w=800&q=80',
+                    community: { name: 'Gaming Community' }
+                },
+                {
+                    _id: '3',
+                    title: 'Trending Video 3',
+                    thumbnailUrl: 'https://images.unsplash.com/photo-1542831371-29b0f74f9713?auto=format&fit=crop&w=800&q=80',
+                    community: { name: 'Music Community' }
+                }
+            ]);
+        } finally {
+            setTrendingLoading(false);
+        }
+    };
 
     const handleSearchChange = (text: string) => {
         setSearchQuery(text);
@@ -79,9 +100,9 @@ const SearchScreen: React.FC = () => {
         if (!isSearchActive) return [];
 
         switch (selectedTab) {
-            case 0: return searchResults.videos;
-            case 1: return searchResults.accounts;
-            case 2: return searchResults.communities;
+            case 0: return searchResults.videos || [];
+            case 1: return searchResults.accounts || [];
+            case 2: return searchResults.communities || [];
             default: return [];
         }
     };
@@ -185,14 +206,17 @@ const SearchScreen: React.FC = () => {
     const renderTrendingItem = ({ item }: { item: any }) => (
         <TouchableOpacity>
             <ImageBackground
-                source={{ uri: item.thumbnailUrl || 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=800&q=80' }}
+                source={{ uri: item.thumbnailUrl || item.thumbnail || 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=800&q=80' }}
                 style={style.imageTile}
                 imageStyle={{ resizeMode: 'cover' }}
             >
                 <View style={styles.trendingOverlay}>
-                    <Text style={Searchstyles.label}>{item.name}</Text>
+                    <Text style={Searchstyles.label}>{item.title || item.name || 'Untitled'}</Text>
                     {item.community && (
                         <Text style={styles.communityLabel}>{item.community.name}</Text>
+                    )}
+                    {item.created_by && (
+                        <Text style={styles.communityLabel}>@{item.created_by.username}</Text>
                     )}
                 </View>
             </ImageBackground>

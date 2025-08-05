@@ -17,6 +17,16 @@ import CommentsSection from "./_components/CommentSection";
 import { VideoItemType } from "@/types/VideosType";
 import { router } from "expo-router";
 
+type GiftDataType = {
+  creator: {
+    _id: string;
+    profile?: string;
+    name: string;
+    username: string;
+  };
+  videoId: string;
+};
+
 type Props = {
   uri: string;
   isActive: boolean;
@@ -24,12 +34,8 @@ type Props = {
   showCommentsModal: boolean;
   setShowCommentsModal: any;
   setIsWantToGift: any;
-  setGiftingData: {
-    _id: string;
-    profile?: string | undefined;
-    username: string;
-    email: string;
-  };
+  setGiftingData: (data: GiftDataType) => void;
+  containerHeight?: number;
 };
 
 // Define constants for layout to avoid magic numbers and make adjustments easier
@@ -44,6 +50,7 @@ const VideoItem = ({
   setShowCommentsModal,
   setGiftingData,
   setIsWantToGift,
+  containerHeight,
 }: Props) => {
   const { width, height } = Dimensions.get("screen");
   const player = useVideoPlayer(uri, (p) => {
@@ -210,7 +217,7 @@ const VideoItem = ({
         styles.container,
         {
           width: screenSize.width,
-          height: isFullScreen ? screenSize.width : screenSize.height,
+          height: isFullScreen ? screenSize.width : (containerHeight || screenSize.height),
         },
       ]}
     >
@@ -294,7 +301,12 @@ const VideoItem = ({
       {/* Interact Buttons */}
       <View style={styles.interact}>
         <InteractOptions
-          creator={videoData.created_by}
+          creator={{
+            _id: videoData.created_by?._id || '',
+            username: videoData.created_by?.username || '',
+            name: videoData.created_by?.username || '', // Use username as name fallback
+            profile: undefined // Optional field
+          }}
           setGiftingData={setGiftingData}
           setIsWantToGift={setIsWantToGift}
           videoId={videoData._id}
@@ -309,7 +321,6 @@ const VideoItem = ({
       {/* Conditionally render the CommentSection modal */}
       {showCommentsModal && (
         <CommentsSection
-          isOpen={showCommentsModal} // Pass the state controlling its visibility
           onClose={handleCloseComments}
           commentss={videoData.comments}
           videoId={videoData._id}
@@ -406,6 +417,8 @@ const styles = StyleSheet.create({
     bottom: "15%",
     right: 10,
     width: "auto",
+    zIndex: 1,
+    elevation: 1,
   },
   details: {
     position: "absolute",
@@ -413,6 +426,8 @@ const styles = StyleSheet.create({
     width: "100%",
     paddingLeft: 10,
     paddingRight: 16,
+    zIndex: 1,
+    elevation: 1,
   },
 });
 

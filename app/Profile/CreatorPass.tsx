@@ -18,7 +18,7 @@ import ThemedView from "@/components/ThemedView";
 export default function CreatorPassPage() {
   const router = useRouter();
   const { token } = useAuthStore();
-  
+
   const [price, setPrice] = useState("");
   const [loading, setLoading] = useState(false);
   const [currentPrice, setCurrentPrice] = useState<number | null>(null);
@@ -99,7 +99,7 @@ export default function CreatorPassPage() {
   return (
     <ThemedView className="flex-1">
       <StatusBar barStyle="light-content" backgroundColor="black" />
-      
+
       {/* Header */}
       <View className="flex-row items-center justify-between px-6 py-4 mt-12">
         <TouchableOpacity onPress={() => router.back()}>
@@ -113,7 +113,7 @@ export default function CreatorPassPage() {
         <Text className="text-white text-3xl font-bold text-center mb-4" style={{ fontFamily: 'Poppins' }}>
           Creator pass
         </Text>
-        
+
         <View className="flex-row items-center mb-8">
           <Text className="text-gray-400 text-2xl" style={{ fontFamily: 'Poppins' }}>
             ₹
@@ -151,7 +151,7 @@ export default function CreatorPassPage() {
           <Text className="text-gray-400 text-sm text-center leading-6" style={{ fontFamily: 'Poppins' }}>
             By enabling the Creator Pass, you agree to offer all your paid content to users who subscribe to your pass at the price you set. You'll earn revenue from each subscription after platform fees and taxes.
           </Text>
-          
+
           <Text className="text-gray-400 text-sm text-center leading-6 mt-4" style={{ fontFamily: 'Poppins' }}>
             Once activated, you will not be able to delete your account until all active subscriptions have expired. You may stop new purchases by turning off the Creator Pass, but you must wait for all current subscriptions to end before account deletion is allowed. By continuing, you agree to follow and accept all our{' '}
             <Text className="text-blue-400 underline">Terms of Use</Text> and{' '}

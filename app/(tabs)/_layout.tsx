@@ -44,9 +44,10 @@ export default function TabLayout() {
         tabBarStyle: {
           backgroundColor: '#000000',
           borderTopWidth: 0,
-          height: 70,
-          paddingBottom: 15,
-          paddingTop: 10,
+          height: 55,
+          paddingBottom: 10,
+          paddingTop: 0,
+          paddingHorizontal: 0,
           position: 'absolute',
           bottom: 0,
           left: 0,
@@ -66,8 +67,8 @@ export default function TabLayout() {
         options={{
           title: 'Home',
           tabBarIcon: ({ color, focused }) => (
-            <View className={`w-8 h-8 items-center justify-center ${focused ? 'opacity-100' : 'opacity-60'}`}>
-              <PaperclipIcon size={24} color="white" />
+            <View className={`w-6 h-6 items-center justify-center ${focused ? 'opacity-100' : 'opacity-60'}`}>
+              <PaperclipIcon size={22} color="white" />
             </View>
           ),
         }}

@@ -13,6 +13,7 @@ export type VideoItemType = {
   description: string;
   thumbnailUrl?: string;
   likes: number;
+  gifts: number;
   shares: number;
   views: number;
   genre: string;

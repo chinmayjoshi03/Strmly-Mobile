@@ -59,6 +59,9 @@ export class CommentAPI {
     videoId: string,
     content: string
   ): Promise<CommentAPIResponse> {
+    console.log('Posting comment to:', `${CONFIG.API_BASE_URL}/api/v1/interaction/comment`);
+    console.log('Request body:', { videoId, comment: content });
+    
     const response = await fetch(
       `${CONFIG.API_BASE_URL}/api/v1/interaction/comment`,
       {
@@ -72,7 +75,9 @@ export class CommentAPI {
     );
 
     if (!response.ok) {
-      throw new Error(`Failed to post comment: ${response.status}`);
+      const errorText = await response.text();
+      console.error('Comment post error response:', errorText);
+      throw new Error(`Failed to post comment: ${response.status} - ${errorText}`);
     }
 
     return response.json();

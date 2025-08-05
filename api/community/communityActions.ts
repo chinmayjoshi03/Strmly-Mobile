@@ -338,6 +338,28 @@ export class CommunityAPI {
 
     return response.json();
   }
+
+  // Get trending community videos
+  static async getTrendingVideos(
+    token: string,
+    limit: number = 20
+  ): Promise<{ videos: any[] }> {
+    const response = await fetch(
+      `${CONFIG.API_BASE_URL}/api/v1/community/trending-videos?limit=${limit}`,
+      {
+        method: 'GET',
+        headers: CommunityAPI.getHeaders(token),
+      }
+    );
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('❌ Get trending videos error response:', errorText);
+      throw new Error(`Failed to get trending videos: ${response.status} - ${errorText}`);
+    }
+
+    return response.json();
+  }
 }
 
 // Convenience functions for easier usage
@@ -353,4 +375,5 @@ export const communityActions = {
   updateCommunityPhoto: CommunityAPI.updateCommunityPhoto,
   getCommunityAnalytics: CommunityAPI.getCommunityAnalytics,
   getUserCommunities: CommunityAPI.getUserCommunities,
+  getTrendingVideos: CommunityAPI.getTrendingVideos,
 };
