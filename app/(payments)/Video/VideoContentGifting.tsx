@@ -26,12 +26,11 @@ type GiftingData = {
   giftData: {
     creator: {
       _id: string;
-      profile?: string;
-      name: string;
       username: string;
+      profile_photo: string;
     };
     videoId: string;
-  };
+  } | null;
   setIsWantToGift: (value: boolean) => void;
   setIsGifted: (value: boolean) => void;
   giftMessage: any;
@@ -57,6 +56,37 @@ const VideoContentGifting = ({
   const handleAmountChange = (text: string) => {
     const filtered = text.replace(/[^0-9]/g, "");
     setAmount(filtered);
+  };
+
+  // ------------ Transaction -------------------
+
+  const giftVideo = async () => {
+    if (!token && !giftData?.videoId) {
+      return;
+    }
+    console.log('giftdata---', giftData)
+
+    try {
+      const response = await fetch(
+        `${BACKEND_API_URL}/interaction/gift-video`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ videoId: giftData?.videoId, amount }),
+        }
+      );
+      if (!response.ok) throw new Error("Failed to provide gifting");
+      const data = await response.json();
+      console.log("dWallet data---------------", data);
+      giftMessage(data.gift);
+      setIsWantToGift(false);
+      router.back();
+    } catch (err) {
+      console.log(err);
+    }
   };
 
   const handleProceed = async () => {
@@ -129,36 +159,6 @@ const VideoContentGifting = ({
     }
   }, [token]);
 
-  // ------------ Transaction -------------------
-
-  const giftVideo = async () => {
-    if (!token && !giftData?.videoId) {
-      return;
-    }
-
-    try {
-      const response = await fetch(
-        `${BACKEND_API_URL}/interaction/gift-video`,
-        {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ videoId: giftData?.videoId, amount }),
-        }
-      );
-      if (!response.ok) throw new Error("Failed to fetch wallet info");
-      const data = await response.json();
-      console.log("dWallet data---------------", data);
-      giftMessage(data.gift);
-      setIsWantToGift(false);
-      router.back();
-    } catch (err) {
-      console.log(err);
-    }
-  };
-
   return (
     <ThemedView className="flex-1 bg-black">
       <KeyboardAvoidingView
@@ -171,8 +171,9 @@ const VideoContentGifting = ({
             {/* Top section */}
             <View className="mt-10">
               <CreatorInfo
-                profile={giftData?.creator?.profile}
-                name={giftData?.creator?.name}
+                setIsWantToGift={setIsWantToGift}
+                profile={giftData?.creator?.profile_photo}
+                // name={giftData?.creator?.name}
                 username={giftData?.creator?.username}
               />
             </View>

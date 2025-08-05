@@ -28,6 +28,8 @@ import { useRoute } from "@react-navigation/native";
 export default function PublicProfilePageWithId() {
   const [activeTab, setActiveTab] = useState("long");
   const [userData, setUserData] = useState<any>(null);
+  const [userError, setUserError] = useState<string | null>(null);
+
   const [videos, setVideos] = useState<any[]>([]);
 
   const [isFollowing, setIsFollowing] = useState(false);
@@ -42,10 +44,6 @@ export default function PublicProfilePageWithId() {
 
   const route = useRoute();
   const { id } = route.params as { id: string };
-
-  useEffect(() => {
-    console.log("ID from params:", id);
-  }, [id]);
 
   const thumbnails = useThumbnailsGenerate(
     useMemo(
@@ -96,7 +94,6 @@ export default function PublicProfilePageWithId() {
 
     if (token && id) {
       fetchUserVideos();
-      console.log('videosssssssssss')
     }
   }, [token, activeTab, id]);
 
@@ -120,10 +117,17 @@ export default function PublicProfilePageWithId() {
         }
 
         setUserData(data.user);
-        console.log("user", data);
+        setIsFollowing(data.user?.isBeingFollowed)
+        console.log(data.user);
+        setUserError(null);
         if (data.user?.tags && data.user.tags.length > 2) setShowMore(true);
       } catch (error) {
         console.log(error);
+        setUserError(
+          error instanceof Error
+            ? error.message
+            : "An unknown error occurred while fetching user data."
+        );
         Alert.alert(
           "Error",
           error instanceof Error
@@ -137,21 +141,20 @@ export default function PublicProfilePageWithId() {
 
     if (token && id) {
       fetchUserData();
-      console.log('huhuhdhuwdhuwd')
     }
   }, [token, id]);
 
   const followCreator = async () => {
     try {
-      const response = await fetch(`${BACKEND_API_URL}/user/follow`, {
+      const response = await fetch(`${BACKEND_API_URL}/user/${!isFollowing ? 'follow' : 'unfollow'}`, {
         method: "POST",
         headers: {
           Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
+        body: JSON.stringify(!isFollowing ?{
           followUserId: id,
-        }),
+        } : {unfollowUserId: id}),
       });
 
       const data = await response.json();
@@ -161,8 +164,8 @@ export default function PublicProfilePageWithId() {
       }
 
       console.log(data);
-      setIsFollowing(true);
-      Alert.alert("You are now Following this creator");
+      setIsFollowing(data.isFollowing);
+      Alert.alert(isFollowing ? "You unFollowed this creator" : "You are now Following this creator");
     } catch (error) {
       console.log(error);
       Alert.alert(
@@ -227,15 +230,17 @@ export default function PublicProfilePageWithId() {
 
   return (
     <ThemedView className="flex-1">
-      <View className="flex-1 gap-5">
-        {/* Cover Image */}
-        {!isLoading && (
+      {userError !== null ? (
+        <View className="h-full w-full items-center justify-center">
+          <Text className="text-white text-xl">
+            No such user exists
+          </Text>
+        </View>
+      ) : (
+        <View className="flex-1 pt-5 gap-5">
+          {!isLoading && (
           <View className="h-48 relative">
-            <ProfileTopbar
-              isMore={false}
-              hashtag={false}
-              name={currentProfileData.username}
-            />
+            <ProfileTopbar hashtag={false} name={userData?.username} />
           </View>
         )}
         {/* Profile Info */}
@@ -257,141 +262,143 @@ export default function PublicProfilePageWithId() {
                   />
                 </View>
 
-                <View className="flex flex-row gap-2 items-center justify-center mt-2">
-                  <Text className="text-gray-400">
-                    @{currentProfileData.username}
-                  </Text>
-                  {(currentProfileData.isVerified ||
-                    userData?.creator_profile?.verification_status ===
-                      "verified") && (
-                    <Text className="ml-2 px-2 py-1 rounded-full text-xs font-medium bg-blue-500 text-white">
-                      Verified
+                  <View className="flex flex-row gap-2 items-center justify-center mt-2">
+                    <Text className="text-gray-400">
+                      @{userData?.username}
                     </Text>
-                  )}
-                </View>
-              </View>
-            </View>
-
-            {/* Stats */}
-            <View
-              className={`mt-6 flex-row justify-evenly items-center ${currentProfileData.creatorPassPrice !== 0 && "gap-4"}`}
-            >
-              <TouchableOpacity
-                className="text-center items-center"
-                // onPress={() => router.push("/communities?type=followers")}
-              >
-                <Text className="font-semibold text-lg text-white">
-                  {currentProfileData.followers}
-                </Text>
-                <Text className="text-gray-400 text-md font-thin">
-                  Followers
-                </Text>
-              </TouchableOpacity>
-
-              {/* Follow Button */}
-              <TouchableOpacity
-                onPress={() => followCreator()}
-                className="h-9 px-7 py-2 rounded-lg border border-white"
-              >
-                <Text className="text-white text-center font-semibold">
-                  {isFollowing ? "Following" : "Follow"}
-                </Text>
-              </TouchableOpacity>
-
-              {/* Access Button with Gradient Border */}
-              <TouchableOpacity
-                className={`${currentProfileData.creatorPassPrice !== 0 && "flex-grow"} h-10 rounded-lg overflow-hidden`}
-              >
-                <LinearGradient
-                  colors={["#4400FFA6", "#FFFFFF", "#FF00004D", "#FFFFFF"]}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 1 }}
-                  className="p-[1px] rounded-lg flex-1"
-                >
-                  <View
-                    className={`flex-1 ${currentProfileData.creatorPassPrice == 0 && "px-4"} rounded-lg bg-black items-center justify-center`}
-                  >
-                    {currentProfileData.creatorPassPrice === 0 ? (
-                      <Text className="text-white text-center">
-                        Free Access
+                    {(userData?.isVerified ||
+                      userData?.creator_profile?.verification_status ===
+                        "verified") && (
+                      <Text className="ml-2 px-2 py-1 rounded-full text-xs font-medium bg-blue-500 text-white">
+                        Verified
                       </Text>
-                    ) : (
-                      <View className="flex-row items-center justify-center">
-                        <Text className="text-white text-center">
-                          Access at
-                        </Text>
-                        <IndianRupee color={"white"} size={13} />
-                        <Text className="text-white text-center ml-0.5">
-                          {currentProfileData.creatorPassPrice}/month
-                        </Text>
-                      </View>
                     )}
                   </View>
-                </LinearGradient>
-              </TouchableOpacity>
-            </View>
-
-            {/* Tags/Edit Buttons */}
-            {userData?.tags && (
-              <View className="flex flex-row flex-wrap w-full items-center justify-center gap-2 mt-5">
-                <TouchableOpacity className="px-4 py-2 border border-gray-400 rounded-[8px]">
-                  <Text className="text-white">#Edit</Text>
-                </TouchableOpacity>
-                <TouchableOpacity className="px-4 py-2 border border-gray-400 rounded-[8px]">
-                  <Text className="text-white">#Fun</Text>
-                </TouchableOpacity>
-
-                {userData?.tags.map((tag: string, index: number) => {
-                  if (index < 2) {
-                    return (
-                      <TouchableOpacity
-                        key={tag}
-                        className="px-4 py-2 border border-gray-400 rounded-[8px]"
-                      >
-                        <Text className="text-white">#{tag}</Text>
-                      </TouchableOpacity>
-                    );
-                  }
-                  if (!showMore && index > 2) {
-                    return (
-                      <TouchableOpacity
-                        key={tag}
-                        className="px-4 py-2 border border-gray-400 rounded-[8px]"
-                      >
-                        <Text className="text-white">#{tag}</Text>
-                      </TouchableOpacity>
-                    );
-                  }
-                })}
-
-                {showMore && (
-                  <Pressable onPress={() => setShowMore(false)}>
-                    <TouchableOpacity className="px-4 py-2 border border-gray-400 rounded-[8px]">
-                      <Text className="text-white">More</Text>
-                    </TouchableOpacity>
-                  </Pressable>
-                )}
+                </View>
               </View>
-            )}
 
-            {/* Bio */}
-            <View className="mt-6 flex flex-col items-center justify-center px-4">
-              <Text className="text-gray-400 text-xs text-center">
-                {currentProfileData.bio}
-              </Text>
-              <View className="mt-2 flex flex-row flex-wrap gap-4 text-gray-400 justify-center">
-                {currentProfileData.website && (
-                  <TouchableOpacity
-                    onPress={() => Linking.openURL(currentProfileData.website)}
-                    className="flex-row items-center"
+              {/* Stats */}
+              <View
+                className={`mt-6 flex-row justify-evenly items-center ${userData?.creatorPassPrice !== 0 && "gap-4"}`}
+              >
+                <TouchableOpacity
+                  className="text-center items-center"
+                  // onPress={() => router.push("/communities?type=followers")}
+                >
+                  <Text className="font-semibold text-lg text-white">
+                    {userData?.totalFollowers}
+                  </Text>
+                  <Text className="text-gray-400 text-md font-thin">
+                    Followers
+                  </Text>
+                </TouchableOpacity>
+
+                {/* Follow Button */}
+                <TouchableOpacity
+                  onPress={() => followCreator()}
+                  className="h-9 px-7 py-2 rounded-lg border border-white"
+                >
+                  <Text className="text-white text-center font-semibold">
+                    {isFollowing ? "Following" : "Follow"}
+                  </Text>
+                </TouchableOpacity>
+
+                {/* Access Button with Gradient Border */}
+                <TouchableOpacity
+                  className={`${userData?.creatorPassPrice !== 0 && "flex-grow"} h-10 rounded-lg overflow-hidden`}
+                >
+                  <LinearGradient
+                    colors={["#4400FFA6", "#FFFFFF", "#FF00004D", "#FFFFFF"]}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                    className="p-[1px] rounded-lg flex-1"
                   >
-                    <LinkIcon className="w-4 h-4 mr-1 text-white" />
-                    <Text className="text-white underline">
-                      {currentProfileData.website}
-                    </Text>
+                    <View
+                      className={`flex-1 ${userData?.creatorPassPrice == 0 && "px-4"} rounded-lg bg-black items-center justify-center`}
+                    >
+                      {userData?.creatorPassPrice === 0 ? (
+                        <Text className="text-white text-center">
+                          Free Access
+                        </Text>
+                      ) : (
+                        <View className="flex-row items-center justify-center">
+                          <Text className="text-white text-center">
+                            Access at
+                          </Text>
+                          <IndianRupee color={"white"} size={13} />
+                          <Text className="text-white text-center ml-0.5">
+                            {userData?.creatorPassPrice}/month
+                          </Text>
+                        </View>
+                      )}
+                    </View>
+                  </LinearGradient>
+                </TouchableOpacity>
+              </View>
+
+              {/* Tags/Edit Buttons */}
+              {userData?.tags && (
+                <View className="flex flex-row flex-wrap w-full items-center justify-center gap-2 mt-5">
+                  <TouchableOpacity className="px-4 py-2 border border-gray-400 rounded-[8px]">
+                    <Text className="text-white">#Edit</Text>
                   </TouchableOpacity>
-                )}
-                {/* {currentProfileData.joinedDate !== "N/A" && (
+                  <TouchableOpacity className="px-4 py-2 border border-gray-400 rounded-[8px]">
+                    <Text className="text-white">#Fun</Text>
+                  </TouchableOpacity>
+
+                  {userData?.tags.map((tag: string, index: number) => {
+                    if (index < 2) {
+                      return (
+                        <TouchableOpacity
+                          key={tag}
+                          className="px-4 py-2 border border-gray-400 rounded-[8px]"
+                        >
+                          <Text className="text-white">#{tag}</Text>
+                        </TouchableOpacity>
+                      );
+                    }
+                    if (!showMore && index > 2) {
+                      return (
+                        <TouchableOpacity
+                          key={tag}
+                          className="px-4 py-2 border border-gray-400 rounded-[8px]"
+                        >
+                          <Text className="text-white">#{tag}</Text>
+                        </TouchableOpacity>
+                      );
+                    }
+                  })}
+
+                  {showMore && (
+                    <Pressable onPress={() => setShowMore(false)}>
+                      <TouchableOpacity className="px-4 py-2 border border-gray-400 rounded-[8px]">
+                        <Text className="text-white">More</Text>
+                      </TouchableOpacity>
+                    </Pressable>
+                  )}
+                </View>
+              )}
+
+              {/* Bio */}
+              <View className="mt-6 flex flex-col items-center justify-center px-4">
+                <Text className="text-gray-400 text-xs text-center">
+                  {userData?.bio}
+                </Text>
+                <View className="mt-2 flex flex-row flex-wrap gap-4 text-gray-400 justify-center">
+                  {userData?.website && (
+                    <TouchableOpacity
+                      onPress={() =>
+                        Linking.openURL(userData.website)
+                      }
+                      className="flex-row items-center"
+                    >
+                      <LinkIcon className="w-4 h-4 mr-1 text-white" />
+                      <Text className="text-white underline">
+                        {userData.website}
+                      </Text>
+                    </TouchableOpacity>
+                  )}
+                  {/* {currentProfileData.joinedDate !== "N/A" && (
                   <View className="items-center">
                     <Calendar className="text-gray-400" />
                     <Text className="text-gray-400">
@@ -399,60 +406,66 @@ export default function PublicProfilePageWithId() {
                     </Text>
                   </View>
                 )} */}
+                </View>
               </View>
             </View>
+          )}
+
+          {/* Tabs */}
+          <View className="mt-6">
+            <View className="flex-1 flex-row justify-around items-center">
+              <TouchableOpacity
+                className={`pb-4 flex-1 items-center justify-center`}
+                onPress={() => setActiveTab("long")}
+              >
+                <PaperclipIcon
+                  color={activeTab === "long" ? "white" : "gray"}
+                />
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                className={`pb-4 flex-1 items-center justify-center`}
+                onPress={() => setActiveTab("repost")}
+              >
+                <Image
+                  source={require("../../../../assets/images/repost.png")}
+                  className="w-6 h-6"
+                  tintColor={activeTab === "repost" ? "white" : "gray"} // Apply tintColor for coloring images
+                />
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                className={`pb-4 flex-1 items-center justify-center`}
+                onPress={() => setActiveTab("liked")}
+              >
+                <HeartIcon
+                  color={activeTab === "liked" ? "white" : "gray"}
+                  fill={activeTab === "liked" ? "white" : ""}
+                />
+              </TouchableOpacity>
+            </View>
           </View>
-        )}
 
-        {/* Tabs */}
-        <View className="mt-6">
-          <View className="flex-1 flex-row justify-around items-center">
-            <TouchableOpacity
-              className={`pb-4 flex-1 items-center justify-center`}
-              onPress={() => setActiveTab("long")}
-            >
-              <PaperclipIcon color={activeTab === "long" ? "white" : "gray"} />
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              className={`pb-4 flex-1 items-center justify-center`}
-              onPress={() => setActiveTab("repost")}
-            >
-              <Image
-                source={require("../../../../assets/images/repost.png")}
-                className="w-6 h-6"
-                tintColor={activeTab === "repost" ? "white" : "gray"} // Apply tintColor for coloring images
-              />
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              className={`pb-4 flex-1 items-center justify-center`}
-              onPress={() => setActiveTab("liked")}
-            >
-              <HeartIcon
-                color={activeTab === "liked" ? "white" : "gray"}
-                fill={activeTab === "liked" ? "white" : ""}
-              />
-            </TouchableOpacity>
-          </View>
+          {/* --- */}
+          {isLoadingVideos ? (
+            <View className="w-full h-96 flex-1 items-center justify-center mt-20">
+              <ActivityIndicator size="large" color="#F1C40F" />
+            </View>
+          ) : (
+            <FlatList
+              data={videos}
+              keyExtractor={(item) => item._id}
+              renderItem={renderGridItem}
+              numColumns={3}
+              contentContainerStyle={{
+                paddingBottom: 30,
+                paddingHorizontal: 0,
+              }}
+              showsVerticalScrollIndicator={false}
+            />
+          )}
         </View>
-
-        {/* --- */}
-        {isLoadingVideos ? (
-          <View className="w-full h-96 flex-1 items-center justify-center mt-20">
-            <ActivityIndicator size="large" color="#F1C40F" />
-          </View>
-        ) : (
-          <FlatList
-            data={videos}
-            keyExtractor={(item) => item._id}
-            renderItem={renderGridItem}
-            numColumns={3}
-            contentContainerStyle={{ paddingBottom: 30, paddingHorizontal: 0 }}
-            showsVerticalScrollIndicator={false}
-          />
-        )}
-      </View>
+      )}
     </ThemedView>
   );
 }

@@ -181,7 +181,6 @@ export default function PersonalProfilePage() {
   return (
     <ThemedView className="flex-1">
       <ScrollView className="flex-1">
-        {/* Cover Image */}
         {!isLoading && (
           <View className="h-48 relative">
             <ProfileTopbar hashtag={false} name={currentProfileData.username} />

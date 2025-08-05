@@ -1,38 +1,49 @@
 import React from "react";
 import { Modal, View, Text, Pressable, StyleSheet, Image } from "react-native";
+import { GiftType } from "../VideoFeed";
 
 type ActionModalProps = {
   isVisible: boolean;
   onClose: (value: boolean) => void;
   message: any;
-  giftData: {
-    creator: {
-      _id: string;
-      profile?: string;
-      name: string;
-      username: string;
-    };
-    videoId: string;
-  };
-  setGiftData: (value: null)=> void;
-  giftMessage: (value: null)=> void;
+  giftData: GiftType | null;
+  setGiftData: (value: null) => void;
+  giftMessage: (value: null) => void;
 };
 
-const GiftingMessage = ({ isVisible, onClose, message, giftData, setGiftData, giftMessage }: ActionModalProps) => {
+const GiftingMessage = ({
+  isVisible,
+  onClose,
+  message,
+  giftData,
+  setGiftData,
+  giftMessage,
+}: ActionModalProps) => {
   return (
     <Modal
       animationType="fade"
       transparent={true}
       visible={isVisible}
-      onRequestClose={() => {onClose(false); setGiftData(null); giftMessage(null);}} // Allows closing with the back button on Android
+      onRequestClose={() => {
+        onClose(false);
+        setGiftData(null);
+        giftMessage(null);
+      }} // Allows closing with the back button on Android
     >
       {/* Semi-transparent backdrop */}
-      <Pressable style={styles.backdrop} onPress={() => {onClose(false); setGiftData(null); giftMessage(null);}}>
+      <Pressable
+        style={styles.backdrop}
+        onPress={() => {
+          onClose(false);
+          setGiftData(null);
+          giftMessage(null);
+        }}
+      >
         <View className="rounded-full bg-gray-500">
           <Image
             source={
-              profile
-                ? { uri: profile }
+              giftData?.creator.profile_photo
+                ? { uri: giftData?.creator.profile_photo }
                 : require("../../../../assets/images/user.png")
             }
             className="size-10 rounded-full"

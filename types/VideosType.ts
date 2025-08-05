@@ -11,33 +11,40 @@ export type VideoItemType = {
   hidden_at: null;
   name: string;
   description: string;
-  thumbnailUrl?: string;
+  thumbnailUrl: string;
   likes: number;
   gifts: number;
   shares: number;
   views: number;
+  gifts: number;
   genre: string;
   type: string;
+  is_monetized: boolean;
   language: string;
   age_restriction: boolean;
-  //   series: null;
-  //   episode_number: null;
   season_number: number;
   is_standalone: boolean;
 
   comments?: Comment[];
 
-  created_by?: {
+  created_by: {
     _id: string;
     username: string;
-    email: string;
+    profile_photo: string;
   };
 
-  community?: {
+  community: {
+    _id: string;
     name: string;
-  };
-  
-  series?: {
+  } | null;
+
+  series: {
+    _id: string;
     title: string;
-  };
+    type: string;
+    price: number;
+    total_episodes: number;
+    episodes: [];
+  } | null;
+  episode_number: number | null;
 };

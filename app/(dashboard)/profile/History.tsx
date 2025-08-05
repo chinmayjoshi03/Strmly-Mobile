@@ -36,7 +36,7 @@ const HistoryPage = () => {
         {
           method: "GET",
           headers: {
-            Authorization: `Bearer ${token}`,
+            Authorization: `Bearer ${'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI2ODkwNTI2MDRlMmNkNjE5YTZkN2I2YTYiLCJpYXQiOjE3NTQyODg3MzYsImV4cCI6MTc1Njg4MDczNn0.WMl7fDTW7eiPtWIeyqaJRA8J-nvJYHzJPtnmbWRXC70'}`,
           },
         }
       );
@@ -56,7 +56,9 @@ const HistoryPage = () => {
       try {
         setIsLoadingVideos(true);
         const res = await fetchUserHistory(token);
-        setVideos(res.videos); // This is the formatted array from backend
+        setVideos(()=> res.videos); // This is the formatted array from backend
+        setVideos(()=> res.videos); // This is the formatted array from backend
+        setVideos(()=> res.videos); // This is the formatted array from backend
       } catch (err) {
         console.error("Failed to load history", err);
       } finally {
@@ -97,7 +99,7 @@ const HistoryPage = () => {
           <ActivityIndicator size="large" color="white" />
         </View>
       ) : (
-        <>
+        <View className="gap-10">
           <ProfileTopbar isMore={false} hashtag={false} name={"History"} />
 
           <FlatList
@@ -105,10 +107,10 @@ const HistoryPage = () => {
             keyExtractor={(item) => item._id}
             renderItem={renderGridItem}
             numColumns={3}
-            contentContainerStyle={{ paddingBottom: 30, paddingHorizontal: 0 }}
+            contentContainerStyle={{ paddingBottom: 0, paddingHorizontal: 0 }}
             showsVerticalScrollIndicator={false}
           />
-        </>
+        </View>
       )}
     </ThemedView>
   );

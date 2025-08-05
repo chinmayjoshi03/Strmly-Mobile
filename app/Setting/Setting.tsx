@@ -1,13 +1,26 @@
-import { View, Text, Pressable, Image, Linking } from "react-native";
+import {
+  View,
+  Text,
+  Pressable,
+  Image,
+  Linking,
+  Alert,
+  ActivityIndicator,
+} from "react-native";
 import React, { useState } from "react";
 import ThemedView from "@/components/ThemedView";
 import ProfileTopbar from "@/components/profileTopbar";
 import ActionModal from "./_component/customModal";
+import { useAuthStore } from "@/store/useAuthStore";
+import { router } from "expo-router";
+import Constants from "expo-constants";
 
 const Setting = () => {
   const [toggleMonetization, setToggleMonetization] = useState(false);
+  const [isMonetizationLoading, setIsMonetizationLoading] = useState(false);
+  const { logout, token } = useAuthStore();
+  const BACKEND_API_URL = Constants.expoConfig?.extra?.BACKEND_API_URL;
 
-  // 1. Use a single state object to manage modal configuration.
   const [modalConfig, setModalConfig] = useState({
     isVisible: false,
     title: "",
@@ -16,9 +29,10 @@ const Setting = () => {
     primaryButtonText: "",
     onPrimaryButtonPress: () => {},
     secondaryButtonText: "",
+    info: "",
+    confirmRequest: "",
   });
 
-  // 2. Create generic functions to open and close the modal.
   const openModal = (config) => {
     setModalConfig({ ...config, isVisible: true });
   };
@@ -27,59 +41,74 @@ const Setting = () => {
     setModalConfig((prev) => ({ ...prev, isVisible: false }));
   };
 
-  // 3. Define handler functions for primary actions.
+  const handleMonetization = async () => {
+    setIsMonetizationLoading(true);
+    try {
+      const response = await fetch(
+        `${BACKEND_API_URL}/user/toggle-comment-monetization`,
+        {
+          method: "PUT",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || "Failed to change Monetization.");
+      }
+      setToggleMonetization(!toggleMonetization);
+    } catch (error) {
+      setIsMonetizationLoading(false);
+      Alert.alert(
+        "Error",
+        error.message || "Failed to update monetization settings"
+      );
+    } finally {
+      setIsMonetizationLoading(false);
+      closeModal();
+    }
+  };
+
   const handleLogout = () => {
-    console.log("Logging out...");
-    // Add your logout logic here (e.g., clear tokens, navigate to login)
-    closeModal();
+    logout();
+    router.replace("/(auth)/Sign-in");
   };
 
   const handleDeleteAccount = () => {
-    console.log("Deleting account...");
-    // Add your account deletion API call here
-    closeModal();
+    Alert.alert(
+      "Account Deletion Request Submitted",
+      "Your request has been received. Please check back in 2-4 days to complete the deletion process.",
+      [{ text: "OK", onPress: closeModal }]
+    );
   };
 
-  const openURL = async (url) => {
+  const openURL = async (url: string) => {
     const supported = await Linking.canOpenURL(url);
     if (supported) {
       await Linking.openURL(url);
     } else {
-      console.log(`Don't know how to open this URL: ${url}`);
+      Alert.alert("Error", "Could not open the link");
     }
-    closeModal();
   };
 
-  // 4. Define configuration objects for each modal type.
   const modalTypes = {
     support: {
       title:
         "For any questions or support, please email us at team@strmly.com. We aim to respond within 24–48 hours.",
       useButtons: false,
     },
-    privacy: {
-      title:
-        "Our Privacy Policy details how we collect, use, and protect your data.",
-      useButtons: true,
-      primaryButtonText: "View Policy",
-      onPrimaryButtonPress: () => openURL("https://strmly.com/privacy"), // Replace with your URL
-      secondaryButtonText: "Close",
-    },
-    terms: {
-      title: "Our Terms of Use govern your use of our services.",
-      useButtons: true,
-      specialText: true,
-      primaryButtonText: "View Terms",
-      onPrimaryButtonPress: () => openURL("https://strmly.com/terms"), // Replace with your URL
-      secondaryButtonText: "Close",
-    },
     monetization: {
-      title:
-        "By enabling Comment Monetization, your new comments will be monetized and can’t be edited or deleted. To edit or delete future comments, you must first turn off monetization. Strmly may revoke access in case of abuse or policy violations. By continuing, you agree to our",
+      title: !toggleMonetization
+        ? "By enabling Comment Monetization, your new comments will be monetized and can't be edited or deleted. To edit or delete future comments, you must first turn off monetization. Strmly may revoke access in case of abuse or policy violations. By continuing, you agree to our"
+        : "By turning off Comment Monetization, your future comments will no longer be monetized and can be edited or deleted as usual. Previously monetized comments will remain locked and cannot be changed. By continuing, you agree to our",
       specialText: true,
       useButtons: true,
       primaryButtonText: "Agree",
-      onPrimaryButtonPress: handleLogout,
+      onPrimaryButtonPress: handleMonetization,
       secondaryButtonText: "Cancel",
     },
     logout: {
@@ -90,12 +119,22 @@ const Setting = () => {
       secondaryButtonText: "Cancel",
     },
     delete: {
-      title: "This action is irreversible. Are you sure you want to permanently delete your account?",
+      title: `Before sending this request, ensure that your Creator Pass has been deactivated for at least one month, and you have transferred ownership of all your communities. After submitting the request, you must not monetize new content, series, comments, or create new communities. If you do, your request will be denied.
+
+The review process takes 2–4 days. During this time, you can still access your account, but certain actions like monetization creation will be restricted.
+
+Once approved, the "Delete Account" button will be activated in your settings. After deletion, all your personal data will be permanently removed. Your monetized content will remain accessible only to users who have already paid, but it will be unpublished and hidden from others.
+
+By submitting this request, you confirm that you understand and agree to our`,
+      confirmRequest:
+        "Are you sure you want to send request to activate “Delete Account” ? This action is irreversible and cannot be undone.",
       useButtons: true,
-      primaryButtonText: "Delete",
+      specialText: true,
+      primaryButtonText: "Agree",
       onPrimaryButtonPress: handleDeleteAccount,
       secondaryButtonText: "Cancel",
-    }
+      info: "Delete",
+    },
   };
 
   return (
@@ -105,49 +144,67 @@ const Setting = () => {
       </View>
 
       <View className="mt-14 items-start mx-5 gap-5 w-full">
-        {/* --- Monetization Toggle --- */}
+        {/* Monetization Toggle */}
         <View className="flex-row items-center justify-between w-full">
           <Text className="text-white text-lg">
             Activate comment monetization
           </Text>
-          <Pressable
-            onPress={() => openModal(modalTypes.monetization)}
-            className="mr-6"
-          >
-            <Image
-              source={
-                toggleMonetization
-                  ? require("../../assets/images/switch-green.png")
-                  : require("../../assets/images/switch.png")
-              }
-              className="size-6"
-            />
-          </Pressable>
+          {isMonetizationLoading ? (
+            <ActivityIndicator className="size-6 mr-6" />
+          ) : (
+            <Pressable
+              onPress={() => openModal(modalTypes.monetization)}
+              className="mr-6"
+            >
+              <Image
+                source={
+                  toggleMonetization
+                    ? require("../../assets/images/switch-green.png")
+                    : require("../../assets/images/switch.png")
+                }
+                className="size-6"
+              />
+            </Pressable>
+          )}
         </View>
 
-        {/* --- Action Buttons --- */}
-        <Pressable onPress={() => openModal(modalTypes.support)}>
+        {/* Action Buttons */}
+        <Pressable
+          onPress={() => openModal(modalTypes.support)}
+          className="w-full"
+        >
           <Text className="text-white text-lg">Contact and Support</Text>
         </Pressable>
 
-        <Pressable onPress={() => openModal(modalTypes.privacy)}>
+        <Pressable
+          onPress={() => openURL("https://strmly.com/privacy")}
+          className="w-full"
+        >
           <Text className="text-white text-lg">Privacy Policy</Text>
         </Pressable>
 
-        <Pressable onPress={() => openModal(modalTypes.terms)}>
+        <Pressable
+          onPress={() => openURL("https://strmly.com/terms")}
+          className="w-full"
+        >
           <Text className="text-white text-lg">Term of Use</Text>
         </Pressable>
 
-        <Pressable onPress={() => openModal(modalTypes.logout)}>
+        <Pressable
+          onPress={() => openModal(modalTypes.logout)}
+          className="w-full"
+        >
           <Text className="text-white text-lg">Logout</Text>
         </Pressable>
 
-        <Pressable onPress={() => openModal(modalTypes.delete)}>
+        <Pressable
+          onPress={() => openModal(modalTypes.delete)}
+          className="w-full"
+        >
           <Text className="text-red-500 text-lg">Delete Account</Text>
         </Pressable>
       </View>
 
-      {/* 5. Render a single modal, driven by the config state. */}
       <ActionModal
         isVisible={modalConfig.isVisible}
         onClose={closeModal}
@@ -158,6 +215,8 @@ const Setting = () => {
         onPrimaryButtonPress={modalConfig.onPrimaryButtonPress}
         secondaryButtonText={modalConfig.secondaryButtonText}
         onSecondaryButtonPress={closeModal}
+        info={modalConfig.info}
+        confirmRequest={modalConfig.confirmRequest}
       />
     </ThemedView>
   );

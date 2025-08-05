@@ -43,6 +43,7 @@ const VideoFeed: React.FC = () => {
 
   const [visibleIndex, setVisibleIndex] = useState(0);
   const { token, user, isLoggedIn } = useAuthStore();
+  const [videosPage, setVideosPage] = useState(1);
 
   const [showCommentsModal, setShowCommentsModal] = useState(false);
   const [isWantToGift, setIsWantToGift] = useState(false);
