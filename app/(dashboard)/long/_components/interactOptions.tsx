@@ -3,13 +3,12 @@ import React, { useEffect, useState } from "react";
 import { FontAwesome } from "@expo/vector-icons";
 import { useAuthStore } from "@/store/useAuthStore";
 import Constants from "expo-constants";
-import { GiftType } from "../VideoFeed";
 
 // Define props type for InteractOptions
 type GiftDataType = {
   creator: {
     _id: string;
-    profile?: string;
+    profile_photo: string;
     name: string;
     username: string;
   };
@@ -27,7 +26,7 @@ type InteractOptionsProps = {
   setGiftingData: (data: GiftDataType) => void;
   creator: {
     _id: string;
-    profile?: string;
+    profile_photo: string;
     name: string;
     username: string;
   };

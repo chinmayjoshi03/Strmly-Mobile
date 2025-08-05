@@ -14,11 +14,13 @@ import { Play } from "lucide-react-native";
 import CommentsSection from "./_components/CommentSection";
 import { VideoItemType } from "@/types/VideosType";
 import { router } from "expo-router";
+import { useAuthStore } from "@/store/useAuthStore";
+import VideoProgressBar from "./_components/VideoProgressBar";
 
 type GiftDataType = {
   creator: {
     _id: string;
-    profile?: string;
+    profile_photo: string;
     name: string;
     username: string;
   };
@@ -236,7 +238,7 @@ const VideoItem = ({
             _id: videoData.created_by?._id || '',
             username: videoData.created_by?.username || '',
             name: videoData.created_by?.username || '', // Use username as name fallback
-            profile: undefined // Optional field
+            profile_photo: videoData.created_by?.profile_photo || ''
           }}
           setGiftingData={setGiftingData}
           setIsWantToGift={setIsWantToGift}

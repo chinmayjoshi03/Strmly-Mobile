@@ -14,7 +14,7 @@ import GiftingMessage from "./_components/GiftingMessage";
 type GiftDataType = {
   creator: {
     _id: string;
-    profile?: string;
+    profile_photo: string;
     name: string;
     username: string;
   };
@@ -164,6 +164,7 @@ const VideoFeed: React.FC = () => {
           keyExtractor={(item) => item._id}
           renderItem={({ item, index }) => (
             <VideoItem
+              BACKEND_API_URL={BACKEND_API_URL || ''}
               setGiftingData={setGiftingData}
               showCommentsModal={showCommentsModal}
               setShowCommentsModal={setShowCommentsModal}
