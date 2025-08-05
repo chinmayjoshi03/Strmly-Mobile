@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StatusBar, Image, ActivityIndicator } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, StatusBar, Image, ActivityIndicator, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import Svg, { Path } from 'react-native-svg';
@@ -10,7 +10,9 @@ import SeriesDetailsScreen from './screens/SeriesDetailsScreen';
 import { Series } from './types';
 import { useStudioDrafts } from './hooks/useStudioDrafts';
 import { useSeries } from './hooks/useSeries';
-import { router } from 'expo-router';
+import { useDeleteActions } from './hooks/useDeleteActions';
+import DropdownMenu from './components/DropdownMenu';
+import { CONFIG } from '../../Constants/config';
 
 
 
@@ -20,6 +22,8 @@ const StrmlyStudio = () => {
     const [currentScreen, setCurrentScreen] = useState<'main' | 'upload' | 'series-creation' | 'series-selection' | 'series-analytics' | 'series-details'>('main');
     const [selectedSeriesForAnalytics, setSelectedSeriesForAnalytics] = useState<Series | null>(null);
     const [selectedSeriesId, setSelectedSeriesId] = useState<string | null>(null);
+    const [editingDraftId, setEditingDraftId] = useState<string | null>(null);
+    const [editingDraftData, setEditingDraftData] = useState<any>(null);
 
     // Debug state changes
     console.log('🎬 Studio State:', {
@@ -30,7 +34,8 @@ const StrmlyStudio = () => {
 
     // Use the real drafts and series hooks
     const { drafts, loading: draftsLoading, error: draftsError, refetch: refetchDrafts } = useStudioDrafts();
-    const { series, loading: seriesLoading, error: seriesError, refetch: refetchSeries } = useSeries();
+    const { series, loading: seriesLoading, error: seriesError, refetch: refetchSeries, refreshKey } = useSeries();
+    const { deleteDraft, deleteSeries, confirmDelete } = useDeleteActions();
 
     // Navigation handlers
     const goToUploadFlow = () => {
@@ -63,12 +68,50 @@ const StrmlyStudio = () => {
     // Handle upload flow completion
     const handleUploadComplete = () => {
         refetchDrafts();
+        setEditingDraftId(null);
+        setEditingDraftData(null);
         goToMain();
     };
 
     // Handle upload flow cancellation
     const handleUploadCancel = () => {
+        setEditingDraftId(null);
+        setEditingDraftData(null);
         goToMain();
+    };
+
+    // Handle draft editing
+    const handleEditDraft = async (draftId: string) => {
+        console.log('📝 Editing draft:', draftId);
+        try {
+            // Fetch full draft data
+            const { token } = require('@/store/useAuthStore').useAuthStore.getState();
+            if (!token) {
+                console.error('No auth token available');
+                return;
+            }
+
+            const response = await fetch(`${CONFIG.API_BASE_URL}/api/v1/drafts/${draftId}`, {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json',
+                },
+            });
+
+            if (!response.ok) {
+                throw new Error('Failed to fetch draft details');
+            }
+
+            const data = await response.json();
+            console.log('📋 Fetched draft data for editing:', data.draft);
+            setEditingDraftId(draftId);
+            setEditingDraftData(data.draft);
+            setCurrentScreen('upload');
+        } catch (error) {
+            console.error('Error fetching draft for editing:', error);
+            // Could show an alert here
+        }
     };
 
     // Handle series creation completion
@@ -98,12 +141,53 @@ const StrmlyStudio = () => {
         goToMain();
     };
 
+    // Handle draft deletion
+    const handleDeleteDraft = async (draftId: string, draftName: string) => {
+        confirmDelete('draft', draftName, async () => {
+            try {
+                await deleteDraft(draftId);
+                refetchDrafts(); // Refresh the drafts list
+            } catch (error) {
+                console.error('Failed to delete draft:', error);
+                Alert.alert(
+                    'Delete Failed',
+                    `Failed to delete draft "${draftName}". ${error instanceof Error ? error.message : 'Please try again.'}`,
+                    [{ text: 'OK' }]
+                );
+            }
+        });
+    };
+
+    // Handle series deletion
+    const handleDeleteSeries = async (seriesId: string, seriesName: string) => {
+        confirmDelete('series', seriesName, async () => {
+            try {
+                console.log('🗑️ Starting series deletion for:', seriesId);
+                await deleteSeries(seriesId);
+                console.log('✅ Series deleted successfully, refreshing list...');
+                
+                // Immediately refresh the series list
+                refetchSeries();
+                console.log('🔄 Series list refresh triggered immediately');
+                
+            } catch (error) {
+                console.error('Failed to delete series:', error);
+                Alert.alert(
+                    'Delete Failed',
+                    `Failed to delete series "${seriesName}". ${error instanceof Error ? error.message : 'Please try again.'}`,
+                    [{ text: 'OK' }]
+                );
+            }
+        });
+    };
+
     // Render screens based on currentScreen state
     if (currentScreen === 'upload') {
         return (
             <VideoUploadFlow
                 onComplete={handleUploadComplete}
                 onCancel={handleUploadCancel}
+                draftData={editingDraftData}
             />
         );
     }
@@ -134,8 +218,8 @@ const StrmlyStudio = () => {
                 seriesId={selectedSeriesId}
                 onBack={goToMain}
                 onAddNewEpisode={() => {
-                    // TODO: Navigate to episode creation
-                    console.log('Add new episode clicked');
+                    console.log('📤 Going to upload flow from series details');
+                    goToUploadFlow();
                 }}
             />
         );
@@ -160,7 +244,7 @@ const StrmlyStudio = () => {
             <StatusBar barStyle="light-content" backgroundColor="#000" />
 
             {/* Header */}
-            <View className="flex-row items-center justify-between px-4 py-3 mt-12">
+            <View className="flex-row items-center justify-between px-4 py-3 mt-8">
                 <TouchableOpacity>
                     <Ionicons name="chevron-back" size={24} color="white" />
                 </TouchableOpacity>
@@ -189,7 +273,7 @@ const StrmlyStudio = () => {
             </View>
 
             {/* Content List */}
-            <ScrollView className="flex-1 px-4">
+            <ScrollView className="flex-1 px-4" contentContainerStyle={{ paddingBottom: 20 }}>
                 {activeTab === 'draft' ? (
                     // Drafts List
                     <>
@@ -225,8 +309,8 @@ const StrmlyStudio = () => {
                                 <TouchableOpacity
                                     key={draft.id}
                                     onPress={() => {
-                                        console.log('🎬 Opening draft:', draft.id);
-                                        router.push(`/studio/components/DraftVideoPlayer?id=${draft.id}`);
+                                        console.log('🎬 Opening draft for editing:', draft.id);
+                                        handleEditDraft(draft.id);
                                     }}
                                 >
                                     <LinearGradient
@@ -270,9 +354,17 @@ const StrmlyStudio = () => {
                                             )}
                                         </View>
 
-                                        <TouchableOpacity className="p-2">
-                                            <Ionicons name="ellipsis-vertical" size={20} color="#9CA3AF" />
-                                        </TouchableOpacity>
+                                        <DropdownMenu
+                                            options={[
+                                                {
+                                                    id: 'delete',
+                                                    label: 'Delete',
+                                                    icon: 'trash-outline',
+                                                    color: '#EF4444',
+                                                    onPress: () => handleDeleteDraft(draft.id, draft.title),
+                                                },
+                                            ]}
+                                        />
                                     </LinearGradient>
                                 </TouchableOpacity>
                             ))
@@ -333,7 +425,8 @@ const StrmlyStudio = () => {
                                 </Text>
                             </View>
                         ) : (
-                            series.map((seriesItem) => (
+                            <View key={refreshKey}>
+                                {series.map((seriesItem) => (
                                 <TouchableOpacity
                                     key={seriesItem.id}
                                     onPress={() => goToSeriesDetails(seriesItem.id)}
@@ -387,16 +480,29 @@ const StrmlyStudio = () => {
                                                 {seriesItem.views} views
                                             </Text>
                                         </View>
+
+                                        <DropdownMenu
+                                            options={[
+                                                {
+                                                    id: 'delete',
+                                                    label: 'Delete',
+                                                    icon: 'trash-outline',
+                                                    color: '#EF4444',
+                                                    onPress: () => handleDeleteSeries(seriesItem.id, seriesItem.title),
+                                                },
+                                            ]}
+                                        />
                                     </LinearGradient>
                                 </TouchableOpacity>
-                            ))
+                                ))}
+                            </View>
                         )}
                     </>
                 )}
             </ScrollView>
 
             {/* Bottom Section */}
-            <View className="px-4 pb-8">
+            <View className="px-4 py-4" style={{ marginBottom: 80 }}>
                 {/* Action Button */}
                 <TouchableOpacity
                     className="bg-gray-200 rounded-full py-4 items-center"

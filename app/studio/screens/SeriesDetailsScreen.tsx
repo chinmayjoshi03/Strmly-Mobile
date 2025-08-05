@@ -13,6 +13,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { CONFIG } from '@/Constants/config';
 import { useAuthStore } from '@/store/useAuthStore';
 import { router } from 'expo-router';
+import EpisodeList from '../components/EpisodeList';
 
 interface SeriesDetailsScreenProps {
   seriesId: string;
@@ -57,13 +58,19 @@ interface SeriesData {
 
 interface Episode {
   _id: string;
-  name: string; // LongVideo uses 'name' not 'title'
-  createdAt: string; // LongVideo uses 'createdAt' not 'upload_date'
-  views: number;
-  likes: number; // LongVideo has 'likes' not 'conversions'
+  name: string;
+  description: string;
+  videoUrl: string;
+  thumbnailUrl: string;
   episode_number: number;
   season_number: number;
-  thumbnailUrl?: string;
+  created_by: {
+    _id: string;
+    username: string;
+    email: string;
+  };
+  views?: number;
+  likes?: number;
 }
 
 const SeriesDetailsScreen: React.FC<SeriesDetailsScreenProps> = ({
@@ -91,7 +98,8 @@ const SeriesDetailsScreen: React.FC<SeriesDetailsScreenProps> = ({
 
       console.log(`Fetching series details for ID: ${seriesId}`);
 
-      const response = await fetch(`${CONFIG.API_BASE_URL}/api/v1/series/${seriesId}?t=${Date.now()}`, {
+      // Use the user series API to get series with episodes
+      const response = await fetch(`${CONFIG.API_BASE_URL}/api/v1/series/user?t=${Date.now()}`, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -100,12 +108,20 @@ const SeriesDetailsScreen: React.FC<SeriesDetailsScreenProps> = ({
       });
 
       const result = await response.json();
-      console.log('Series details response:', result);
-      console.log('Episodes data:', result.data?.episodes);
-      console.log('Total episodes:', result.data?.total_episodes);
+      console.log('User series response:', result);
 
       if (response.ok && result.data) {
-        setSeriesData(result.data);
+        // Find the specific series by ID
+        const foundSeries = result.data.find((series: any) => series._id === seriesId);
+        
+        if (foundSeries) {
+          console.log('Found series:', foundSeries);
+          console.log('Episodes data:', foundSeries.episodes);
+          console.log('Total episodes:', foundSeries.total_episodes);
+          setSeriesData(foundSeries);
+        } else {
+          setError('Series not found');
+        }
       } else {
         setError(result.error || 'Failed to fetch series details');
       }
@@ -211,6 +227,7 @@ const SeriesDetailsScreen: React.FC<SeriesDetailsScreenProps> = ({
 
       <ScrollView
         className="flex-1"
+        contentContainerStyle={{ paddingBottom: 20 }}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
@@ -225,7 +242,7 @@ const SeriesDetailsScreen: React.FC<SeriesDetailsScreenProps> = ({
           <View className="flex-row items-center justify-between mb-4">
             <View>
               <Text className="text-white text-lg font-medium">
-                Total episode: {seriesData.total_episodes.toString().padStart(2, '0')}
+                Total episode: {(seriesData.total_episodes || 0).toString().padStart(2, '0')}
               </Text>
               <Text className="text-gray-400 text-sm">
                 Launch on {formatDate(seriesData.release_date)}
@@ -237,13 +254,13 @@ const SeriesDetailsScreen: React.FC<SeriesDetailsScreenProps> = ({
           <View className="flex-row justify-between mb-8">
             <View className="items-center">
               <Text className="text-white text-2xl font-bold">
-                {formatNumber(seriesData.analytics.total_views)}
+                {formatNumber(seriesData.analytics?.total_views || 0)}
               </Text>
               <Text className="text-gray-400 text-sm">Total view</Text>
             </View>
             <View className="items-center">
               <Text className="text-white text-2xl font-bold">
-                ₹{formatNumber(seriesData.total_earned)}
+                ₹{formatNumber(seriesData.total_earned || 0)}
               </Text>
               <Text className="text-gray-400 text-sm">Total earning</Text>
             </View>
@@ -252,70 +269,12 @@ const SeriesDetailsScreen: React.FC<SeriesDetailsScreenProps> = ({
 
         {/* Episodes List */}
         <View className="px-4">
-          {seriesData.episodes.length > 0 ? (
-            seriesData.episodes.map((episode, index) => (
-              <TouchableOpacity
-                key={episode._id}
-                onPress={() => {
-                  console.log('🎬 Opening episode:', episode._id);
-                  router.push(`/studio/components/EpisodeVideoPlayer?id=${episode._id}`);
-                }}
-                className="flex-row items-center mb-4 bg-gray-900 rounded-lg p-3"
-              >
-                {/* Episode Thumbnail */}
-                <View className="w-12 h-12 rounded-lg mr-3 overflow-hidden bg-gray-700">
-                  {episode.thumbnailUrl ? (
-                    <Image
-                      source={{ uri: episode.thumbnailUrl }}
-                      className="w-full h-full"
-                      resizeMode="cover"
-                    />
-                  ) : (
-                    <View className="w-full h-full items-center justify-center">
-                      <Text className="text-gray-400 text-xs">EP</Text>
-                    </View>
-                  )}
-                </View>
-
-                {/* Episode Info */}
-                <View className="flex-1">
-                  <Text className="text-white text-base font-medium mb-1">
-                    Episode {episode.episode_number}: {episode.name}
-                  </Text>
-                  <Text className="text-gray-400 text-sm">
-                    Upload on {formatDate(episode.createdAt)}
-                  </Text>
-                </View>
-
-                {/* Episode Stats */}
-                <View className="items-center mr-4">
-                  <Text className="text-white text-base font-medium">
-                    {formatNumber(episode.views)}
-                  </Text>
-                  <Text className="text-gray-400 text-xs">View</Text>
-                </View>
-
-                <View className="items-center mr-4">
-                  <Text className="text-white text-base font-medium">
-                    {formatNumber(episode.likes)}
-                  </Text>
-                  <Text className="text-gray-400 text-xs">Likes</Text>
-                </View>
-
-                {/* Menu Button */}
-                <TouchableOpacity className="p-2">
-                  <Ionicons name="ellipsis-vertical" size={16} color="#9CA3AF" />
-                </TouchableOpacity>
-              </TouchableOpacity>
-            ))
-          ) : (
-            <View className="items-center py-8">
-              <Text className="text-gray-400 text-center">No episodes yet</Text>
-              <Text className="text-gray-500 text-center text-sm mt-2">
-                Add your first episode to get started
-              </Text>
-            </View>
-          )}
+          <EpisodeList 
+            episodes={seriesData.episodes || []}
+            seriesTitle={seriesData.title}
+            seriesId={seriesData._id}
+            onEpisodeDeleted={() => fetchSeriesDetails(false)}
+          />
         </View>
 
         {/* Add some bottom padding */}
@@ -323,7 +282,7 @@ const SeriesDetailsScreen: React.FC<SeriesDetailsScreenProps> = ({
       </ScrollView>
 
       {/* Add New Episode Button */}
-      <View className="px-4 pb-8">
+      <View className="px-4 py-4" style={{ marginBottom: 80 }}>
         <TouchableOpacity
           onPress={onAddNewEpisode}
           className="bg-gray-200 rounded-full py-4 items-center"

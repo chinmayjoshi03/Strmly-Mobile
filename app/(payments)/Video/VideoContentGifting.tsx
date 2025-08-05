@@ -16,25 +16,43 @@ import {
 } from "react-native";
 import CreatorInfo from "./_components/CreatorInfo";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useLocalSearchParams } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
+import { useAuthStore } from "@/store/useAuthStore";
+import Constants from "expo-constants";
 
-type CreatorData = {
-  creator: {
-    _id: string;
-    profile?: string;
-    name: string;
-    username: string;
+const BACKEND_API_URL = Constants.expoConfig?.extra?.BACKEND_API_URL;
+
+type GiftingData = {
+  giftData: {
+    creator: {
+      _id: string;
+      profile?: string;
+      name: string;
+      username: string;
+    };
+    videoId: string;
   };
+  setIsWantToGift: (value: boolean) => void;
+  setIsGifted: (value: boolean) => void;
+  giftMessage: any;
 };
 
-const VideoContentGifting = ({ creator }: CreatorData) => {
+const VideoContentGifting = ({
+  giftData,
+  setIsWantToGift,
+  setIsGifted,
+  giftMessage,
+}: GiftingData) => {
   const [amount, setAmount] = useState("");
+  const [walletInfo, setWalletInfo] = useState({});
   const [loading, setLoading] = useState(false);
 
   const keyboardHeight = useRef(new Animated.Value(0)).current;
 
   const insets = useSafeAreaInsets();
   const animatedBottom = useRef(new Animated.Value(insets.bottom)).current;
+
+  const { token, isLoggedIn } = useAuthStore();
 
   const handleAmountChange = (text: string) => {
     const filtered = text.replace(/[^0-9]/g, "");
@@ -43,7 +61,7 @@ const VideoContentGifting = ({ creator }: CreatorData) => {
 
   const handleProceed = async () => {
     setLoading(true);
-    await new Promise((resolve) => setTimeout(resolve, 2000));
+    await giftVideo();
     setLoading(false);
     Keyboard.dismiss();
   };
@@ -80,6 +98,67 @@ const VideoContentGifting = ({ creator }: CreatorData) => {
     };
   }, []);
 
+  // ------ Wallet Status API --------
+
+  useEffect(() => {
+    const fetchWalletInfo = async () => {
+      if (!token) {
+        return;
+      }
+
+      try {
+        const response = await fetch(`${BACKEND_API_URL}/wallet/`, {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        });
+        if (!response.ok) throw new Error("Failed to fetch wallet info");
+        const data = await response.json();
+        console.log("dWallet data---------------", data.wallet);
+        setWalletInfo(data.wallet);
+        // (data.isLiked);
+      } catch (err) {
+        console.log(err);
+      }
+    };
+
+    if (token) {
+      fetchWalletInfo();
+    }
+  }, [token]);
+
+  // ------------ Transaction -------------------
+
+  const giftVideo = async () => {
+    if (!token && !giftData?.videoId) {
+      return;
+    }
+
+    try {
+      const response = await fetch(
+        `${BACKEND_API_URL}/interaction/gift-video`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ videoId: giftData?.videoId, amount }),
+        }
+      );
+      if (!response.ok) throw new Error("Failed to fetch wallet info");
+      const data = await response.json();
+      console.log("dWallet data---------------", data);
+      giftMessage(data.gift);
+      setIsWantToGift(false);
+      router.back();
+    } catch (err) {
+      console.log(err);
+    }
+  };
+
   return (
     <ThemedView className="flex-1 bg-black">
       <KeyboardAvoidingView
@@ -92,9 +171,9 @@ const VideoContentGifting = ({ creator }: CreatorData) => {
             {/* Top section */}
             <View className="mt-10">
               <CreatorInfo
-                profile={creator.profile}
-                name={creator.name}
-                username={creator.username}
+                profile={giftData?.creator?.profile}
+                name={giftData?.creator?.name}
+                username={giftData?.creator?.username}
               />
             </View>
 
@@ -138,7 +217,9 @@ const VideoContentGifting = ({ creator }: CreatorData) => {
               </Pressable>
 
               <View className="items-center justify-center mt-1">
-                <Text className="text-white text-sm">Total balance ₹10</Text>
+                <Text className="text-white text-sm">
+                  Total balance ₹ {walletInfo.balance}
+                </Text>
               </View>
             </Animated.View>
           </View>

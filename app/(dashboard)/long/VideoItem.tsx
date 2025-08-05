@@ -36,7 +36,6 @@ type Props = {
 const PROGRESS_BAR_HEIGHT = 2; // Keep your original height for the progress bar
 const FULL_SCREEN_PRESSABLE_BOTTOM_OFFSET = PROGRESS_BAR_HEIGHT; // 10px buffer above progress bar
 
-<<<<<<< Updated upstream
 const VideoItem = ({
   uri,
   isActive,
@@ -46,25 +45,17 @@ const VideoItem = ({
   setGiftingData,
   setIsWantToGift,
 }: Props) => {
-=======
-const VideoItem = React.memo(({ uri, isActive, videoData }: Props) => {
->>>>>>> Stashed changes
   const { width, height } = Dimensions.get("screen");
   const player = useVideoPlayer(uri, (p) => {
     p.loop = true;
     p.volume = 1;
-    p.muted = false;
-    // Try to preload the video
-    if (isActive) {
-      p.play();
-    }
   });
 
   const [videoStatus, setVideoStatus] = useState<VideoPlayerStatus | null>(
     null
   );
   const [currentTime, setCurrentTime] = useState(0);
-  const [isPaused, setIsPaused] = useState(!isActive);
+  const [isPaused, setIsPaused] = useState(false);
   const [isFullScreen, setIsFullScreen] = useState(false);
 
   // ADDED: State to track if the watch function has been called for this video
@@ -110,60 +101,31 @@ const VideoItem = React.memo(({ uri, isActive, videoData }: Props) => {
   useEffect(() => {
     const subscription = player.addListener("statusChange", (event) => {
       setVideoStatus(event.status);
-      
-      // Auto-play when video becomes ready and is active
-      if (isActive && (event.status === "readyToPlay" || event.status === "idle")) {
-        player.play();
-        setIsPaused(false);
-      }
+      // Your original statusChange listener did not update isPaused,
+      // so we will respect that and keep isPaused managed by togglePlayPause.
     });
     return () => subscription.remove();
-  }, [player, isActive]);
+  }, [player]);
 
   // MODIFIED: useEffect for isActive changes
   useEffect(() => {
-    console.log('🎬 Video isActive changed:', isActive, 'for video:', videoData.name);
-    
     if (isActive) {
-      // Immediately try to play
       player.play();
-      setIsPaused(false);
-      console.log('▶️ Attempting to play video:', videoData.name);
-      
-      // Also try again after a short delay in case the video wasn't ready
-      const playTimeout = setTimeout(() => {
-        if (isActive) { // Check if still active
-          player.play();
-          setIsPaused(false);
-          console.log('▶️ Retry play for video:', videoData.name);
-        }
-      }, 200);
-      
-      return () => clearTimeout(playTimeout);
     } else {
       player.pause();
-<<<<<<< Updated upstream
       player.currentTime = 0; // Keep your original currentTime reset
       // ADDED: Reset the flag when the video is no longer active
       setHasCalledWatchFunction(false);
-=======
-      setIsPaused(true);
-      console.log('⏸️ Pausing video:', videoData.name);
->>>>>>> Stashed changes
     }
-  }, [isActive, player, videoData.name]);
+  }, [isActive, player]);
 
-<<<<<<< Updated upstream
   // MODIFIED: This effect now starts the timer and checks for the 2% watch condition.
-=======
-  // Optimized timer with less frequent updates to reduce re-renders
->>>>>>> Stashed changes
   useEffect(() => {
-    let interval: ReturnType<typeof setInterval>;
+    let interval: ReturnType<typeof setInterval>; // Corrected type for setInterval return
 
-    if (isActive && !isPaused) {
+    // We only need the timer when the video is the active one.
+    if (isActive) {
       interval = setInterval(() => {
-<<<<<<< Updated upstream
         const currentPlaybackTime = player.currentTime;
         const videoDuration = player.duration ?? 0;
 
@@ -185,22 +147,15 @@ const VideoItem = React.memo(({ uri, isActive, videoData }: Props) => {
         }
         // --- END: NEW LOGIC FOR 2% WATCH ---
       }, 250);
-=======
-        setCurrentTime(player.currentTime);
-      }, 1000); // Reduced frequency from 250ms to 1000ms
->>>>>>> Stashed changes
     }
-    
+    // The cleanup function is crucial to stop the timer when the video is no longer active.
     return () => {
+      // Ensure interval is defined before clearing it
       if (interval) {
         clearInterval(interval);
       }
     };
-<<<<<<< Updated upstream
   }, [isActive, player, hasCalledWatchFunction, handleTwoPercentWatch]); // MODIFIED: Added dependencies
-=======
-  }, [isActive, isPaused, player]);
->>>>>>> Stashed changes
 
   // Callback for when the progress bar container's layout is measured
   const handleProgressBarLayout = (event: LayoutChangeEvent) => {
@@ -229,7 +184,7 @@ const VideoItem = React.memo(({ uri, isActive, videoData }: Props) => {
   };
 
   const duration = player.duration ?? 0;
-  const progress = duration > 0 ? Math.floor((currentTime / duration) * 100) : 0;
+  const progress = duration > 0 ? (currentTime / duration) * 100 : 0;
   const showProgressBar = duration > 0;
 
   // Use `videoStatus ?? ""` to handle null for the includes method
@@ -344,25 +299,21 @@ const VideoItem = React.memo(({ uri, isActive, videoData }: Props) => {
           setIsWantToGift={setIsWantToGift}
           videoId={videoData._id}
           likes={videoData.likes}
+          gifts={videoData.gifts}
+          shares= {videoData.shares}
           comments={videoData.comments?.length}
           onCommentPress={handleOpenComments}
-          videoId={videoData._id}
-          shares={videoData.shares}
         />
       </View>
 
       {/* Conditionally render the CommentSection modal */}
       {showCommentsModal && (
         <CommentsSection
-          isOpen={showCommentsModal}
+          isOpen={showCommentsModal} // Pass the state controlling its visibility
           onClose={handleCloseComments}
           commentss={videoData.comments}
           videoId={videoData._id}
-<<<<<<< Updated upstream
           longVideosOnly={false} // Or true, depending on your logic
-=======
-          longVideosOnly={true}
->>>>>>> Stashed changes
         />
       )}
 
@@ -380,7 +331,7 @@ const VideoItem = React.memo(({ uri, isActive, videoData }: Props) => {
       </View>
     </View>
   );
-});
+};
 
 const styles = StyleSheet.create({
   container: {
@@ -452,13 +403,13 @@ const styles = StyleSheet.create({
   },
   interact: {
     position: "absolute",
-    bottom: "23%", // Adjusted to 15% for better spacing with navigation bar
+    bottom: "15%",
     right: 10,
     width: "auto",
   },
   details: {
     position: "absolute",
-    bottom: "11%", // Adjusted to 4% for better spacing with navigation bar
+    bottom: "2%",
     width: "100%",
     paddingLeft: 10,
     paddingRight: 16,

@@ -44,9 +44,18 @@ export default function TabLayout() {
         tabBarStyle: {
           backgroundColor: '#000000',
           borderTopWidth: 0,
-          height: 50,
-          paddingBottom: 10,
+          height: 70,
+          paddingBottom: 15,
           paddingTop: 10,
+          position: 'absolute',
+          bottom: 0,
+          left: 0,
+          right: 0,
+          elevation: 8, // Android shadow
+          shadowColor: '#000', // iOS shadow
+          shadowOffset: { width: 0, height: -2 },
+          shadowOpacity: 0.1,
+          shadowRadius: 4,
         },
         tabBarShowLabel: false,
         headerShown: false,

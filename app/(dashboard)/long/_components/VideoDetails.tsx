@@ -56,7 +56,7 @@ const VideoDetails = ({
   const [isFollowCreator, setIsFollowCreator] = useState<boolean>(false);
   const [isFollowCommunity, setIsFollowCommunity] = useState<boolean>(false);
 
-  const { isLoggedIn, token } = useAuthStore();
+  const { token } = useAuthStore();
 
   const BACKEND_API_URL = Constants.expoConfig?.extra?.BACKEND_API_URL;
   console.log(videoId,

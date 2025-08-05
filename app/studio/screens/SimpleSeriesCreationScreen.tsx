@@ -11,8 +11,6 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Series } from '../types';
-import { CONFIG } from '@/Constants/config';
-import { useAuthStore } from '@/store/useAuthStore';
 
 interface SimpleSeriesCreationScreenProps {
   onBack: () => void;
@@ -68,68 +66,46 @@ const SimpleSeriesCreationScreen: React.FC<SimpleSeriesCreationScreenProps> = ({
     setLoading(true);
 
     try {
-      const { token } = useAuthStore.getState();
+      const { createSeries } = await import('../../../api/series/seriesActions');
       
-      if (!token) {
-        setErrors({ general: 'Authentication required. Please log in again.' });
-        setLoading(false);
-        return;
-      }
-
       const seriesData = {
         title: title.trim(),
         description: `${title.trim()} series`, // Basic description
         genre: 'Action', // Default genre - you can add genre selection later
         language: 'english',
-        type: type === 'free' ? 'Free' : 'Paid',
+        type: type === 'free' ? 'Free' : 'Paid' as 'Free' | 'Paid',
         price: type === 'paid' ? price : 0,
-        age_restriction: false,
-        seasons: 1
+        promisedEpisodesCount: 2, // Minimum required episodes
       };
 
       console.log('Creating series with data:', seriesData);
 
-      const response = await fetch(`${CONFIG.API_BASE_URL}/api/v1/series/create`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify(seriesData)
-      });
-
-      const result = await response.json();
+      const result = await createSeries(seriesData);
       console.log('API Response:', result);
 
-      if (response.ok && result.data) {
-        // Convert backend response to frontend Series format
-        const newSeries: Series = {
-          id: result.data._id,
-          title: result.data.title,
-          description: result.data.description,
-          totalEpisodes: result.data.total_episodes || 0,
-          accessType: result.data.type.toLowerCase() as 'free' | 'paid',
-          price: result.data.price,
-          launchDate: result.data.release_date || result.data.createdAt,
-          totalViews: result.data.views || 0,
-          totalEarnings: result.data.total_earned || 0,
-          episodes: [],
-          createdAt: result.data.createdAt,
-          updatedAt: result.data.updatedAt
-        };
+      // Convert backend response to frontend Series format
+      const newSeries: Series = {
+        id: result.data._id,
+        title: result.data.title,
+        description: result.data.description,
+        totalEpisodes: result.data.total_episodes || 0,
+        accessType: result.data.type.toLowerCase() as 'free' | 'paid',
+        price: result.data.price,
+        launchDate: result.data.release_date || result.data.createdAt,
+        totalViews: 0, // Not available in current API response
+        totalEarnings: 0, // Not available in current API response
+        episodes: [],
+        createdAt: result.data.createdAt,
+        updatedAt: result.data.updatedAt
+      };
 
-        console.log('Series created successfully:', newSeries);
-        setLoading(false);
-        onSeriesCreated(newSeries);
-      } else {
-        console.error('API Error:', result);
-        setLoading(false);
-        setErrors({ general: result.error || 'Failed to create series' });
-      }
-    } catch (error) {
-      console.error('Network Error:', error);
+      console.log('Series created successfully:', newSeries);
       setLoading(false);
-      setErrors({ general: 'Network error occurred. Please check your connection.' });
+      onSeriesCreated(newSeries);
+    } catch (error) {
+      console.error('Error creating series:', error);
+      setLoading(false);
+      setErrors({ general: error instanceof Error ? error.message : 'Failed to create series' });
     }
   };
 
@@ -269,7 +245,7 @@ const SimpleSeriesCreationScreen: React.FC<SimpleSeriesCreationScreenProps> = ({
             )}
 
             {/* Create Button */}
-            <View className="items-center mt-4">
+            <View className="items-center mt-4" style={{ marginBottom: 80 }}>
               <TouchableOpacity
                 onPress={handleCreate}
                 disabled={loading}

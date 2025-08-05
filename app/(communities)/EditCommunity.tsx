@@ -178,15 +178,6 @@ export default function EditCommunity() {
   }
 
   return (
-<<<<<<< Updated upstream
-    <ThemedView style={CreateCommunityStyle.container}>
-      <View style={CreateCommunityStyle.CreateCommunityTopBar}>
-        <TouchableOpacity onPress={()=> router.back()} style={CreateCommunityStyle.BackIcon}>
-          <Image
-            className="size-5"
-            source={require("../../assets/images/back.png")}
-          />
-=======
     <ThemedView className="flex-1">
       <StatusBar barStyle="light-content" backgroundColor="black" />
 
@@ -197,7 +188,6 @@ export default function EditCommunity() {
       >
         <TouchableOpacity onPress={() => router.back()}>
           <ArrowLeft size={24} color="white" />
->>>>>>> Stashed changes
         </TouchableOpacity>
         <Text className="text-white text-lg font-semibold" style={{ fontFamily: 'Poppins' }}>
           Edit Community
@@ -213,36 +203,7 @@ export default function EditCommunity() {
         </TouchableOpacity>
       </View>
 
-<<<<<<< Updated upstream
-      {/* Image picker */}
-      <TouchableOpacity className="items-center w-fit" onPress={pickImage}>
-        <Image
-          source={
-            imageUri
-              ? { uri: imageUri }
-              : require("../../assets/images/user.png")
-          }
-          style={CreateCommunityStyle.CommunityAvatar}
-        />
-        <ThemedText style={CommunitiesStyles.RightTab}>
-          Add community picture
-        </ThemedText>
-      </TouchableOpacity>
 
-      {/* Community Fields */}
-      <View style={CreateCommunityStyle.InfoContainer}>
-        <View style={CreateCommunityStyle.InfoFrame}>
-          <ThemedText style={CreateCommunityStyle.InfoLabel}>
-            Community name
-          </ThemedText>
-          <TextInput
-            placeholder="Add name"
-            placeholderTextColor="#B0B0B0"
-            style={CreateCommunityStyle.TextLabel}
-            value={communityName}
-            onChangeText={setCommunityName}
-          />
-=======
       <ScrollView className="flex-1 px-6">
         {/* Profile Photo */}
         <View className="items-center py-8">
@@ -265,7 +226,6 @@ export default function EditCommunity() {
               Edit community picture
             </Text>
           </TouchableOpacity>
->>>>>>> Stashed changes
         </View>
 
         {/* Community Name */}

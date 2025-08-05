@@ -1,10 +1,7 @@
 import React, { useState, useEffect } from "react";
-import { Searchstyles } from "@/styles/Search";
-import { View, Text, TextInput, FlatList, ImageBackground, Dimensions, StatusBar, StyleSheet, TouchableOpacity, ActivityIndicator, Image } from "react-native";
+import { View, Text, TextInput, FlatList, Dimensions, TouchableOpacity, ActivityIndicator, Image, StyleSheet, ImageBackground, StatusBar, ScrollView } from "react-native";
 import { useFonts } from "expo-font";
 import ThemedText from "@/components/ThemedText";
-import { useSearch } from "./hooks/useSearch";
-import { useTrendingVideos } from "./hooks/useTrendingVideos";
 
 // We'll use trending videos from communities instead of hardcoded content
 
@@ -15,11 +12,38 @@ const SearchScreen: React.FC = () => {
     const [selectedTab, setSelectedTab] = useState<number>(0);
     const [searchQuery, setSearchQuery] = useState<string>('');
     const [isSearchActive, setIsSearchActive] = useState<boolean>(false);
+    const [isLoading, setIsLoading] = useState<boolean>(false);
+    const [searchLoading, setSearchLoading] = useState<boolean>(false);
+    const [trendingLoading, setTrendingLoading] = useState<boolean>(false);
+    const [searchError, setSearchError] = useState<string>('');
+    const [trendingError, setTrendingError] = useState<string>('');
+    const [searchResults, setSearchResults] = useState<any>({
+        videos: [],
+        accounts: [],
+        communities: []
+    });
+    const [trendingVideos, setTrendingVideos] = useState<any[]>([
+        {
+            _id: '1',
+            name: 'Trending Video 1',
+            thumbnailUrl: 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=800&q=80',
+            community: { name: 'Tech Community' }
+        },
+        {
+            _id: '2',
+            name: 'Trending Video 2',
+            thumbnailUrl: 'https://images.unsplash.com/photo-1518709268805-4e9042af2176?auto=format&fit=crop&w=800&q=80',
+            community: { name: 'Gaming Community' }
+        },
+        {
+            _id: '3',
+            name: 'Trending Video 3',
+            thumbnailUrl: 'https://images.unsplash.com/photo-1542831371-29b0f74f9713?auto=format&fit=crop&w=800&q=80',
+            community: { name: 'Music Community' }
+        }
+    ]);
     const tabs = ["Videos", "Accounts", "Communities"];
-    
-    const { searchResults, isLoading: searchLoading, error: searchError, performSearch, clearSearch } = useSearch();
-    const { trendingVideos, isLoading: trendingLoading, error: trendingError } = useTrendingVideos();
-    
+
     const [fontsLoaded] = useFonts({
         'Poppins-Regular': require('../../assets/fonts/poppins/Poppins-Regular.ttf'),
         'Poppins-Bold': require('../../assets/fonts/poppins/Poppins-Bold.ttf'),
@@ -32,20 +56,20 @@ const SearchScreen: React.FC = () => {
         'Inter-ExtraBold': require('../../assets/fonts/inter/Inter-ExtraBold.ttf'),
     });
 
-    // Handle search with debouncing
+    // Handle search with debouncing - temporarily disabled
     useEffect(() => {
         const timeoutId = setTimeout(() => {
             if (searchQuery.trim()) {
                 setIsSearchActive(true);
-                performSearch(searchQuery);
+                // performSearch(searchQuery);
             } else {
                 setIsSearchActive(false);
-                clearSearch();
+                // clearSearch();
             }
         }, 500);
 
         return () => clearTimeout(timeoutId);
-    }, [searchQuery, performSearch, clearSearch]);
+    }, [searchQuery]);
 
     const handleSearchChange = (text: string) => {
         setSearchQuery(text);
@@ -53,7 +77,7 @@ const SearchScreen: React.FC = () => {
 
     const getCurrentTabData = () => {
         if (!isSearchActive) return [];
-        
+
         switch (selectedTab) {
             case 0: return searchResults.videos;
             case 1: return searchResults.accounts;
@@ -65,7 +89,7 @@ const SearchScreen: React.FC = () => {
     // Render video items with thumbnail styling
     const renderVideoItem = ({ item }: { item: any }) => {
         const thumbnailUrl = item.thumbnail || item.posterUrl || 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=800&q=80';
-        
+
         return (
             <TouchableOpacity>
                 <ImageBackground
@@ -87,11 +111,11 @@ const SearchScreen: React.FC = () => {
     // Render account items like followers/following in profile
     const renderAccountItem = ({ item }: { item: any }) => {
         const profilePhoto = item.profile_photo || item.profile_picture || `https://api.dicebear.com/7.x/identicon/svg?seed=${item.username}`;
-        
+
         return (
             <TouchableOpacity style={styles.accountRow}>
                 <View style={styles.accountRowContent}>
-                    <Image 
+                    <Image
                         source={{ uri: profilePhoto }}
                         style={styles.accountAvatar}
                     />
@@ -115,11 +139,11 @@ const SearchScreen: React.FC = () => {
     // Render community items like communities in profile
     const renderCommunityItem = ({ item }: { item: any }) => {
         const profilePhoto = item.profile_photo || `https://api.dicebear.com/7.x/identicon/svg?seed=${item.name}`;
-        
+
         return (
             <TouchableOpacity style={styles.communityRow}>
                 <View style={styles.communityRowContent}>
-                    <Image 
+                    <Image
                         source={{ uri: profilePhoto }}
                         style={styles.communityAvatar}
                     />
@@ -183,130 +207,174 @@ const SearchScreen: React.FC = () => {
         );
     }
 
-return (
-    <View style={Searchstyles.container}>
-        <StatusBar barStyle="light-content" backgroundColor="#000" />
+    return (
+        <View style={Searchstyles.container}>
+            <StatusBar barStyle="light-content" backgroundColor="#000" />
 
-        <TextInput
-            placeholder="Search"
-            placeholderTextColor="#ccc"
-            style={Searchstyles.searchInput}
-            value={searchQuery}
-            onChangeText={handleSearchChange}
-            autoCorrect={false}
-            autoCapitalize="none"
-        />
+            <TextInput
+                placeholder="Search"
+                placeholderTextColor="#ccc"
+                style={Searchstyles.searchInput}
+                value={searchQuery}
+                onChangeText={handleSearchChange}
+                autoCorrect={false}
+                autoCapitalize="none"
+            />
 
-        {/* Show tabs only when searching */}
-        {isSearchActive && (
-            <View style={Searchstyles.SelectionTab}>
-                {tabs.map((label, index) => (
-                    <TouchableOpacity 
-                        style={[
-                            Searchstyles.SelectionButton,
-                            ...(selectedTab === index ? [Searchstyles.SelectedButton] : [])
-                        ]} 
-                        key={index} 
-                        onPress={() => setSelectedTab(index)}
-                    >
-                        <ThemedText style={[
-                            Searchstyles.Tab, 
-                            ...(selectedTab === index ? [Searchstyles.SelectedText] : [])
-                        ]}>
-                            {label}
-                        </ThemedText>
-                    </TouchableOpacity>
-                ))}
-            </View>
-        )}
-
-        {/* Loading indicator */}
-        {(searchLoading || trendingLoading) && (
-            <View style={styles.loadingContainer}>
-                <ActivityIndicator size="large" color="#fff" />
-                <Text style={styles.loadingText}>Searching...</Text>
-            </View>
-        )}
-
-        {/* Error message */}
-        {(searchError || trendingError) && (
-            <View style={styles.errorContainer}>
-                <Text style={styles.errorText}>Error: {searchError || trendingError}</Text>
-            </View>
-        )}
-
-        {/* Search suggestions when not searching */}
-        {!isSearchActive && !isLoading && (
-            <View style={styles.searchSuggestionsContainer}>
-                <Text style={styles.searchSuggestionsTitle}>Popular searches</Text>
-                <View style={styles.searchChipsContainer}>
-                    {['Action', 'Comedy', 'Drama', 'English', 'Hindi'].map((suggestion, index) => (
-                        <TouchableOpacity 
+            {/* Show tabs only when searching */}
+            {isSearchActive && (
+                <ScrollView
+                    horizontal
+                    showsHorizontalScrollIndicator={false}
+                    style={Searchstyles.SelectionTabContainer}
+                    contentContainerStyle={Searchstyles.SelectionTab}
+                >
+                    {tabs.map((label, index) => (
+                        <TouchableOpacity
+                            style={[
+                                Searchstyles.SelectionButton,
+                                ...(selectedTab === index ? [Searchstyles.SelectedButton] : [])
+                            ]}
                             key={index}
-                            style={styles.searchChip}
-                            onPress={() => setSearchQuery(suggestion)}
+                            onPress={() => setSelectedTab(index)}
                         >
-                            <Text style={styles.searchChipText}>{suggestion}</Text>
+                            <ThemedText style={[
+                                Searchstyles.Tab,
+                                ...(selectedTab === index ? [Searchstyles.SelectedText] : [])
+                            ]}>
+                                {label}
+                            </ThemedText>
                         </TouchableOpacity>
                     ))}
-                </View>
-            </View>
-        )}
+                </ScrollView>
+            )}
 
-        {/* Content */}
-        {!(searchLoading || trendingLoading) && (
-            <FlatList
-                data={isSearchActive ? getCurrentTabData() : trendingVideos}
-                numColumns={isSearchActive ? 1 : 3}
-                key={isSearchActive ? 'search' : 'default'} // Force re-render when switching modes
-                keyExtractor={(item, index) => 
-                    isSearchActive ? `search-${item.id || index}` : `default-${item._id || index}`
-                }
-                renderItem={isSearchActive ? renderSearchResultItem : renderTrendingItem}
-                contentContainerStyle={isSearchActive ? styles.searchResultsContainer : Searchstyles.grid}
-                showsVerticalScrollIndicator={false}
-                ListEmptyComponent={
-                    isSearchActive ? (
-                        <View style={styles.emptyContainer}>
-                            <Text style={styles.emptyText}>
-                                No {tabs[selectedTab].toLowerCase()} found for "{searchQuery}"
-                            </Text>
-                            <Text style={styles.emptySubtext}>
-                                {selectedTab === 0 && "Try searching for video names or descriptions"}
-                                {selectedTab === 1 && "Try searching for usernames or emails"}
-                                {selectedTab === 2 && "Try searching for series titles, genres, or languages"}
-                            </Text>
-                            <View style={styles.suggestionsContainer}>
-                                <Text style={styles.suggestionsTitle}>Try searching for:</Text>
-                                {selectedTab === 0 && (
-                                    <Text style={styles.suggestionText}>• Video names or descriptions</Text>
-                                )}
-                                {selectedTab === 1 && (
-                                    <Text style={styles.suggestionText}>• @username or email addresses</Text>
-                                )}
-                                {selectedTab === 2 && (
-                                    <Text style={styles.suggestionText}>• "Action", "Comedy", "Drama"</Text>
-                                )}
-                                {selectedTab === 2 && (
-                                    <Text style={styles.suggestionText}>• "English", "Hindi", "Tamil"</Text>
-                                )}
+            {/* Loading indicator */}
+            {(searchLoading || trendingLoading) && (
+                <View style={styles.loadingContainer}>
+                    <ActivityIndicator size="large" color="#fff" />
+                    <Text style={styles.loadingText}>Searching...</Text>
+                </View>
+            )}
+
+            {/* Error message */}
+            {(searchError || trendingError) && (
+                <View style={styles.errorContainer}>
+                    <Text style={styles.errorText}>Error: {searchError || trendingError}</Text>
+                </View>
+            )}
+
+
+
+            {/* Content */}
+            {!(searchLoading || trendingLoading) && (
+                <FlatList
+                    data={isSearchActive ? getCurrentTabData() : trendingVideos}
+                    numColumns={isSearchActive ? 1 : 3}
+                    key={isSearchActive ? 'search' : 'default'} // Force re-render when switching modes
+                    keyExtractor={(item, index) =>
+                        isSearchActive ? `search-${item.id || index}` : `default-${item._id || index}`
+                    }
+                    renderItem={isSearchActive ? renderSearchResultItem : renderTrendingItem}
+                    contentContainerStyle={isSearchActive ? styles.searchResultsContainer : Searchstyles.grid}
+                    showsVerticalScrollIndicator={false}
+                    style={{ marginBottom: 80 }}
+                    ListEmptyComponent={
+                        isSearchActive ? (
+                            <View style={styles.emptyContainer}>
+                                <Text style={styles.emptyText}>
+                                    No {tabs[selectedTab].toLowerCase()} found for "{searchQuery}"
+                                </Text>
+                                <Text style={styles.emptySubtext}>
+                                    {selectedTab === 0 && "Try searching for video names or descriptions"}
+                                    {selectedTab === 1 && "Try searching for usernames or emails"}
+                                    {selectedTab === 2 && "Try searching for series titles, genres, or languages"}
+                                </Text>
+                                <View style={styles.suggestionsContainer}>
+                                    <Text style={styles.suggestionsTitle}>Try searching for:</Text>
+                                    {selectedTab === 0 && (
+                                        <Text style={styles.suggestionText}>• Video names or descriptions</Text>
+                                    )}
+                                    {selectedTab === 1 && (
+                                        <Text style={styles.suggestionText}>• @username or email addresses</Text>
+                                    )}
+                                    {selectedTab === 2 && (
+                                        <Text style={styles.suggestionText}>• "Action", "Comedy", "Drama"</Text>
+                                    )}
+                                    {selectedTab === 2 && (
+                                        <Text style={styles.suggestionText}>• "English", "Hindi", "Tamil"</Text>
+                                    )}
+                                </View>
                             </View>
-                        </View>
-                    ) : null
-                }
-            />
-        )}
-    </View>
-);
+                        ) : null
+                    }
+                />
+            )}
+        </View>
+    );
 };
 
 
 const style = StyleSheet.create({
     imageTile: {
         width: itemSize,
-        height: itemSize*1.4,   
+        height: itemSize * 1.4,
         justifyContent: "flex-end",
         alignItems: "flex-start",
+    },
+});
+
+const Searchstyles = StyleSheet.create({
+    container: {
+        flex: 1,
+        backgroundColor: '#000',
+        paddingTop: 50,
+    },
+    searchInput: {
+        backgroundColor: 'rgba(255,255,255,0.1)',
+        color: '#fff',
+        paddingHorizontal: 15,
+        paddingVertical: 12,
+        marginHorizontal: 15,
+        marginBottom: 15,
+        borderRadius: 25,
+        fontSize: 16,
+        fontFamily: 'Poppins-Regular',
+    },
+    SelectionTabContainer: {
+        flexGrow: 0,
+        marginBottom: 15,
+    },
+    SelectionTab: {
+        flexDirection: 'row',
+        paddingHorizontal: 16,
+    },
+    SelectionButton: {
+        paddingVertical: 8,
+        paddingHorizontal: 8,
+        marginRight: 40,
+        borderBottomWidth: 2,
+        borderBottomColor: 'transparent',
+    },
+    SelectedButton: {
+        borderBottomColor: '#fff',
+    },
+    Tab: {
+        fontSize: 18,
+        fontFamily: 'Poppins-Medium',
+        color: '#9CA3AF',
+    },
+    SelectedText: {
+        color: '#fff',
+        fontFamily: 'Poppins-SemiBold',
+    },
+    grid: {
+        paddingHorizontal: 5,
+    },
+    label: {
+        color: '#fff',
+        fontSize: 12,
+        fontFamily: 'Poppins-SemiBold',
     },
 });
 
@@ -414,34 +482,7 @@ const styles = StyleSheet.create({
         fontFamily: 'Poppins-Regular',
         marginBottom: 4,
     },
-    searchSuggestionsContainer: {
-        padding: 20,
-        paddingTop: 10,
-    },
-    searchSuggestionsTitle: {
-        color: '#fff',
-        fontSize: 16,
-        fontFamily: 'Poppins-SemiBold',
-        marginBottom: 15,
-    },
-    searchChipsContainer: {
-        flexDirection: 'row',
-        flexWrap: 'wrap',
-        gap: 10,
-    },
-    searchChip: {
-        backgroundColor: 'rgba(255,255,255,0.1)',
-        paddingHorizontal: 15,
-        paddingVertical: 8,
-        borderRadius: 20,
-        borderWidth: 1,
-        borderColor: 'rgba(255,255,255,0.2)',
-    },
-    searchChipText: {
-        color: '#fff',
-        fontSize: 14,
-        fontFamily: 'Poppins-Regular',
-    },
+
     // Account styling (similar to followers/following in profile)
     accountRow: {
         flexDirection: 'row',

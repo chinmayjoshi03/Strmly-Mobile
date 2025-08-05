@@ -3,6 +3,7 @@ import { Stack } from "expo-router";
 import { useColorScheme } from "react-native";
 import "../global.css";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
+import { SafeAreaProvider } from "react-native-safe-area-context";
 
 
 export default function RootLayout() {
@@ -10,7 +11,7 @@ export default function RootLayout() {
   const theme = Colors[colorScheme];
 
   return (
-    <>
+    <SafeAreaProvider>
       <GestureHandlerRootView style={{ flex: 1 }}>
         <Stack
           screenOptions={{
@@ -19,15 +20,13 @@ export default function RootLayout() {
             headerShown: false,
           }}
         >
-          {/* Groups */}
-          {/* <Stack.Screen name="(auth)" options={{ headerShown: false }} />
-
-        <Stack.Screen name="(dashboard)" options={{ headerShown: false }} /> */}
-
           {/* Individual Screens */}
           <Stack.Screen name="index" options={{ title: "Signin" }} />
+          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+          <Stack.Screen name="(auth)" options={{ headerShown: false }} />
+          <Stack.Screen name="(dashboard)" options={{ headerShown: false }} />
         </Stack>
       </GestureHandlerRootView>
-    </>
+    </SafeAreaProvider>
   );
 }

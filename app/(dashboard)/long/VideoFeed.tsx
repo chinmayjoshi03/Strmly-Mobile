@@ -1,32 +1,24 @@
 import React, { useRef, useState, useEffect } from "react";
-import { FlatList, Dimensions, ActivityIndicator, Text } from "react-native";
+import { FlatList, Dimensions, ActivityIndicator, Text, Pressable } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import VideoItem from "./VideoItem";
 import ThemedView from "@/components/ThemedView";
 import { useAuthStore } from "@/store/useAuthStore";
 import Constants from "expo-constants";
 import { VideoItemType } from "@/types/VideosType";
 import VideoContentGifting from "@/app/(payments)/Video/VideoContentGifting";
+import GiftingMessage from "./_components/GiftingMessage";
 
-const videoData = [
-  {
-    id: "1",
-    uri: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4",
-  },
-  {
-    id: "2",
-    uri: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4",
-  },
-  {
-    id: "3",
-    uri: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/Sintel.mp4",
-  },
-];
 
-type GiftType = {
-  _id: string;
-  profile?: string;
-  username: string;
-  email: string;
+
+type GiftDataType = {
+  creator: {
+    _id: string;
+    profile?: string;
+    name: string;
+    username: string;
+  };
+  videoId: string;
 };
 
 const VideoFeed: React.FC = () => {
@@ -35,28 +27,54 @@ const VideoFeed: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
 
   const BACKEND_API_URL = Constants.expoConfig?.extra?.BACKEND_API_URL;
+  const { height } = Dimensions.get("screen");
+  const insets = useSafeAreaInsets();
+  const TAB_BAR_HEIGHT = 55; // Height of the bottom navigation bar (reduced from 70)
+  const TAB_BAR_PADDING = 10; // paddingBottom from tab bar (reduced from 15)
+  const BUFFER = 10; // Additional buffer to ensure no overlap
+
+  // Calculate available height more precisely
+  // We need to account for the tab bar height plus its padding plus safe area
+  const adjustedHeight = height - TAB_BAR_HEIGHT - TAB_BAR_PADDING - BUFFER;
+
+  console.log('Screen height:', height);
+  console.log('Tab bar total space needed:', TAB_BAR_HEIGHT + TAB_BAR_PADDING + BUFFER);
+  console.log('Adjusted height:', adjustedHeight);
 
   const [visibleIndex, setVisibleIndex] = useState(0);
   const { token, user, isLoggedIn } = useAuthStore();
 
   const [showCommentsModal, setShowCommentsModal] = useState(false);
   const [isWantToGift, setIsWantToGift] = useState(false);
-  const [giftingData, setGiftingData] = useState<GiftType | undefined>();
+  const [giftingData, setGiftingData] = useState<GiftDataType | null>(null);
+  const [isGifted, setIsGifted] = useState<boolean>(false);
+  const [giftSuccessMessage, setGiftSuccessMessage] = useState<any>();
 
-  const { height } = Dimensions.get("screen");
+  const [modalVisible, setModalVisible] = useState<boolean>(false);
 
   const fetchTrendingVideos = async () => {
     try {
+      if (!BACKEND_API_URL) {
+        throw new Error('Backend API URL is not configured');
+      }
+
+      console.log('Fetching videos from:', `${BACKEND_API_URL}/api/v1/videos/trending?page=1&limit=10`);
+
       const res = await fetch(
-        `${BACKEND_API_URL}/videos/trending?page=1&limit=10`
+        `${BACKEND_API_URL}/api/v1/videos/trending?page=1&limit=10`
       );
 
-      if (!res.ok) throw new Error("Failed to fetch videos");
+      if (!res.ok) {
+        console.error('Fetch failed with status:', res.status, res.statusText);
+        throw new Error(`Failed to fetch videos: ${res.status} ${res.statusText}`);
+      }
 
       const json = await res.json();
+      console.log('Videos fetched successfully:', json.data?.length, 'videos');
 
       setVideos(json.data);
     } catch (err: any) {
+      console.error('Error fetching videos:', err);
       setError(err.message || "Something went wrong");
     } finally {
       setLoading(false);
@@ -70,27 +88,20 @@ const VideoFeed: React.FC = () => {
   const onViewableItemsChanged = useRef(({ viewableItems }: any) => {
     if (viewableItems.length > 0) {
       const newIndex = viewableItems[0].index;
-      console.log('📺 Video changed to index:', newIndex);
       setVisibleIndex(newIndex);
     }
   });
 
-  const renderItem = ({ item, index }: { item: VideoItemType; index: number }) => {
-    const isActive = index === visibleIndex;
-    console.log(`🎯 Rendering video ${index} (${item.name}): isActive = ${isActive}, visibleIndex = ${visibleIndex}`);
-    
-    return (
-      <VideoItem
-        uri={item.videoUrl}
-        isActive={isActive}
-        videoData={item}
-      />
-    );
-  };
-
   if (loading) {
     return (
-      <ThemedView style={{ height }} className="justify-center items-center">
+      <ThemedView style={{
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        height: adjustedHeight,
+        backgroundColor: 'black'
+      }} className="justify-center items-center">
         <ActivityIndicator size="large" color="white" />
       </ThemedView>
     );
@@ -98,77 +109,88 @@ const VideoFeed: React.FC = () => {
 
   if (error) {
     return (
-      <ThemedView style={{ height }} className="justify-center items-center">
-        <Text className="text-white">{error}</Text>
+      <ThemedView style={{
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        height: adjustedHeight,
+        backgroundColor: 'black'
+      }} className="justify-center items-center px-4">
+        <Text className="text-white text-center mb-4">Failed to load videos</Text>
+        <Text className="text-red-400 text-center text-sm mb-4">{error}</Text>
+        <Text className="text-gray-400 text-center text-xs">
+          API URL: {BACKEND_API_URL || 'Not configured'}
+        </Text>
+        <Pressable
+          onPress={fetchTrendingVideos}
+          className="mt-4 bg-blue-600 px-4 py-2 rounded"
+        >
+          <Text className="text-white">Retry</Text>
+        </Pressable>
       </ThemedView>
     );
   }
 
   return (
-<<<<<<< Updated upstream
-    <>
-      {isWantToGift ? (
-        <VideoContentGifting creator={giftingData} />
+    <ThemedView style={{
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      right: 0,
+      height: adjustedHeight,
+      backgroundColor: 'black'
+    }}>
+      {isGifted && giftingData ? (
+        <GiftingMessage
+          isVisible={modalVisible}
+          giftData={giftingData}
+          setGiftData={setGiftingData}
+          onClose={setModalVisible}
+          message={giftSuccessMessage}
+          giftMessage={setGiftSuccessMessage}
+        />
+      ) : isWantToGift && giftingData ? (
+        <VideoContentGifting
+          giftData={giftingData}
+          setIsGifted={setIsGifted}
+          setIsWantToGift={setIsWantToGift}
+          giftMessage={setGiftSuccessMessage}
+        />
       ) : (
-        <ThemedView style={{ height }}>
-          <FlatList
-            data={videos}
-            keyExtractor={(item) => item._id}
-            renderItem={({ item, index }) => (
-              <VideoItem
-                setGiftingData={setGiftingData}
-                showCommentsModal={showCommentsModal}
-                setShowCommentsModal={setShowCommentsModal}
-                setIsWantToGift={setIsWantToGift}
-                key={`${item._id}-${visibleIndex === index}`}
-                uri={item.videoUrl}
-                isActive={index === visibleIndex}
-                videoData={item}
-              />
-            )}
-            pagingEnabled
-            scrollEnabled={!showCommentsModal}
-            onViewableItemsChanged={onViewableItemsChanged.current}
-            viewabilityConfig={{ itemVisiblePercentThreshold: 80 }}
-            decelerationRate="fast"
-            showsVerticalScrollIndicator={false}
-          />
-        </ThemedView>
+        <FlatList
+          data={videos}
+          keyExtractor={(item) => item._id}
+          renderItem={({ item, index }) => (
+            <VideoItem
+              setGiftingData={setGiftingData}
+              showCommentsModal={showCommentsModal}
+              setShowCommentsModal={setShowCommentsModal}
+              setIsWantToGift={setIsWantToGift}
+              key={`${item._id}-${visibleIndex === index}`}
+              uri={item.videoUrl}
+              isActive={index === visibleIndex}
+              videoData={item}
+              containerHeight={adjustedHeight}
+            />
+          )}
+          style={{ flex: 1 }}
+          getItemLayout={(_, index) => ({
+            length: adjustedHeight,
+            offset: adjustedHeight * index,
+            index,
+          })}
+          pagingEnabled
+          scrollEnabled={!showCommentsModal}
+          onViewableItemsChanged={onViewableItemsChanged.current}
+          viewabilityConfig={{ itemVisiblePercentThreshold: 80 }}
+          decelerationRate="fast"
+          showsVerticalScrollIndicator={false}
+          snapToInterval={adjustedHeight}
+          snapToAlignment="start"
+        />
       )}
-    </>
-=======
-    <ThemedView style={{ height }}>
-      <FlatList
-        data={videos}
-        keyExtractor={(item) => item._id}
-        renderItem={renderItem}
-        pagingEnabled
-        onViewableItemsChanged={onViewableItemsChanged.current}
-        viewabilityConfig={{ 
-          itemVisiblePercentThreshold: 70,
-          minimumViewTime: 50
-        }}
-        snapToInterval={height}
-        decelerationRate="fast"
-        showsVerticalScrollIndicator={false}
-        removeClippedSubviews={true}
-        maxToRenderPerBatch={2}
-        windowSize={3}
-        initialNumToRender={1}
-        getItemLayout={(data, index) => ({
-          length: height,
-          offset: height * index,
-          index,
-        })}
-        scrollEventThrottle={16}
-        disableIntervalMomentum={true}
-        snapToAlignment="start"
-        bounces={false}
-        overScrollMode="never"
-        nestedScrollEnabled={false}
-      />
     </ThemedView>
->>>>>>> Stashed changes
   );
 };
 

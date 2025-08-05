@@ -6,11 +6,17 @@ import * as DocumentPicker from 'expo-document-picker';
 interface FileSelectScreenProps {
   onFileSelected: (file: any) => void;
   onBack: () => void;
+  onSaveToDraft?: () => void;
+  onContinueUpload?: () => void;
+  isEditingDraft?: boolean;
 }
 
 const FileSelectScreen: React.FC<FileSelectScreenProps> = ({
   onFileSelected,
-  onBack
+  onBack,
+  onSaveToDraft,
+  onContinueUpload,
+  isEditingDraft
 }) => {
   const [selectedFile, setSelectedFile] = useState<any>(null);
 
@@ -45,6 +51,9 @@ const FileSelectScreen: React.FC<FileSelectScreenProps> = ({
   const handleContinue = () => {
     if (selectedFile) {
       onFileSelected(selectedFile);
+      if (onContinueUpload) {
+        onContinueUpload();
+      }
     }
   };
 
@@ -84,17 +93,28 @@ const FileSelectScreen: React.FC<FileSelectScreenProps> = ({
         </View>
       </View>
 
-      {/* Continue Button - Only show when file is selected */}
-      {selectedFile && (
-        <View style={styles.continueButtonContainer}>
+      {/* Action Buttons */}
+      <View style={styles.actionButtonsContainer}>
+        {/* Save to Draft Button - Always show */}
+        {onSaveToDraft && (
+          <TouchableOpacity
+            onPress={onSaveToDraft}
+            style={styles.draftButton}
+          >
+            <Text style={styles.draftButtonText}>Save to Draft</Text>
+          </TouchableOpacity>
+        )}
+        
+        {/* Continue Button - Only show when file is selected */}
+        {selectedFile && (
           <TouchableOpacity
             onPress={handleContinue}
             style={styles.continueButton}
           >
             <Text style={styles.continueButtonText}>Continue</Text>
           </TouchableOpacity>
-        </View>
-      )}
+        )}
+      </View>
     </View>
   );
 };
@@ -165,9 +185,23 @@ const styles = StyleSheet.create({
     marginTop: 16,
     paddingHorizontal: 16,
   },
-  continueButtonContainer: {
+  actionButtonsContainer: {
     paddingHorizontal: 16,
     paddingBottom: 32,
+    marginBottom: 80,
+    gap: 12,
+  },
+  draftButton: {
+    backgroundColor: '#374151',
+    borderRadius: 25,
+    paddingVertical: 16,
+    alignItems: 'center',
+    width: '100%',
+  },
+  draftButtonText: {
+    color: '#E5E7EB',
+    fontSize: 18,
+    fontWeight: '500',
   },
   continueButton: {
     backgroundColor: '#E5E7EB',

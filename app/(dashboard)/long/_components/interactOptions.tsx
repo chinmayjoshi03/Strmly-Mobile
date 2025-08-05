@@ -1,24 +1,17 @@
 import { Image, Pressable, Text, View } from "react-native";
-<<<<<<< Updated upstream
 import React, { useEffect, useState } from "react";
 import { FontAwesome } from "@expo/vector-icons";
 import { useAuthStore } from "@/store/useAuthStore";
 import Constants from "expo-constants";
-=======
-import React, { useState, useEffect } from "react";
-import { FontAwesome } from "@expo/vector-icons";
-import { VideoInteractionsAPI } from "@/api/video/videoInteractions";
-import { useAuthStore } from "@/store/useAuthStore";
-
->>>>>>> Stashed changes
 
 // Define props type for InteractOptions
 type InteractOptionsProps = {
   onCommentPress: () => void; // Callback function for comment button press
   videoId: string;
   likes: number;
+  gifts: number;
+  shares: number;
   comments?: number;
-<<<<<<< Updated upstream
   setIsWantToGift: any;
   setGiftingData: {
     _id: string;
@@ -33,6 +26,8 @@ const InteractOptions = ({
   onCommentPress,
   videoId,
   likes,
+  gifts,
+  shares,
   comments,
   setIsWantToGift,
   setGiftingData,
@@ -40,14 +35,17 @@ const InteractOptions = ({
 }: InteractOptionsProps) => {
   // Destructure onCommentPress from props
   const [like, setLike] = useState(0);
+  const [reshares, setReshares] = useState(0);
+  const [gift, setGifts] = useState(0);
   const [isLikedVideo, setIsLikedVideo] = useState(false);
   const [isResharedVideo, setIsResharedVideo] = useState(false);
+  const [isGiftedVideo, setIsGiftedVideo] = useState(false);
 
-  const { isLoggedIn, token } = useAuthStore();
+  const { token } = useAuthStore();
 
   const BACKEND_API_URL = Constants.expoConfig?.extra?.BACKEND_API_URL;
 
-  console.log("creator", creator);
+  // console.log("creator", creator);
 
   const LikeVideo = async () => {
     if (!token || !videoId) {
@@ -70,7 +68,7 @@ const InteractOptions = ({
       const data = await response.json();
       setLike(data.likes);
       setIsLikedVideo(data.isLiked);
-      console.log("data", data);
+      // console.log("data", data);
     } catch (err) {
       console.log(err);
     }
@@ -96,7 +94,7 @@ const InteractOptions = ({
         );
         if (!response.ok) throw new Error("Failed while like video");
         const data = await response.json();
-        console.log("data", data);
+        // console.log("data", data);
         setLike(data.likes);
         setIsLikedVideo(data.isLiked);
       } catch (err) {
@@ -107,7 +105,43 @@ const InteractOptions = ({
     if (token && videoId) {
       checkIfVideoLike();
     }
-  }, [token, videoId]);
+  }, [token, videoId, likes]);
+
+  // ------------- Reshare ------------
+  useEffect(()=> setReshares(shares), [shares]);
+
+  useEffect(() => {
+    const checkIfReshare = async () => {
+      if (!token || !videoId) {
+        return;
+      }
+
+      try {
+        const response = await fetch(
+          `${BACKEND_API_URL}/interaction/reshare/status`,
+          {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${token}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ videoId: videoId }),
+          }
+        );
+        if (!response.ok) throw new Error("Failed while checking reshare status");
+        const data = await response.json();
+        console.log("data", data);
+        // setReshares(data.video_reshares); 
+        setIsResharedVideo(data.isReshared);
+      } catch (err) {
+        console.log(err);
+      }
+    };
+
+    if (token && videoId) {
+      checkIfReshare();
+    }
+  }, [token, videoId, shares]);
 
   const ReshareVideo = async () => {
     if (!token || !videoId) {
@@ -127,84 +161,25 @@ const InteractOptions = ({
       if (!response.ok) throw new Error("Failed to reshare video");
       const data = await response.json();
       setIsResharedVideo(!isResharedVideo);
-      console.log("data", data);
+      setReshares(data.totalReshares);
     } catch (err) {
       console.log(err);
     }
   };
 
+  // ---------------- Gifting API ----------------
+  useEffect(()=> setGifts(gifts), [gifts]);
+
   const openGifting = () => {
-    setGiftingData(creator);
+    setGiftingData({creator, videoId});
     setIsWantToGift(true);
   };
-=======
-  videoId: string;
-  shares?: number;
-};
-
-const InteractOptions = ({ onCommentPress, likes: initialLikes, comments, videoId, shares: initialShares = 0 }: InteractOptionsProps) => { // Destructure props
-  const [liked, setLiked] = useState(false);
-  const [likesCount, setLikesCount] = useState(initialLikes);
-  const [sharesCount, setSharesCount] = useState(initialShares);
-  const [isLoading, setIsLoading] = useState(false);
-  const { token } = useAuthStore();
-  
-  useEffect(() => {
-    // Get initial like status when component mounts
-    const fetchLikeStatus = async () => {
-      try {
-        if (token && videoId) {
-          const response = await VideoInteractionsAPI.getLikeStatus(token, videoId);
-          setLiked(response.isLiked);
-          setLikesCount(response.likes);
-        }
-      } catch (error) {
-        console.error('Error fetching like status:', error);
-      }
-    };
-    
-    // Get initial shares count
-    const fetchSharesCount = async () => {
-      try {
-        if (token && videoId) {
-          const response = await VideoInteractionsAPI.getTotalShares(token, videoId);
-          setSharesCount(response.totalShares);
-        }
-      } catch (error) {
-        console.error('Error fetching shares count:', error);
-      }
-    };
-    
-    fetchLikeStatus();
-    fetchSharesCount();
-  }, [token, videoId]);
->>>>>>> Stashed changes
 
   return (
     <View className="p-1">
       <View className="gap-5">
         <View className="items-center gap-1">
-<<<<<<< Updated upstream
           <Pressable onPress={() => LikeVideo()}>
-=======
-          <Pressable 
-            onPress={async () => {
-              if (!token || isLoading) return;
-              
-              try {
-                setIsLoading(true);
-                const response = await VideoInteractionsAPI.likeVideo(token, videoId);
-                setLiked(response.isLiked);
-                setLikesCount(response.likes);
-              } catch (error) {
-                console.error('Error liking video:', error);
-              } finally {
-                setIsLoading(false);
-              }
-            }}
-            disabled={isLoading}
-          >
->>>>>>> Stashed changes
             <FontAwesome
               name={isLikedVideo ? "heart" : "heart-o"}
               size={27}
@@ -212,11 +187,7 @@ const InteractOptions = ({ onCommentPress, likes: initialLikes, comments, videoI
             />
           </Pressable>
 
-<<<<<<< Updated upstream
           <Text className="text-white text-sm">{like}</Text>
-=======
-          <Text className="text-white text-sm">{likesCount}</Text>
->>>>>>> Stashed changes
         </View>
 
         <View className="items-center gap-1">
@@ -231,7 +202,6 @@ const InteractOptions = ({ onCommentPress, likes: initialLikes, comments, videoI
         </View>
 
         <View className="items-center gap-1">
-<<<<<<< Updated upstream
           <Pressable onPress={ReshareVideo}>
             {isResharedVideo ? (
               <Image
@@ -245,31 +215,7 @@ const InteractOptions = ({ onCommentPress, likes: initialLikes, comments, videoI
               />
             )}
           </Pressable>
-          <Text className="text-white text-sm"> </Text>
-=======
-          <Pressable
-            onPress={async () => {
-              if (!token || isLoading) return;
-              
-              try {
-                setIsLoading(true);
-                const response = await VideoInteractionsAPI.shareVideo(token, videoId);
-                setSharesCount(response.shares);
-              } catch (error) {
-                console.error('Error sharing video:', error);
-              } finally {
-                setIsLoading(false);
-              }
-            }}
-            disabled={isLoading}
-          >
-            <Image
-              className="size-7"
-              source={require("../../../../assets/images/repost.png")}
-            />
-          </Pressable>
-          <Text className="text-white text-sm">{sharesCount}</Text>
->>>>>>> Stashed changes
+          <Text className="text-white text-sm">{reshares}</Text>
         </View>
 
         <View className="items-center gap-1">
@@ -279,7 +225,7 @@ const InteractOptions = ({ onCommentPress, likes: initialLikes, comments, videoI
               source={require("../../../../assets/images/rupee.png")}
             />
           </Pressable>
-          <Text className="text-white text-sm"></Text>
+          <Text className="text-white text-sm">{gift}</Text>
         </View>
       </View>
     </View>

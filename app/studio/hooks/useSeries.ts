@@ -83,6 +83,7 @@ export const useSeries = () => {
   const [series, setSeries] = useState<TransformedSeries[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [refreshKey, setRefreshKey] = useState(0);
 
   const fetchSeries = async () => {
     try {
@@ -95,7 +96,7 @@ export const useSeries = () => {
         throw new Error('Authentication required');
       }
 
-      const response = await fetch(`${CONFIG.API_BASE_URL}/api/v1/series/all/`, {
+      const response = await fetch(`${CONFIG.API_BASE_URL}/api/v1/series/user?t=${Date.now()}`, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -128,6 +129,8 @@ export const useSeries = () => {
         type: seriesItem.type,
       }));
 
+      console.log('📊 Transformed series data:', transformedSeries.length, 'series');
+      console.log('📊 Series IDs:', transformedSeries.map(s => s.id));
       setSeries(transformedSeries);
     } catch (err) {
       console.error('Error fetching series:', err);
@@ -142,6 +145,11 @@ export const useSeries = () => {
   }, []);
 
   const refetch = () => {
+    console.log('🔄 Refetching series data...');
+    // Clear current series to force a refresh
+    setSeries([]);
+    setError(null);
+    setRefreshKey(prev => prev + 1);
     fetchSeries();
   };
 
@@ -150,5 +158,6 @@ export const useSeries = () => {
     loading,
     error,
     refetch,
+    refreshKey,
   };
 };

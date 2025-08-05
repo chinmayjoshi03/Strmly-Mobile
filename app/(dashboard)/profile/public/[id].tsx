@@ -4,7 +4,6 @@ import {
   Text,
   TouchableOpacity,
   ActivityIndicator,
-  ScrollView, // Use ScrollView for scrollable content
   Alert,
   Image,
   Linking,
@@ -13,23 +12,18 @@ import {
 } from "react-native";
 import { CONFIG } from "@/Constants/config";
 import {
-  MapPin,
   LinkIcon,
-  Calendar,
   HeartIcon,
-  VideoIcon, // Changed PlayIcon to VideoIcon for consistency with other file
   IndianRupee,
   PaperclipIcon, // Added for the gradient button
 } from "lucide-react-native";
-import { useLocalSearchParams, useRouter } from "expo-router";
 import { useAuthStore } from "@/store/useAuthStore";
 import { useThumbnailsGenerate } from "@/utils/useThumbnailGenerator"; // Ensure this path is correct
 import ThemedView from "@/components/ThemedView"; // Assuming this is a basic wrapper for styling
 import ProfileTopbar from "@/components/profileTopbar"; // Assuming this is the converted ProfileTopbar
 import { LinearGradient } from "expo-linear-gradient"; // For the gradient border
 import Constants from "expo-constants";
-
-// No need for mockPosts, as you're fetching real data now.
+import { useRoute } from "@react-navigation/native";
 
 export default function PublicProfilePageWithId() {
   const [activeTab, setActiveTab] = useState("long");
@@ -42,12 +36,12 @@ export default function PublicProfilePageWithId() {
   const [showMore, setShowMore] = useState(false);
 
   const [isLoadingVideos, setIsLoadingVideos] = useState(false);
-  const { isLoggedIn, token, logout } = useAuthStore();
-  const router = useRouter();
+  const { token } = useAuthStore();
 
   const BACKEND_API_URL = Constants.expoConfig?.extra?.BACKEND_API_URL;
 
-  const { id } = useLocalSearchParams();
+  const route = useRoute();
+  const { id } = route.params as { id: string };
 
   useEffect(() => {
     console.log("ID from params:", id);
@@ -145,7 +139,7 @@ export default function PublicProfilePageWithId() {
       fetchUserData();
       console.log('huhuhdhuwdhuwd')
     }
-  }, [isLoggedIn, router, token, id]);
+  }, [token, id]);
 
   const followCreator = async () => {
     try {

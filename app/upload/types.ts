@@ -26,6 +26,8 @@ export interface UploadFlowState {
   selectedSeries: any | null; // Series object for episodes
   isUploading: boolean;
   errors: Record<string, string>;
+  draftId?: string | null; // For editing existing drafts
+  isEditingDraft?: boolean; // Flag to indicate if we're editing a draft
 }
 
 export interface DropdownOption {
@@ -48,6 +50,7 @@ export interface VideoDetailProps {
   onBack: () => void;
   selectedSeries?: any | null;
   videoFormat?: 'episode' | 'single' | null;
+  isEditingDraft?: boolean;
 }
 
 export interface FinalStageProps {
@@ -58,6 +61,7 @@ export interface FinalStageProps {
   onBack: () => void;
   selectedSeries?: any | null;
   videoFormat?: 'episode' | 'single' | null;
+  isEditingDraft?: boolean;
 }
 
 export interface DropdownProps {

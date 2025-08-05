@@ -127,7 +127,8 @@ export const useComments = ({ videoId }: UseCommentsProps) => {
       },
       upvoted: false,
       downvoted: false,
-      replies: 0
+      replies: 0,
+      is_monetized: false // New comments are not monetized by default
     };
 
     // Immediately add the mock comment to the UI for better UX
@@ -141,7 +142,7 @@ export const useComments = ({ videoId }: UseCommentsProps) => {
 
       // Replace the temporary comment with the real one from the server
       if (result.comment) {
-        setComments(prev => prev.map(comment => 
+        setComments(prev => prev.map(comment =>
           comment._id === tempId ? result.comment! : comment
         ));
       } else {
@@ -179,14 +180,14 @@ export const useComments = ({ videoId }: UseCommentsProps) => {
       return result;
     } catch (err: any) {
       console.log('❌ Error posting reply:', err.message);
-      
+
       // Revert the optimistic update on error
       setComments(prev => prev.map(comment =>
         comment._id === commentId
           ? { ...comment, replies: comment.replies - 1 }
           : comment
       ));
-      
+
       throw err;
     }
   }, [token, videoId]);

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -8,52 +8,34 @@ import {
   Alert,
   Linking,
   Image,
-  FlatList, // For opening external links
+  FlatList,
 } from "react-native";
 import { CONFIG } from "@/Constants/config";
 import {
   MapPin,
   LinkIcon,
-  Calendar,
-  VideoIcon, // Replaces PlayIcon for video tab
   HeartIcon,
-  BookmarkIcon,
-  IndianRupee,
-  Video,
-  PaperclipIcon, // For the gradient button
+  PaperclipIcon,
 } from "lucide-react-native";
-<<<<<<< Updated upstream
-import { useLocalSearchParams, useRouter } from "expo-router"; // Use useRouter from expo-router
-=======
-import { useRouter } from "expo-router"; // Use useRouter from expo-router
+import { useRouter, useLocalSearchParams } from "expo-router";
 import { useFocusEffect } from '@react-navigation/native';
->>>>>>> Stashed changes
 import { useAuthStore } from "@/store/useAuthStore";
 import { useThumbnailsGenerate } from "@/utils/useThumbnailGenerator";
-import ThemedView from "@/components/ThemedView"; // Assuming this is a basic wrapper for styling
-import ProfileTopbar from "@/components/profileTopbar"; // Assuming this is the converted ProfileTopbar
+import ThemedView from "@/components/ThemedView";
+import ProfileTopbar from "@/components/profileTopbar";
 import { LinearGradient } from "expo-linear-gradient";
 import Constants from "expo-constants";
 
-// Note: testVideos, api, toast, and format are not directly used in the final render
-// but if `api` or `toast` are custom internal modules, ensure they are RN compatible.
-// `format` (from date-fns) is compatible with React Native.
-
 export default function PersonalProfilePage() {
-  const [activeTab, setActiveTab] = useState("long"); // Default to 'clips' as in original
+  const [activeTab, setActiveTab] = useState("long");
   const [userData, setUserData] = useState<any>(null);
   const [videos, setVideos] = useState<any[]>([]);
-
-  const [isLoading, setIsLoading] = useState(false); // Keep true initially to show loader
-
+  const [isLoading, setIsLoading] = useState(false);
   const [isError, setIsError] = useState<string | null>(null);
   const [isLoadingVideos, setIsLoadingVideos] = useState(false);
-  const { user, isLoggedIn, token, logout } = useAuthStore();
-  const router = useRouter();
-  const params = useLocalSearchParams(); // Use useLocalSearchParams for route parameters
 
-  const id = "686cc5084b2928ecdc64f263";
-  const BACKEND_API_URL = Constants.expoConfig?.extra?.BACKEND_API_URL;
+  const { token } = useAuthStore();
+  const router = useRouter();
 
   const thumbnails = useThumbnailsGenerate(
     videos.map((video) => ({
@@ -62,24 +44,6 @@ export default function PersonalProfilePage() {
     }))
   );
 
-<<<<<<< Updated upstream
-  useEffect(() => {
-    if (!isLoggedIn) {
-      router.push("/(auth)/Sign-in");
-      return;
-    }
-
-    const fetchUserVideos = async (page = 1) => {
-      setIsLoadingVideos(true);
-      try {
-        const response = await fetch(
-          // Assuming your API server is accessible from the Expo client
-          `${BACKEND_API_URL}/user/videos?type=${activeTab}&page=${page}`,
-          {
-            method: "GET",
-            headers: {
-              Authorization: `Bearer ${token}`,
-=======
   useFocusEffect(
     React.useCallback(() => {
       const fetchUserVideos = async () => {
@@ -88,16 +52,16 @@ export default function PersonalProfilePage() {
           const params = new URLSearchParams();
           params.append("type", activeTab);
 
-          const response = await fetch(
-            `${CONFIG.API_BASE_URL}/api/v1/user/videos?${params.toString()}`,
-            {
-              method: "GET",
-              headers: {
-                Authorization: `Bearer ${token}`,
-                "Content-Type": "application/json",
-              },
-            }
-          );
+          const response = await fetch(`${CONFIG.API_BASE_URL}/api/v1/user/videos?${params.toString()}`, {
+            method: "GET",
+            headers: {
+              Authorization: `Bearer ${token}`,
+              "Content-Type": "application/json",
+              "Cache-Control": "no-cache, no-store, must-revalidate",
+              "Pragma": "no-cache",
+              "Expires": "0"
+            },
+          });
 
           const data = await response.json();
 
@@ -106,7 +70,7 @@ export default function PersonalProfilePage() {
           }
 
           console.log("videos", data);
-          setVideos(data.videos); // Assuming data structure is { videos: [...] }
+          setVideos(data.videos);
         } catch (err) {
           console.error("Error fetching user videos:", err);
           Alert.alert(
@@ -123,18 +87,15 @@ export default function PersonalProfilePage() {
       const fetchUserData = async () => {
         setIsLoading(true);
         try {
-          // Add a cache-busting parameter to force a fresh fetch
           const timestamp = new Date().getTime();
           const response = await fetch(`${CONFIG.API_BASE_URL}/api/v1/user/profile?_=${timestamp}`, {
             method: "GET",
             headers: {
               Authorization: `Bearer ${token}`,
               "Content-Type": "application/json",
-              // Add a cache control header to prevent caching
               "Cache-Control": "no-cache, no-store, must-revalidate",
               "Pragma": "no-cache",
               "Expires": "0"
->>>>>>> Stashed changes
             },
           });
 
@@ -146,7 +107,7 @@ export default function PersonalProfilePage() {
 
           console.log("Fetched fresh user data:", data.user);
           setUserData(data.user);
-          setIsError(null); // Clear any previous errors
+          setIsError(null);
         } catch (error) {
           console.log("error", error);
           setIsError(
@@ -161,77 +122,12 @@ export default function PersonalProfilePage() {
         }
       };
 
-<<<<<<< Updated upstream
-        setVideos(data.videos); // Assuming data structure is { videos: [...] }
-      } catch (err) {
-        console.error("Error fetching user videos:", err);
-        Alert.alert(
-          "Error",
-          err instanceof Error
-            ? err.message
-            : "An unknown error occurred while fetching videos."
-        );
-      } finally {
-        setIsLoadingVideos(false);
-      }
-    };
-
-    if (token) {
-      fetchUserVideos();
-    }
-  }, [isLoggedIn, router, token, activeTab]);
-
-  useEffect(() => {
-    if (!isLoggedIn) {
-      router.push("/(auth)/Sign-in");
-      return;
-    }
-
-    const fetchUserData = async () => {
-      try {
-        const response = await fetch(`${BACKEND_API_URL}/user/profile`, {
-          method: "GET",
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-        });
-
-        const data = await response.json();
-
-        if (!response.ok) {
-          throw new Error(data.message || "Failed to fetch user profile");
-        }
-
-        console.log(data.user);
-        setUserData(data.user);
-        setIsError(null);
-      } catch (error) {
-        console.log("error", error);
-        setIsError(
-          error instanceof Error ? error.message : "An unknown error occurred."
-        );
-        Alert.alert(
-          "Error",
-          error instanceof Error ? error.message : "An unknown error occurred."
-        );
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    if (token) {
-      fetchUserData();
-    }
-  }, [isLoggedIn, router, token]);
-=======
       if (token) {
         fetchUserData();
         fetchUserVideos();
       }
     }, [token, activeTab])
   );
->>>>>>> Stashed changes
 
   const currentProfileData = {
     name: userData?.name || "User",
@@ -247,16 +143,16 @@ export default function PersonalProfilePage() {
     website: userData?.website || "",
     joinedDate: userData?.createdAt
       ? new Date(userData.createdAt).toLocaleDateString("en-US", {
-          month: "long",
-          year: "numeric",
-        })
-      : "N/A", // Ensure joinedDate is a string or 'N/A'
+        month: "long",
+        year: "numeric",
+      })
+      : "N/A",
     coverImage:
       "https://images.unsplash.com/photo-1579546929518-9e396f3cc809?w=800&h=200&fit=crop",
     followers: userData?.stats?.followersCount || 0,
     following: userData?.stats?.followingCount || 0,
     posts: userData?.stats?.videosCount || 0,
-    communityLength: userData?.community?.length || 0, // Added for clarity
+    communityLength: userData?.community?.length || 0,
     isVerified: userData?.isVerified || false,
   };
 
@@ -310,9 +206,9 @@ export default function PersonalProfilePage() {
               <View className="relative">
                 <View className="w-24 h-24 rounded-full border-2 border-white overflow-hidden">
                   <Image
-                    source={currentProfileData?.image ?{
+                    source={currentProfileData?.image ? {
                       uri: currentProfileData.image,
-                    }: require('../../../assets/images/user.png')}
+                    } : require('../../../assets/images/user.png')}
                     className="w-full h-full object-cover rounded-full"
                     style={{ width: 96, height: 96 }}
                   />
@@ -324,11 +220,11 @@ export default function PersonalProfilePage() {
                   </Text>
                   {(currentProfileData.isVerified ||
                     userData?.creator_profile?.verification_status ===
-                      "verified") && (
-                    <Text className="ml-2 px-2 py-1 rounded-full text-xs font-medium bg-blue-500 text-white">
-                      Verified
-                    </Text>
-                  )}
+                    "verified") && (
+                      <Text className="ml-2 px-2 py-1 rounded-full text-xs font-medium bg-blue-500 text-white">
+                        Verified
+                      </Text>
+                    )}
                 </View>
               </View>
             </View>
@@ -376,14 +272,10 @@ export default function PersonalProfilePage() {
             <View className="flex flex-row w-full items-center justify-center gap-2 mt-5">
               {/* My Community Button */}
               <TouchableOpacity
-<<<<<<< Updated upstream
-                onPress={() => router.push("/(communities)/CommunitiesPage")}
-=======
                 onPress={() => router.push({
                   pathname: "/(dashboard)/profile/ProfileSections",
                   params: { section: "myCommunity", userName: currentProfileData.username }
                 })}
->>>>>>> Stashed changes
                 className="px-4 py-2 rounded-lg border border-white"
               >
                 <Text className="text-white text-center font-bold">
@@ -394,7 +286,7 @@ export default function PersonalProfilePage() {
               {/* Dashboard Button (Gradient Border) */}
               <TouchableOpacity
                 onPress={() => router.push("/(dashboard)/profile/Dashboard")}
-                className="px-4 py-2 rounded-lg border border-white" // Use rounded-md for consistency
+                className="px-4 py-2 rounded-lg border border-white"
               >
                 <Text className="text-white text-center font-bold">
                   Dashboard
@@ -418,13 +310,13 @@ export default function PersonalProfilePage() {
 
               <TouchableOpacity
                 onPress={() => router.push("/SeriesAccessDemo")}
-                className="rounded-lg overflow-hidden" // Use rounded-md for consistency
+                className="rounded-lg overflow-hidden"
               >
                 <LinearGradient
                   colors={["#4400FFA6", "#FFFFFF", "#FF00004D", "#FFFFFF"]}
                   start={{ x: 0, y: 0 }}
                   end={{ x: 1, y: 1 }}
-                  className="p-[1.5px] rounded-lg flex-1" // Use rounded-md here
+                  className="p-[1.5px] rounded-lg flex-1"
                 >
                   <View className="flex-1 px-4 py-2 rounded-lg bg-black items-center justify-center">
                     <Text className="text-white text-center font-bold">
@@ -460,14 +352,6 @@ export default function PersonalProfilePage() {
                     </Text>
                   </TouchableOpacity>
                 )}
-                {/* {currentProfileData.joinedDate !== "N/A" && (
-                  <View className="flex-row items-center">
-                    <Calendar className="w-4 h-4 mr-1 text-gray-400" />
-                    <Text className="text-gray-400">
-                      Joined {currentProfileData.joinedDate}
-                    </Text>
-                  </View>
-                )} */}
               </View>
             </View>
           </View>
@@ -511,14 +395,17 @@ export default function PersonalProfilePage() {
             <ActivityIndicator size="large" color="#F1C40F" />
           </View>
         ) : (
-          <FlatList
-            data={videos}
-            keyExtractor={(item) => item._id}
-            renderItem={renderGridItem}
-            numColumns={3}
-            contentContainerStyle={{ paddingBottom: 30, paddingHorizontal: 0 }}
-            showsVerticalScrollIndicator={false}
-          />
+          <View className="flex-1">
+            <FlatList
+              data={videos}
+              keyExtractor={(item) => item._id}
+              renderItem={renderGridItem}
+              numColumns={3}
+              contentContainerStyle={{ paddingBottom: 30, paddingHorizontal: 0 }}
+              showsVerticalScrollIndicator={false}
+              nestedScrollEnabled={true}
+            />
+          </View>
         )}
       </ScrollView>
     </ThemedView>
