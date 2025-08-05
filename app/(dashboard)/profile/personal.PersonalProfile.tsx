@@ -83,7 +83,7 @@ export default function PersonalProfilePage() {
           throw new Error(data.message || "Failed to fetch user videos");
         }
 
-        setVideos(data.videos); // Assuming data structure is { videos: [...] }
+        setVideos(data.videos);
       } catch (err) {
         console.error("Error fetching user videos:", err);
         Alert.alert(
@@ -311,7 +311,7 @@ export default function PersonalProfilePage() {
               </TouchableOpacity>
 
               <TouchableOpacity
-                onPress={() => router.push("/SeriesAccessDemo")}
+                onPress={() => router.push("/(demo)/CreatorPassDemo")}
                 className="rounded-lg overflow-hidden" // Use rounded-md for consistency
               >
                 <LinearGradient

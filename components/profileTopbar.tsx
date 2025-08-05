@@ -3,7 +3,6 @@ import { View, Text, TouchableOpacity, Alert } from "react-native";
 import { MoreHorizontal, LogOut, ChevronLeft } from "lucide-react-native";
 import { useRouter } from "expo-router";
 import { useAuthStore } from "@/store/useAuthStore";
-import { CONFIG } from "@/Constants/config";
 
 interface ProfileTopbarProps {
   hashtag: boolean;
@@ -15,23 +14,13 @@ const ProfileTopbar = ({ hashtag, name, isMore=true }: ProfileTopbarProps) => {
   const safeName = String(name || "");
   const [showDropdown, setShowDropdown] = useState(false);
   const router = useRouter();
-  const logout = useAuthStore((state) => state.logout);
+  const {logout} = useAuthStore();
 
   const handleLogout = async () => {
     try {
-      const response = await fetch(`${CONFIG.API_BASE_URL}/api/v1/auth/logout`, {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error("Logout failed on server side.");
-      }
-
       logout();
       Alert.alert("Success", "Logged out successfully!");
+      router.replace('/(auth)/Sign-in');
     } catch (error) {
       console.error("Logout error:", error);
       Alert.alert(

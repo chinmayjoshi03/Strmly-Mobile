@@ -17,7 +17,7 @@ const CreatorPassDemo = () => {
             <StatusBar barStyle="light-content" backgroundColor="#000" />
 
             {/* Header */}
-            <View className="flex-row items-center justify-between px-4 py-3 mt-12">
+            <View className="flex-row items-center justify-between px-4 py-3 mt-10">
                 <TouchableOpacity onPress={() => router.back()}>
                     <X size={24} color="white" />
                 </TouchableOpacity>

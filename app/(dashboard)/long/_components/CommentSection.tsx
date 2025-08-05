@@ -43,7 +43,7 @@ interface CommentsSectionProps {
 }
 
 const CommentsSection = (props: CommentsSectionProps) => {
-  const { isOpen, onClose, videoId, longVideosOnly, commentss } = props;
+  const { isOpen, videoId, longVideosOnly, commentss } = props;
   const [comments, setComments] = useState<Comment[]>([]);
   const [comment, setComment] = useState("");
   const [openReplies, setOpenReplies] = useState<{ [key: string]: reply[] }>(

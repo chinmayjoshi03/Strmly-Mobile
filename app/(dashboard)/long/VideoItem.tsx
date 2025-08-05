@@ -32,6 +32,8 @@ type Props = {
 
 const PROGRESS_BAR_HEIGHT = 2;
 const FULL_SCREEN_PRESSABLE_BOTTOM_OFFSET = PROGRESS_BAR_HEIGHT;
+const { height } = Dimensions.get("screen");
+const actualHeight = height-50;
 
 const VideoItem = ({
   BACKEND_API_URL,
@@ -43,7 +45,6 @@ const VideoItem = ({
   setGiftingData,
   setIsWantToGift,
 }: Props) => {
-  const { width, height } = Dimensions.get("screen");
   const player = useVideoPlayer(uri, (p) => {
     p.loop = true;
     p.volume = 1;
@@ -159,7 +160,7 @@ const VideoItem = ({
         styles.container,
         {
           width: screenSize.width,
-          height: isFullScreen ? screenSize.width : screenSize.height,
+          height: isFullScreen ? screenSize.width : actualHeight,
         },
       ]}
     >

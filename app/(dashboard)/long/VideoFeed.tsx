@@ -1,72 +1,56 @@
-import React, { useRef, useState, useEffect } from "react";
-import { FlatList, Dimensions, ActivityIndicator, Text } from "react-native";
-import VideoItem from "./VideoItem";
+import React, { useRef, useState, useEffect, useCallback } from "react";
+import {
+  FlatList,
+  Dimensions,
+  ActivityIndicator,
+  Text,
+  View,
+} from "react-native";
+import VideoItem from "./VideoItem"; // Make sure this is the memoized version
 import ThemedView from "@/components/ThemedView";
 import { useAuthStore } from "@/store/useAuthStore";
 import Constants from "expo-constants";
 import { VideoItemType } from "@/types/VideosType";
-import VideoContentGifting from "@/app/(payments)/Video/VideoContentGifting";
 import GiftingMessage from "./_components/GiftingMessage";
-
-const videoData = [
-  {
-    id: "1",
-    uri: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4",
-  },
-  {
-    id: "2",
-    uri: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4",
-  },
-  {
-    id: "3",
-    uri: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/Sintel.mp4",
-  },
-];
+import VideoContentGifting from "@/app/(payments)/Video/Video-Gifting";
 
 export type GiftType = {
-  creator: {
-    _id: string;
-    username: string;
-    profile_photo: string;
-  };
-  videoId: string;
+  _id: string;
+  name?: string;
+  username: string;
+  profile_photo: string;
 };
+
+const { height } = Dimensions.get("screen");
 
 const VideoFeed: React.FC = () => {
   const [videos, setVideos] = useState<VideoItemType[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-
-  const BACKEND_API_URL = Constants.expoConfig?.extra?.BACKEND_API_URL;
-  const { height } = Dimensions.get("screen");
-
   const [visibleIndex, setVisibleIndex] = useState(0);
-  const { token, user, isLoggedIn } = useAuthStore();
-  const [videosPage, setVideosPage] = useState(1);
 
-  const [showCommentsModal, setShowCommentsModal] = useState(false);
+  const { token } = useAuthStore();
+  const BACKEND_API_URL = Constants.expoConfig?.extra?.BACKEND_API_URL;
+
+  // State for overlays
   const [isWantToGift, setIsWantToGift] = useState(false);
+  const [isGifted, setIsGifted] = useState(false);
   const [giftingData, setGiftingData] = useState<GiftType | null>(null);
-  const [isGifted, setIsGifted] = useState<boolean>(false);
   const [giftSuccessMessage, setGiftSuccessMessage] = useState<any>();
-
-  const [modalVisible, setModalVisible] = useState<boolean>(false);
+  const [showCommentsModal, setShowCommentsModal] = useState(false);
 
   const fetchTrendingVideos = async () => {
+    // This function is fine as is.
+    setLoading(true);
     try {
-      const res = await fetch(
-        `${BACKEND_API_URL}/videos/trending`,
-        {
-          method: "GET",
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-        }
-      );
-
+      const res = await fetch(`${BACKEND_API_URL}/videos/trending`, {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      });
       if (!res.ok) throw new Error("Failed to fetch videos");
-
       const json = await res.json();
       setVideos(json.data);
     } catch (err: any) {
@@ -80,12 +64,42 @@ const VideoFeed: React.FC = () => {
     fetchTrendingVideos();
   }, []);
 
-  const onViewableItemsChanged = useRef(({ viewableItems }: any) => {
+  // OPTIMIZATION 1: Stabilize the onViewableItemsChanged callback
+  // This prevents FlatList from re-rendering just because the parent re-rendered.
+  const onViewableItemsChanged = useCallback(({ viewableItems }: any) => {
     if (viewableItems.length > 0) {
-      const newIndex = viewableItems[0].index;
-      setVisibleIndex(newIndex);
+      setVisibleIndex(viewableItems[0].index);
     }
-  });
+  }, []); // Empty dependency array means this function is created only once.
+
+  // OPTIMIZATION 2: Memoize the renderItem function
+  // This prevents creating a new render function on every parent render.
+  const renderItem = useCallback(
+    ({ item, index }: { item: VideoItemType; index: number }) => (
+      <VideoItem
+        BACKEND_API_URL={BACKEND_API_URL}
+        setGiftingData={setGiftingData}
+        showCommentsModal={showCommentsModal}
+        setShowCommentsModal={setShowCommentsModal}
+        setIsWantToGift={setIsWantToGift}
+        uri={item.videoUrl}
+        isActive={index === visibleIndex}
+        videoData={item}
+      />
+    ),
+    [visibleIndex, showCommentsModal, BACKEND_API_URL]
+  ); // Dependencies that, when changed, should cause the item to update.
+
+  // OPTIMIZATION 3: If all your video items have the same height (full screen), use getItemLayout
+  // This is a major performance boost as it avoids on-the-fly layout calculations.
+  const getItemLayout = useCallback(
+    (_data: any, index: number) => ({
+      length: height,
+      offset: height * index,
+      index,
+    }),
+    [height]
+  );
 
   if (loading) {
     return (
@@ -103,52 +117,47 @@ const VideoFeed: React.FC = () => {
     );
   }
 
+  // OPTIMIZATION 4: Refactored UI structure.
+  // The FlatList is always rendered. Gifting components are rendered as overlays.
   return (
-    <>
-      {isGifted ? (
-        <GiftingMessage
-          isVisible={modalVisible}
-          giftData={giftingData}
-          setGiftData={setGiftingData}
-          onClose={setModalVisible}
-          message={giftSuccessMessage}
-          giftMessage={setGiftSuccessMessage}
-        />
-      ) : isWantToGift ? (
+    <ThemedView style={{ flex: 1, backgroundColor: "black" }}>
+      <FlatList
+        data={videos}
+        renderItem={renderItem}
+        keyExtractor={(item) => item._id}
+        getItemLayout={getItemLayout}
+        pagingEnabled
+        scrollEnabled={!showCommentsModal}
+        onViewableItemsChanged={onViewableItemsChanged}
+        viewabilityConfig={{ itemVisiblePercentThreshold: 80 }}
+        initialNumToRender={3}
+        maxToRenderPerBatch={3}
+        windowSize={5}
+        decelerationRate="fast"
+        showsVerticalScrollIndicator={false}
+      />
+
+      {/* Gifting components are now rendered on top of the list, not in place of it */}
+      {isWantToGift && !isGifted && (
         <VideoContentGifting
           giftData={giftingData}
           setIsGifted={setIsGifted}
           setIsWantToGift={setIsWantToGift}
           giftMessage={setGiftSuccessMessage}
         />
-      ) : (
-        <ThemedView style={{ height }}>
-          <FlatList
-            data={videos}
-            keyExtractor={(item) => item._id}
-            renderItem={({ item, index }) => (
-              <VideoItem
-                BACKEND_API_URL={BACKEND_API_URL}
-                setGiftingData={setGiftingData}
-                showCommentsModal={showCommentsModal}
-                setShowCommentsModal={setShowCommentsModal}
-                setIsWantToGift={setIsWantToGift}
-                key={item._id}
-                uri={item.videoUrl}
-                isActive={index === visibleIndex}
-                videoData={item}
-              />
-            )}
-            pagingEnabled
-            scrollEnabled={!showCommentsModal}
-            onViewableItemsChanged={onViewableItemsChanged.current}
-            viewabilityConfig={{ itemVisiblePercentThreshold: 80 }}
-            decelerationRate="fast"
-            showsVerticalScrollIndicator={false}
-          />
-        </ThemedView>
       )}
-    </>
+
+      {isGifted && (
+        <GiftingMessage
+          isVisible={isGifted} // Control visibility with a boolean
+          giftData={giftingData}
+          setGiftData={setGiftingData}
+          onClose={() => setIsGifted(false)} // Provide a way to close the message
+          message={giftSuccessMessage}
+          giftMessage={setGiftSuccessMessage}
+        />
+      )}
+    </ThemedView>
   );
 };
 

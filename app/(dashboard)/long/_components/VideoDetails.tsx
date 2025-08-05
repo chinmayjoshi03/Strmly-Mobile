@@ -5,28 +5,13 @@ import {
   Image,
   Pressable,
   FlatList,
+  Alert,
 } from "react-native";
 import React, { useEffect, useState } from "react";
 import { ChevronDownIcon, Hash, PlusSquare } from "lucide-react-native";
 import { useAuthStore } from "@/store/useAuthStore";
 import Constants from "expo-constants";
 import { router } from "expo-router";
-
-// const episodes = [
-//   "Episode : 01",
-//   "Episode : 02",
-//   "Episode : 03",
-//   "Episode : 04",
-//   "Episode : 05",
-// ];
-const paid = [
-  {
-    content: "Content access",
-  },
-  {
-    content: "Creator pass",
-  },
-];
 
 type VideoDetailsProps = {
   videoId: string;
@@ -54,8 +39,8 @@ type VideoDetailsProps = {
   } | null;
 
   episode_number: number | null;
-  onToggleFullScreen: () => void;
-  isFullScreen: boolean;
+  onToggleFullScreen?: () => void;
+  isFullScreen?: boolean;
 };
 
 const VideoDetails = ({
@@ -82,38 +67,41 @@ const VideoDetails = ({
   const BACKEND_API_URL = Constants.expoConfig?.extra?.BACKEND_API_URL;
 
   useEffect(() => {
-    setSelectedEpisodeIndex(episode_number || 0);
+    if(episode_number) setSelectedEpisodeIndex(episode_number);
   }, [episode_number]);
 
   const followCreator = async () => {
-    if (!token || !videoId) {
-      return;
-    }
-
-    try {
-      const response = await fetch(
-        `${BACKEND_API_URL}/user/${isFollowCreator ? "unfollow" : "follow"}`,
-        {
+      try {
+        const response = await fetch(`${BACKEND_API_URL}/user/${!isFollowCreator ? 'follow' : 'unfollow'}`, {
           method: "POST",
           headers: {
             Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
           },
-          body: JSON.stringify(
-            !isFollowCreator
-              ? { followUserId: videoId }
-              : { unfollowUserId: videoId }
-          ),
+          body: JSON.stringify(!isFollowCreator ?{
+            followUserId: videoId,
+          } : {unfollowUserId: videoId}),
+        });
+  
+        const data = await response.json();
+  
+        if (!response.ok) {
+          throw new Error(data.message || "Failed to follow user profile");
         }
-      );
-      if (!response.ok) throw new Error("Failed to follow user");
-      const data = await response.json();
-      setIsFollowCreator(data.isFollowingCommunity);
-      console.log("data", data);
-    } catch (err) {
-      console.log(err);
-    }
-  };
+  
+        console.log(data);
+        setIsFollowCreator(data.isFollowing);
+        Alert.alert(isFollowCreator ? "You unFollowed this creator" : "You are now Following this creator");
+      } catch (error) {
+        console.log(error);
+        Alert.alert(
+          "Error",
+          error instanceof Error
+            ? error.message
+            : "An unknown error occurred while following user."
+        );
+      }
+    };
 
   const followCommunity = async () => {
     if (!token || !community?._id) {
@@ -220,7 +208,7 @@ const VideoDetails = ({
             >
               <View className="flex-row items-center">
                 <Text className="font-semibold text-xs text-white mr-1">
-                  Ep: 0{selectedEpisodeIndex + 1}
+                  Ep: 0{selectedEpisodeIndex}
                 </Text>
                 <ChevronDownIcon color={"white"} size={12} />
               </View>
@@ -327,7 +315,7 @@ const VideoDetails = ({
                   <Text className="text-white text-[18px] flex-row items-center">
                     Episode: {idx + 1}
                   </Text>
-                  {selectedEpisodeIndex === idx && (
+                  {selectedEpisodeIndex === idx+1 && (
                     <Text className="text-white">✔</Text>
                   )}
                 </View>

@@ -1,7 +1,9 @@
 import VideoFeed from '../(dashboard)/long/VideoFeed';
+import VideosFeed from '../(dashboard)/long/VideosFeed';
 
 export default function HomeTab() {
-  return <VideoFeed />;
+  return <VideosFeed />;
+  // return <VideoFeed />;
 }
 
 // In app/(tabs)/profile.tsx

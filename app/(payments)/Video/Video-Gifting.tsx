@@ -23,27 +23,26 @@ import Constants from "expo-constants";
 const BACKEND_API_URL = Constants.expoConfig?.extra?.BACKEND_API_URL;
 
 type GiftingData = {
-  giftData: {
-    creator: {
-      _id: string;
-      username: string;
-      profile_photo: string;
-    };
-    videoId: string;
-  } | null;
+  creator: {
+    _id: string;
+    username: string;
+    profile_photo: string;
+  };
+  videoId: string;
   setIsWantToGift: (value: boolean) => void;
   setIsGifted: (value: boolean) => void;
   giftMessage: any;
 };
 
 const VideoContentGifting = ({
-  giftData,
+  creator,
+  videoId,
   setIsWantToGift,
   setIsGifted,
   giftMessage,
 }: GiftingData) => {
   const [amount, setAmount] = useState("");
-  const [walletInfo, setWalletInfo] = useState({});
+  const [walletInfo, setWalletInfo] = useState();
   const [loading, setLoading] = useState(false);
 
   const keyboardHeight = useRef(new Animated.Value(0)).current;
@@ -61,10 +60,9 @@ const VideoContentGifting = ({
   // ------------ Transaction -------------------
 
   const giftVideo = async () => {
-    if (!token && !giftData?.videoId) {
+    if (!token && !videoId) {
       return;
     }
-    console.log('giftdata---', giftData)
 
     try {
       const response = await fetch(
@@ -75,15 +73,16 @@ const VideoContentGifting = ({
             Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({ videoId: giftData?.videoId, amount }),
+          body: JSON.stringify({ videoId: videoId, amount, }),
         }
       );
+      
       if (!response.ok) throw new Error("Failed to provide gifting");
       const data = await response.json();
       console.log("dWallet data---------------", data);
       giftMessage(data.gift);
       setIsWantToGift(false);
-      router.back();
+      setIsGifted(true);
     } catch (err) {
       console.log(err);
     }
@@ -172,9 +171,9 @@ const VideoContentGifting = ({
             <View className="mt-10">
               <CreatorInfo
                 setIsWantToGift={setIsWantToGift}
-                profile={giftData?.creator?.profile_photo}
-                // name={giftData?.creator?.name}
-                username={giftData?.creator?.username}
+                profile={creator?.profile_photo}
+                // name={creator?.name}
+                username={creator?.username}
               />
             </View>
 
@@ -219,7 +218,7 @@ const VideoContentGifting = ({
 
               <View className="items-center justify-center mt-1">
                 <Text className="text-white text-sm">
-                  Total balance ₹ {walletInfo.balance}
+                  Total balance ₹ {walletInfo?.balance}
                 </Text>
               </View>
             </Animated.View>

@@ -78,14 +78,40 @@ const Setting = () => {
     router.replace("/(auth)/Sign-in");
   };
 
-  const handleDeleteAccount = () => {
-    Alert.alert(
-      "Account Deletion Request Submitted",
-      "Your request has been received. Please check back in 2-4 days to complete the deletion process.",
-      [{ text: "OK", onPress: closeModal }]
-    );
-  };
+  const handleDeleteAccount = async () => {
+    try {
+      const response = await fetch(`${BACKEND_API_URL}/profile`, {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
 
+      // Try to parse JSON response for an error message, if any
+      const data = await response.json();
+
+      if (!response.ok) {
+        // If the server returns an error, display it
+        throw new Error(data.message || "Failed to submit deletion request.");
+      }
+
+      // On success, show the confirmation alert and log the user out
+      Alert.alert(
+        "Account Deletion Initiated",
+        "Your account deletion request has been submitted successfully. You will now be logged out.",
+        [{ text: "OK" }]
+        // [{ text: "OK", onPress: handleLogout }]
+      );
+    } catch (error) {
+      // On failure, show an error alert
+      Alert.alert(
+        "Deletion Error",
+        error.message || "An unexpected error occurred."
+      );
+      // Close the modal only on error, as success will log out
+      closeModal();
+    }
+  };
   const openURL = async (url: string) => {
     const supported = await Linking.canOpenURL(url);
     if (supported) {
