@@ -15,16 +15,6 @@ type GiftDataType = {
   videoId: string;
 };
 
-type GiftDataType = {
-  creator: {
-    _id: string;
-    profile_photo: string;
-    name: string;
-    username: string;
-  };
-  videoId: string;
-};
-
 type InteractOptionsProps = {
   onCommentPress: () => void; // Callback function for comment button press
   videoId: string;
@@ -34,12 +24,9 @@ type InteractOptionsProps = {
   comments?: number;
   setIsWantToGift: any;
   setGiftingData: (data: GiftDataType) => void;
-  setGiftingData: (data: GiftDataType) => void;
   creator: {
     _id: string;
     profile_photo: string;
-    name: string;
-    username: string;
     name: string;
     username: string;
   };
@@ -194,7 +181,6 @@ const InteractOptions = ({
   useEffect(()=> setGifts(gifts), [gifts]);
 
   const openGifting = () => {
-    setGiftingData({ creator, videoId });
     setGiftingData({ creator, videoId });
     setIsWantToGift(true);
   };

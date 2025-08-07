@@ -290,10 +290,10 @@ const VideoContentGifting = ({
                 </View>
               ) : (
                 <CreatorInfo
-                  setIsWantToGift={setIsWantToGift}
-                  profile={giftData?.creator?.profile_photo}
-                  // name={giftData?.creator?.name}
-                  username={giftData?.creator?.username}
+                  setIsWantToGift={setIsWantToGift || (() => {})}
+                  profile={giftData?.creator?.profile_photo || ""}
+                  name={giftData?.creator?.username || ""}
+                  username={giftData?.creator?.username || ""}
                 />
               )}
             </View>

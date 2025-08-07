@@ -57,7 +57,6 @@ const initialFinalStageData: FinalStageData = {
 export const useUploadFlow = () => {
   const [state, setState] = useState<UploadFlowState>({
     currentStep: 'format-select', // Start with format selection instead of file selection
-    currentStep: 'format-select', // Start with format selection instead of file selection
     uploadProgress: 0,
     videoDetails: initialVideoDetails,
     finalStageData: initialFinalStageData,
@@ -69,13 +68,6 @@ export const useUploadFlow = () => {
     draftId: null,
     isEditingDraft: false,
   });
-
-
-    draftId: null,
-    isEditingDraft: false,
-  });
-
-
 
   // Start the upload process
   const startUpload = useCallback(() => {
@@ -113,9 +105,6 @@ export const useUploadFlow = () => {
           nextStep = 'file-select'; // File selection is now the last step
           break;
         case 'file-select':
-          nextStep = 'file-select'; // File selection is now the last step
-          break;
-        case 'file-select':
           nextStep = 'progress';
           break;
         case 'progress':
@@ -148,12 +137,6 @@ export const useUploadFlow = () => {
           } else {
             prevStep = 'format-select';
           }
-          if (prev.videoFormat === 'episode') {
-            // For episodes, check if we have a selected series
-            prevStep = prev.selectedSeries ? 'episode-selection' : 'format-select';
-          } else {
-            prevStep = 'format-select';
-          }
           break;
         case 'details-2':
           prevStep = 'details-1';
@@ -163,11 +146,6 @@ export const useUploadFlow = () => {
           break;
         case 'final':
           prevStep = 'details-3';
-          break;
-        case 'file-select':
-          // When editing draft, go back to final step to allow editing metadata
-          // When creating new video, this should not happen as file-select is last
-          prevStep = prev.isEditingDraft ? 'final' : 'final';
           break;
         case 'file-select':
           // When editing draft, go back to final step to allow editing metadata
@@ -187,7 +165,6 @@ export const useUploadFlow = () => {
       videoDetails: { ...prev.videoDetails, ...details },
     }));
   }, []);
-  }, []);
 
   // Update final stage data
   const updateFinalStageData = useCallback((data: Partial<FinalStageData>) => {
@@ -196,7 +173,6 @@ export const useUploadFlow = () => {
       finalStageData: { ...prev.finalStageData, ...data },
     }));
   }, []);
-  }, []);
 
   // Set selected file
   const setSelectedFile = useCallback((file: any) => {
@@ -204,7 +180,6 @@ export const useUploadFlow = () => {
       ...prev,
       selectedFile: file,
     }));
-  }, []);
   }, []);
 
   // Set video format
@@ -383,14 +358,11 @@ export const useUploadFlow = () => {
         return finalStageData.genre !== null;
       case 'file-select':
         return selectedFile !== null;
-      case 'file-select':
-        return selectedFile !== null;
       default:
         return true;
     }
   }, [state]);
 
-  // Submit final upload using Draft API flow
   // Submit final upload using Draft API flow
   const submitUpload = useCallback(async () => {
     console.log('🚀 Submit upload called with state:', {
@@ -420,7 +392,7 @@ export const useUploadFlow = () => {
       setState(prev => ({ ...prev, uploadProgress: 30 }));
 
       console.log('📤 Starting direct video upload...');
-      console.log('� ViSdeo details for upload:', JSON.stringify(state.videoDetails, null, 2));
+      console.log('📝 Video details for upload:', JSON.stringify(state.videoDetails, null, 2));
 
       // Update progress
       setState(prev => ({ ...prev, uploadProgress: 70 }));
@@ -473,7 +445,6 @@ export const useUploadFlow = () => {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
-          'Authorization': `Bearer ${token}`,
         },
         body: directUploadFormData,
       });
@@ -495,22 +466,8 @@ export const useUploadFlow = () => {
 
       return true;
 
-      setState(prev => ({ ...prev, uploadProgress: 100, isUploading: false }));
-
-      // If this was an episode upload, it should be automatically handled by the backend
-      if (state.videoFormat === 'episode' && state.selectedSeries) {
-        console.log('Episode uploaded and added to series successfully');
-      }
-
-      return true;
-
     } catch (error) {
       console.error('Upload error:', error);
-      setState(prev => ({
-        ...prev,
-        isUploading: false,
-        errors: { upload: error instanceof Error ? error.message : 'Upload failed' }
-      }));
       setState(prev => ({
         ...prev,
         isUploading: false,
@@ -519,12 +476,10 @@ export const useUploadFlow = () => {
       return false;
     }
   }, [state]);
-  }, [state]);
 
   // Reset flow
   const resetFlow = useCallback(() => {
     setState({
-      currentStep: 'format-select',
       currentStep: 'format-select',
       uploadProgress: 0,
       videoDetails: initialVideoDetails,
@@ -534,8 +489,6 @@ export const useUploadFlow = () => {
       selectedSeries: null,
       isUploading: false,
       errors: {},
-      draftId: null,
-      isEditingDraft: false,
       draftId: null,
       isEditingDraft: false,
     });
@@ -555,8 +508,6 @@ export const useUploadFlow = () => {
     validateCurrentStep,
     submitUpload,
     resetFlow,
-    initializeFromDraft,
-    saveToDraft,
     initializeFromDraft,
     saveToDraft,
   };

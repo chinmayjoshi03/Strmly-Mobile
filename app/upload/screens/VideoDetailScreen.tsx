@@ -30,8 +30,7 @@ const VideoDetailScreen: React.FC<VideoDetailProps> = ({
   onContinue,
   onBack,
   selectedSeries,
-  videoFormat,
-  isEditingDraft
+ 
   videoFormat,
   isEditingDraft
 }) => {

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { CONFIG } from '../../../Constants/config';
-import { useAuthStore } from '@/store/useAuthStore';
+
 import { useAuthStore } from '@/store/useAuthStore';
 
 interface SeriesAnalytics {
@@ -85,7 +85,7 @@ export const useSeries = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
-  const [refreshKey, setRefreshKey] = useState(0);
+  
 
   const fetchSeries = async () => {
     try {
@@ -102,7 +102,7 @@ export const useSeries = () => {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`,
-          'Authorization': `Bearer ${token}`,
+         
           'Content-Type': 'application/json',
         },
       });
@@ -169,6 +169,6 @@ export const useSeries = () => {
     error,
     refetch,
     refreshKey,
-    refreshKey,
+    
   };
 };

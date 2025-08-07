@@ -5,7 +5,7 @@ import ThemedView from "@/components/ThemedView";
 import { useAuthStore } from "@/store/useAuthStore";
 import { CONFIG } from "@/Constants/config";
 import { VideoItemType } from "@/types/VideosType";
-import VideoContentGifting from "@/app/(payments)/Video/VideoContentGifting";
+import { VideoContentGifting } from "@/app/(payments)/Video/VideoContentGifting";
 import GiftingMessage from "./_components/GiftingMessage";
 import UnifiedVideoPlayer from "@/components/UnifiedVideoPlayer";
 
@@ -15,8 +15,6 @@ type GiftDataType = {
   creator: {
     _id: string;
     profile_photo: string;
-    name: string;
-    username: string;
     name: string;
     username: string;
   };
@@ -43,18 +41,6 @@ const VideoFeed: React.FC = () => {
   console.log('Screen height:', height);
   console.log('Tab bar total space needed:', TAB_BAR_HEIGHT + TAB_BAR_PADDING + BUFFER);
   console.log('Adjusted height:', adjustedHeight);
-  const insets = useSafeAreaInsets();
-  const TAB_BAR_HEIGHT = 55; // Height of the bottom navigation bar (reduced from 70)
-  const TAB_BAR_PADDING = 10; // paddingBottom from tab bar (reduced from 15)
-  const BUFFER = 10; // Additional buffer to ensure no overlap
-
-  // Calculate available height more precisely
-  // We need to account for the tab bar height plus its padding plus safe area
-  const adjustedHeight = height - TAB_BAR_HEIGHT - TAB_BAR_PADDING - BUFFER;
-
-  console.log('Screen height:', height);
-  console.log('Tab bar total space needed:', TAB_BAR_HEIGHT + TAB_BAR_PADDING + BUFFER);
-  console.log('Adjusted height:', adjustedHeight);
 
   const [visibleIndex, setVisibleIndex] = useState(0);
   const { token, user, isLoggedIn } = useAuthStore();
@@ -62,7 +48,6 @@ const VideoFeed: React.FC = () => {
 
   const [showCommentsModal, setShowCommentsModal] = useState(false);
   const [isWantToGift, setIsWantToGift] = useState(false);
-  const [giftingData, setGiftingData] = useState<GiftDataType | null>(null);
   const [giftingData, setGiftingData] = useState<GiftDataType | null>(null);
   const [isGifted, setIsGifted] = useState<boolean>(false);
   const [giftSuccessMessage, setGiftSuccessMessage] = useState<any>();
@@ -100,11 +85,8 @@ const VideoFeed: React.FC = () => {
       const json = await res.json();
       console.log('Videos fetched successfully:', json.data?.length, 'videos');
 
-      console.log('Videos fetched successfully:', json.data?.length, 'videos');
-
       setVideos(json.data);
     } catch (err: any) {
-      console.error('Error fetching videos:', err);
       console.error('Error fetching videos:', err);
       setError(err.message || "Something went wrong");
     } finally {
@@ -127,14 +109,6 @@ const VideoFeed: React.FC = () => {
 
   if (loading) {
     return (
-      <ThemedView style={{
-        position: 'absolute',
-        top: 0,
-        left: 0,
-        right: 0,
-        height: adjustedHeight,
-        backgroundColor: 'black'
-      }} className="justify-center items-center">
       <ThemedView style={{
         position: 'absolute',
         top: 0,
@@ -169,39 +143,11 @@ const VideoFeed: React.FC = () => {
         >
           <Text className="text-white">Retry</Text>
         </Pressable>
-      <ThemedView style={{
-        position: 'absolute',
-        top: 0,
-        left: 0,
-        right: 0,
-        height: adjustedHeight,
-        backgroundColor: 'black'
-      }} className="justify-center items-center px-4">
-        <Text className="text-white text-center mb-4">Failed to load videos</Text>
-        <Text className="text-red-400 text-center text-sm mb-4">{error}</Text>
-        <Text className="text-gray-400 text-center text-xs">
-          API URL: {BACKEND_API_URL || 'Not configured'}
-        </Text>
-        <Pressable
-          onPress={fetchTrendingVideos}
-          className="mt-4 bg-blue-600 px-4 py-2 rounded"
-        >
-          <Text className="text-white">Retry</Text>
-        </Pressable>
       </ThemedView>
     );
   }
 
   return (
-    <ThemedView style={{
-      position: 'absolute',
-      top: 0,
-      left: 0,
-      right: 0,
-      height: adjustedHeight,
-      backgroundColor: 'black'
-    }}>
-      {isGifted && giftingData ? (
     <ThemedView style={{
       position: 'absolute',
       top: 0,
@@ -219,7 +165,6 @@ const VideoFeed: React.FC = () => {
           message={giftSuccessMessage}
           giftMessage={setGiftSuccessMessage}
         />
-      ) : isWantToGift && giftingData ? (
       ) : isWantToGift && giftingData ? (
         <VideoContentGifting
           giftData={giftingData}
@@ -267,7 +212,6 @@ const VideoFeed: React.FC = () => {
           snapToAlignment="start"
         />
       )}
-    </ThemedView>
     </ThemedView>
   );
 };
