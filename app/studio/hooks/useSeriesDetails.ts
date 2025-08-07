@@ -63,7 +63,7 @@ export const useSeriesDetails = (seriesId: string | null) => {
       setLoading(true);
       setError(null);
 
-      const response = await fetch(`${CONFIG.API_BASE_URL}/api/v1/series/${id}`, {
+      const response = await fetch(`${CONFIG.API_BASE_URL}/series/${id}`, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`,

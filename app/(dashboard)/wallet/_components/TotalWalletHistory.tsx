@@ -1,93 +1,27 @@
-import { View, Text, FlatList, Image, TouchableOpacity } from "react-native";
-import React from "react";
+import { View, Text, FlatList, Image, TouchableOpacity, ActivityIndicator } from "react-native";
+import React, { useEffect } from "react";
 import { ChevronLeft } from "lucide-react-native";
-
-// data/balanceHistory.ts
-const walletHistory = [
-  {
-    id: 1,
-    name: "Aamir Khan",
-    photo: "https://randomuser.me/api/portraits/men/32.jpg",
-    amount: 500,
-    amountType: "spend",
-    date: "2025-07-15",
-    description: "Zomato Food Order",
-  },
-  {
-    id: 2,
-    name: "Sara Ali",
-    photo: "https://randomuser.me/api/portraits/women/45.jpg",
-    amount: 1200,
-    amountType: "spend",
-    date: "2025-07-14",
-    description: "Flipkart Purchase",
-  },
-  {
-    id: 3,
-    name: "John Doe",
-    photo: "https://randomuser.me/api/portraits/men/21.jpg",
-    amount: 300,
-    date: "2025-07-13",
-    amountType: "credit",
-    description: "Uber Ride",
-  },
-  {
-    id: 4,
-    name: "Riya Sharma",
-    photo: "https://randomuser.me/api/portraits/women/12.jpg",
-    amount: 150,
-    date: "2025-07-12",
-    amountType: "spend",
-    description: "Coffee at Starbucks",
-  },
-  {
-    id: 5,
-    name: "Mohit Verma",
-    photo: "https://randomuser.me/api/portraits/men/44.jpg",
-    amount: 800,
-    date: "2025-07-11",
-    amountType: "spend",
-    description: "Movie Tickets",
-  },
-  {
-    id: 6,
-    name: "Neha Sinha",
-    photo: "https://randomuser.me/api/portraits/women/60.jpg",
-    amount: 2500,
-    amountType: "spend",
-    date: "2025-07-10",
-    description: "Myntra Shopping",
-  },
-  {
-    id: 7,
-    name: "Dev Patel",
-    photo: "https://randomuser.me/api/portraits/men/10.jpg",
-    amount: 1000,
-    amountType: "spend",
-    date: "2025-07-09",
-    description: "Restaurant Dinner",
-  },
-  {
-    id: 8,
-    name: "Anjali Mehra",
-    photo: "https://randomuser.me/api/portraits/women/24.jpg",
-    amount: 400,
-    amountType: "credit",
-    date: "2025-07-08",
-    description: "Grocery Shopping",
-  },
-  {
-    id: 9,
-    name: "Irshad",
-    photo: "",
-    amount: 40,
-    amountType: "credit",
-    date: "2025-07-08",
-    description: "Receive comment gift",
-  },
-];
+import { useTransactionHistory } from "./useTransactionHistory";
+import { useAuthStore } from "@/store/useAuthStore";
 
 const TotalWalletHistory = ({closeTBalance}: any) => {
+  const { token } = useAuthStore();
+  const { gifts, isLoading, error, fetchGiftHistory } = useTransactionHistory(token || "");
+
+  useEffect(() => {
+    if (token) {
+      fetchGiftHistory();
+    }
+  }, [token]);
+
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-GB', {
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric'
+    });
+  };
   return (
     <View className="">
       <View className="w-full -top-3 flex-row items-center justify-between">
@@ -97,43 +31,73 @@ const TotalWalletHistory = ({closeTBalance}: any) => {
 
         <View>
           <Text className={`text-lg capitalize font-semibold text-white`}>
-            Bank Transfer
+            Gift History
           </Text>
         </View>
 
         <View></View>
       </View>
 
-      <FlatList
-        data={walletHistory}
-        keyExtractor={(item) => item.id.toString()}
-        renderItem={({ item }) => (
-          <View className="flex-row items-center my-2">
-            <View className="flex-row items-center gap-3 flex-1">
-              {/* Profile Picture */}
-              <Image
-                source={{ uri: item.photo }}
-                className="w-12 h-12 rounded-full bg-gray-500"
-              />
+      {isLoading ? (
+        <View className="flex-1 justify-center items-center">
+          <ActivityIndicator size="large" color="#fff" />
+          <Text className="text-white mt-2">Loading gifts...</Text>
+        </View>
+      ) : error ? (
+        <View className="flex-1 justify-center items-center">
+          <Text className="text-red-400 text-center">{error}</Text>
+          <TouchableOpacity 
+            onPress={() => fetchGiftHistory()}
+            className="mt-4 bg-blue-600 px-4 py-2 rounded"
+          >
+            <Text className="text-white">Retry</Text>
+          </TouchableOpacity>
+        </View>
+      ) : gifts.length === 0 ? (
+        <View className="flex-1 justify-center items-center">
+          <Text className="text-gray-400 text-center">No gifts found</Text>
+        </View>
+      ) : (
+        <FlatList
+          data={gifts}
+          keyExtractor={(item) => item.id}
+          renderItem={({ item }) => (
+            <View className="flex-row items-center my-2">
+              <View className="flex-row items-center gap-3 flex-1">
+                {/* Profile Picture */}
+                <Image
+                  source={
+                    item.type === 'received' 
+                      ? { uri: item.from.profile_photo || 'https://via.placeholder.com/48' }
+                      : { uri: item.to.profile_photo || 'https://via.placeholder.com/48' }
+                  }
+                  className="w-12 h-12 rounded-full bg-gray-500"
+                />
 
-              {/* User Info */}
-              <View className="justify-center items-start">
-                <Text className="font-medium text-white">{item.name}</Text>
-                <Text className="text-xs text-gray-500">
-                  {item.description} on {item.date}
-                </Text>
+                {/* User Info */}
+                <View className="justify-center items-start">
+                  <Text className="font-medium text-white">
+                    {item.type === 'received' ? `From ${item.from.username}` : `To ${item.to.username}`}
+                  </Text>
+                  <Text className="text-xs text-gray-500">
+                    {item.video ? `Gift on video: ${item.video.title}` : 
+                     item.comment ? 'Gift on comment' : 'Gift'} • {formatDate(item.createdAt)}
+                  </Text>
+                </View>
               </View>
-            </View>
 
-            {/* Amount */}
-            <Text
-              className={`${item.amountType === "spend" ? "text-red-500" : "text-green-500"} font-semibold`}
-            >
-              {item.amountType === "spend" ? "-" : "+"} ₹{item.amount}
-            </Text>
-          </View>
-        )}
-      />
+              {/* Amount */}
+              <Text
+                className={`${item.type === "sent" ? "text-red-500" : "text-green-500"} font-semibold`}
+              >
+                {item.type === "sent" ? "-" : "+"} ₹{item.amount}
+              </Text>
+            </View>
+          )}
+          refreshing={isLoading}
+          onRefresh={() => fetchGiftHistory()}
+        />
+      )}
     </View>
   );
 };

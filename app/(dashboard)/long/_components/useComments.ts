@@ -66,7 +66,7 @@ export const useComments = ({ videoId }: UseCommentsProps) => {
 
     try {
       console.log('📝 Fetching real comments for video:', videoId);
-      console.log('📡 API URL:', `${CONFIG.API_BASE_URL}/api/v1/interaction/videos/${videoId}/comments?page=${page}&limit=${limit}`);
+      console.log('📡 API URL:', `${CONFIG.API_BASE_URL}/interactions/videos/${videoId}/comments?page=${page}&limit=${limit}`);
 
       const data = await commentActions.getComments(token, videoId, page, limit);
 

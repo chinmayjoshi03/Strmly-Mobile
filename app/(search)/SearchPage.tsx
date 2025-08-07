@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { View, Text, TextInput, FlatList, Dimensions, TouchableOpacity, ActivityIndicator, Image, StyleSheet, ImageBackground, StatusBar, ScrollView } from "react-native";
 import { useFonts } from "expo-font";
+import { useRouter } from "expo-router";
 import ThemedText from "@/components/ThemedText";
 import { useSearch } from "./hooks/useSearch";
 import { communityActions } from "@/api/community/communityActions";
@@ -20,6 +21,7 @@ const SearchScreen: React.FC = () => {
     
     const { token } = useAuthStore();
     const { searchResults, isLoading: searchLoading, error: searchError, performSearch, clearSearch } = useSearch();
+    const router = useRouter();
 
     const [fontsLoaded] = useFonts({
         'Poppins-Regular': require('../../assets/fonts/poppins/Poppins-Regular.ttf'),
@@ -107,12 +109,36 @@ const SearchScreen: React.FC = () => {
         }
     };
 
+    // Navigation functions
+    const navigateToCommunity = (communityId: string) => {
+        if (communityId && communityId !== 'none') {
+            console.log('🔄 Navigating to community:', communityId);
+            router.push(`/(dashboard)/communities/public/${communityId}`);
+        }
+    };
+
+    const navigateToProfile = (userId: string) => {
+        if (userId) {
+            console.log('🔄 Navigating to profile:', userId);
+            router.push(`/(dashboard)/profile/public/${userId}`);
+        }
+    };
+
     // Render video items with thumbnail styling
     const renderVideoItem = ({ item }: { item: any }) => {
         const thumbnailUrl = item.thumbnail || item.posterUrl || 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=800&q=80';
+        const communityId = item.community?._id || item.community?.id || item.communityId;
 
         return (
-            <TouchableOpacity>
+            <TouchableOpacity 
+                onPress={() => {
+                    if (communityId) {
+                        navigateToCommunity(communityId);
+                    } else {
+                        console.log('⚠️ No community ID found for video:', item.title);
+                    }
+                }}
+            >
                 <ImageBackground
                     source={{ uri: thumbnailUrl }}
                     style={style.imageTile}
@@ -120,6 +146,9 @@ const SearchScreen: React.FC = () => {
                 >
                     <View style={styles.trendingOverlay}>
                         <Text style={Searchstyles.label}>{item.title || 'Untitled'}</Text>
+                        {item.community && (
+                            <Text style={styles.communityLabel}>{item.community.name}</Text>
+                        )}
                         {item.created_by && (
                             <Text style={styles.communityLabel}>@{item.created_by.username}</Text>
                         )}
@@ -132,9 +161,19 @@ const SearchScreen: React.FC = () => {
     // Render account items like followers/following in profile
     const renderAccountItem = ({ item }: { item: any }) => {
         const profilePhoto = item.profile_photo || item.profile_picture || `https://api.dicebear.com/7.x/identicon/svg?seed=${item.username}`;
+        const userId = item._id || item.id;
 
         return (
-            <TouchableOpacity style={styles.accountRow}>
+            <TouchableOpacity 
+                style={styles.accountRow}
+                onPress={() => {
+                    if (userId) {
+                        navigateToProfile(userId);
+                    } else {
+                        console.log('⚠️ No user ID found for account:', item.username);
+                    }
+                }}
+            >
                 <View style={styles.accountRowContent}>
                     <Image
                         source={{ uri: profilePhoto }}
@@ -160,9 +199,19 @@ const SearchScreen: React.FC = () => {
     // Render community items like communities in profile
     const renderCommunityItem = ({ item }: { item: any }) => {
         const profilePhoto = item.profile_photo || `https://api.dicebear.com/7.x/identicon/svg?seed=${item.name}`;
+        const communityId = item._id || item.id;
 
         return (
-            <TouchableOpacity style={styles.communityRow}>
+            <TouchableOpacity 
+                style={styles.communityRow}
+                onPress={() => {
+                    if (communityId) {
+                        navigateToCommunity(communityId);
+                    } else {
+                        console.log('⚠️ No community ID found for community:', item.name);
+                    }
+                }}
+            >
                 <View style={styles.communityRowContent}>
                     <Image
                         source={{ uri: profilePhoto }}
@@ -203,25 +252,37 @@ const SearchScreen: React.FC = () => {
         }
     };
 
-    const renderTrendingItem = ({ item }: { item: any }) => (
-        <TouchableOpacity>
-            <ImageBackground
-                source={{ uri: item.thumbnailUrl || item.thumbnail || 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=800&q=80' }}
-                style={style.imageTile}
-                imageStyle={{ resizeMode: 'cover' }}
+    const renderTrendingItem = ({ item }: { item: any }) => {
+        const communityId = item.community?._id || item.community?.id || item.communityId;
+        
+        return (
+            <TouchableOpacity 
+                onPress={() => {
+                    if (communityId) {
+                        navigateToCommunity(communityId);
+                    } else {
+                        console.log('⚠️ No community ID found for trending video:', item.title);
+                    }
+                }}
             >
-                <View style={styles.trendingOverlay}>
-                    <Text style={Searchstyles.label}>{item.title || item.name || 'Untitled'}</Text>
-                    {item.community && (
-                        <Text style={styles.communityLabel}>{item.community.name}</Text>
-                    )}
-                    {item.created_by && (
-                        <Text style={styles.communityLabel}>@{item.created_by.username}</Text>
-                    )}
-                </View>
-            </ImageBackground>
-        </TouchableOpacity>
-    );
+                <ImageBackground
+                    source={{ uri: item.thumbnailUrl || item.thumbnail || 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=800&q=80' }}
+                    style={style.imageTile}
+                    imageStyle={{ resizeMode: 'cover' }}
+                >
+                    <View style={styles.trendingOverlay}>
+                        <Text style={Searchstyles.label}>{item.title || item.name || 'Untitled'}</Text>
+                        {item.community && (
+                            <Text style={styles.communityLabel}>{item.community.name}</Text>
+                        )}
+                        {item.created_by && (
+                            <Text style={styles.communityLabel}>@{item.created_by.username}</Text>
+                        )}
+                    </View>
+                </ImageBackground>
+            </TouchableOpacity>
+        );
+    };
 
     if (!fontsLoaded) {
         return (

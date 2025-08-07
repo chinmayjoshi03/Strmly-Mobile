@@ -56,7 +56,7 @@ export const useStudioDrafts = () => {
         throw new Error('No authentication token available');
       }
 
-      const response = await fetch(`${CONFIG.API_BASE_URL}/api/v1/drafts/all`, {
+      const response = await fetch(`${CONFIG.API_BASE_URL}/drafts/all`, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`,

@@ -77,7 +77,7 @@ export class CommunityAPI {
     });
 
     const response = await fetch(
-      `${CONFIG.API_BASE_URL}/api/v1/community/create`,
+      `${CONFIG.API_BASE_URL}/community/create`,
       {
         method: 'POST',
         headers: CommunityAPI.getHeaders(token, true),
@@ -100,7 +100,7 @@ export class CommunityAPI {
     communityId: string
   ): Promise<{ message: string }> {
     const response = await fetch(
-      `${CONFIG.API_BASE_URL}/api/v1/community/follow`,
+      `${CONFIG.API_BASE_URL}/community/follow`,
       {
         method: 'POST',
         headers: CommunityAPI.getHeaders(token),
@@ -123,7 +123,7 @@ export class CommunityAPI {
     communityId: string
   ): Promise<any> {
     const response = await fetch(
-      `${CONFIG.API_BASE_URL}/api/v1/community/profile/${communityId}`,
+      `${CONFIG.API_BASE_URL}/community/profile/${communityId}`,
       {
         method: 'GET',
         headers: CommunityAPI.getHeaders(token),
@@ -145,7 +145,7 @@ export class CommunityAPI {
     communityId: string
   ): Promise<{ followers: any[] }> {
     const response = await fetch(
-      `${CONFIG.API_BASE_URL}/api/v1/community/followers/${communityId}`,
+      `${CONFIG.API_BASE_URL}/community/followers/${communityId}`,
       {
         method: 'GET',
         headers: CommunityAPI.getHeaders(token),
@@ -167,7 +167,7 @@ export class CommunityAPI {
     communityId: string
   ): Promise<{ creators: any[] }> {
     const response = await fetch(
-      `${CONFIG.API_BASE_URL}/api/v1/community/creators/${communityId}`,
+      `${CONFIG.API_BASE_URL}/community/creators/${communityId}`,
       {
         method: 'GET',
         headers: CommunityAPI.getHeaders(token),
@@ -190,7 +190,7 @@ export class CommunityAPI {
     videoType: 'long' | 'series' = 'long'
   ): Promise<{ videos: any[] }> {
     const response = await fetch(
-      `${CONFIG.API_BASE_URL}/api/v1/community/${communityId}/videos?videoType=${videoType}`,
+      `${CONFIG.API_BASE_URL}/community/${communityId}/videos?videoType=${videoType}`,
       {
         method: 'GET',
         headers: CommunityAPI.getHeaders(token),
@@ -213,7 +213,7 @@ export class CommunityAPI {
     newName: string
   ): Promise<{ message: string; community: Community }> {
     const response = await fetch(
-      `${CONFIG.API_BASE_URL}/api/v1/community/rename`,
+      `${CONFIG.API_BASE_URL}/community/rename`,
       {
         method: 'PUT',
         headers: CommunityAPI.getHeaders(token),
@@ -237,7 +237,7 @@ export class CommunityAPI {
     bio: string
   ): Promise<{ message: string; community: Community }> {
     const response = await fetch(
-      `${CONFIG.API_BASE_URL}/api/v1/community/add-bio`,
+      `${CONFIG.API_BASE_URL}/community/add-bio`,
       {
         method: 'PUT',
         headers: CommunityAPI.getHeaders(token),
@@ -265,7 +265,7 @@ export class CommunityAPI {
     formData.append('imageFile', imageFile);
 
     const response = await fetch(
-      `${CONFIG.API_BASE_URL}/api/v1/community/change-profile-photo`,
+      `${CONFIG.API_BASE_URL}/community/change-profile-photo`,
       {
         method: 'PUT',
         headers: CommunityAPI.getHeaders(token, true),
@@ -294,7 +294,7 @@ export class CommunityAPI {
     recentActivity: any[];
   }> {
     const response = await fetch(
-      `${CONFIG.API_BASE_URL}/api/v1/community/profile/${communityId}`,
+      `${CONFIG.API_BASE_URL}/community/profile/${communityId}`,
       {
         method: 'GET',
         headers: CommunityAPI.getHeaders(token),
@@ -323,7 +323,7 @@ export class CommunityAPI {
     type: 'all' | 'created' | 'joined' = 'all'
   ): Promise<{ communities: Community[]; createdCount: number; joinedCount: number; totalCount: number }> {
     const response = await fetch(
-      `${CONFIG.API_BASE_URL}/api/v1/community/user-communities?type=${type}`,
+      `${CONFIG.API_BASE_URL}/community/user-communities?type=${type}`,
       {
         method: 'GET',
         headers: CommunityAPI.getHeaders(token),
@@ -345,7 +345,7 @@ export class CommunityAPI {
     limit: number = 20
   ): Promise<{ videos: any[] }> {
     const response = await fetch(
-      `${CONFIG.API_BASE_URL}/api/v1/community/trending-videos?limit=${limit}`,
+      `${CONFIG.API_BASE_URL}/community/trending-videos?limit=${limit}`,
       {
         method: 'GET',
         headers: CommunityAPI.getHeaders(token),
@@ -356,6 +356,27 @@ export class CommunityAPI {
       const errorText = await response.text();
       console.error('❌ Get trending videos error response:', errorText);
       throw new Error(`Failed to get trending videos: ${response.status} - ${errorText}`);
+    }
+
+    return response.json();
+  }
+
+  // Get all communities for upload selection
+  static async getAllCommunities(
+    token: string
+  ): Promise<{ communities: Community[]; count: number; message: string }> {
+    const response = await fetch(
+      `${CONFIG.API_BASE_URL}/community/all`,
+      {
+        method: 'GET',
+        headers: CommunityAPI.getHeaders(token),
+      }
+    );
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('❌ Get all communities error response:', errorText);
+      throw new Error(`Failed to get all communities: ${response.status} - ${errorText}`);
     }
 
     return response.json();
@@ -376,4 +397,5 @@ export const communityActions = {
   getCommunityAnalytics: CommunityAPI.getCommunityAnalytics,
   getUserCommunities: CommunityAPI.getUserCommunities,
   getTrendingVideos: CommunityAPI.getTrendingVideos,
+  getAllCommunities: CommunityAPI.getAllCommunities,
 };

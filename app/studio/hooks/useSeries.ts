@@ -96,7 +96,7 @@ export const useSeries = () => {
         throw new Error('Authentication required');
       }
 
-      const response = await fetch(`${CONFIG.API_BASE_URL}/api/v1/series/user?t=${Date.now()}`, {
+      const response = await fetch(`${CONFIG.API_BASE_URL}/series/user?t=${Date.now()}`, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`,

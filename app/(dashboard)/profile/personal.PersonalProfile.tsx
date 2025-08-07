@@ -16,6 +16,7 @@ import {
   LinkIcon,
   HeartIcon,
   PaperclipIcon,
+  LogOut,
 } from "lucide-react-native";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { useFocusEffect } from '@react-navigation/native';
@@ -34,7 +35,7 @@ export default function PersonalProfilePage() {
   const [isError, setIsError] = useState<string | null>(null);
   const [isLoadingVideos, setIsLoadingVideos] = useState(false);
 
-  const { token } = useAuthStore();
+  const { token, user } = useAuthStore();
   const router = useRouter();
 
   const thumbnails = useThumbnailsGenerate(
@@ -44,6 +45,15 @@ export default function PersonalProfilePage() {
     }))
   );
 
+  // Refresh profile data when auth store user changes (e.g., after profile update)
+  useEffect(() => {
+    if (user?.profile_photo && userData && user.profile_photo !== userData.profile_photo) {
+      console.log('🔄 Auth store profile photo changed, refreshing profile data');
+      // Update userData with the new profile photo from auth store
+      setUserData(prev => prev ? { ...prev, profile_photo: user.profile_photo } : prev);
+    }
+  }, [user?.profile_photo, userData?.profile_photo]);
+
   useFocusEffect(
     React.useCallback(() => {
       const fetchUserVideos = async () => {
@@ -52,7 +62,7 @@ export default function PersonalProfilePage() {
           const params = new URLSearchParams();
           params.append("type", activeTab);
 
-          const response = await fetch(`${CONFIG.API_BASE_URL}/api/v1/user/videos?${params.toString()}`, {
+          const response = await fetch(`${CONFIG.API_BASE_URL}/user/videos?${params.toString()}`, {
             method: "GET",
             headers: {
               Authorization: `Bearer ${token}`,
@@ -88,7 +98,7 @@ export default function PersonalProfilePage() {
         setIsLoading(true);
         try {
           const timestamp = new Date().getTime();
-          const response = await fetch(`${CONFIG.API_BASE_URL}/api/v1/user/profile?_=${timestamp}`, {
+          const response = await fetch(`${CONFIG.API_BASE_URL}/user/profile?_=${timestamp}`, {
             method: "GET",
             headers: {
               Authorization: `Bearer ${token}`,
@@ -133,6 +143,7 @@ export default function PersonalProfilePage() {
     name: userData?.name || "User",
     email: userData?.email || "",
     image:
+      user?.profile_photo ||
       userData?.profile_photo ||
       userData?.avatar ||
       userData?.image ||
@@ -203,15 +214,19 @@ export default function PersonalProfilePage() {
           <View className="max-w-4xl -mt-28 relative mx-6">
             <View className="flex flex-col items-center md:flex-row md:items-end space-y-4 md:space-y-0 md:space-x-4">
               <View className="relative">
-                <View className="w-24 h-24 rounded-full border-2 border-white overflow-hidden">
-                  <Image
-                    source={currentProfileData?.image ? {
-                      uri: currentProfileData.image,
-                    } : require('../../../assets/images/user.png')}
-                    className="w-full h-full object-cover rounded-full"
-                    style={{ width: 96, height: 96 }}
-                  />
-                </View>
+                <Image
+                  source={currentProfileData?.image ? {
+                    uri: currentProfileData.image,
+                  } : require('../../../assets/images/user.png')}
+                  style={{ 
+                    width: 80, 
+                    height: 80, 
+                    borderRadius: 40,
+                    borderWidth: 2,
+                    borderColor: 'white',
+                    resizeMode: 'cover'
+                  }}
+                />
 
                 <View className="flex flex-row gap-2 items-center justify-center mt-2">
                   <Text className="text-gray-400">

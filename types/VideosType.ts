@@ -16,7 +16,7 @@ export type VideoItemType = {
   gifts: number;
   shares: number;
   views: number;
-  gifts: number;
+  
   genre: string;
   type: string;
   is_monetized: boolean;

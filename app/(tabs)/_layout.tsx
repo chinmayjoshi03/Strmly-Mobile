@@ -15,7 +15,7 @@ export default function TabLayout() {
       if (!token) return;
       
       try {
-        const response = await fetch(`${CONFIG.API_BASE_URL}/api/v1/user/profile`, {
+        const response = await fetch(`${CONFIG.API_BASE_URL}/user/profile`, {
           method: 'GET',
           headers: {
             Authorization: `Bearer ${token}`,
@@ -23,10 +23,14 @@ export default function TabLayout() {
           },
         });
 
-        const data = await response.json();
-        
-        if (response.ok && data.user && data.user.profile_photo) {
-          setProfilePhoto(data.user.profile_photo);
+        if (response.ok) {
+          const data = await response.json();
+          
+          if (data.user && data.user.profile_photo) {
+            setProfilePhoto(data.user.profile_photo);
+          }
+        } else {
+          console.log('Profile fetch failed with status:', response.status);
         }
       } catch (error) {
         console.error('Error fetching profile photo:', error);
@@ -35,6 +39,13 @@ export default function TabLayout() {
 
     fetchProfilePhoto();
   }, [token]);
+
+  // Update profile photo when user data changes
+  useEffect(() => {
+    if (user?.profile_photo) {
+      setProfilePhoto(user.profile_photo);
+    }
+  }, [user?.profile_photo]);
 
   return (
     <Tabs

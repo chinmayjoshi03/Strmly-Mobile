@@ -47,7 +47,7 @@ export const useTrendingVideos = (): UseTrendingVideosReturn => {
 
     try {
       const response = await fetch(
-        `${CONFIG.API_BASE_URL}/api/v1/community/trending-videos?limit=20`,
+        `${CONFIG.API_BASE_URL}/community/trending-videos?limit=20`,
         {
           method: 'GET',
           headers: {

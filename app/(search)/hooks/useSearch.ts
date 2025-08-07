@@ -42,7 +42,7 @@ export const useSearch = (): UseSearchReturn => {
 
     try {
       const response = await fetch(
-        `${CONFIG.API_BASE_URL}/api/v1/search?query=${encodeURIComponent(query)}&limit=20`,
+        `${CONFIG.API_BASE_URL}/search?query=${encodeURIComponent(query)}&limit=20`,
         {
           method: 'GET',
           headers: {

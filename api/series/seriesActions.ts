@@ -49,7 +49,7 @@ export const createSeries = async (seriesData: CreateSeriesRequest): Promise<Cre
     throw new Error('Authentication required');
   }
 
-  const response = await fetch(`${CONFIG.API_BASE_URL}/api/v1/series/create`, {
+  const response = await fetch(`${CONFIG.API_BASE_URL}/series/create`, {
     method: 'POST',
     headers: {
       'Authorization': `Bearer ${token}`,
@@ -78,7 +78,7 @@ export const getUserSeries = async (): Promise<GetUserSeriesResponse> => {
 
   console.log('🔑 Token being used:', token.substring(0, 50) + '...');
 
-  const response = await fetch(`${CONFIG.API_BASE_URL}/api/v1/series/user`, {
+  const response = await fetch(`${CONFIG.API_BASE_URL}/series/user`, {
     method: 'GET',
     headers: {
       'Authorization': `Bearer ${token}`,
@@ -109,7 +109,7 @@ export const addEpisodeToSeries = async (seriesId: string, videoId: string, epis
     throw new Error('Authentication required');
   }
 
-  const response = await fetch(`${CONFIG.API_BASE_URL}/api/v1/series/${seriesId}/episodes`, {
+  const response = await fetch(`${CONFIG.API_BASE_URL}/series/${seriesId}/episodes`, {
     method: 'POST',
     headers: {
       'Authorization': `Bearer ${token}`,

@@ -23,28 +23,34 @@ const Dropdown: React.FC<DropdownProps> = ({
   options,
   onSelect,
   isOpen,
-  onToggle
+  onToggle,
+  disabled = false
 }) => {
   return (
     <View>
       {/* Dropdown Trigger */}
       <TouchableOpacity
-        onPress={onToggle}
-        className="bg-transparent border border-gray-600 rounded-xl px-6 py-4 flex-row items-center justify-between"
+        onPress={disabled ? undefined : onToggle}
+        className={`bg-transparent border rounded-xl px-6 py-4 flex-row items-center justify-between ${
+          disabled ? 'border-gray-700 opacity-50' : 'border-gray-600'
+        }`}
         style={{ minHeight: 56 }}
+        disabled={disabled}
       >
-        <Text className={`text-lg ${value ? 'text-white' : 'text-gray-400'}`}>
+        <Text className={`text-lg ${
+          disabled ? 'text-gray-500' : value ? 'text-white' : 'text-gray-400'
+        }`}>
           {value || placeholder}
         </Text>
         <Ionicons 
           name={isOpen ? "chevron-up" : "chevron-down"} 
           size={24} 
-          color="#9CA3AF" 
+          color={disabled ? "#6B7280" : "#9CA3AF"} 
         />
       </TouchableOpacity>
 
       {/* Dropdown Options Overlay */}
-      {isOpen && (
+      {isOpen && !disabled && (
         <View 
           className="absolute top-20 left-0 right-0 border border-gray-500 z-10 max-h-64"
           style={{ 

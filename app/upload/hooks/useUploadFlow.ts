@@ -17,6 +17,7 @@ interface DraftData {
   display_till_time?: number;
   communityId?: string;
   seriesId?: string;
+  amount?: number;
 }
 
 // Helper function to map community names to IDs
@@ -42,6 +43,7 @@ const initialVideoDetails: VideoFormData = {
   community: null,
   format: null,
   videoType: null,
+  amount: undefined,
 };
 
 const initialFinalStageData: FinalStageData = {
@@ -201,7 +203,7 @@ export const useUploadFlow = () => {
   // Initialize from existing draft
   const initializeFromDraft = useCallback((draftData: any) => {
     console.log('🔄 Initializing from draft data:', draftData);
-    
+
     // Map the draft data to the correct format
     const mappedVideoDetails = {
       title: draftData.name || '',
@@ -209,7 +211,7 @@ export const useUploadFlow = () => {
       format: draftData.format || null,
       videoType: draftData.type?.toLowerCase() || null,
     };
-    
+
     const mappedFinalStageData = {
       genre: draftData.genre || null,
       autoplayStartMinutes: Math.floor((draftData.start_time || 0) / 60),
@@ -217,10 +219,10 @@ export const useUploadFlow = () => {
       unlockFromMinutes: Math.floor((draftData.display_till_time || 0) / 60),
       unlockFromSeconds: (draftData.display_till_time || 0) % 60,
     };
-    
+
     console.log('📋 Mapped video details:', mappedVideoDetails);
     console.log('📋 Mapped final stage data:', mappedFinalStageData);
-    
+
     setState(prev => ({
       ...prev,
       draftId: draftData.id,
@@ -262,7 +264,19 @@ export const useUploadFlow = () => {
         display_till_time: (state.finalStageData.unlockFromMinutes * 60) + state.finalStageData.unlockFromSeconds,
       };
 
+      // Always include amount for paid videos
+      if (state.videoDetails.videoType === 'paid') {
+        if (!state.videoDetails.amount || state.videoDetails.amount <= 0) {
+          throw new Error('Please enter a valid price for paid videos (must be greater than 0)');
+        }
+        draftData.amount = state.videoDetails.amount;
+        console.log('💰 Setting amount for paid video:', draftData.amount);
+      }
+
       console.log('📋 Draft data to be sent:', draftData);
+      console.log('💰 Video details amount:', state.videoDetails.amount);
+      console.log('🎬 Video type:', state.videoDetails.videoType);
+      console.log('🔍 Full video details:', JSON.stringify(state.videoDetails, null, 2));
 
       // Add community if selected
       if (state.videoDetails.community) {
@@ -279,7 +293,7 @@ export const useUploadFlow = () => {
 
       console.log('💾 Saving draft with data:', draftData);
 
-      const response = await fetch(`${CONFIG.API_BASE_URL}/api/v1/drafts/create-or-update`, {
+      const response = await fetch(`${CONFIG.API_BASE_URL}/drafts/create-or-update`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -358,7 +372,7 @@ export const useUploadFlow = () => {
       currentStep: state.currentStep,
       isEditingDraft: state.isEditingDraft
     });
-    
+
     if (!state.selectedFile) {
       console.error('No selected file for upload');
       return false;
@@ -376,113 +390,74 @@ export const useUploadFlow = () => {
         return false;
       }
 
-      // Step 1: Ensure draft exists (create or use existing)
-      let draftId = state.draftId;
-      
-      if (!draftId) {
-        console.log('📝 Step 1: Creating new draft...');
-        console.log('Upload state:', {
-          format: state.videoFormat,
-          seriesId: state.selectedSeries?.id,
-          community: state.videoDetails.community,
-          title: state.videoDetails.title
-        });
-
-        const draftData: DraftData = {
-          name: state.videoDetails.title || 'Untitled Video',
-          description: state.videoDetails.title || 'No description',
-          genre: state.finalStageData.genre || 'Action',
-          type: state.videoDetails.videoType === 'paid' ? 'Paid' : 'Free',
-          language: 'english',
-          age_restriction: false,
-          contentType: 'video',
-          start_time: (state.finalStageData.autoplayStartMinutes * 60) + state.finalStageData.autoplayStartSeconds,
-          display_till_time: (state.finalStageData.unlockFromMinutes * 60) + state.finalStageData.unlockFromSeconds,
-        };
-
-        // Add community if selected
-        if (state.videoDetails.community) {
-          const communityId = getCommunityIdFromName(state.videoDetails.community);
-          if (communityId) {
-            draftData.communityId = communityId;
-          }
-        }
-
-        // Add series ID for episodes
-        if (state.videoFormat === 'episode' && state.selectedSeries) {
-          draftData.seriesId = state.selectedSeries.id;
-        }
-
-        const createDraftResponse = await fetch(`${CONFIG.API_BASE_URL}/api/v1/drafts/create-or-update`, {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(draftData),
-        });
-
-        if (!createDraftResponse.ok) {
-          const errorData = await createDraftResponse.json();
-          throw new Error(errorData.error || 'Failed to create draft');
-        }
-
-        const draftResult = await createDraftResponse.json();
-        draftId = draftResult.draft.id;
-        console.log('✅ Draft created with ID:', draftId);
-      } else {
-        console.log('📝 Using existing draft ID:', draftId);
-      }
-
       // Update progress
       setState(prev => ({ ...prev, uploadProgress: 30 }));
 
-      // Step 2: Upload video to draft
-      console.log('📤 Step 2: Uploading video to draft...');
+      console.log('📤 Starting direct video upload...');
+      console.log('� ViSdeo details for upload:', JSON.stringify(state.videoDetails, null, 2));
 
-      const videoFormData = new FormData();
-      videoFormData.append('videoFile', {
+      // Update progress
+      setState(prev => ({ ...prev, uploadProgress: 70 }));
+
+      // Step 3: Upload video directly using /videos/upload API
+      console.log('🚀 Step 3: Uploading video directly...');
+
+      const directUploadFormData = new FormData();
+      directUploadFormData.append('videoFile', {
         uri: state.selectedFile.uri,
         type: state.selectedFile.type || 'video/mp4',
         name: state.selectedFile.name || 'video.mp4',
       } as any);
 
-      const uploadVideoResponse = await fetch(`${CONFIG.API_BASE_URL}/api/v1/drafts/upload-video/${draftId}`, {
+      // Add all the metadata
+      directUploadFormData.append('name', state.videoDetails.title || 'Untitled Video');
+      directUploadFormData.append('description', state.videoDetails.title || 'No description');
+      directUploadFormData.append('genre', state.finalStageData.genre || 'Action');
+      directUploadFormData.append('type', state.videoDetails.videoType === 'paid' ? 'Paid' : 'Free');
+      directUploadFormData.append('language', 'english');
+      directUploadFormData.append('age_restriction', 'false');
+      directUploadFormData.append('start_time', ((state.finalStageData.autoplayStartMinutes * 60) + state.finalStageData.autoplayStartSeconds).toString());
+      directUploadFormData.append('display_till_time', ((state.finalStageData.unlockFromMinutes * 60) + state.finalStageData.unlockFromSeconds).toString());
+      directUploadFormData.append('is_standalone', state.videoFormat === 'single' ? 'true' : 'false');
+
+      // Add amount for paid videos
+      if (state.videoDetails.videoType === 'paid') {
+        if (!state.videoDetails.amount || state.videoDetails.amount <= 0) {
+          throw new Error('Please enter a valid price for paid videos (must be greater than 0)');
+        }
+        directUploadFormData.append('amount', state.videoDetails.amount.toString());
+        console.log('💰 Adding amount to direct upload:', state.videoDetails.amount);
+      }
+
+      // Add community if selected
+      if (state.videoDetails.community && state.videoDetails.community !== 'none') {
+        const communityId = getCommunityIdFromName(state.videoDetails.community);
+        if (communityId) {
+          directUploadFormData.append('communityId', communityId);
+        }
+      }
+
+      // Add series info for episodes
+      if (state.videoFormat === 'episode' && state.selectedSeries) {
+        directUploadFormData.append('seriesId', state.selectedSeries.id);
+        directUploadFormData.append('episodeNumber', '1'); // You might want to calculate this properly
+      }
+
+      const directUploadResponse = await fetch(`${CONFIG.API_BASE_URL}/videos/upload`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
         },
-        body: videoFormData,
+        body: directUploadFormData,
       });
 
-      if (!uploadVideoResponse.ok) {
-        const errorData = await uploadVideoResponse.json();
-        throw new Error(errorData.error || 'Failed to upload video to draft');
+      if (!directUploadResponse.ok) {
+        const errorData = await directUploadResponse.json();
+        throw new Error(errorData.error || 'Failed to upload video');
       }
 
-      await uploadVideoResponse.json();
-      console.log('✅ Video uploaded to draft successfully');
-
-      // Update progress
-      setState(prev => ({ ...prev, uploadProgress: 70 }));
-
-      // Step 3: Complete draft upload (convert to published video)
-      console.log('🚀 Step 3: Completing draft upload...');
-
-      const completeDraftResponse = await fetch(`${CONFIG.API_BASE_URL}/api/v1/drafts/complete/${draftId}`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-      });
-
-      if (!completeDraftResponse.ok) {
-        const errorData = await completeDraftResponse.json();
-        throw new Error(errorData.error || 'Failed to complete draft upload');
-      }
-
-      const completeResult = await completeDraftResponse.json();
-      console.log('✅ Draft upload completed successfully:', completeResult);
+      const uploadResult = await directUploadResponse.json();
+      console.log('✅ Video uploaded successfully:', uploadResult);
 
       setState(prev => ({ ...prev, uploadProgress: 100, isUploading: false }));
 

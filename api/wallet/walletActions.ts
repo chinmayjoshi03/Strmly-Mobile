@@ -43,7 +43,7 @@ export interface WithdrawalRequest {
 // Wallet Load APIs
 export const getWalletDetails = async (token: string) => {
   try {
-    const res = await fetch(`${API_BASE_URL}/api/v1/wallet`, {
+    const res = await fetch(`${API_BASE_URL}/wallet`, {
       method: "GET",
       headers: {
         Authorization: `Bearer ${token}`,
@@ -77,7 +77,7 @@ export const getWalletDetails = async (token: string) => {
 };
 
 export const createWalletLoadOrder = async (token: string, amount: number) => {
-  const res = await fetch(`${API_BASE_URL}/api/v1/load/create-order`, {
+  const res = await fetch(`${API_BASE_URL}/wallet/load/create-order`, {
     method: "POST",
     headers: {
       Authorization: `Bearer ${token}`,
@@ -100,7 +100,7 @@ export const verifyWalletLoad = async (
   purchaseToken: string, 
   signature: string
 ) => {
-  const res = await fetch(`${API_BASE_URL}/api/v1/load/verify`, {
+  const res = await fetch(`${API_BASE_URL}/wallet/load/verify`, {
     method: "POST",
     headers: {
       Authorization: `Bearer ${token}`,
@@ -124,7 +124,7 @@ export const verifyWalletLoad = async (
 
 // Transfer APIs
 export const transferForSeries = async (token: string, seriesId: string, amount: number) => {
-  const res = await fetch(`${API_BASE_URL}/api/v1/transfer-series`, {
+  const res = await fetch(`${API_BASE_URL}/wallet/transfer-series`, {
     method: "POST",
     headers: {
       Authorization: `Bearer ${token}`,
@@ -142,7 +142,7 @@ export const transferForSeries = async (token: string, seriesId: string, amount:
 };
 
 export const transferCommunityFee = async (token: string, communityId: string, amount: number) => {
-  const res = await fetch(`${API_BASE_URL}/api/v1/transfer/community-fee`, {
+  const res = await fetch(`${API_BASE_URL}/wallet/transfer/community-fee`, {
     method: "POST",
     headers: {
       Authorization: `Bearer ${token}`,
@@ -165,7 +165,10 @@ export const getTransactionHistory = async (
   page: number = 1, 
   limit: number = 10
 ) => {
-  const res = await fetch(`${API_BASE_URL}/api/v1/transactions?page=${page}&limit=${limit}`, {
+  const url = `${API_BASE_URL}/wallet/transactions?page=${page}&limit=${limit}`;
+  console.log('📊 Fetching transaction history from:', url);
+  
+  const res = await fetch(url, {
     method: "GET",
     headers: {
       Authorization: `Bearer ${token}`,
@@ -173,9 +176,12 @@ export const getTransactionHistory = async (
     }
   });
 
+  console.log('📊 Transaction history response status:', res.status);
+
   if (!res.ok) {
-    const error = await res.json();
-    throw new Error(error.message || "Failed to get transaction history");
+    const errorText = await res.text();
+    console.error('❌ Transaction history error response:', errorText);
+    throw new Error(`Failed to get transaction history: ${res.status}`);
   }
 
   return await res.json();
@@ -186,7 +192,10 @@ export const getGiftHistory = async (
   page: number = 1, 
   limit: number = 10
 ) => {
-  const res = await fetch(`${API_BASE_URL}/api/v1/gifts?page=${page}&limit=${limit}`, {
+  const url = `${API_BASE_URL}/wallet/gifts?page=${page}&limit=${limit}`;
+  console.log('🎁 Fetching gift history from:', url);
+  
+  const res = await fetch(url, {
     method: "GET",
     headers: {
       Authorization: `Bearer ${token}`,
@@ -194,9 +203,12 @@ export const getGiftHistory = async (
     }
   });
 
+  console.log('🎁 Gift history response status:', res.status);
+
   if (!res.ok) {
-    const error = await res.json();
-    throw new Error(error.message || "Failed to get gift history");
+    const errorText = await res.text();
+    console.error('❌ Gift history error response:', errorText);
+    throw new Error(`Failed to get gift history: ${res.status}`);
   }
 
   return await res.json();
@@ -212,7 +224,7 @@ export const setupBankAccount = async (
     bankName: string;
   }
 ) => {
-  const res = await fetch(`${API_BASE_URL}/api/v1/withdrawal/setup-bank`, {
+  const res = await fetch(`${API_BASE_URL}/withdrawal/setup-bank`, {
     method: "POST",
     headers: {
       Authorization: `Bearer ${token}`,
@@ -230,7 +242,7 @@ export const setupBankAccount = async (
 };
 
 export const createWithdrawalRequest = async (token: string, amount: number) => {
-  const res = await fetch(`${API_BASE_URL}/api/v1/withdrawal/create`, {
+  const res = await fetch(`${API_BASE_URL}/withdrawal/create`, {
     method: "POST",
     headers: {
       Authorization: `Bearer ${token}`,
@@ -252,17 +264,24 @@ export const getWithdrawalHistory = async (
   page: number = 1, 
   limit: number = 10
 ) => {
-  // Endpoint doesn't exist yet, return empty data
-  console.log('Withdrawal history endpoint not implemented yet');
-  return {
-    success: true,
-    withdrawals: [],
-    pagination: { page, limit, total: 0 }
-  };
+  const res = await fetch(`${API_BASE_URL}/withdrawal/history?page=${page}&limit=${limit}`, {
+    method: "GET",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json"
+    }
+  });
+
+  if (!res.ok) {
+    const error = await res.json();
+    throw new Error(error.message || "Failed to get withdrawal history");
+  }
+
+  return await res.json();
 };
 
 export const getWithdrawalStatus = async (token: string, withdrawalId: string) => {
-  const res = await fetch(`${API_BASE_URL}/api/v1/withdrawal/status/${withdrawalId}`, {
+  const res = await fetch(`${API_BASE_URL}/withdrawal/status/${withdrawalId}`, {
     method: "GET",
     headers: {
       Authorization: `Bearer ${token}`,

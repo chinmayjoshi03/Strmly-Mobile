@@ -43,7 +43,7 @@ const SignIn = () => {
     console.log("Login type:", loginType);
 
     try {
-      const loginUrl = `${CONFIG.API_BASE_URL}/api/v1/auth/login/${loginType}`;
+      const loginUrl = `${CONFIG.API_BASE_URL}/auth/login/${loginType}`;
       console.log("🔗 Login URL:", loginUrl);
       
       const res = await fetch(loginUrl,

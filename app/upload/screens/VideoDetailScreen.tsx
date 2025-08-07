@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
-import { View, Text, StatusBar, TouchableOpacity, ScrollView } from 'react-native';
+import { View, Text, StatusBar, TouchableOpacity, ScrollView, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import FormField from '../components/FormField';
 import Dropdown from '../components/Dropdown';
 import ContinueButton from '../components/ContinueButton';
 import { VideoDetailProps } from '../types';
-import { communityOptions, formatOptions, videoTypeOptions } from '../data/dropdownOptions';
+import { formatOptions, videoTypeOptions } from '../data/dropdownOptions';
+import { useCommunities } from '../hooks/useCommunities';
 
 /**
  * Video Detail Screen
@@ -35,6 +36,9 @@ const VideoDetailScreen: React.FC<VideoDetailProps> = ({
   const [communityDropdownOpen, setCommunityDropdownOpen] = useState(false);
   const [formatDropdownOpen, setFormatDropdownOpen] = useState(false);
   const [videoTypeDropdownOpen, setVideoTypeDropdownOpen] = useState(false);
+  
+  // Fetch communities dynamically
+  const { communities: communityOptions, loading: communitiesLoading, error: communitiesError } = useCommunities();
 
   // Handle title change
   const handleTitleChange = (title: string) => {
@@ -69,10 +73,19 @@ const VideoDetailScreen: React.FC<VideoDetailProps> = ({
           formData.community !== null &&
           formData.format !== null;
       case 3:
-        return formData.title.trim() !== '' &&
+        const basicValidation = formData.title.trim() !== '' &&
           formData.community !== null &&
           formData.format !== null &&
           formData.videoType !== null;
+        
+        // Additional validation for paid videos
+        if (formData.videoType === 'paid') {
+          const hasValidAmount = formData.amount && formData.amount > 0;
+          console.log('💰 Paid video validation - amount:', formData.amount, 'isValid:', hasValidAmount);
+          return basicValidation && hasValidAmount;
+        }
+        
+        return basicValidation;
       default:
         return false;
     }
@@ -107,6 +120,17 @@ const VideoDetailScreen: React.FC<VideoDetailProps> = ({
         {/* Community Dropdown */}
         <View className="mb-8">
           <Text className="text-white text-lg font-medium mb-3">Community</Text>
+          {communitiesLoading ? (
+            <View className="bg-gray-800 rounded-lg p-4 flex-row items-center justify-center">
+              <ActivityIndicator size="small" color="#fff" />
+              <Text className="text-white ml-2">Loading communities...</Text>
+            </View>
+          ) : communitiesError ? (
+            <View className="bg-red-900/20 border border-red-500 rounded-lg p-4">
+              <Text className="text-red-400 text-sm">Failed to load communities</Text>
+              <Text className="text-gray-400 text-xs mt-1">Using fallback options</Text>
+            </View>
+          ) : null}
           <Dropdown
             value={formData.community}
             placeholder="Select"
@@ -114,6 +138,7 @@ const VideoDetailScreen: React.FC<VideoDetailProps> = ({
             onSelect={handleCommunitySelect}
             isOpen={communityDropdownOpen}
             onToggle={() => setCommunityDropdownOpen(!communityDropdownOpen)}
+            disabled={communitiesLoading}
           />
         </View>
 
@@ -144,6 +169,30 @@ const VideoDetailScreen: React.FC<VideoDetailProps> = ({
               isOpen={videoTypeDropdownOpen}
               onToggle={() => setVideoTypeDropdownOpen(!videoTypeDropdownOpen)}
             />
+            
+            {/* Price Input - Show only when Paid is selected */}
+            {formData.videoType === 'paid' && (
+              <View className="mt-4">
+                <FormField
+                  label="Price (₹)"
+                  value={formData.amount?.toString() || ''}
+                  placeholder="Enter price (e.g., 10)"
+                  onChangeText={(text) => {
+                    let amount: number | undefined;
+                    if (text.trim() === '') {
+                      amount = undefined;
+                    } else {
+                      const parsed = parseFloat(text);
+                      amount = isNaN(parsed) ? undefined : parsed;
+                    }
+                    console.log('💰 Price input changed:', text, '-> amount:', amount, 'isValid:', amount && amount > 0);
+                    onFormChange({ ...formData, amount });
+                  }}
+                  keyboardType="numeric"
+                  error={formData.videoType === 'paid' && (!formData.amount || formData.amount <= 0) ? 'Price must be greater than 0' : undefined}
+                />
+              </View>
+            )}
           </View>
         )}
 
@@ -154,7 +203,7 @@ const VideoDetailScreen: React.FC<VideoDetailProps> = ({
       {/* Continue Button */}
       <View style={{ marginBottom: 80 }}>
         <ContinueButton
-          title="Continue"
+          title={formData.videoType === 'paid' && (!formData.amount || formData.amount <= 0) ? 'Enter Price to Continue' : 'Continue'}
           onPress={onContinue}
           disabled={!isStepValid()}
         />
