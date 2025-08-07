@@ -2,7 +2,7 @@ import { Image, Pressable, Text, View } from "react-native";
 import React, { useEffect, useState } from "react";
 import { FontAwesome } from "@expo/vector-icons";
 import { useAuthStore } from "@/store/useAuthStore";
-import Constants from "expo-constants";
+import { CONFIG } from "@/Constants/config";
 
 // Define props type for InteractOptions
 type GiftDataType = {
@@ -53,7 +53,7 @@ const InteractOptions = ({
 
   const { token } = useAuthStore();
 
-  const BACKEND_API_URL = Constants.expoConfig?.extra?.BACKEND_API_URL;
+  const BACKEND_API_URL = CONFIG.API_BASE_URL;
 
   // console.log("creator", creator);
 

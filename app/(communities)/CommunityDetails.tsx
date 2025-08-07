@@ -36,7 +36,7 @@ export default function CommunityDetails() {
   const params = useLocalSearchParams();
   const { token } = useAuthStore();
   const insets = useSafeAreaInsets();
-  
+
   const [community, setCommunity] = useState<CommunityDetails | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -51,11 +51,17 @@ export default function CommunityDetails() {
   }, [communityId, token]);
 
   const fetchCommunityDetails = async () => {
+    if (!token) {
+      setError('Authentication required');
+      setLoading(false);
+      return;
+    }
+
     setLoading(true);
     try {
       const result = await communityActions.getCommunityDetails(token, communityId);
       setCommunity(result);
-      
+
       // Fetch videos if there are any
       if (result.totalVideos > 0) {
         try {
@@ -65,7 +71,7 @@ export default function CommunityDetails() {
           console.log('⚠️ Could not fetch videos:', videoError);
         }
       }
-      
+
       console.log('✅ Community details fetched:', result);
     } catch (error) {
       console.error('❌ Error fetching community details:', error);
@@ -102,7 +108,7 @@ export default function CommunityDetails() {
         <Text className="text-red-400 text-center" style={{ fontFamily: 'Poppins' }}>
           {error || 'Community not found'}
         </Text>
-        <TouchableOpacity 
+        <TouchableOpacity
           onPress={() => router.back()}
           className="mt-4 px-4 py-2 bg-gray-800 rounded-lg"
         >
@@ -115,9 +121,9 @@ export default function CommunityDetails() {
   return (
     <ThemedView className="flex-1">
       <StatusBar barStyle="light-content" backgroundColor="black" />
-      
+
       {/* Header */}
-      <View 
+      <View
         className="flex-row items-center justify-between px-4 py-3"
         style={{ paddingTop: insets.top + 10 }}
       >
@@ -160,10 +166,10 @@ export default function CommunityDetails() {
             className="items-center"
             onPress={() => router.push({
               pathname: "/(communities)/CommunitySections",
-              params: { 
-                section: "followers", 
+              params: {
+                section: "followers",
                 communityId: community.communityId,
-                communityName: community.name 
+                communityName: community.name
               }
             })}
           >
@@ -179,10 +185,10 @@ export default function CommunityDetails() {
             className="items-center"
             onPress={() => router.push({
               pathname: "/(communities)/CommunitySections",
-              params: { 
-                section: "creators", 
+              params: {
+                section: "creators",
                 communityId: community.communityId,
-                communityName: community.name 
+                communityName: community.name
               }
             })}
           >
@@ -198,10 +204,10 @@ export default function CommunityDetails() {
             className="items-center"
             onPress={() => router.push({
               pathname: "/(communities)/CommunitySections",
-              params: { 
-                section: "videos", 
+              params: {
+                section: "videos",
                 communityId: community.communityId,
-                communityName: community.name 
+                communityName: community.name
               }
             })}
           >
@@ -255,7 +261,7 @@ export default function CommunityDetails() {
           <View className="px-4 py-4">
             <View className="flex-row flex-wrap justify-between">
               {videos.slice(0, 9).map((video, index) => (
-                <TouchableOpacity 
+                <TouchableOpacity
                   key={video._id || index}
                   className="w-[32%] aspect-[9/16] bg-gray-800 rounded-lg mb-2 overflow-hidden"
                 >

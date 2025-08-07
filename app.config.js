@@ -53,7 +53,7 @@ export default {
       typedRoutes: true
     },
     extra: {
-      BACKEND_API_URL: process.env.BACKEND_API_URL,
+      BACKEND_API_URL: process.env.EXPO_PUBLIC_BACKEND_API_URL,
       googleClientIdAndroid: process.env.GOOGLE_CLIENT_ID_ANDROID,
       googleClientIdIOS: process.env.GOOGLE_CLIENT_ID_IOS,
       googleClientIdWeb: process.env.GOOGLE_CLIENT_ID_WEB,

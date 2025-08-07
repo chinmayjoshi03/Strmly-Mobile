@@ -6,6 +6,7 @@ export interface VideoFormData {
   community: string | null;
   format: 'Netflix' | 'Youtube' | null;
   videoType: 'free' | 'paid' | null;
+  amount?: number; // Price for paid videos
 }
 
 export interface FinalStageData {
@@ -71,6 +72,7 @@ export interface DropdownProps {
   onSelect: (value: string) => void;
   isOpen: boolean;
   onToggle: () => void;
+  disabled?: boolean;
 }
 
 export interface TimePickerProps {

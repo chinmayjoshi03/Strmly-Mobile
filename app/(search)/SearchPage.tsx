@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { View, Text, TextInput, FlatList, Dimensions, TouchableOpacity, ActivityIndicator, Image, StyleSheet, ImageBackground, StatusBar, ScrollView } from "react-native";
 import { useFonts } from "expo-font";
+import { useRouter } from "expo-router";
 import ThemedText from "@/components/ThemedText";
 import { useSearch } from "./hooks/useSearch";
 import { communityActions } from "@/api/community/communityActions";
@@ -16,10 +17,12 @@ const SearchScreen: React.FC = () => {
     const [trendingVideos, setTrendingVideos] = useState<any[]>([]);
     const [trendingLoading, setTrendingLoading] = useState<boolean>(false);
     const [trendingError, setTrendingError] = useState<string>('');
-    const tabs = ["Videos", "Accounts", "Communities"];
     
+    const tabs = ["Videos", "Accounts", "Communities"];
+
     const { token } = useAuthStore();
     const { searchResults, isLoading: searchLoading, error: searchError, performSearch, clearSearch } = useSearch();
+    const router = useRouter();
 
     const [fontsLoaded] = useFonts({
         'Poppins-Regular': require('../../assets/fonts/poppins/Poppins-Regular.ttf'),
@@ -55,10 +58,10 @@ const SearchScreen: React.FC = () => {
 
     const loadTrendingVideos = async () => {
         if (!token) return;
-        
+
         setTrendingLoading(true);
         setTrendingError('');
-        
+
         try {
             const response = await communityActions.getTrendingVideos(token, 20);
             console.log('Trending videos response:', response);
@@ -107,19 +110,46 @@ const SearchScreen: React.FC = () => {
         }
     };
 
+    // Navigation functions
+    const navigateToCommunity = (communityId: string) => {
+        if (communityId && communityId !== 'none') {
+            console.log('🔄 Navigating to community:', communityId);
+            router.push(`/(dashboard)/communities/public/${communityId}`);
+        }
+    };
+
+    const navigateToProfile = (userId: string) => {
+        if (userId) {
+            console.log('🔄 Navigating to profile:', userId);
+            router.push(`/(dashboard)/profile/public/${userId}`);
+        }
+    };
+
     // Render video items with thumbnail styling
     const renderVideoItem = ({ item }: { item: any }) => {
         const thumbnailUrl = item.thumbnail || item.posterUrl || 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=800&q=80';
+        const communityId = item.community?._id || item.community?.id || item.communityId;
 
         return (
-            <TouchableOpacity>
+            <TouchableOpacity
+                onPress={() => {
+                    if (communityId) {
+                        navigateToCommunity(communityId);
+                    } else {
+                        console.log('⚠️ No community ID found for video:', item.title);
+                    }
+                }}
+            >
                 <ImageBackground
                     source={{ uri: thumbnailUrl }}
-                    style={style.imageTile}
+                    style={styles.imageTile}
                     imageStyle={{ resizeMode: 'cover' }}
                 >
                     <View style={styles.trendingOverlay}>
-                        <Text style={Searchstyles.label}>{item.title || 'Untitled'}</Text>
+                        <Text style={styles.label}>{item.title || 'Untitled'}</Text>
+                        {item.community && (
+                            <Text style={styles.communityLabel}>{item.community.name}</Text>
+                        )}
                         {item.created_by && (
                             <Text style={styles.communityLabel}>@{item.created_by.username}</Text>
                         )}
@@ -132,9 +162,19 @@ const SearchScreen: React.FC = () => {
     // Render account items like followers/following in profile
     const renderAccountItem = ({ item }: { item: any }) => {
         const profilePhoto = item.profile_photo || item.profile_picture || `https://api.dicebear.com/7.x/identicon/svg?seed=${item.username}`;
+        const userId = item._id || item.id;
 
         return (
-            <TouchableOpacity style={styles.accountRow}>
+            <TouchableOpacity
+                style={styles.accountRow}
+                onPress={() => {
+                    if (userId) {
+                        navigateToProfile(userId);
+                    } else {
+                        console.log('⚠️ No user ID found for account:', item.username);
+                    }
+                }}
+            >
                 <View style={styles.accountRowContent}>
                     <Image
                         source={{ uri: profilePhoto }}
@@ -160,9 +200,19 @@ const SearchScreen: React.FC = () => {
     // Render community items like communities in profile
     const renderCommunityItem = ({ item }: { item: any }) => {
         const profilePhoto = item.profile_photo || `https://api.dicebear.com/7.x/identicon/svg?seed=${item.name}`;
+        const communityId = item._id || item.id;
 
         return (
-            <TouchableOpacity style={styles.communityRow}>
+            <TouchableOpacity
+                style={styles.communityRow}
+                onPress={() => {
+                    if (communityId) {
+                        navigateToCommunity(communityId);
+                    } else {
+                        console.log('⚠️ No community ID found for community:', item.name);
+                    }
+                }}
+            >
                 <View style={styles.communityRowContent}>
                     <Image
                         source={{ uri: profilePhoto }}
@@ -203,25 +253,37 @@ const SearchScreen: React.FC = () => {
         }
     };
 
-    const renderTrendingItem = ({ item }: { item: any }) => (
-        <TouchableOpacity>
-            <ImageBackground
-                source={{ uri: item.thumbnailUrl || item.thumbnail || 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=800&q=80' }}
-                style={style.imageTile}
-                imageStyle={{ resizeMode: 'cover' }}
+    const renderTrendingItem = ({ item }: { item: any }) => {
+        const communityId = item.community?._id || item.community?.id || item.communityId;
+
+        return (
+            <TouchableOpacity
+                onPress={() => {
+                    if (communityId) {
+                        navigateToCommunity(communityId);
+                    } else {
+                        console.log('⚠️ No community ID found for trending video:', item.title);
+                    }
+                }}
             >
-                <View style={styles.trendingOverlay}>
-                    <Text style={Searchstyles.label}>{item.title || item.name || 'Untitled'}</Text>
-                    {item.community && (
-                        <Text style={styles.communityLabel}>{item.community.name}</Text>
-                    )}
-                    {item.created_by && (
-                        <Text style={styles.communityLabel}>@{item.created_by.username}</Text>
-                    )}
-                </View>
-            </ImageBackground>
-        </TouchableOpacity>
-    );
+                <ImageBackground
+                    source={{ uri: item.thumbnailUrl || item.thumbnail || 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=800&q=80' }}
+                    style={styles.imageTile}
+                    imageStyle={{ resizeMode: 'cover' }}
+                >
+                    <View style={styles.trendingOverlay}>
+                        <Text style={styles.label}>{item.title || item.name || 'Untitled'}</Text>
+                        {item.community && (
+                            <Text style={styles.communityLabel}>{item.community.name}</Text>
+                        )}
+                        {item.created_by && (
+                            <Text style={styles.communityLabel}>@{item.created_by.username}</Text>
+                        )}
+                    </View>
+                </ImageBackground>
+            </TouchableOpacity>
+        );
+    };
 
     if (!fontsLoaded) {
         return (
@@ -232,13 +294,13 @@ const SearchScreen: React.FC = () => {
     }
 
     return (
-        <View style={Searchstyles.container}>
+        <View style={styles.container}>
             <StatusBar barStyle="light-content" backgroundColor="#000" />
 
             <TextInput
                 placeholder="Search"
                 placeholderTextColor="#ccc"
-                style={Searchstyles.searchInput}
+                style={styles.searchInput}
                 value={searchQuery}
                 onChangeText={handleSearchChange}
                 autoCorrect={false}
@@ -250,21 +312,21 @@ const SearchScreen: React.FC = () => {
                 <ScrollView
                     horizontal
                     showsHorizontalScrollIndicator={false}
-                    style={Searchstyles.SelectionTabContainer}
-                    contentContainerStyle={Searchstyles.SelectionTab}
+                    style={styles.selectionTabContainer}
+                    contentContainerStyle={styles.selectionTab}
                 >
                     {tabs.map((label, index) => (
                         <TouchableOpacity
                             style={[
-                                Searchstyles.SelectionButton,
-                                ...(selectedTab === index ? [Searchstyles.SelectedButton] : [])
+                                styles.selectionButton,
+                                selectedTab === index && styles.selectedButton
                             ]}
                             key={index}
                             onPress={() => setSelectedTab(index)}
                         >
                             <ThemedText style={[
-                                Searchstyles.Tab,
-                                ...(selectedTab === index ? [Searchstyles.SelectedText] : [])
+                                styles.tab,
+                                selectedTab === index && styles.selectedText
                             ]}>
                                 {label}
                             </ThemedText>
@@ -288,8 +350,6 @@ const SearchScreen: React.FC = () => {
                 </View>
             )}
 
-
-
             {/* Content */}
             {!(searchLoading || trendingLoading) && (
                 <FlatList
@@ -300,7 +360,7 @@ const SearchScreen: React.FC = () => {
                         isSearchActive ? `search-${item.id || index}` : `default-${item._id || index}`
                     }
                     renderItem={isSearchActive ? renderSearchResultItem : renderTrendingItem}
-                    contentContainerStyle={isSearchActive ? styles.searchResultsContainer : Searchstyles.grid}
+                    contentContainerStyle={isSearchActive ? styles.searchResultsContainer : styles.grid}
                     showsVerticalScrollIndicator={false}
                     style={{ marginBottom: 80 }}
                     ListEmptyComponent={
@@ -338,17 +398,8 @@ const SearchScreen: React.FC = () => {
     );
 };
 
-
-const style = StyleSheet.create({
-    imageTile: {
-        width: itemSize,
-        height: itemSize * 1.4,
-        justifyContent: "flex-end",
-        alignItems: "flex-start",
-    },
-});
-
-const Searchstyles = StyleSheet.create({
+const styles = StyleSheet.create({
+    // Container and basic layout
     container: {
         flex: 1,
         backgroundColor: '#000',
@@ -365,44 +416,53 @@ const Searchstyles = StyleSheet.create({
         fontSize: 16,
         fontFamily: 'Poppins-Regular',
     },
-    SelectionTabContainer: {
+
+    // Tab selection styles
+    selectionTabContainer: {
         flexGrow: 0,
         marginBottom: 15,
     },
-    SelectionTab: {
+    selectionTab: {
         flexDirection: 'row',
         paddingHorizontal: 16,
     },
-    SelectionButton: {
+    selectionButton: {
         paddingVertical: 8,
         paddingHorizontal: 8,
         marginRight: 40,
         borderBottomWidth: 2,
         borderBottomColor: 'transparent',
     },
-    SelectedButton: {
+    selectedButton: {
         borderBottomColor: '#fff',
     },
-    Tab: {
+    tab: {
         fontSize: 18,
         fontFamily: 'Poppins-Medium',
         color: '#9CA3AF',
     },
-    SelectedText: {
+    selectedText: {
         color: '#fff',
         fontFamily: 'Poppins-SemiBold',
     },
+
+    // Grid and tile styles
     grid: {
         paddingHorizontal: 5,
+    },
+    imageTile: {
+        width: itemSize,
+        height: itemSize * 1.4,
+        justifyContent: "flex-end",
+        alignItems: "flex-start",
     },
     label: {
         color: '#fff',
         fontSize: 12,
         fontFamily: 'Poppins-SemiBold',
     },
-});
 
-const styles = StyleSheet.create({
+    // Loading and error states
     loadingContainer: {
         flex: 1,
         justifyContent: 'center',
@@ -423,40 +483,13 @@ const styles = StyleSheet.create({
         fontFamily: 'Poppins-Regular',
         textAlign: 'center',
     },
+
+    // Search results container
     searchResultsContainer: {
         padding: 10,
     },
-    searchResultItem: {
-        marginBottom: 15,
-        borderRadius: 10,
-        overflow: 'hidden',
-    },
-    resultImage: {
-        width: '100%',
-        height: 120,
-        justifyContent: 'flex-end',
-    },
-    resultOverlay: {
-        backgroundColor: 'rgba(0,0,0,0.6)',
-        padding: 15,
-    },
-    resultTitle: {
-        color: '#fff',
-        fontSize: 16,
-        fontFamily: 'Poppins-SemiBold',
-        marginBottom: 5,
-    },
-    resultDescription: {
-        color: '#ccc',
-        fontSize: 14,
-        fontFamily: 'Poppins-Regular',
-    },
-    resultMeta: {
-        color: '#999',
-        fontSize: 12,
-        fontFamily: 'Poppins-Light',
-        marginTop: 3,
-    },
+
+    // Overlay styles
     trendingOverlay: {
         backgroundColor: 'rgba(0,0,0,0.6)',
         padding: 10,
@@ -468,6 +501,8 @@ const styles = StyleSheet.create({
         fontFamily: 'Poppins-Light',
         marginTop: 2,
     },
+
+    // Empty state styles
     emptyContainer: {
         flex: 1,
         justifyContent: 'center',
@@ -555,6 +590,7 @@ const styles = StyleSheet.create({
         fontSize: 12,
         fontFamily: 'Poppins-Light',
     },
+
     // Community styling (similar to communities in profile)
     communityRow: {
         flexDirection: 'row',

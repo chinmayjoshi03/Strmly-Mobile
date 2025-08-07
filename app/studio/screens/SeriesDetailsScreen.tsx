@@ -99,7 +99,7 @@ const SeriesDetailsScreen: React.FC<SeriesDetailsScreenProps> = ({
       console.log(`Fetching series details for ID: ${seriesId}`);
 
       // Use the user series API to get series with episodes
-      const response = await fetch(`${CONFIG.API_BASE_URL}/api/v1/series/user?t=${Date.now()}`, {
+      const response = await fetch(`${CONFIG.API_BASE_URL}/series/user?t=${Date.now()}`, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`,

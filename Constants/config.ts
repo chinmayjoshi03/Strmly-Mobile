@@ -1,8 +1,12 @@
+// Debug environment variables
+console.log('🔧 Environment Variables Debug:');
+console.log('EXPO_PUBLIC_BACKEND_API_URL:', process.env.EXPO_PUBLIC_BACKEND_API_URL);
+console.log('Fallback URL:', 'http://localhost:8080/api/v1');
+
 // App configuration constants
 export const CONFIG = {
-  // Dynamic IP configuration - uses IP from env variable
-  IP_ADDRESS: process.env.EXPO_PUBLIC_IP_ADDRESS || 'localhost',
-  API_BASE_URL: process.env.EXPO_PUBLIC_API_URL || `http://${process.env.EXPO_PUBLIC_IP_ADDRESS || 'localhost'}:3001`,
+  // API configuration - uses EXPO_PUBLIC_BACKEND_API_URL from env variable
+  API_BASE_URL: process.env.EXPO_PUBLIC_BACKEND_API_URL || 'http://localhost:8080/api/v1',
   
   // Google Play Billing
   GOOGLE_PLAY_LICENSE_KEY: process.env.EXPO_PUBLIC_GOOGLE_PLAY_LICENSE_KEY || '',

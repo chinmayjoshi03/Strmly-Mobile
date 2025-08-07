@@ -53,7 +53,10 @@ export default function PublicCommunityPage() {
   const [isLoadingVideos, setIsLoadingVideos] = useState(false);
   const { token } = useAuthStore();
 
-//  const { id } = useLocalSearchParams();
+  // Valid video types for the API
+  const validVideoTypes = ["long", "series"];
+
+  //  const { id } = useLocalSearchParams();
   const route = useRoute();
   const { id } = route.params as { id: string };
 
@@ -72,10 +75,17 @@ export default function PublicCommunityPage() {
   );
 
   useEffect(() => {
-
     const fetchUserVideos = async () => {
+      // Only fetch videos if activeTab is a valid video type
+      if (!validVideoTypes.includes(activeTab)) {
+        console.log('🔄 Skipping video fetch for non-video tab:', activeTab);
+        setVideos([]);
+        return;
+      }
+
       setIsLoadingVideos(true);
       try {
+        console.log('🔄 Fetching videos for tab:', activeTab);
         const response = await fetch(
           `${BACKEND_API_URL}/community/${id}/videos?videoType=${activeTab}`,
           {
@@ -89,16 +99,11 @@ export default function PublicCommunityPage() {
         if (!response.ok) {
           throw new Error(data.message || "Failed to fetch community videos");
         }
-        console.log("videos", data);
-        setVideos(data.videos);
+        console.log("✅ Videos fetched:", data.videos?.length || 0);
+        setVideos(data.videos || []);
       } catch (err) {
-        console.error("Error fetching community videos:", err);
-        Alert.alert(
-          "Error",
-          err instanceof Error
-            ? err.message
-            : "An unknown error occurred while fetching videos."
-        );
+        console.error("❌ Error fetching community videos:", err);
+        setVideos([]); // Set empty array on error instead of showing alert
       } finally {
         setIsLoadingVideos(false);
       }
@@ -226,28 +231,19 @@ export default function PublicCommunityPage() {
 
           {/* Stats */}
           <View className="mt-6 flex flex-row justify-around items-center">
-            <TouchableOpacity
-              className="flex flex-col gap-1 items-center"
-              onPress={() => setActiveTab("followers")}
-            >
+            <TouchableOpacity className="flex flex-col gap-1 items-center">
               <Text className="font-bold text-lg text-white">
                 {communityData?.followers?.length || 0}
               </Text>
               <Text className="text-gray-400 text-md">Followers</Text>
             </TouchableOpacity>
-            <TouchableOpacity
-              className="flex flex-col gap-1 items-center"
-              onPress={() => setActiveTab("following")}
-            >
+            <TouchableOpacity className="flex flex-col gap-1 items-center">
               <Text className="font-bold text-lg text-white">
                 {communityData?.creators?.length || 0}
               </Text>
               <Text className="text-gray-400 text-md">Creators</Text>
             </TouchableOpacity>
-            <TouchableOpacity
-              className="flex flex-col gap-1 items-center"
-              onPress={() => setActiveTab("posts")}
-            >
+            <TouchableOpacity className="flex flex-col gap-1 items-center">
               <Text className="font-bold text-lg text-white">
                 {communityData?.total_uploads || 0}
               </Text>
@@ -312,11 +308,11 @@ export default function PublicCommunityPage() {
 
               <TouchableOpacity
                 className={`pb-4 flex-1 items-center justify-center`}
-                onPress={() => setActiveTab("likes")}
+                onPress={() => setActiveTab("series")}
               >
                 <HeartIcon
-                  color={activeTab === "likes" ? "white" : "gray"}
-                  fill={activeTab === "likes" ? "white" : ""}
+                  color={activeTab === "series" ? "white" : "gray"}
+                  fill={activeTab === "series" ? "white" : ""}
                 />
               </TouchableOpacity>
             </View>
@@ -329,23 +325,35 @@ export default function PublicCommunityPage() {
           <View className="w-full h-96 flex items-center justify-center mt-20">
             <ActivityIndicator size="large" color="white" />
           </View>
-        ) : activeTab === "long" ? (
-          <FlatList
-            data={videos}
-            keyExtractor={(item) => item._id}
-            renderItem={renderVideoItem}
-            contentContainerStyle={{ paddingBottom: 30, paddingHorizontal: 0 }}
-            showsVerticalScrollIndicator={false}
-          />
+        ) : validVideoTypes.includes(activeTab) ? (
+          activeTab === "long" ? (
+            <FlatList
+              key="long-videos" // Add key to force re-render
+              data={videos}
+              keyExtractor={(item) => item._id}
+              renderItem={renderVideoItem}
+              contentContainerStyle={{ paddingBottom: 30, paddingHorizontal: 0 }}
+              showsVerticalScrollIndicator={false}
+            />
+          ) : (
+            <FlatList
+              key="series-videos" // Add key to force re-render
+              data={videos}
+              keyExtractor={(item) => item._id}
+              renderItem={renderGridItem}
+              numColumns={3}
+              contentContainerStyle={{ paddingBottom: 30, paddingHorizontal: 0 }}
+              showsVerticalScrollIndicator={false}
+            />
+          )
         ) : (
-          <FlatList
-            data={videos}
-            keyExtractor={(item) => item._id}
-            renderItem={renderGridItem}
-            numColumns={3}
-            contentContainerStyle={{ paddingBottom: 30, paddingHorizontal: 0}}
-            showsVerticalScrollIndicator={false}
-          />
+          <View className="w-full h-96 flex items-center justify-center mt-20">
+            <Text className="text-gray-400 text-center">
+              {activeTab === "followers" && "Community followers will be shown here"}
+              {activeTab === "creators" && "Community creators will be shown here"}
+              {activeTab === "stats" && "Community statistics will be shown here"}
+            </Text>
+          </View>
         )}
       </>
     </ThemedView>

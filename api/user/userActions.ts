@@ -79,7 +79,7 @@ export interface Community {
 // User Profile APIs
 export const getUserProfile = async (token: string) => {
   try {
-    const url = `${API_BASE_URL}/api/v1/user/profile`;
+    const url = `${API_BASE_URL}/user/profile`;
     console.log(`Fetching user profile from: ${url}`);
     console.log(`Using token: ${token ? 'Token present' : 'No token'}`);
 
@@ -129,9 +129,9 @@ export const getUserProfile = async (token: string) => {
 //Earnings API
 export const getUserEarnings = async (token: string) => {
   try {
-    console.log(`Fetching user earnings from: ${API_BASE_URL}/api/v1/user/earnings`);
+    console.log(`Fetching user earnings from: ${API_BASE_URL}/user/earnings`);
 
-    const res = await fetch(`${API_BASE_URL}/api/v1/user/earnings`, {
+    const res = await fetch(`${API_BASE_URL}/user/earnings`, {
       method: "GET",
       headers: {
         Authorization: `Bearer ${token}`,
@@ -199,7 +199,7 @@ export const getUserVideos = async (
   limit: number = 10
 ) => {
   try {
-    const url = `${API_BASE_URL}/api/v1/user/videos?type=${type}&page=${page}&limit=${limit}`;
+    const url = `${API_BASE_URL}/user/videos?type=${type}&page=${page}&limit=${limit}`;
     console.log(`Fetching user videos from: ${url}`);
 
     const res = await fetch(url, {
@@ -245,7 +245,7 @@ export const getUserCommunities = async (
   type: 'all' | 'created' | 'joined' = 'all'
 ) => {
   try {
-    const url = `${API_BASE_URL}/api/v1/user/communities?type=${type}`;
+    const url = `${API_BASE_URL}/user/communities?type=${type}`;
     console.log(`Fetching user communities from: ${url}`);
 
     const res = await fetch(url, {
@@ -282,7 +282,7 @@ export const getUserCommunities = async (
 // User Followers API
 export const getUserFollowers = async (token: string) => {
   try {
-    const url = `${API_BASE_URL}/api/v1/user/followers`;
+    const url = `${API_BASE_URL}/user/followers`;
     console.log(`Fetching user followers from: ${url}`);
 
     const res = await fetch(url, {
@@ -323,7 +323,7 @@ export const getUserInteractions = async (
   type: 'all' | 'likes' | 'comments' = 'all'
 ) => {
   try {
-    const url = `${API_BASE_URL}/api/v1/user/interactions?type=${type}`;
+    const url = `${API_BASE_URL}/user/interactions?type=${type}`;
     console.log(`Fetching user interactions from: ${url}`);
 
     const res = await fetch(url, {
@@ -360,7 +360,7 @@ export const getUserInteractions = async (
 // FCM Token API
 export const sendFCMToken = async (token: string, fcmToken: string) => {
   try {
-    const url = `${API_BASE_URL}/api/v1/user/fcm_token`;
+    const url = `${API_BASE_URL}/user/fcm_token`;
     console.log(`Sending FCM token to: ${url}`);
 
     const res = await fetch(url, {
@@ -394,7 +394,7 @@ export const sendFCMToken = async (token: string, fcmToken: string) => {
 // User Interests API
 export const submitUserInterests = async (token: string, interests: string[]) => {
   try {
-    const url = `${API_BASE_URL}/api/v1/user/interests`;
+    const url = `${API_BASE_URL}/user/interests`;
     console.log(`📤 Submitting user interests to: ${url}`);
     console.log(`📋 Interests:`, interests);
 
@@ -421,7 +421,7 @@ export const submitUserInterests = async (token: string, interests: string[]) =>
 
     const responseText = await res.text();
     console.log('✅ Interests submitted successfully');
-    
+
     try {
       const data = JSON.parse(responseText);
       console.log('✅ Response:', data.message);
@@ -436,17 +436,18 @@ export const submitUserInterests = async (token: string, interests: string[]) =>
   }
 };
 
-// Update User Profile API
-export const updateUserProfile = async (token: string, profileData: {
-  username?: string;
-  bio?: string;
-  interests?: string[];
-  profile_photo?: string;
+// Social Media Links API
+export const updateSocialMediaLinks = async (token: string, socialLinks: {
+  facebook?: string;
+  twitter?: string;
+  instagram?: string;
+  snapchat?: string;
+  youtube?: string;
 }) => {
   try {
-    const url = `${API_BASE_URL}/api/v1/user/profile`;
-    console.log(`📤 Updating user profile to: ${url}`);
-    console.log(`📋 Profile data:`, profileData);
+    const url = `${API_BASE_URL}/user/social-media-links`;
+    console.log(`📤 Updating social media links to: ${url}`);
+    console.log(`📋 Social links data:`, socialLinks);
 
     const res = await fetch(url, {
       method: "PUT",
@@ -454,7 +455,135 @@ export const updateUserProfile = async (token: string, profileData: {
         Authorization: `Bearer ${token}`,
         "Content-Type": "application/json"
       },
-      body: JSON.stringify(profileData)
+      body: JSON.stringify(socialLinks)
+    });
+
+    console.log(`📊 Response status: ${res.status}`);
+
+    if (!res.ok) {
+      const errorText = await res.text();
+      console.error(`❌ Social media links API error: ${res.status}`);
+      console.error(`❌ Error response:`, errorText.substring(0, 500));
+      throw new Error(`Failed to update social media links: ${res.status} - ${errorText}`);
+    }
+
+    const responseText = await res.text();
+    console.log('✅ Social media links updated successfully');
+
+    try {
+      const data = JSON.parse(responseText);
+      console.log('✅ Response:', data.message);
+      return data;
+    } catch (parseError) {
+      console.log('ℹ️ Response is not JSON, treating as success');
+      return { success: true, message: responseText };
+    }
+  } catch (error) {
+    console.error("❌ Failed to update social media links:", error);
+    throw error;
+  }
+};
+
+
+
+// Update Creator Pass Price API
+export const updateCreatorPassPrice = async (token: string, price: number) => {
+  try {
+    const url = `${API_BASE_URL}/user/creator-pass-price`;
+    console.log(`📤 Updating creator pass price to: ${url}`);
+    console.log(`💰 Price:`, price);
+
+    const res = await fetch(url, {
+      method: "PUT",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({ price })
+    });
+
+    console.log(`📊 Response status: ${res.status}`);
+
+    // Check if response is JSON
+    const contentType = res.headers.get('content-type');
+    if (!contentType || !contentType.includes('application/json')) {
+      const textResponse = await res.text();
+      console.error('❌ Non-JSON response:', textResponse);
+      throw new Error('Server returned invalid response. Please try again.');
+    }
+
+    const data = await res.json();
+    console.log('✅ Creator pass price response:', data);
+
+    if (!res.ok) {
+      throw new Error(data.message || `Failed to update creator pass price: ${res.status}`);
+    }
+
+    return data;
+  } catch (error) {
+    console.error("❌ Failed to update creator pass price:", error);
+    throw error;
+  }
+};
+
+// Update User Profile API
+export const updateUserProfile = async (token: string, profileData: {
+  username?: string;
+  bio?: string;
+  interests?: string | string[];
+  profile_photo?: string;
+}) => {
+  try {
+    const url = `${API_BASE_URL}/user/profile`;
+    console.log(`📤 Updating user profile to: ${url}`);
+    console.log(`📋 Profile data:`, profileData);
+
+    // Create FormData for file upload
+    const formData = new FormData();
+
+    // Add text fields
+    if (profileData.username) {
+      formData.append('username', profileData.username);
+    }
+    if (profileData.bio) {
+      formData.append('bio', profileData.bio);
+    }
+    if (profileData.interests) {
+      // Ensure interests is always a string for FormData
+      const interestsString = Array.isArray(profileData.interests)
+        ? JSON.stringify(profileData.interests)
+        : profileData.interests;
+      formData.append('interests', interestsString);
+    }
+
+    // Handle profile photo upload
+    if (profileData.profile_photo) {
+      try {
+        // For React Native, we need to use a different approach
+        const fileUri = profileData.profile_photo;
+        const filename = fileUri.split('/').pop() || 'profile.jpg';
+        const match = /\.(\w+)$/.exec(filename);
+        const type = match ? `image/${match[1]}` : 'image/jpeg';
+
+        formData.append('profile_photo', {
+          uri: fileUri,
+          type: type,
+          name: filename,
+        } as any);
+        console.log('📸 Profile photo added to form data');
+      } catch (photoError) {
+        console.error('❌ Error processing profile photo:', photoError);
+        // Continue without photo if there's an error
+      }
+    }
+
+    const res = await fetch(url, {
+      method: "PUT",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        // Don't set Content-Type for FormData, let the browser set it with boundary
+      },
+      body: formData,
     });
 
     console.log(`📊 Response status: ${res.status}`);
@@ -468,7 +597,7 @@ export const updateUserProfile = async (token: string, profileData: {
 
     const responseText = await res.text();
     console.log('✅ Profile updated successfully');
-    
+
     try {
       const data = JSON.parse(responseText);
       console.log('✅ Response:', data.message);
@@ -478,7 +607,33 @@ export const updateUserProfile = async (token: string, profileData: {
       return { success: true, message: responseText };
     }
   } catch (error) {
-    console.error("❌ Failed to update user profile:", error);
+    console.error("❌ Failed to update user profile with FormData:", error);
+
+    // If FormData fails and we have a profile photo, try without the photo
+    if (profileData.profile_photo && error instanceof TypeError && error.message.includes('Network request failed')) {
+      console.log('🔄 Retrying without profile photo...');
+      try {
+        const { profile_photo, ...dataWithoutPhoto } = profileData;
+
+        const fallbackRes = await fetch(`${API_BASE_URL}/user/profile`, {
+          method: "PUT",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify(dataWithoutPhoto)
+        });
+
+        if (fallbackRes.ok) {
+          const fallbackData = await fallbackRes.json();
+          console.log('✅ Profile updated successfully (without photo)');
+          return fallbackData;
+        }
+      } catch (fallbackError) {
+        console.error('❌ Fallback also failed:', fallbackError);
+      }
+    }
+
     throw error;
   }
 };

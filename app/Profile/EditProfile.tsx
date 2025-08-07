@@ -2,13 +2,12 @@ import ThemedText from "@/components/ThemedText";
 import ThemedView from "@/components/ThemedView";
 import { EditProfile } from "@/styles/EditProfile";
 import { useFonts } from "expo-font";
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { Image, Modal, TextInput, TouchableOpacity, View, Alert, ActivityIndicator } from "react-native";
 import * as ImagePicker from "expo-image-picker";
-import { router } from "expo-router";
+import { router, useFocusEffect } from "expo-router";
 import { useAuthStore } from "@/store/useAuthStore";
 import { getUserProfile, updateUserProfile } from "@/api/user/userActions";
-import { LinearGradient } from 'expo-linear-gradient';
 
 const EditProfilePage: React.FC = () => {
   const [fontsLoaded] = useFonts({
@@ -51,10 +50,33 @@ const EditProfilePage: React.FC = () => {
   const contentInterestOptions = ["Entertainment", "Education", "Comedy", "Drama", "Action", "Romance"];
   const interestOptions = ["Crime", "Comedy", "Romance", "Action", "Drama", "Thriller", "Horror", "Sci-Fi"];
 
-  // Load user profile data
+  // Load user profile data on mount
   useEffect(() => {
     loadUserProfile();
   }, []);
+
+  // Refresh profile data when screen comes into focus
+  useFocusEffect(
+    React.useCallback(() => {
+      console.log('🔄 EditProfile screen focused, refreshing profile data');
+      loadUserProfile();
+    }, [])
+  );
+
+  // Sync with auth store when user data changes
+  useEffect(() => {
+    if (user && user.profile_photo) {
+      console.log('🔄 Auth store profile photo changed:', user.profile_photo);
+      console.log('📸 Current imageUri:', imageUri);
+      
+      // Update imageUri if the auth store has a different profile photo
+      // This happens after a successful profile update
+      if (user.profile_photo !== imageUri) {
+        console.log('📸 Updating imageUri with auth store profile photo');
+        setImageUri(user.profile_photo);
+      }
+    }
+  }, [user?.profile_photo]);
 
   const loadUserProfile = async () => {
     if (!token) return;
@@ -64,9 +86,12 @@ const EditProfilePage: React.FC = () => {
       const profileData = await getUserProfile(token);
 
       if (profileData.user) {
+        console.log('📸 Profile photo from API:', profileData.user.profile_photo);
         setName(profileData.user.username || "");
         setUsername(profileData.user.username || "");
         setBio(profileData.user.bio || "");
+        
+        // Always update imageUri with the latest profile photo from API
         setImageUri(profileData.user.profile_photo || null);
 
         // Set interests if available
@@ -162,30 +187,58 @@ const EditProfilePage: React.FC = () => {
       const profileData = {
         username: username.trim(),
         bio: bio.trim(),
-        ...(interests.length > 0 && { interests: interests }),
+        ...(interests.length > 0 && { interests: JSON.stringify(interests) }),
         ...(imageUri && { profile_photo: imageUri })
       };
 
-      await updateUserProfile(token, profileData);
+      const response = await updateUserProfile(token, profileData);
 
-      // Update the auth store with new data
+      // Update the auth store with new data (use the URL from server response if available)
+      const updatedProfilePhoto = response.user?.profile_photo || imageUri;
       updateUser({
         ...user,
         username: username.trim(),
         bio: bio.trim(),
         interests: interests,
-        ...(imageUri && { profile_photo: imageUri })
+        ...(updatedProfilePhoto && { profile_photo: updatedProfilePhoto })
       });
 
       Alert.alert('Success', 'Profile updated successfully');
       router.back();
     } catch (error) {
       console.error('Error updating profile:', error);
-      Alert.alert('Error', 'Failed to update profile. Please try again.');
+      
+      if (error instanceof Error && error.message.includes('Network request failed') && imageUri) {
+        Alert.alert(
+          'Profile Updated', 
+          'Your profile information was updated, but the profile photo could not be uploaded. Please try uploading the photo again.',
+          [{ text: 'OK' }]
+        );
+        router.back();
+      } else {
+        Alert.alert('Error', 'Failed to update profile. Please try again.');
+      }
     } finally {
       setSaving(false);
     }
   };
+
+  const renderDropdownField = (label: string, value: string, placeholder: string, dropdownKey: 'gender' | 'interest1' | 'interest2' | 'contentInterest') => (
+    <TouchableOpacity
+      onPress={() => openDropdown(dropdownKey)}
+      style={EditProfile.dropdownTrigger}
+    >
+      <ThemedText
+        style={[
+          EditProfile.dropdownText,
+          { color: value ? "#fff" : "#888" }
+        ]}
+      >
+        {value || placeholder}
+      </ThemedText>
+      <ThemedText style={EditProfile.arrow}>▼</ThemedText>
+    </TouchableOpacity>
+  );
 
   return (
     <ThemedView style={EditProfile.container}>
@@ -261,40 +314,12 @@ const EditProfilePage: React.FC = () => {
         <View style={EditProfile.TwoFieldRow}>
           <View style={EditProfile.HalfField}>
             <ThemedText style={EditProfile.InfoLabel}>Gender</ThemedText>
-            <TouchableOpacity
-              onPress={() => openDropdown('gender')}
-              style={EditProfile.dropdownTrigger}
-            >
-              <ThemedText
-                style={[
-                  EditProfile.dropdownText,
-                  { color: gender ? "#fff" : "#888" },
-                ]}
-              >
-                {gender || "Select"}
-              </ThemedText>
-              <ThemedText style={EditProfile.arrow}>▼</ThemedText>
-            </TouchableOpacity>
+            {renderDropdownField("Gender", gender, "Select", 'gender')}
           </View>
 
           <View style={EditProfile.HalfField}>
-            <ThemedText style={EditProfile.InfoLabel}>
-              Content interest
-            </ThemedText>
-            <TouchableOpacity
-              onPress={() => openDropdown('contentInterest')}
-              style={EditProfile.dropdownTrigger}
-            >
-              <ThemedText
-                style={[
-                  EditProfile.dropdownText,
-                  { color: contentInterest ? "#fff" : "#888" },
-                ]}
-              >
-                {contentInterest || "Select"}
-              </ThemedText>
-              <ThemedText style={EditProfile.arrow}>▼</ThemedText>
-            </TouchableOpacity>
+            <ThemedText style={EditProfile.InfoLabel}>Content interest</ThemedText>
+            {renderDropdownField("Content interest", contentInterest, "Select", 'contentInterest')}
           </View>
         </View>
 
@@ -302,20 +327,12 @@ const EditProfilePage: React.FC = () => {
         {["Interest 1", "Interest 2"].map((interest, i) => (
           <View key={i} style={EditProfile.InfoFrame}>
             <ThemedText style={EditProfile.InfoLabel}>{interest}</ThemedText>
-            <TouchableOpacity
-              onPress={() => openDropdown(i === 0 ? 'interest1' : 'interest2')}
-              style={EditProfile.dropdownTrigger}
-            >
-              <ThemedText
-                style={[
-                  EditProfile.dropdownText,
-                  { color: (i === 0 ? interest1 : interest2) ? "#fff" : "#888" },
-                ]}
-              >
-                {(i === 0 ? interest1 : interest2) || "Select interest"}
-              </ThemedText>
-              <ThemedText style={EditProfile.arrow}>▶</ThemedText>
-            </TouchableOpacity>
+            {renderDropdownField(
+              interest,
+              i === 0 ? interest1 : interest2,
+              "Select interest",
+              i === 0 ? 'interest1' : 'interest2'
+            )}
           </View>
         ))}
 
@@ -340,6 +357,16 @@ const EditProfilePage: React.FC = () => {
             </View>
           </TouchableOpacity>
         </Modal>
+
+        {/* Social Media Links Button */}
+        <TouchableOpacity 
+          style={EditProfile.CreatorPassButton}
+          onPress={() => router.push('/Profile/SocialMediaLinks')}
+        >
+          <ThemedText style={EditProfile.CreatorPassText}>
+            Add Social Media Links
+          </ThemedText>
+        </TouchableOpacity>
 
         {/* Creator Pass Button */}
         <TouchableOpacity 

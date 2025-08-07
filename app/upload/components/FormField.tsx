@@ -7,6 +7,7 @@ interface FormFieldProps {
   placeholder: string;
   onChangeText: (text: string) => void;
   error?: string;
+  keyboardType?: 'default' | 'numeric' | 'email-address' | 'phone-pad';
 }
 
 /**
@@ -18,7 +19,8 @@ const FormField: React.FC<FormFieldProps> = ({
   value,
   placeholder,
   onChangeText,
-  error
+  error,
+  keyboardType = 'default'
 }) => {
   return (
     <View className="mb-8">
@@ -28,6 +30,7 @@ const FormField: React.FC<FormFieldProps> = ({
         onChangeText={onChangeText}
         placeholder={placeholder}
         placeholderTextColor="#666666"
+        keyboardType={keyboardType}
         className={`bg-transparent border rounded-xl px-6 py-4 text-white text-lg ${error ? 'border-red-500' : 'border-gray-600'
           }`}
         style={{ minHeight: 56 }}

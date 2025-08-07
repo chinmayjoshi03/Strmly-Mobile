@@ -17,6 +17,7 @@ import { CreateProfileStyles } from "@/styles/createprofile";
 import { useAuthStore } from "@/store/useAuthStore";
 import { CONFIG } from "@/Constants/config";
 
+
 const SignIn = () => {
   const [useEmail, setUseEmail] = useState(false);
   const [nameOrEmail, setNameOrEmail] = useState("");
@@ -41,9 +42,10 @@ const SignIn = () => {
     const isEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(nameOrEmail);
     const loginType = isEmail ? "email" : "username";
     console.log("Login type:", loginType);
+    console.log("Login type:", loginType);
 
     try {
-      const loginUrl = `${CONFIG.API_BASE_URL}/api/v1/auth/login/${loginType}`;
+      const loginUrl = `${CONFIG.API_BASE_URL}/auth/login/${loginType}`;
       console.log("🔗 Login URL:", loginUrl);
       
       const res = await fetch(loginUrl,
@@ -61,12 +63,20 @@ const SignIn = () => {
       
       console.log("📡 Response status:", res.status);
       console.log("📡 Response headers:", res.headers);
+      
+      console.log("📡 Response status:", res.status);
+      console.log("📡 Response headers:", res.headers);
 
       if (!res.ok) {
         const errorText = await res.text();
         console.error("❌ Login error response:", errorText);
         throw new Error(`Login failed: ${res.status} ${res.statusText}`);
+        
       }
+
+      
+
+
 
       const data = await res.json();
       console.log("✅ Login successful:", data);

@@ -9,6 +9,7 @@ import {
   Linking,
   Image,
   FlatList,
+  FlatList,
 } from "react-native";
 import { CONFIG } from "@/Constants/config";
 import {
@@ -16,11 +17,16 @@ import {
   LinkIcon,
   HeartIcon,
   PaperclipIcon,
+  LogOut,
 } from "lucide-react-native";
+import { useRouter, useLocalSearchParams } from "expo-router";
+import { useFocusEffect } from '@react-navigation/native';
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { useFocusEffect } from '@react-navigation/native';
 import { useAuthStore } from "@/store/useAuthStore";
 import { useThumbnailsGenerate } from "@/utils/useThumbnailGenerator";
+import ThemedView from "@/components/ThemedView";
+import ProfileTopbar from "@/components/profileTopbar";
 import ThemedView from "@/components/ThemedView";
 import ProfileTopbar from "@/components/profileTopbar";
 import { LinearGradient } from "expo-linear-gradient";
@@ -28,13 +34,15 @@ import Constants from "expo-constants";
 
 export default function PersonalProfilePage() {
   const [activeTab, setActiveTab] = useState("long");
+  const [activeTab, setActiveTab] = useState("long");
   const [userData, setUserData] = useState<any>(null);
   const [videos, setVideos] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isError, setIsError] = useState<string | null>(null);
   const [isLoadingVideos, setIsLoadingVideos] = useState(false);
 
-  const { token } = useAuthStore();
+  const { token, user } = useAuthStore();
   const router = useRouter();
 
   const thumbnails = useThumbnailsGenerate(
@@ -44,6 +52,15 @@ export default function PersonalProfilePage() {
     }))
   );
 
+  // Refresh profile data when auth store user changes (e.g., after profile update)
+  useEffect(() => {
+    if (user?.profile_photo && userData && user.profile_photo !== userData.profile_photo) {
+      console.log('🔄 Auth store profile photo changed, refreshing profile data');
+      // Update userData with the new profile photo from auth store
+      setUserData(prev => prev ? { ...prev, profile_photo: user.profile_photo } : prev);
+    }
+  }, [user?.profile_photo, userData?.profile_photo]);
+
   useFocusEffect(
     React.useCallback(() => {
       const fetchUserVideos = async () => {
@@ -52,7 +69,7 @@ export default function PersonalProfilePage() {
           const params = new URLSearchParams();
           params.append("type", activeTab);
 
-          const response = await fetch(`${CONFIG.API_BASE_URL}/api/v1/user/videos?${params.toString()}`, {
+          const response = await fetch(`${CONFIG.API_BASE_URL}/user/videos?${params.toString()}`, {
             method: "GET",
             headers: {
               Authorization: `Bearer ${token}`,
@@ -60,11 +77,20 @@ export default function PersonalProfilePage() {
               "Cache-Control": "no-cache, no-store, must-revalidate",
               "Pragma": "no-cache",
               "Expires": "0"
+              "Content-Type": "application/json",
+              "Cache-Control": "no-cache, no-store, must-revalidate",
+              "Pragma": "no-cache",
+              "Expires": "0"
             },
+          });
           });
 
           const data = await response.json();
+          const data = await response.json();
 
+          if (!response.ok) {
+            throw new Error(data.message || "Failed to fetch user videos");
+          }
           if (!response.ok) {
             throw new Error(data.message || "Failed to fetch user videos");
           }
@@ -88,7 +114,7 @@ export default function PersonalProfilePage() {
         setIsLoading(true);
         try {
           const timestamp = new Date().getTime();
-          const response = await fetch(`${CONFIG.API_BASE_URL}/api/v1/user/profile?_=${timestamp}`, {
+          const response = await fetch(`${CONFIG.API_BASE_URL}/user/profile?_=${timestamp}`, {
             method: "GET",
             headers: {
               Authorization: `Bearer ${token}`,
@@ -100,11 +126,31 @@ export default function PersonalProfilePage() {
           });
 
           const data = await response.json();
+          const data = await response.json();
 
           if (!response.ok) {
             throw new Error(data.message || "Failed to fetch user profile");
           }
+          if (!response.ok) {
+            throw new Error(data.message || "Failed to fetch user profile");
+          }
 
+          console.log("Fetched fresh user data:", data.user);
+          setUserData(data.user);
+          setIsError(null);
+        } catch (error) {
+          console.log("error", error);
+          setIsError(
+            error instanceof Error ? error.message : "An unknown error occurred."
+          );
+          Alert.alert(
+            "Error",
+            error instanceof Error ? error.message : "An unknown error occurred."
+          );
+        } finally {
+          setIsLoading(false);
+        }
+      };
           console.log("Fetched fresh user data:", data.user);
           setUserData(data.user);
           setIsError(null);
@@ -128,11 +174,18 @@ export default function PersonalProfilePage() {
       }
     }, [token, activeTab])
   );
+      if (token) {
+        fetchUserData();
+        fetchUserVideos();
+      }
+    }, [token, activeTab])
+  );
 
   const currentProfileData = {
     name: userData?.name || "User",
     email: userData?.email || "",
     image:
+      user?.profile_photo ||
       userData?.profile_photo ||
       userData?.avatar ||
       userData?.image ||
@@ -147,11 +200,16 @@ export default function PersonalProfilePage() {
         year: "numeric",
       })
       : "N/A",
+        month: "long",
+        year: "numeric",
+      })
+      : "N/A",
     coverImage:
       "https://images.unsplash.com/photo-1579546929518-9e396f3cc809?w=800&h=200&fit=crop",
     followers: userData?.stats?.followersCount || 0,
     following: userData?.stats?.followingCount || 0,
     posts: userData?.stats?.videosCount || 0,
+    communityLength: userData?.community?.length || 0,
     communityLength: userData?.community?.length || 0,
     isVerified: userData?.isVerified || false,
   };
@@ -203,15 +261,19 @@ export default function PersonalProfilePage() {
           <View className="max-w-4xl -mt-28 relative mx-6">
             <View className="flex flex-col items-center md:flex-row md:items-end space-y-4 md:space-y-0 md:space-x-4">
               <View className="relative">
-                <View className="w-24 h-24 rounded-full border-2 border-white overflow-hidden">
-                  <Image
-                    source={currentProfileData?.image ? {
-                      uri: currentProfileData.image,
-                    } : require('../../../assets/images/user.png')}
-                    className="w-full h-full object-cover rounded-full"
-                    style={{ width: 96, height: 96 }}
-                  />
-                </View>
+                <Image
+                  source={currentProfileData?.image ? {
+                    uri: currentProfileData.image,
+                  } : require('../../../assets/images/user.png')}
+                  style={{ 
+                    width: 80, 
+                    height: 80, 
+                    borderRadius: 40,
+                    borderWidth: 2,
+                    borderColor: 'white',
+                    resizeMode: 'cover'
+                  }}
+                />
 
                 <View className="flex flex-row gap-2 items-center justify-center mt-2">
                   <Text className="text-gray-400">
@@ -219,6 +281,11 @@ export default function PersonalProfilePage() {
                   </Text>
                   {(currentProfileData.isVerified ||
                     userData?.creator_profile?.verification_status ===
+                    "verified") && (
+                      <Text className="ml-2 px-2 py-1 rounded-full text-xs font-medium bg-blue-500 text-white">
+                        Verified
+                      </Text>
+                    )}
                     "verified") && (
                       <Text className="ml-2 px-2 py-1 rounded-full text-xs font-medium bg-blue-500 text-white">
                         Verified
@@ -236,6 +303,10 @@ export default function PersonalProfilePage() {
                   pathname: "/(dashboard)/profile/ProfileSections",
                   params: { section: "followers", userName: currentProfileData.username }
                 })}
+                onPress={() => router.push({
+                  pathname: "/(dashboard)/profile/ProfileSections",
+                  params: { section: "followers", userName: currentProfileData.username }
+                })}
               >
                 <Text className="font-bold text-lg text-white">
                   {currentProfileData.followers}
@@ -248,6 +319,10 @@ export default function PersonalProfilePage() {
                   pathname: "/(dashboard)/profile/ProfileSections",
                   params: { section: "myCommunity", userName: currentProfileData.username }
                 })}
+                onPress={() => router.push({
+                  pathname: "/(dashboard)/profile/ProfileSections",
+                  params: { section: "myCommunity", userName: currentProfileData.username }
+                })}
               >
                 <Text className="font-bold text-lg text-white">
                   {currentProfileData.communityLength}
@@ -256,6 +331,10 @@ export default function PersonalProfilePage() {
               </TouchableOpacity>
               <TouchableOpacity
                 className="flex flex-col gap-1 items-center"
+                onPress={() => router.push({
+                  pathname: "/(dashboard)/profile/ProfileSections",
+                  params: { section: "following", userName: currentProfileData.username }
+                })}
                 onPress={() => router.push({
                   pathname: "/(dashboard)/profile/ProfileSections",
                   params: { section: "following", userName: currentProfileData.username }
@@ -275,6 +354,10 @@ export default function PersonalProfilePage() {
                   pathname: "/(dashboard)/profile/ProfileSections",
                   params: { section: "myCommunity", userName: currentProfileData.username }
                 })}
+                onPress={() => router.push({
+                  pathname: "/(dashboard)/profile/ProfileSections",
+                  params: { section: "myCommunity", userName: currentProfileData.username }
+                })}
                 className="px-4 py-2 rounded-lg border border-white"
               >
                 <Text className="text-white text-center font-bold">
@@ -285,6 +368,7 @@ export default function PersonalProfilePage() {
               {/* Dashboard Button (Gradient Border) */}
               <TouchableOpacity
                 onPress={() => router.push("/(dashboard)/profile/Dashboard")}
+                className="px-4 py-2 rounded-lg border border-white"
                 className="px-4 py-2 rounded-lg border border-white"
               >
                 <Text className="text-white text-center font-bold">
@@ -310,11 +394,14 @@ export default function PersonalProfilePage() {
               <TouchableOpacity
                 onPress={() => router.push("/(dashboard)/profile/access")}
                 className="rounded-lg overflow-hidden"
+                onPress={() => router.push("/(dashboard)/profile/access")}
+                className="rounded-lg overflow-hidden"
               >
                 <LinearGradient
                   colors={["#4400FFA6", "#FFFFFF", "#FF00004D", "#FFFFFF"]}
                   start={{ x: 0, y: 0 }}
                   end={{ x: 1, y: 1 }}
+                  className="p-[1.5px] rounded-lg flex-1"
                   className="p-[1.5px] rounded-lg flex-1"
                 >
                   <View className="flex-1 px-4 py-2 rounded-lg bg-black items-center justify-center">
@@ -394,6 +481,17 @@ export default function PersonalProfilePage() {
             <ActivityIndicator size="large" color="#F1C40F" />
           </View>
         ) : (
+          <View className="flex-1">
+            <FlatList
+              data={videos}
+              keyExtractor={(item) => item._id}
+              renderItem={renderGridItem}
+              numColumns={3}
+              contentContainerStyle={{ paddingBottom: 30, paddingHorizontal: 0 }}
+              showsVerticalScrollIndicator={false}
+              nestedScrollEnabled={true}
+            />
+          </View>
           <View className="flex-1">
             <FlatList
               data={videos}

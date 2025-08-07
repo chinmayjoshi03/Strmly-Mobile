@@ -3,7 +3,7 @@ import React, { useState } from 'react'
 import AddMoneyModal from './AddMoneyModal'
 
 interface WalletButtonsProps {
-  onWithdraw: (amount: number) => Promise<void>;
+  onWithdraw: () => void;
   onCreateOrder: (amount: number) => Promise<any>;
   onVerifyPayment: (orderId: string, paymentId: string, signature: string) => Promise<any>;
   onRefreshWallet: () => void;
@@ -30,7 +30,7 @@ const WalletButtons: React.FC<WalletButtonsProps> = ({
   };
 
   const handleWithdrawPress = () => {
-    setShowWithdrawModal(true);
+    onWithdraw();
   };
 
   const handleWithdrawConfirm = async () => {
