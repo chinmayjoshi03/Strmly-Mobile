@@ -1,8 +1,11 @@
 import { Tabs } from 'expo-router';
 import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Image } from 'react-native';
 import { PaperclipIcon, Search } from 'lucide-react-native';
 import Svg, { Path } from 'react-native-svg';
+import { useAuthStore } from '@/store/useAuthStore';
+import { CONFIG } from '@/Constants/config';
 import { useAuthStore } from '@/store/useAuthStore';
 import { CONFIG } from '@/Constants/config';
 
@@ -56,7 +59,19 @@ export default function TabLayout() {
           backgroundColor: '#000000',
           borderTopWidth: 0,
           height: 55,
+          height: 55,
           paddingBottom: 10,
+          paddingTop: 0,
+          paddingHorizontal: 0,
+          position: 'absolute',
+          bottom: 0,
+          left: 0,
+          right: 0,
+          elevation: 8, // Android shadow
+          shadowColor: '#000', // iOS shadow
+          shadowOffset: { width: 0, height: -2 },
+          shadowOpacity: 0.1,
+          shadowRadius: 4,
           paddingTop: 0,
           paddingHorizontal: 0,
           position: 'absolute',
@@ -78,6 +93,8 @@ export default function TabLayout() {
         options={{
           title: 'Home',
           tabBarIcon: ({ color, focused }) => (
+            <View className={`w-6 h-6 items-center justify-center ${focused ? 'opacity-100' : 'opacity-60'}`}>
+              <PaperclipIcon size={22} color="white" />
             <View className={`w-6 h-6 items-center justify-center ${focused ? 'opacity-100' : 'opacity-60'}`}>
               <PaperclipIcon size={22} color="white" />
             </View>
@@ -120,6 +137,19 @@ export default function TabLayout() {
           title: 'Profile',
           tabBarIcon: ({ color, focused }) => (
             <View className={`w-8 h-8 items-center justify-center ${focused ? 'opacity-100' : 'opacity-60'}`}>
+              <View className="w-7 h-7 bg-gray-600 rounded-full overflow-hidden items-center justify-center">
+                {profilePhoto ? (
+                  <Image 
+                    source={{ uri: profilePhoto }}
+                    className="w-full h-full"
+                    style={{ width: 28, height: 28, resizeMode: 'cover' }}
+                  />
+                ) : (
+                  <View className="w-full h-full bg-gradient-to-b from-gray-500 to-gray-700 items-center justify-center">
+                    <View className="w-3 h-3 bg-white rounded-full mb-1" />
+                    <View className="w-5 h-2 bg-white rounded-t-full" />
+                  </View>
+                )}
               <View className="w-7 h-7 bg-gray-600 rounded-full overflow-hidden items-center justify-center">
                 {profilePhoto ? (
                   <Image 

@@ -32,6 +32,8 @@ const VideoDetailScreen: React.FC<VideoDetailProps> = ({
   selectedSeries,
   videoFormat,
   isEditingDraft
+  videoFormat,
+  isEditingDraft
 }) => {
   const [communityDropdownOpen, setCommunityDropdownOpen] = useState(false);
   const [formatDropdownOpen, setFormatDropdownOpen] = useState(false);
@@ -100,6 +102,9 @@ const VideoDetailScreen: React.FC<VideoDetailProps> = ({
         <TouchableOpacity onPress={onBack}>
           <Ionicons name="chevron-back" size={24} color="white" />
         </TouchableOpacity>
+        <Text className="text-white text-xl font-medium">
+          {isEditingDraft ? 'Edit Draft' : 'Video detail'}
+        </Text>
         <Text className="text-white text-xl font-medium">
           {isEditingDraft ? 'Edit Draft' : 'Video detail'}
         </Text>

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { CONFIG } from '../../../Constants/config';
 import { useAuthStore } from '../../../store/useAuthStore';
+import { useAuthStore } from '../../../store/useAuthStore';
 
 interface DraftData {
   id: string;
@@ -45,6 +46,7 @@ export const useStudioDrafts = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { token } = useAuthStore();
+  const { token } = useAuthStore();
 
   const fetchDrafts = async () => {
 
@@ -59,6 +61,7 @@ export const useStudioDrafts = () => {
       const response = await fetch(`${CONFIG.API_BASE_URL}/drafts/all`, {
         method: 'GET',
         headers: {
+          'Authorization': `Bearer ${token}`,
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
         },

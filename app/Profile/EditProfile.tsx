@@ -32,6 +32,13 @@ const EditProfilePage: React.FC = () => {
   const [name, setName] = useState("");
   const [username, setUsername] = useState("");
   const [bio, setBio] = useState("");
+  // Auth store
+  const { token, user, updateUser } = useAuthStore();
+
+  // Form states
+  const [name, setName] = useState("");
+  const [username, setUsername] = useState("");
+  const [bio, setBio] = useState("");
   const [imageUri, setImageUri] = useState<string | null>(null);
 
   // Dropdown states
@@ -124,7 +131,55 @@ const EditProfilePage: React.FC = () => {
         setInterest2(value);
         break;
     }
+    switch (dropdownType) {
+      case 'gender':
+        setGender(value);
+        break;
+      case 'contentInterest':
+        setContentInterest(value);
+        break;
+      case 'interest1':
+        setInterest1(value);
+        break;
+      case 'interest2':
+        setInterest2(value);
+        break;
+    }
     setVisible(false);
+  };
+
+  const openDropdown = (type: 'gender' | 'interest1' | 'interest2' | 'contentInterest') => {
+    setDropdownType(type);
+    setVisible(true);
+  };
+
+  const getDropdownOptions = () => {
+    switch (dropdownType) {
+      case 'gender':
+        return genderOptions;
+      case 'contentInterest':
+        return contentInterestOptions;
+      case 'interest1':
+      case 'interest2':
+        return interestOptions;
+      default:
+        return [];
+    }
+  };
+
+  const getCurrentValue = () => {
+    switch (dropdownType) {
+      case 'gender':
+        return gender;
+      case 'contentInterest':
+        return contentInterest;
+      case 'interest1':
+        return interest1;
+      case 'interest2':
+        return interest2;
+      default:
+        return "";
+    }
   };
 
   const openDropdown = (type: 'gender' | 'interest1' | 'interest2' | 'contentInterest') => {
@@ -163,6 +218,7 @@ const EditProfilePage: React.FC = () => {
 
   const pickImage = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'],
       mediaTypes: ['images'],
       allowsEditing: true,
       aspect: [1, 1],
@@ -229,11 +285,19 @@ const EditProfilePage: React.FC = () => {
       {/* Top Bar */}
       <View style={EditProfile.CreateCommunityTopBar}>
         <TouchableOpacity onPress={() => router.back()} style={EditProfile.BackIcon}>
+        <TouchableOpacity onPress={() => router.back()} style={EditProfile.BackIcon}>
           <Image
             className="size-5"
             source={require("../../assets/images/back.png")}
           />
         </TouchableOpacity>
+        <ThemedText style={EditProfile.TopBarTitle}>{name || user?.username || 'Edit Profile'}</ThemedText>
+        <TouchableOpacity onPress={handleSave} disabled={saving}>
+          {saving ? (
+            <ActivityIndicator size="small" color="#007AFF" />
+          ) : (
+            <ThemedText style={EditProfile.SaveText}>Save</ThemedText>
+          )}
         <ThemedText style={EditProfile.TopBarTitle}>{name || user?.username || 'Edit Profile'}</ThemedText>
         <TouchableOpacity onPress={handleSave} disabled={saving}>
           {saving ? (
@@ -293,6 +357,38 @@ const EditProfilePage: React.FC = () => {
             onChangeText={setBio}
           />
         </View>
+        <View style={EditProfile.InfoFrame}>
+          <ThemedText style={EditProfile.InfoLabel}>Name</ThemedText>
+          <TextInput
+            placeholder="Add name"
+            placeholderTextColor="#B0B0B0"
+            style={EditProfile.TextLabel}
+            value={name}
+            onChangeText={setName}
+          />
+        </View>
+
+        <View style={EditProfile.InfoFrame}>
+          <ThemedText style={EditProfile.InfoLabel}>Username</ThemedText>
+          <TextInput
+            placeholder="Add username"
+            placeholderTextColor="#B0B0B0"
+            style={EditProfile.TextLabel}
+            value={username}
+            onChangeText={setUsername}
+          />
+        </View>
+
+        <View style={EditProfile.InfoFrame}>
+          <ThemedText style={EditProfile.InfoLabel}>Bio</ThemedText>
+          <TextInput
+            placeholder="Add bio"
+            placeholderTextColor="#B0B0B0"
+            style={EditProfile.TextLabel}
+            value={bio}
+            onChangeText={setBio}
+          />
+        </View>
 
         {/* Gender & Content Interest */}
         <View style={EditProfile.TwoFieldRow}>
@@ -300,14 +396,17 @@ const EditProfilePage: React.FC = () => {
             <ThemedText style={EditProfile.InfoLabel}>Gender</ThemedText>
             <TouchableOpacity
               onPress={() => openDropdown('gender')}
+              onPress={() => openDropdown('gender')}
               style={EditProfile.dropdownTrigger}
             >
               <ThemedText
                 style={[
                   EditProfile.dropdownText,
                   { color: gender ? "#fff" : "#888" },
+                  { color: gender ? "#fff" : "#888" },
                 ]}
               >
+                {gender || "Select"}
                 {gender || "Select"}
               </ThemedText>
               <ThemedText style={EditProfile.arrow}>▼</ThemedText>
@@ -320,14 +419,17 @@ const EditProfilePage: React.FC = () => {
             </ThemedText>
             <TouchableOpacity
               onPress={() => openDropdown('contentInterest')}
+              onPress={() => openDropdown('contentInterest')}
               style={EditProfile.dropdownTrigger}
             >
               <ThemedText
                 style={[
                   EditProfile.dropdownText,
                   { color: contentInterest ? "#fff" : "#888" },
+                  { color: contentInterest ? "#fff" : "#888" },
                 ]}
               >
+                {contentInterest || "Select"}
                 {contentInterest || "Select"}
               </ThemedText>
               <ThemedText style={EditProfile.arrow}>▼</ThemedText>
@@ -341,14 +443,17 @@ const EditProfilePage: React.FC = () => {
             <ThemedText style={EditProfile.InfoLabel}>{interest}</ThemedText>
             <TouchableOpacity
               onPress={() => openDropdown(i === 0 ? 'interest1' : 'interest2')}
+              onPress={() => openDropdown(i === 0 ? 'interest1' : 'interest2')}
               style={EditProfile.dropdownTrigger}
             >
               <ThemedText
                 style={[
                   EditProfile.dropdownText,
                   { color: (i === 0 ? interest1 : interest2) ? "#fff" : "#888" },
+                  { color: (i === 0 ? interest1 : interest2) ? "#fff" : "#888" },
                 ]}
               >
+                {(i === 0 ? interest1 : interest2) || "Select interest"}
                 {(i === 0 ? interest1 : interest2) || "Select interest"}
               </ThemedText>
               <ThemedText style={EditProfile.arrow}>▶</ThemedText>
@@ -363,6 +468,7 @@ const EditProfilePage: React.FC = () => {
             onPress={() => setVisible(false)}
           >
             <View style={EditProfile.dropdownBox}>
+              {getDropdownOptions().map((item) => (
               {getDropdownOptions().map((item) => (
                 <TouchableOpacity
                   key={item}
@@ -393,7 +499,12 @@ const EditProfilePage: React.FC = () => {
           style={EditProfile.CreatorPassButton}
           onPress={() => router.push('/Profile/CreatorPass')}
         >
+        <TouchableOpacity 
+          style={EditProfile.CreatorPassButton}
+          onPress={() => router.push('/Profile/CreatorPass')}
+        >
           <ThemedText style={EditProfile.CreatorPassText}>
+            Add "CREATOR PASS"
             Add "CREATOR PASS"
           </ThemedText>
         </TouchableOpacity>

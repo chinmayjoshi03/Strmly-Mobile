@@ -9,6 +9,7 @@ import {
   Linking,
   Image,
   FlatList,
+  FlatList,
 } from "react-native";
 import { CONFIG } from "@/Constants/config";
 import {
@@ -20,8 +21,12 @@ import {
 } from "lucide-react-native";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { useFocusEffect } from '@react-navigation/native';
+import { useRouter, useLocalSearchParams } from "expo-router";
+import { useFocusEffect } from '@react-navigation/native';
 import { useAuthStore } from "@/store/useAuthStore";
 import { useThumbnailsGenerate } from "@/utils/useThumbnailGenerator";
+import ThemedView from "@/components/ThemedView";
+import ProfileTopbar from "@/components/profileTopbar";
 import ThemedView from "@/components/ThemedView";
 import ProfileTopbar from "@/components/profileTopbar";
 import { LinearGradient } from "expo-linear-gradient";
@@ -29,8 +34,10 @@ import Constants from "expo-constants";
 
 export default function PersonalProfilePage() {
   const [activeTab, setActiveTab] = useState("long");
+  const [activeTab, setActiveTab] = useState("long");
   const [userData, setUserData] = useState<any>(null);
   const [videos, setVideos] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isError, setIsError] = useState<string | null>(null);
   const [isLoadingVideos, setIsLoadingVideos] = useState(false);
@@ -70,11 +77,20 @@ export default function PersonalProfilePage() {
               "Cache-Control": "no-cache, no-store, must-revalidate",
               "Pragma": "no-cache",
               "Expires": "0"
+              "Content-Type": "application/json",
+              "Cache-Control": "no-cache, no-store, must-revalidate",
+              "Pragma": "no-cache",
+              "Expires": "0"
             },
+          });
           });
 
           const data = await response.json();
+          const data = await response.json();
 
+          if (!response.ok) {
+            throw new Error(data.message || "Failed to fetch user videos");
+          }
           if (!response.ok) {
             throw new Error(data.message || "Failed to fetch user videos");
           }
@@ -110,7 +126,11 @@ export default function PersonalProfilePage() {
           });
 
           const data = await response.json();
+          const data = await response.json();
 
+          if (!response.ok) {
+            throw new Error(data.message || "Failed to fetch user profile");
+          }
           if (!response.ok) {
             throw new Error(data.message || "Failed to fetch user profile");
           }
@@ -131,7 +151,29 @@ export default function PersonalProfilePage() {
           setIsLoading(false);
         }
       };
+          console.log("Fetched fresh user data:", data.user);
+          setUserData(data.user);
+          setIsError(null);
+        } catch (error) {
+          console.log("error", error);
+          setIsError(
+            error instanceof Error ? error.message : "An unknown error occurred."
+          );
+          Alert.alert(
+            "Error",
+            error instanceof Error ? error.message : "An unknown error occurred."
+          );
+        } finally {
+          setIsLoading(false);
+        }
+      };
 
+      if (token) {
+        fetchUserData();
+        fetchUserVideos();
+      }
+    }, [token, activeTab])
+  );
       if (token) {
         fetchUserData();
         fetchUserVideos();
@@ -158,11 +200,16 @@ export default function PersonalProfilePage() {
         year: "numeric",
       })
       : "N/A",
+        month: "long",
+        year: "numeric",
+      })
+      : "N/A",
     coverImage:
       "https://images.unsplash.com/photo-1579546929518-9e396f3cc809?w=800&h=200&fit=crop",
     followers: userData?.stats?.followersCount || 0,
     following: userData?.stats?.followingCount || 0,
     posts: userData?.stats?.videosCount || 0,
+    communityLength: userData?.community?.length || 0,
     communityLength: userData?.community?.length || 0,
     isVerified: userData?.isVerified || false,
   };
@@ -239,6 +286,11 @@ export default function PersonalProfilePage() {
                         Verified
                       </Text>
                     )}
+                    "verified") && (
+                      <Text className="ml-2 px-2 py-1 rounded-full text-xs font-medium bg-blue-500 text-white">
+                        Verified
+                      </Text>
+                    )}
                 </View>
               </View>
             </View>
@@ -247,6 +299,10 @@ export default function PersonalProfilePage() {
             <View className="mt-6 flex-row justify-around items-center">
               <TouchableOpacity
                 className="flex flex-col gap-1 items-center"
+                onPress={() => router.push({
+                  pathname: "/(dashboard)/profile/ProfileSections",
+                  params: { section: "followers", userName: currentProfileData.username }
+                })}
                 onPress={() => router.push({
                   pathname: "/(dashboard)/profile/ProfileSections",
                   params: { section: "followers", userName: currentProfileData.username }
@@ -263,6 +319,10 @@ export default function PersonalProfilePage() {
                   pathname: "/(dashboard)/profile/ProfileSections",
                   params: { section: "myCommunity", userName: currentProfileData.username }
                 })}
+                onPress={() => router.push({
+                  pathname: "/(dashboard)/profile/ProfileSections",
+                  params: { section: "myCommunity", userName: currentProfileData.username }
+                })}
               >
                 <Text className="font-bold text-lg text-white">
                   {currentProfileData.communityLength}
@@ -271,6 +331,10 @@ export default function PersonalProfilePage() {
               </TouchableOpacity>
               <TouchableOpacity
                 className="flex flex-col gap-1 items-center"
+                onPress={() => router.push({
+                  pathname: "/(dashboard)/profile/ProfileSections",
+                  params: { section: "following", userName: currentProfileData.username }
+                })}
                 onPress={() => router.push({
                   pathname: "/(dashboard)/profile/ProfileSections",
                   params: { section: "following", userName: currentProfileData.username }
@@ -290,6 +354,10 @@ export default function PersonalProfilePage() {
                   pathname: "/(dashboard)/profile/ProfileSections",
                   params: { section: "myCommunity", userName: currentProfileData.username }
                 })}
+                onPress={() => router.push({
+                  pathname: "/(dashboard)/profile/ProfileSections",
+                  params: { section: "myCommunity", userName: currentProfileData.username }
+                })}
                 className="px-4 py-2 rounded-lg border border-white"
               >
                 <Text className="text-white text-center font-bold">
@@ -300,6 +368,7 @@ export default function PersonalProfilePage() {
               {/* Dashboard Button (Gradient Border) */}
               <TouchableOpacity
                 onPress={() => router.push("/(dashboard)/profile/Dashboard")}
+                className="px-4 py-2 rounded-lg border border-white"
                 className="px-4 py-2 rounded-lg border border-white"
               >
                 <Text className="text-white text-center font-bold">
@@ -325,11 +394,14 @@ export default function PersonalProfilePage() {
               <TouchableOpacity
                 onPress={() => router.push("/(dashboard)/profile/access")}
                 className="rounded-lg overflow-hidden"
+                onPress={() => router.push("/(dashboard)/profile/access")}
+                className="rounded-lg overflow-hidden"
               >
                 <LinearGradient
                   colors={["#4400FFA6", "#FFFFFF", "#FF00004D", "#FFFFFF"]}
                   start={{ x: 0, y: 0 }}
                   end={{ x: 1, y: 1 }}
+                  className="p-[1.5px] rounded-lg flex-1"
                   className="p-[1.5px] rounded-lg flex-1"
                 >
                   <View className="flex-1 px-4 py-2 rounded-lg bg-black items-center justify-center">
@@ -409,6 +481,17 @@ export default function PersonalProfilePage() {
             <ActivityIndicator size="large" color="#F1C40F" />
           </View>
         ) : (
+          <View className="flex-1">
+            <FlatList
+              data={videos}
+              keyExtractor={(item) => item._id}
+              renderItem={renderGridItem}
+              numColumns={3}
+              contentContainerStyle={{ paddingBottom: 30, paddingHorizontal: 0 }}
+              showsVerticalScrollIndicator={false}
+              nestedScrollEnabled={true}
+            />
+          </View>
           <View className="flex-1">
             <FlatList
               data={videos}
