@@ -7,7 +7,7 @@ import {
   Alert,
   ActivityIndicator,
 } from "react-native";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import ThemedView from "@/components/ThemedView";
 import ProfileTopbar from "@/components/profileTopbar";
 import ActionModal from "./_component/customModal";
@@ -73,6 +73,43 @@ const Setting = () => {
     }
   };
 
+  useEffect(() => {
+    const monetizationStatus = async () => {
+      setIsMonetizationLoading(true);
+      try {
+        const response = await fetch(
+          `${BACKEND_API_URL}/user/monetization-status`,
+          {
+            method: "GET",
+            headers: {
+              Authorization: `Bearer ${token}`,
+              "Content-Type": "application/json",
+            },
+          }
+        );
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.message || "Failed to change Monetization.");
+        }
+        setToggleMonetization(data.comment_monetization_status);
+      } catch (error) {
+        setIsMonetizationLoading(false);
+        Alert.alert(
+          "Error",
+          error.message || "Failed to update monetization settings"
+        );
+      } finally {
+        setIsMonetizationLoading(false);
+      }
+    };
+
+    if(token){
+      monetizationStatus()
+    }
+  }, [token]);
+
   const handleLogout = () => {
     logout();
     router.replace("/(auth)/Sign-in");
@@ -80,7 +117,7 @@ const Setting = () => {
 
   const handleDeleteAccount = async () => {
     try {
-      const response = await fetch(`${BACKEND_API_URL}/profile`, {
+      const response = await fetch(`${BACKEND_API_URL}/caution/profile`, {
         method: "DELETE",
         headers: {
           Authorization: `Bearer ${token}`,
@@ -98,7 +135,7 @@ const Setting = () => {
       // On success, show the confirmation alert and log the user out
       Alert.alert(
         "Account Deletion Initiated",
-        "Your account deletion request has been submitted successfully. You will now be logged out.",
+        "Your account deletion request has been submitted successfully.",
         [{ text: "OK" }]
         // [{ text: "OK", onPress: handleLogout }]
       );

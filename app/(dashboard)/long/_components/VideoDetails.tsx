@@ -6,9 +6,15 @@ import {
   Pressable,
   FlatList,
   Alert,
+  ActivityIndicator,
 } from "react-native";
 import React, { useEffect, useState } from "react";
-import { ChevronDownIcon, Hash, PlusSquare } from "lucide-react-native";
+import {
+  ChevronDownIcon,
+  Hash,
+  PlusSquare,
+  SquareCheck,
+} from "lucide-react-native";
 import { useAuthStore } from "@/store/useAuthStore";
 import Constants from "expo-constants";
 import { router } from "expo-router";
@@ -60,57 +66,57 @@ const VideoDetails = ({
   const [selectedEpisodeIndex, setSelectedEpisodeIndex] = useState(0);
   const [showPriceDropdown, setShowPriceDropdown] = useState(false);
   const [isFollowCreator, setIsFollowCreator] = useState<boolean>(false);
+  const [isFollowCreatorLoading, setIsFollowCreatorLoading] =
+    useState<boolean>(false);
   const [isFollowCommunity, setIsFollowCommunity] = useState<boolean>(false);
+  const [isFollowCommunityLoading, setIsFollowCommunityLoading] =
+    useState<boolean>(false);
 
   const { token } = useAuthStore();
 
   const BACKEND_API_URL = Constants.expoConfig?.extra?.BACKEND_API_URL;
 
   useEffect(() => {
-    if(episode_number) setSelectedEpisodeIndex(episode_number);
+    if (episode_number) setSelectedEpisodeIndex(episode_number);
   }, [episode_number]);
 
-  const followCreator = async () => {
+  useEffect(() => {
+    const checkIfFollowCommunity = async () => {
+      if (!token || !community?._id) {
+        return;
+      }
+
       try {
-        const response = await fetch(`${BACKEND_API_URL}/user/${!isFollowCreator ? 'follow' : 'unfollow'}`, {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(!isFollowCreator ?{
-            followUserId: videoId,
-          } : {unfollowUserId: videoId}),
-        });
-  
-        const data = await response.json();
-  
-        if (!response.ok) {
-          throw new Error(data.message || "Failed to follow user profile");
-        }
-  
-        console.log(data);
-        setIsFollowCreator(data.isFollowing);
-        Alert.alert(isFollowCreator ? "You unFollowed this creator" : "You are now Following this creator");
-      } catch (error) {
-        console.log(error);
-        Alert.alert(
-          "Error",
-          error instanceof Error
-            ? error.message
-            : "An unknown error occurred while following user."
+        const response = await fetch(
+          `${BACKEND_API_URL}/community/${community?._id}/following-status`,
+          {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${token}`,
+              "Content-Type": "application/json",
+            },
+          }
         );
+        if (!response.ok)
+          throw new Error("Failed while checking community follow status");
+        const data = await response.json();
+        // console.log("check follow community", data);
+        setIsFollowCommunity(data.status);
+      } catch (err) {
+        console.log("Error in community check status", err);
       }
     };
 
-  const followCommunity = async () => {
-    if (!token || !community?._id) {
-      return;
+    if (token && community?._id) {
+      checkIfFollowCommunity();
     }
+  }, [token, community?._id]);
 
+  const followCreator = async () => {
+    setIsFollowCreatorLoading(true);
     try {
       const response = await fetch(
-        `${BACKEND_API_URL}/community/${isFollowCommunity ? "unfollow" : "follow"}`,
+        `${BACKEND_API_URL}/user/${!isFollowCreator ? "follow" : "unfollow"}`,
         {
           method: "POST",
           headers: {
@@ -118,18 +124,67 @@ const VideoDetails = ({
             "Content-Type": "application/json",
           },
           body: JSON.stringify(
-            !isFollowCommunity
-              ? { communityId: videoId }
-              : { unfollowUserId: videoId }
+            !isFollowCreator
+              ? {
+                  followUserId: createdBy?._id,
+                }
+              : { unfollowUserId: createdBy?._id }
           ),
         }
       );
-      if (!response.ok) throw new Error("Failed to follow user");
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || "Failed to follow user profile");
+      }
+
+      console.log('following data', data);
+      // setIsFollowCreator(data.isFollowing);
+      Alert.alert(
+        isFollowCreator
+          ? "You unFollowed this creator"
+          : "You are now Following this creator"
+      );
+    } catch (error) {
+      console.log('error', error);
+      Alert.alert(
+        "Error",
+        error instanceof Error
+          ? error.message
+          : "An unknown error occurred while following user."
+      );
+    } finally {
+      setIsFollowCreatorLoading(false);
+    }
+  };
+
+  const followCommunity = async () => {
+    if (!token || !community?._id) {
+      return;
+    }
+    console.log(community, isFollowCommunity)
+    setIsFollowCommunityLoading(true);
+    try {
+      const response = await fetch(
+        `${BACKEND_API_URL}/${isFollowCommunity ? "caution/community/unfollow" : "community/follow"}`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ communityId: community._id }),
+        }
+      );
+      if (!response.ok) throw new Error("Failed to follow community");
       const data = await response.json();
       setIsFollowCommunity(!isFollowCommunity);
       console.log("data", data);
     } catch (err) {
-      console.log(err);
+      console.log('err', err);
+    } finally {
+      setIsFollowCommunityLoading(false);
     }
   };
 
@@ -139,15 +194,29 @@ const VideoDetails = ({
       <View className="flex-row items-center justify-start gap-2">
         {community && (
           <>
-            <View className="items-center flex-row gap-0.5">
-              <Hash color={"white"} size={14} fontWeight={800} />
-              <Text className="text-white font-semibold">{community.name}</Text>
-            </View>
+            <Pressable
+              onPress={() =>
+                router.push(`/(dashboard)/communities/public/${community._id}`)
+              }
+            >
+              <View className="items-center flex-row gap-0.5">
+                <Hash color={"white"} size={14} fontWeight={800} />
+                <Text className="text-white font-semibold">
+                  {community.name}
+                </Text>
+              </View>
+            </Pressable>
             <Pressable onPress={() => followCommunity()}>
-              <Image
-                source={require("../../../../assets/images/plus.png")}
-                className="size-5"
-              />
+              {isFollowCommunityLoading ? (
+                <ActivityIndicator className="size-5" color="white" />
+              ) : isFollowCommunity ? (
+                <SquareCheck className="size-6" />
+              ) : (
+                <Image
+                  source={require("../../../../assets/images/plus.png")}
+                  className="size-5"
+                />
+              )}
             </Pressable>
           </>
         )}
@@ -161,7 +230,13 @@ const VideoDetails = ({
             onPress={() => router.push(`/profile/public/${createdBy?._id}`)}
           >
             <Image
-              source={{ uri: createdBy?.profile_photo }}
+              source={
+                createdBy?.profile_photo !== ""
+                  ? {
+                      uri: createdBy?.profile_photo,
+                    }
+                  : require("../../../../assets/images/user.png")
+              }
               className="size-8 rounded-full"
             />
             <Text className="text-white font-semibold">
@@ -169,12 +244,17 @@ const VideoDetails = ({
             </Text>
           </Pressable>
           <TouchableOpacity
+            disabled={isFollowCreatorLoading}
             onPress={() => followCreator()}
             className="border border-white items-center justify-center rounded-md px-2"
           >
-            <Text className="font-semibold text-sm text-white">
-              {isFollowCreator ? "Following" : "Follow"}
-            </Text>
+            {isFollowCreatorLoading ? (
+              <ActivityIndicator className="size-5" color="white" />
+            ) : (
+              <Text className="font-semibold text-sm text-white">
+                {isFollowCreator ? "Following" : "Follow"}
+              </Text>
+            )}
           </TouchableOpacity>
         </View>
 
@@ -272,7 +352,15 @@ const VideoDetails = ({
                   setShowDropdown(false);
                 }}
               >
-                <Pressable onPress={()=> router.push(!is_monetized ? "/(demo)/SeriesAccessDemo" : "/(demo)/CreatorPassDemo")}>
+                <Pressable
+                  onPress={() =>
+                    router.push(
+                      !is_monetized
+                        ? "/(demo)/SeriesAccessDemo"
+                        : "/(demo)/CreatorPassDemo"
+                    )
+                  }
+                >
                   <View
                     className={`bg-black h-11 px-2 py-1 flex-row items-center justify-between rounded-t-xl`}
                   >
@@ -315,8 +403,8 @@ const VideoDetails = ({
                   <Text className="text-white text-[18px] flex-row items-center">
                     Episode: {idx + 1}
                   </Text>
-                  {selectedEpisodeIndex === idx+1 && (
-                    <Text className="text-white">✔</Text>
+                  {selectedEpisodeIndex === idx + 1 && (
+                    <Text className="text-white pl-5">✔</Text>
                   )}
                 </View>
               </TouchableOpacity>

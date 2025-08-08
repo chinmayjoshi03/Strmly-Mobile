@@ -1,17 +1,13 @@
 import React, { useState, useEffect, useCallback } from "react";
-import {
-  FlatList,
-  Dimensions,
-  ActivityIndicator,
-  Text,
-  View,
-} from "react-native";
+import { FlatList, Dimensions, ActivityIndicator, Text } from "react-native";
+import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 import ThemedView from "@/components/ThemedView";
 import { useAuthStore } from "@/store/useAuthStore";
 import Constants from "expo-constants";
 import { VideoItemType } from "@/types/VideosType";
 import VideoPlayer from "./_components/VideoPlayer";
-import { router } from "expo-router";
+import { Link, router } from "expo-router";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
 
 export type GiftType = {
   creator: {
@@ -23,8 +19,7 @@ export type GiftType = {
 };
 
 const { height: screenHeight } = Dimensions.get("screen");
-const BOTTOM_NAV_HEIGHT = 50;
-const VIDEO_HEIGHT = screenHeight - BOTTOM_NAV_HEIGHT;
+const VIDEO_HEIGHT = screenHeight;
 
 const VideosFeed: React.FC = () => {
   const [videos, setVideos] = useState<VideoItemType[]>([]);
@@ -72,10 +67,7 @@ const VideosFeed: React.FC = () => {
   // This prevents creating a new render function on every parent render.
   const renderItem = useCallback(
     ({ item, index }: { item: VideoItemType; index: number }) => (
-      <VideoPlayer
-        videoData={item}
-        isActive={index === visibleIndex}
-      />
+      <VideoPlayer videoData={item} isActive={index === visibleIndex} />
     ),
     [visibleIndex]
   );
@@ -93,37 +85,78 @@ const VideosFeed: React.FC = () => {
 
   if (loading) {
     return (
-      <ThemedView style={{ height: VIDEO_HEIGHT }} className="justify-center items-center">
-        <ActivityIndicator size="large" color="white" />
-      </ThemedView>
+      <SafeAreaProvider>
+        <SafeAreaView style={{ flex: 1 }} edges={["bottom"]}>
+          <ThemedView
+            style={{ height: VIDEO_HEIGHT }}
+            className="justify-center items-center"
+          >
+            <ActivityIndicator size="large" color="white" />
+          </ThemedView>
+        </SafeAreaView>
+      </SafeAreaProvider>
     );
   }
 
   if (error) {
     return (
-      <ThemedView style={{ height: VIDEO_HEIGHT }} className="justify-center items-center">
-        <Text className="text-white">{error}</Text>
-      </ThemedView>
+      <SafeAreaProvider>
+        <SafeAreaView style={{ flex: 1 }} edges={["bottom"]}>
+          <ThemedView
+            style={{ height: VIDEO_HEIGHT }}
+            className="justify-center items-center"
+          >
+            <Text className="text-white">{error}</Text>
+          </ThemedView>
+        </SafeAreaView>
+      </SafeAreaProvider>
+    );
+  }
+
+  if (videos.length === 0) {
+    return (
+      <SafeAreaProvider>
+        <SafeAreaView style={{ flex: 1 }} edges={["bottom"]}>
+          <ThemedView
+            style={{ height: VIDEO_HEIGHT }}
+            className="justify-center items-center"
+          >
+            <Text className="text-lg text-white">No Videos Available</Text>
+            <Text className="text-lg text-white">
+              Want to Upload your own{" "}
+              <Link href={"/studio"} className="text-blue-500">
+                Upload
+              </Link>
+            </Text>
+          </ThemedView>
+        </SafeAreaView>
+      </SafeAreaProvider>
     );
   }
 
   return (
-    <ThemedView style={{ flex: 1, backgroundColor: 'black' }}>
-      <FlatList
-        data={videos}
-        renderItem={renderItem}
-        keyExtractor={(item) => item._id}
-        getItemLayout={getItemLayout}
-        pagingEnabled
-        onViewableItemsChanged={onViewableItemsChanged}
-        viewabilityConfig={{ itemVisiblePercentThreshold: 80 }}
-        initialNumToRender={2}
-        maxToRenderPerBatch={2}
-        windowSize={3}
-        showsVerticalScrollIndicator={false}
-        style={{ height: VIDEO_HEIGHT }}
-      />
-    </ThemedView>
+    <SafeAreaProvider>
+      <SafeAreaView style={{ flex: 1 }} edges={["bottom"]}>
+        <ThemedView style={{ flex: 1, backgroundColor: "black" }}>
+          <FlatList
+            data={videos}
+            renderItem={renderItem}
+            keyExtractor={(item) => item._id}
+            getItemLayout={getItemLayout}
+            pagingEnabled
+            onViewableItemsChanged={onViewableItemsChanged}
+            viewabilityConfig={{ itemVisiblePercentThreshold: 80 }}
+            initialNumToRender={2}
+            maxToRenderPerBatch={2}
+            windowSize={3}
+            showsVerticalScrollIndicator={false}
+            contentInsetAdjustmentBehavior="automatic" // iOS
+            contentContainerStyle={{ paddingBottom: 0 }}
+            style={{ height: VIDEO_HEIGHT }}
+          />
+        </ThemedView>
+      </SafeAreaView>
+    </SafeAreaProvider>
   );
 };
 

@@ -33,7 +33,7 @@ export default function TabLayout() {
       }
     };
 
-    fetchProfilePhoto();
+    // fetchProfilePhoto();
   }, [token]);
 
   return (
@@ -44,14 +44,11 @@ export default function TabLayout() {
         tabBarStyle: {
           backgroundColor: '#000000',
           borderTopWidth: 0,
-          height: 55,
-          paddingBottom: 10,
+          height: 50,
+          paddingBottom: 0,
           paddingTop: 0,
           paddingHorizontal: 0,
-          position: 'absolute',
-          bottom: 0,
-          left: 0,
-          right: 0,
+          marginBottom: 0,
           elevation: 8, // Android shadow
           shadowColor: '#000', // iOS shadow
           shadowOffset: { width: 0, height: -2 },

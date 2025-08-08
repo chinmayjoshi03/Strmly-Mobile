@@ -20,7 +20,7 @@ export const Signinstyles = StyleSheet.create({
     textAlign:"center"
   },
   Text16M:{
-    fontSize:16,
+    fontSize:15,
     fontFamily: 'Poppins-Medium',
     color:"white",
     textAlign:"center"

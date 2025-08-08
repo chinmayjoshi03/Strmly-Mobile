@@ -12,10 +12,10 @@ import CommentsSection from "./CommentSection";
 import GiftingMessage from "./GiftingMessage";
 import VideoContentGifting from "@/app/(payments)/Video/Video-Gifting";
 import { router } from "expo-router";
+import VideoProgressBar from "./VideoProgressBar";
 
 const { height: screenHeight } = Dimensions.get("screen");
-const BOTTOM_NAV_HEIGHT = 50;
-const VIDEO_HEIGHT = screenHeight - BOTTOM_NAV_HEIGHT;
+const VIDEO_HEIGHT = screenHeight;
 
 type Props = {
   videoData: VideoItemType;
@@ -27,7 +27,9 @@ const VideoPlayer = ({ videoData, isActive }: Props) => {
 
   const [isWantToGift, setIsWantToGift] = useState(false);
   const [isGifted, setIsGifted] = useState(false);
-  const [giftSuccessMessage, setGiftSuccessMessage] = useState<number>(0);
+  const [giftSuccessMessage, setGiftSuccessMessage] = useState<number | null>(
+    null
+  );
 
   // FIX: Gracefully handle cases where videoUrl might be missing
   if (!videoData?.videoUrl) {
@@ -119,12 +121,18 @@ const VideoPlayer = ({ videoData, isActive }: Props) => {
             isWantToGift={setIsWantToGift}
           />
 
-          <View className="z-10 absolute top-16 left-5">
-            <Pressable onPress={()=> router.push('/(dashboard)/wallet/wallet')}>
-                <Image
-                source={require('../../../../assets/images/Wallet.png')}
+          <View className="absolute bottom-12 left-0 h-5 z-10 right-0">
+            <VideoProgressBar player={player} isActive={isActive}/>
+          </View>
+
+          <View className="z-10 absolute top-4 left-5">
+            <Pressable
+              onPress={() => router.push("/(dashboard)/wallet/wallet")}
+            >
+              <Image
+                source={require("../../../../assets/images/Wallet.png")}
                 className="size-10"
-                />
+              />
             </Pressable>
           </View>
         </>
@@ -132,7 +140,6 @@ const VideoPlayer = ({ videoData, isActive }: Props) => {
 
       {showCommentsModal && (
         <CommentsSection
-          isOpen={showCommentsModal}
           onClose={() => setShowCommentsModal(false)}
           videoId={videoData._id}
           commentss={videoData.comments}

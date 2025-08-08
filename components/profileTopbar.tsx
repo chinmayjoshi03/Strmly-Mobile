@@ -1,8 +1,7 @@
-import React, { useState } from "react";
+import React from "react";
 import { View, Text, TouchableOpacity, Alert } from "react-native";
-import { MoreHorizontal, LogOut, ChevronLeft } from "lucide-react-native";
+import { MoreHorizontal, ChevronLeft } from "lucide-react-native";
 import { useRouter } from "expo-router";
-import { useAuthStore } from "@/store/useAuthStore";
 
 interface ProfileTopbarProps {
   hashtag: boolean;
@@ -12,27 +11,8 @@ interface ProfileTopbarProps {
 
 const ProfileTopbar = ({ hashtag, name, isMore=true }: ProfileTopbarProps) => {
   const safeName = String(name || "");
-  const [showDropdown, setShowDropdown] = useState(false);
   const router = useRouter();
-  const {logout} = useAuthStore();
 
-  const handleLogout = async () => {
-    try {
-      logout();
-      Alert.alert("Success", "Logged out successfully!");
-      router.replace('/(auth)/Sign-in');
-    } catch (error) {
-      console.error("Logout error:", error);
-      Alert.alert(
-        "Error",
-        error instanceof Error
-          ? error.message
-          : "Failed to logout. Please try again."
-      );
-    } finally {
-      setShowDropdown(false);
-    }
-  };
 
   return (
     <View className="top-6 z-20">
@@ -51,23 +31,11 @@ const ProfileTopbar = ({ hashtag, name, isMore=true }: ProfileTopbarProps) => {
         {isMore ? (
           <View className="flex-row items-center gap-2 relative">
             <TouchableOpacity
-              onPress={() => setShowDropdown(!showDropdown)}
+              onPress={()=> router.push('/Setting/Setting')}
               className="p-2"
             >
               <MoreHorizontal size={14} color={"white"} />
             </TouchableOpacity>
-
-            {showDropdown && (
-              <View className="absolute right-0 mt-12 w-28 bg-white rounded-md shadow-lg z-30">
-                <TouchableOpacity
-                  onPress={handleLogout}
-                  className="w-full py-2 px-4 flex flex-row items-center justify-end gap-2"
-                >
-                  <LogOut size={16} color={"black"} />
-                  <Text className="text-sm text-gray-700">Logout</Text>
-                </TouchableOpacity>
-              </View>
-            )}
           </View>
         ) : (
           <View></View>

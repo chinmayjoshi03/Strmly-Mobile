@@ -1,4 +1,4 @@
-// Updated usePlayerStore.ts
+// Enhanced usePlayerStore.ts
 import { create } from 'zustand';
 import { VideoPlayerStatus } from 'expo-video';
 
@@ -10,6 +10,8 @@ interface PlayerState {
   duration: number;
   buffered: number;
   error: string | null;
+  // NEW: Track if user has ever interacted with audio
+  hasUserInteractedWithAudio: boolean;
 }
 
 interface PlayerActions {
@@ -17,6 +19,9 @@ interface PlayerActions {
   seekTo: (positionInSeconds: number) => void;
   toggleMute: () => void;
   togglePlayPause: () => void;
+  // NEW: Smart play that handles audio logic
+  smartPlay: () => void;
+  smartPause: () => void;
 }
 
 // A reference to the currently active player, kept outside the store
@@ -24,12 +29,13 @@ let activePlayer: import('expo-video').VideoPlayer | null = null;
 
 export const usePlayerStore = create<PlayerState & PlayerActions>((set, get) => ({
   isPlaying: false,
-  isMuted: true,
+  isMuted: true, // Start muted by default
   isBuffering: false,
   position: 0,
   duration: 0,
   buffered: 0,
   error: null,
+  hasUserInteractedWithAudio: false, // Track first interaction
 
   _updateStatus: (status, error) => {
     // Handle error cases
@@ -123,15 +129,43 @@ export const usePlayerStore = create<PlayerState & PlayerActions>((set, get) => 
     if (activePlayer) {
       activePlayer.muted = newMutedState;
     }
-    set({ isMuted: newMutedState });
+    set({ 
+      isMuted: newMutedState,
+      hasUserInteractedWithAudio: true // Mark that user has interacted
+    });
+  },
+
+  // NEW: Smart play function
+  smartPlay: () => {
+    if (activePlayer) {
+      const state = get();
+      
+      // If user has never interacted with audio, unmute on first play action
+      if (!state.hasUserInteractedWithAudio) {
+        activePlayer.muted = false;
+        set({ 
+          isMuted: false,
+          hasUserInteractedWithAudio: true 
+        });
+      }
+      
+      activePlayer.play();
+    }
+  },
+
+  // NEW: Smart pause function
+  smartPause: () => {
+    if (activePlayer) {
+      activePlayer.pause();
+    }
   },
 
   togglePlayPause: () => {
     if (activePlayer) {
       if (get().isPlaying) {
-        activePlayer.pause();
+        get().smartPause();
       } else {
-        activePlayer.play();
+        get().smartPlay();
       }
     }
   },

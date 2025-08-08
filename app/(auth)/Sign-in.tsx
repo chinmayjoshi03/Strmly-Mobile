@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import {
+  ActivityIndicator,
   Image,
   Pressable,
   Text,
@@ -15,12 +16,13 @@ import ThemedView from "@/components/ThemedView";
 import { Signinstyles } from "@/styles/signin";
 import { CreateProfileStyles } from "@/styles/createprofile";
 import { useAuthStore } from "@/store/useAuthStore";
-import { CONFIG } from "@/Constants/config";
+import { BACKEND_API_URL } from "@/utils/authConfig";
 
 const SignIn = () => {
   const [useEmail, setUseEmail] = useState(false);
   const [nameOrEmail, setNameOrEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
 
   const [fontsLoaded] = useFonts({
     "Poppins-Regular": require("../../assets/fonts/poppins/Poppins-Regular.ttf"),
@@ -38,12 +40,14 @@ const SignIn = () => {
       return;
     }
 
+    setIsLoading(true);
+
     const isEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(nameOrEmail);
     const loginType = isEmail ? "email" : "username";
     console.log("Login type:", loginType);
 
     try {
-      const loginUrl = `${CONFIG.API_BASE_URL}/api/v1/auth/login/${loginType}`;
+      const loginUrl = `${BACKEND_API_URL}/auth/login/${loginType}`;
       console.log("🔗 Login URL:", loginUrl);
       
       const res = await fetch(loginUrl,
@@ -77,10 +81,12 @@ const SignIn = () => {
       await useAuthStore.getState().login(data.token, data.user);
 
       alert("Login successful!");
-      setTimeout(() => router.push("/(dashboard)/long/VideoFeed"), 300);
+      setTimeout(() => router.push("/(dashboard)/long/VideosFeed"), 1000);
     } catch (error: any) {
       console.error("Login Error", error);
       alert(error.message || "Something went wrong");
+    } finally{
+      setIsLoading(false);
     }
   };
 
@@ -168,12 +174,17 @@ const SignIn = () => {
         secureTextEntry
       />
       <TouchableOpacity
+      disabled={isLoading}
         style={CreateProfileStyles.button}
         onPress={handleLogin}
       >
+        {
+        isLoading &&
+        <ActivityIndicator className="size-5"/>
+        }
         <Text className="text-lg font-semibold">Sign in</Text>
       </TouchableOpacity>
-      <Link href={'/(auth)/forgotpass'} className="text-white mt-8">
+      <Link href={"/(auth)/ForgotPassword"} className="text-white mt-8">
         <ThemedText style={Signinstyles.Text16M}>
           Forgotten password?
         </ThemedText>
@@ -184,7 +195,7 @@ const SignIn = () => {
   const renderLink = () => (
     <Link
       className="mt-14"
-      href={'/(auth)/Sign-up'}
+      href={"/(auth)/Sign-up"}
       style={Signinstyles.Text16R}
     >
       Don't have an account?

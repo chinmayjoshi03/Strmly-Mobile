@@ -87,6 +87,7 @@ const InteractOptions = ({
       if (!token || !videoId) {
         return;
       }
+      console.log(videoId);
 
       try {
         const response = await fetch(
@@ -138,8 +139,7 @@ const InteractOptions = ({
         );
         if (!response.ok) throw new Error("Failed while checking reshare status");
         const data = await response.json();
-        console.log("data", data);
-        // setReshares(data.video_reshares); 
+        console.log("reshared or not", data.isReshared);
         setIsResharedVideo(data.isReshared);
       } catch (err) {
         console.log(err);
@@ -147,7 +147,7 @@ const InteractOptions = ({
     };
 
     if (token && videoId) {
-      // checkIfReshare();
+      checkIfReshare();
     }
   }, [token, videoId, shares]);
 

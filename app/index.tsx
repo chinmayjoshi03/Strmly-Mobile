@@ -1,14 +1,3 @@
-// import { StyleSheet } from 'react-native';
-// import ThemedView from "../components/ThemedView";
-// import VideoFeed from './(dashboard)/long/VideoFeed';
-// import WalletPage from './(dashboard)/wallet/wallet';
-// import CommentsSection from './(dashboard)/long/_components/CommentSection';
-// import KYCForm from './(dashboard)/wallet/_components/KYCForm';
-// import PersonalProfilePage from './(dashboard)/profile/personal.PersonalProfile';
-// import CreateProfile from './Profile/CreateProfile';
-// import AddCreatorPass from './Profile/AddCreatorPass';
-// import EditProfilePage from './Profile/EditProfile';
-
 import StrmlyStudio from './studio/StrmlyStudio';
 import HistoryPage from './(dashboard)/profile/History';
 import PersonalCommunityPage from './(dashboard)/communities/personal/PersonalComm';
@@ -16,7 +5,6 @@ import Dashboard from './(dashboard)/profile/Dashboard';
 import PublicCommunityPage from './(communities)/public/publicComm';
 import Interests from './(InterestsSection)/Interests';
 import Setting from './Setting/Setting';
-import { SignUp } from './(auth)/Sign-up';
 import PublicProfilePageWithId from './(dashboard)/profile/public/[id]';
 import CreateCommunityPage from './(communities)/CreateCommunityPage';
 import SearchTab from './(tabs)/search';
@@ -67,8 +55,9 @@ import { useEffect, useState } from "react";
 import { View, ActivityIndicator, Text } from "react-native";
 
 export default function Index() {
-  const { token, isLoggedIn } = useAuthStore();
+  const { token, isLoggedIn, user } = useAuthStore();
   const [isLoading, setIsLoading] = useState(true);
+  const isOnboarded = user?.isOnboarded || false;
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -96,6 +85,10 @@ export default function Index() {
   }
 
   // Redirect based on authentication status
+  // if (token && isLoggedIn && !isOnboarded) {
+  //   console.log("✅ User not completed Onboarding, redirecting to Onboarding");
+  //   return <Redirect href="/Interests" />;
+  // }
   if (token && isLoggedIn) {
     console.log("✅ User is authenticated, redirecting to home");
     return <Redirect href="/(tabs)/home" />;

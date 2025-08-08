@@ -26,6 +26,7 @@ type GiftingData = {
   creator: {
     _id: string;
     username: string;
+    name?: string;
     profile_photo: string;
   };
   videoId: string;
@@ -59,14 +60,14 @@ const VideoContentGifting = ({
 
   // ------------ Transaction -------------------
 
-  const giftVideo = async () => {
+  const giftVideo = async (amount=50) => {
     if (!token && !videoId) {
       return;
     }
-
+    
     try {
       const response = await fetch(
-        `${BACKEND_API_URL}/interaction/gift-video`,
+        `${BACKEND_API_URL}/interactions/gift-video`,
         {
           method: "POST",
           headers: {
@@ -172,7 +173,7 @@ const VideoContentGifting = ({
               <CreatorInfo
                 setIsWantToGift={setIsWantToGift}
                 profile={creator?.profile_photo}
-                // name={creator?.name}
+                name={creator?.name}
                 username={creator?.username}
               />
             </View>

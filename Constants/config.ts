@@ -1,7 +1,8 @@
 // App configuration constants
 export const CONFIG = {
   // Dynamic IP configuration - uses IP from env variable
-  IP_ADDRESS: process.env.EXPO_PUBLIC_IP_ADDRESS || 'localhost',
+  IP_ADDRESS: process.env.BACKEND_API_URL || process.env.EXPO_PUBLIC_IP_ADDRESS || 'localhost',
+  BACKEND_API_URL: process.env.BACKEND_API_URL,
   API_BASE_URL: process.env.EXPO_PUBLIC_API_URL || `http://${process.env.EXPO_PUBLIC_IP_ADDRESS || 'localhost'}:3001`,
   
   // Google Play Billing

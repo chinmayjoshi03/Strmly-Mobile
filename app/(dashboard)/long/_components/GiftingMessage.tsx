@@ -5,9 +5,9 @@ import { GiftType } from "../VideoFeed";
 type ActionModalProps = {
   isVisible: boolean;
   onClose: (value: boolean) => void;
-  amount: number;
+  amount: number | null;
   creator: GiftType | null;
-  giftMessage: (value: null) => void;
+  giftMessage: (value: number | null) => void;
 };
 
 const GiftingMessage = ({

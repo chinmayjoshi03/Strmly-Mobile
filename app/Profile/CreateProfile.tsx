@@ -5,6 +5,7 @@ import throttle from "lodash.throttle";
 import { useFonts } from "expo-font";
 import { CreateProfileStyles } from "@/styles/createprofile";
 import {
+  ActivityIndicator,
   Alert,
   Image,
   Text,
@@ -84,6 +85,7 @@ const CreateProfile = () => {
   }, [email]);
 
   const handleRegisterUser = async () => {
+    setIsLoading(true);
     try {
       const res = await fetch(`${BACKEND_API_URL}/auth/register`, {
         method: "POST",
@@ -113,23 +115,23 @@ const CreateProfile = () => {
     } catch (err: any) {
       console.error("Registration error:", err);
       alert(err.message || "Something went wrong");
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const handleVerifyOTP = async () => {
+    setIsLoading(true);
     try {
-      const res = await fetch(
-        `${BACKEND_API_URL}/auth/verify-email`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            otp,
-          }),
-        }
-      );
+      const res = await fetch(`${BACKEND_API_URL}/auth/verify-email`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          otp,
+        }),
+      });
 
       const data = await res.json();
 
@@ -143,10 +145,12 @@ const CreateProfile = () => {
       useAuthStore.getState().updateUser({ isVerified: true });
 
       alert("Email verified successfully!");
-      setTimeout(() => router.replace('/Interests'), 1000); // or push to dashboard if already logged in
+      setTimeout(() => router.replace("/Interests"), 1000);
     } catch (err: any) {
       console.error("OTP Verification error:", err);
       alert(err.message || "Something went wrong");
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -156,14 +160,11 @@ const CreateProfile = () => {
     try {
       setIsLoading(true);
 
-      const res = await fetch(
-        `${BACKEND_API_URL}/auth/resend-verification`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email }),
-        }
-      );
+      const res = await fetch(`${BACKEND_API_URL}/auth/resend-verification`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
+      });
 
       const data = await res.json();
 
@@ -267,7 +268,7 @@ const CreateProfile = () => {
     return (
       <ThemedView style={CreateProfileStyles.Container}>
         <View className="items-center justify-between flex-row w-full pt-20 px-4 mb-10">
-          <TouchableOpacity onPress={() => router.push("/(auth)/Sign-up")}>
+          <TouchableOpacity onPress={() => router.back()}>
             <Image
               className="w-5 h-5 mt-1"
               source={require("../../assets/images/back.png")}
@@ -295,8 +296,13 @@ const CreateProfile = () => {
         <TouchableOpacity
           onPress={() => HandleStep(true)}
           style={CreateProfileStyles.button}
+          disabled={isLoading}
         >
-          <Text className="font-semibold text-lg">Continue</Text>
+          {isLoading ? (
+            <ActivityIndicator color="#000" />
+          ) : (
+            <Text className="font-semibold text-lg">Continue</Text>
+          )}
         </TouchableOpacity>
       </ThemedView>
     );
@@ -324,11 +330,17 @@ const CreateProfile = () => {
           onChangeText={setPassword}
           secureTextEntry
         />
+
         <TouchableOpacity
           onPress={() => HandleStep(true)}
           style={CreateProfileStyles.button}
+          disabled={isLoading}
         >
-          <Text className="font-semibold text-lg">Continue</Text>
+          {isLoading ? (
+            <ActivityIndicator color="#000" />
+          ) : (
+            <Text className="font-semibold text-lg">Continue</Text>
+          )}
         </TouchableOpacity>
       </ThemedView>
     );
@@ -356,11 +368,17 @@ const CreateProfile = () => {
           onChangeText={setEmail}
           keyboardType="email-address"
         />
+
         <TouchableOpacity
           onPress={handleRegisterUser}
           style={CreateProfileStyles.button}
+          disabled={isLoading}
         >
-          <Text className="font-semibold text-lg">Verify</Text>
+          {isLoading ? (
+            <ActivityIndicator color="#000" />
+          ) : (
+            <Text className="font-semibold text-lg">Verify</Text>
+          )}
         </TouchableOpacity>
       </ThemedView>
     );
@@ -395,20 +413,23 @@ const CreateProfile = () => {
         <TouchableOpacity
           onPress={handleVerifyOTP}
           style={CreateProfileStyles.button}
+          disabled={isLoading}
         >
-          <Text className="font-semibold text-lg">Finish</Text>
+          {isLoading ? (
+            <ActivityIndicator color="#000" />
+          ) : (
+            <Text className="font-semibold text-lg">Finish</Text>
+          )}
         </TouchableOpacity>
 
-        <Text
-          className={`text-base ${cooldown > 0 ? "text-gray-400" : "text-blue-600"}`}
-        >
-          {cooldown > 0 ? `Try again in ${cooldown}s` : "Resend OTP"}
-        </Text>
-
-        <TouchableOpacity onPress={handleResend}>
-          <ThemedText style={CreateProfileStyles.ExtraBold}>
-            Resend Code
-          </ThemedText>
+        <TouchableOpacity disabled={isLoading} onPress={handleResend}>
+          {isLoading ? (
+            <ActivityIndicator color="#000" />
+          ) : (
+            <ThemedText style={CreateProfileStyles.ExtraBold}>
+              Resend Code
+            </ThemedText>
+          )}
         </TouchableOpacity>
       </ThemedView>
     );

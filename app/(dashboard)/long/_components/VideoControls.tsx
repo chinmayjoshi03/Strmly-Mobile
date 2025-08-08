@@ -2,7 +2,6 @@ import React, { useState, useEffect } from "react";
 import { View, Pressable, StyleSheet, ActivityIndicator } from "react-native";
 import { Volume2Icon, VolumeOffIcon } from "lucide-react-native";
 import { usePlayerStore } from "@/store/usePlayerStore";
-import VideoProgressBar from "./VideoProgressBar";
 import InteractOptions from "./interactOptions";
 import VideoDetails from "./VideoDetails";
 
@@ -12,14 +11,16 @@ type Props = {
   isWantToGift: (visible: boolean) => void;
 };
 
-const VideoControls = ({ videoData, isWantToGift, setShowCommentsModal }: Props) => {
+const VideoControls = ({
+  videoData,
+  isWantToGift,
+  setShowCommentsModal,
+}: Props) => {
   const isMuted = usePlayerStore((state) => state.isMuted);
   const isBuffering = usePlayerStore((state) => state.isBuffering);
   const toggleMute = usePlayerStore((state) => state.toggleMute);
 
   const [showMuteIcon, setShowMuteIcon] = useState(false);
-
-  
 
   useEffect(() => {
     let timer: NodeJS.Timeout | number;
@@ -75,10 +76,6 @@ const VideoControls = ({ videoData, isWantToGift, setShowCommentsModal }: Props)
           community={videoData?.community}
         />
       </View>
-
-      <View style={styles.progressContainer}>
-        <VideoProgressBar />
-      </View>
     </>
   );
 };
@@ -90,20 +87,21 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
-  interact: { position: "absolute", bottom: "15%", right: 10, zIndex: 5 },
+  interact: { position: "absolute", bottom: "22%", right: 10, zIndex: 5 },
   details: {
     position: "absolute",
     bottom: "2%",
     width: "100%",
     paddingHorizontal: 16,
+    marginBottom: 50,
     zIndex: 5,
   },
   progressContainer: {
     position: "absolute",
-    bottom: 0,
+    bottom: 50,
     left: 0,
     right: 0,
-    height: 14,
+    height: 4,
     zIndex: 10,
   },
 });

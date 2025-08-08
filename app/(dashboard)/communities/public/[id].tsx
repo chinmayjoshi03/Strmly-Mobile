@@ -53,7 +53,6 @@ export default function PublicCommunityPage() {
   const [isLoadingVideos, setIsLoadingVideos] = useState(false);
   const { token } = useAuthStore();
 
-//  const { id } = useLocalSearchParams();
   const route = useRoute();
   const { id } = route.params as { id: string };
 
@@ -72,12 +71,12 @@ export default function PublicCommunityPage() {
   );
 
   useEffect(() => {
-
     const fetchUserVideos = async () => {
       setIsLoadingVideos(true);
       try {
+        console.log('activeTab', activeTab)
         const response = await fetch(
-          `${BACKEND_API_URL}/community/${id}/videos?videoType=${activeTab}`,
+          `${BACKEND_API_URL}/community/${id}/videos?type=${activeTab}`,
           {
             method: "GET",
             headers: {
@@ -110,7 +109,6 @@ export default function PublicCommunityPage() {
   }, [activeTab, token, id]);
 
   useEffect(() => {
-
     const fetchCommunityData = async () => {
       try {
         setIsLoading(true);
@@ -228,7 +226,7 @@ export default function PublicCommunityPage() {
           <View className="mt-6 flex flex-row justify-around items-center">
             <TouchableOpacity
               className="flex flex-col gap-1 items-center"
-              onPress={() => setActiveTab("followers")}
+              // onPress={() => setActiveTab("followers")}
             >
               <Text className="font-bold text-lg text-white">
                 {communityData?.followers?.length || 0}
@@ -237,7 +235,7 @@ export default function PublicCommunityPage() {
             </TouchableOpacity>
             <TouchableOpacity
               className="flex flex-col gap-1 items-center"
-              onPress={() => setActiveTab("following")}
+              // onPress={() => setActiveTab("following")}
             >
               <Text className="font-bold text-lg text-white">
                 {communityData?.creators?.length || 0}
@@ -246,7 +244,7 @@ export default function PublicCommunityPage() {
             </TouchableOpacity>
             <TouchableOpacity
               className="flex flex-col gap-1 items-center"
-              onPress={() => setActiveTab("posts")}
+              // onPress={() => setActiveTab("posts")}
             >
               <Text className="font-bold text-lg text-white">
                 {communityData?.total_uploads || 0}
@@ -312,11 +310,11 @@ export default function PublicCommunityPage() {
 
               <TouchableOpacity
                 className={`pb-4 flex-1 items-center justify-center`}
-                onPress={() => setActiveTab("likes")}
+                onPress={() => setActiveTab("liked")}
               >
                 <HeartIcon
-                  color={activeTab === "likes" ? "white" : "gray"}
-                  fill={activeTab === "likes" ? "white" : ""}
+                  color={activeTab === "liked" ? "white" : "gray"}
+                  fill={activeTab === "liked" ? "white" : ""}
                 />
               </TouchableOpacity>
             </View>
@@ -338,14 +336,15 @@ export default function PublicCommunityPage() {
             showsVerticalScrollIndicator={false}
           />
         ) : (
-          <FlatList
-            data={videos}
-            keyExtractor={(item) => item._id}
-            renderItem={renderGridItem}
-            numColumns={3}
-            contentContainerStyle={{ paddingBottom: 30, paddingHorizontal: 0}}
-            showsVerticalScrollIndicator={false}
-          />
+          // <FlatList
+          //   data={videos}
+          //   keyExtractor={(item) => item._id}
+          //   renderItem={renderGridItem}
+          //   numColumns={3}
+          //   contentContainerStyle={{ paddingBottom: 30, paddingHorizontal: 0}}
+          //   showsVerticalScrollIndicator={false}
+          // />
+          <Text className="text-white text-xl">Calling</Text>
         )}
       </>
     </ThemedView>
