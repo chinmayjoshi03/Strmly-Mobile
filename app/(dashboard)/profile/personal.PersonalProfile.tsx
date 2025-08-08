@@ -43,11 +43,9 @@ export default function PersonalProfilePage() {
 
   const [isError, setIsError] = useState<string | null>(null);
   const [isLoadingVideos, setIsLoadingVideos] = useState(false);
-  const { user, isLoggedIn, token, logout } = useAuthStore();
+  const { isLoggedIn, token } = useAuthStore();
   const router = useRouter();
-  const params = useLocalSearchParams(); // Use useLocalSearchParams for route parameters
 
-  const id = "686cc5084b2928ecdc64f263";
   const BACKEND_API_URL = Constants.expoConfig?.extra?.BACKEND_API_URL;
 
   const thumbnails = useThumbnailsGenerate(
@@ -323,8 +321,8 @@ export default function PersonalProfilePage() {
               </TouchableOpacity>
 
               <TouchableOpacity
-                onPress={() => router.push("/(demo)/CreatorPassDemo")}
-                className="rounded-lg overflow-hidden" // Use rounded-md for consistency
+                onPress={() => router.push("/(dashboard)/profile/access")}
+                className="rounded-lg overflow-hidden"
               >
                 <LinearGradient
                   colors={["#4400FFA6", "#FFFFFF", "#FF00004D", "#FFFFFF"]}
@@ -395,6 +393,7 @@ export default function PersonalProfilePage() {
             numColumns={3}
             contentContainerStyle={{ paddingBottom: 30, paddingHorizontal: 0 }}
             showsVerticalScrollIndicator={false}
+            nestedScrollEnabled={true}
           />
         )}
       </ScrollView>

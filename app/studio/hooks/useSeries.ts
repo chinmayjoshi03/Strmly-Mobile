@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { CONFIG } from '../../../Constants/config';
+
 import { useAuthStore } from '@/store/useAuthStore';
 
 interface SeriesAnalytics {
@@ -84,6 +85,7 @@ export const useSeries = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
+  
 
   const fetchSeries = async () => {
     try {
@@ -96,10 +98,11 @@ export const useSeries = () => {
         throw new Error('Authentication required');
       }
 
-      const response = await fetch(`${CONFIG.API_BASE_URL}/api/v1/series/user?t=${Date.now()}`, {
+      const response = await fetch(`${CONFIG.API_BASE_URL}/series/user?t=${Date.now()}`, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`,
+         
           'Content-Type': 'application/json',
         },
       });
@@ -131,6 +134,8 @@ export const useSeries = () => {
 
       console.log('📊 Transformed series data:', transformedSeries.length, 'series');
       console.log('📊 Series IDs:', transformedSeries.map(s => s.id));
+      console.log('📊 Transformed series data:', transformedSeries.length, 'series');
+      console.log('📊 Series IDs:', transformedSeries.map(s => s.id));
       setSeries(transformedSeries);
     } catch (err) {
       console.error('Error fetching series:', err);
@@ -150,6 +155,11 @@ export const useSeries = () => {
     setSeries([]);
     setError(null);
     setRefreshKey(prev => prev + 1);
+    console.log('🔄 Refetching series data...');
+    // Clear current series to force a refresh
+    setSeries([]);
+    setError(null);
+    setRefreshKey(prev => prev + 1);
     fetchSeries();
   };
 
@@ -159,5 +169,6 @@ export const useSeries = () => {
     error,
     refetch,
     refreshKey,
+    
   };
 };

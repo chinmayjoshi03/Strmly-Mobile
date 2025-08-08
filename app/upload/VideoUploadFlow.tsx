@@ -138,8 +138,19 @@ const VideoUploadFlow: React.FC<VideoUploadFlowProps> = ({
   };
 
   // Handle continue from video details
-  const handleContinue = () => {
+  const handleContinue = async () => {
     if (validateCurrentStep()) {
+      // If we're on the final details step (details-3) and have a draft, update it with the latest data
+      if (state.currentStep === 'details-3' && state.draftId) {
+        try {
+          console.log('💾 Updating draft with latest video details before proceeding...');
+          await saveToDraft();
+          console.log('✅ Draft updated successfully');
+        } catch (error) {
+          console.error('❌ Failed to update draft:', error);
+          // Continue anyway - the user can still proceed
+        }
+      }
       goToNextStep();
     }
   };
@@ -227,7 +238,7 @@ const VideoUploadFlow: React.FC<VideoUploadFlowProps> = ({
             step={1}
             formData={state.videoDetails}
             onFormChange={updateVideoDetails}
-            onContinue={handleContinue}
+            onContinue={() => handleContinue()}
             onBack={handleBack}
             selectedSeries={state.selectedSeries}
             videoFormat={state.videoFormat}
@@ -241,7 +252,7 @@ const VideoUploadFlow: React.FC<VideoUploadFlowProps> = ({
             step={2}
             formData={state.videoDetails}
             onFormChange={updateVideoDetails}
-            onContinue={handleContinue}
+            onContinue={() => handleContinue()}
             onBack={handleBack}
             selectedSeries={state.selectedSeries}
             videoFormat={state.videoFormat}
@@ -255,7 +266,7 @@ const VideoUploadFlow: React.FC<VideoUploadFlowProps> = ({
             step={3}
             formData={state.videoDetails}
             onFormChange={updateVideoDetails}
-            onContinue={handleContinue}
+            onContinue={() => handleContinue()}
             onBack={handleBack}
             selectedSeries={state.selectedSeries}
             videoFormat={state.videoFormat}

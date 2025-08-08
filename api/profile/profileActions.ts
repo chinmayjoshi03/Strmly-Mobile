@@ -51,8 +51,8 @@ export class ProfileAPI {
     userId?: string
   ): Promise<FollowersResponse> {
     const endpoint = userId 
-      ? `/api/v1/user/followers/${userId}`
-      : '/api/v1/user/followers';
+      ? `/user/followers/${userId}`
+      : '/user/followers';
       
     const response = await fetch(
       `${CONFIG.API_BASE_URL}${endpoint}`,
@@ -77,8 +77,8 @@ export class ProfileAPI {
     userId?: string
   ): Promise<FollowingResponse> {
     const endpoint = userId 
-      ? `/api/v1/user/following/${userId}`
-      : '/api/v1/user/following';
+      ? `/user/following/${userId}`
+      : '/user/following';
       
     const response = await fetch(
       `${CONFIG.API_BASE_URL}${endpoint}`,
@@ -103,7 +103,7 @@ export class ProfileAPI {
     type: 'all' | 'created' | 'joined' = 'all'
   ): Promise<CommunitiesResponse> {
     const response = await fetch(
-      `${CONFIG.API_BASE_URL}/api/v1/user/communities?type=${type}`,
+      `${CONFIG.API_BASE_URL}/user/communities?type=${type}`,
       {
         method: 'GET',
         headers: ProfileAPI.getHeaders(token),
@@ -126,7 +126,7 @@ export class ProfileAPI {
     type: 'followers' | 'following'
   ): Promise<{ users: User[] }> {
     const response = await fetch(
-      `${CONFIG.API_BASE_URL}/api/v1/search/search-relations?query=${encodeURIComponent(query)}&type=${type}`,
+      `${CONFIG.API_BASE_URL}/search/search-relations?query=${encodeURIComponent(query)}&type=${type}`,
       {
         method: 'GET',
         headers: ProfileAPI.getHeaders(token),

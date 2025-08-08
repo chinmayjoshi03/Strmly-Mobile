@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { CONFIG } from '../../../Constants/config';
 import { useAuthStore } from '../../../store/useAuthStore';
 
+
 interface DraftData {
   id: string;
   content_type: string;
@@ -44,6 +45,7 @@ export const useStudioDrafts = () => {
   const [drafts, setDrafts] = useState<TransformedDraft[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
   const { token } = useAuthStore();
 
   const fetchDrafts = async () => {
@@ -56,10 +58,11 @@ export const useStudioDrafts = () => {
         throw new Error('No authentication token available');
       }
 
-      const response = await fetch(`${CONFIG.API_BASE_URL}/api/v1/drafts/all`, {
+      const response = await fetch(`${CONFIG.API_BASE_URL}/drafts/all`, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`,
+          
           'Content-Type': 'application/json',
         },
       });

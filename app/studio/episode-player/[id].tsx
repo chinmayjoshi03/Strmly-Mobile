@@ -1,20 +1,16 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
-  Text,
   StatusBar,
-  TouchableOpacity,
   ActivityIndicator,
   Dimensions,
   StyleSheet,
-  Pressable,
 } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
-import { useVideoPlayer, VideoView } from 'expo-video';
-import { Play } from 'lucide-react-native';
 import { CONFIG } from '../../../Constants/config';
 import { useAuthStore } from '../../../store/useAuthStore';
+import UnifiedVideoPlayer from '../../../components/UnifiedVideoPlayer';
+import { VideoItemType } from '../../../types/VideosType';
 
 interface Episode {
   _id: string;
@@ -57,46 +53,14 @@ const EpisodePlayerScreen: React.FC = () => {
   const [episode, setEpisode] = useState<Episode | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [isPaused, setIsPaused] = useState(false);
-  const [currentTime, setCurrentTime] = useState(0);
   const { token } = useAuthStore();
   const { width, height } = Dimensions.get('screen');
-
-  // Create video player
-  const player = useVideoPlayer(episode?.videoUrl || '', (p) => {
-    p.loop = false;
-    p.volume = 1;
-  });
 
   useEffect(() => {
     if (id) {
       fetchEpisodeData();
     }
   }, [id]);
-
-  // Auto-play when episode is loaded
-  useEffect(() => {
-    if (episode && !isPaused) {
-      player.play();
-    }
-  }, [episode, player, isPaused]);
-
-  // Update current time
-  useEffect(() => {
-    let interval: ReturnType<typeof setInterval>;
-
-    if (episode && !isPaused) {
-      interval = setInterval(() => {
-        setCurrentTime(player.currentTime);
-      }, 1000);
-    }
-
-    return () => {
-      if (interval) {
-        clearInterval(interval);
-      }
-    };
-  }, [episode, isPaused, player]);
 
   const fetchEpisodeData = async () => {
     try {
@@ -108,7 +72,7 @@ const EpisodePlayerScreen: React.FC = () => {
       }
 
       // First try to get episode from series API
-      const seriesResponse = await fetch(`${CONFIG.API_BASE_URL}/api/v1/series/user`, {
+      const seriesResponse = await fetch(`${CONFIG.API_BASE_URL}/series/user`, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -152,33 +116,13 @@ const EpisodePlayerScreen: React.FC = () => {
     }
   };
 
-  const handleBack = () => {
-    router.back();
-  };
-
-  const togglePlayPause = useCallback(() => {
-    if (isPaused) {
-      player.play();
-      setIsPaused(false);
-    } else {
-      player.pause();
-      setIsPaused(true);
-    }
-  }, [isPaused, player]);
-
   if (loading) {
     return (
       <View style={[styles.container, { width, height }]}>
         <StatusBar barStyle="light-content" backgroundColor="#000" />
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#F1C40F" />
-          <Text style={styles.loadingText}>Loading episode...</Text>
         </View>
-        
-        {/* Back Button */}
-        <TouchableOpacity onPress={handleBack} style={styles.backButton}>
-          <Ionicons name="chevron-back" size={24} color="white" />
-        </TouchableOpacity>
       </View>
     );
   }
@@ -187,69 +131,75 @@ const EpisodePlayerScreen: React.FC = () => {
     return (
       <View style={[styles.container, { width, height }]}>
         <StatusBar barStyle="light-content" backgroundColor="#000" />
-        <View style={styles.errorContainer}>
-          <Text style={styles.errorText}>Error</Text>
-          <Text style={styles.errorSubtext}>{error || 'Episode not found'}</Text>
-        </View>
-        
-        {/* Back Button */}
-        <TouchableOpacity onPress={handleBack} style={styles.backButton}>
-          <Ionicons name="chevron-back" size={24} color="white" />
-        </TouchableOpacity>
       </View>
     );
   }
 
+  // Convert episode to VideoItemType format for unified player
+  const videoData: VideoItemType = {
+    _id: episode._id,
+    video: episode.videoUrl,
+    videoUrl: episode.videoUrl,
+    start_time: 0,
+    display_till_time: 0,
+    visibility: 'public',
+    hidden_at: null,
+    name: episode.name,
+    description: episode.description,
+    thumbnailUrl: episode.thumbnailUrl,
+    likes: episode.likes || 0,
+    gifts: 0,
+    shares: episode.shares || 0,
+    views: episode.views || 0,
+    genre: '',
+    type: 'episode',
+    is_monetized: false,
+    language: '',
+    age_restriction: false,
+    season_number: episode.season_number,
+    is_standalone: false,
+    created_by: {
+      _id: episode.created_by._id,
+      username: episode.created_by.username,
+      profile_photo: ''
+    },
+    community: null,
+    series: episode.series ? {
+      _id: episode.series._id,
+      title: episode.series.title,
+      type: 'series',
+      price: 0,
+      total_episodes: 0,
+      episodes: []
+    } : null,
+    episode_number: episode.episode_number,
+    comments: []
+  };
+
   return (
     <View style={[styles.container, { width, height }]}>
       <StatusBar barStyle="light-content" backgroundColor="#000" />
-
-      {/* Video Player - Full Screen */}
-      <VideoView
-        style={styles.video}
-        player={player}
-        allowsFullscreen={false}
-        allowsPictureInPicture={false}
-        nativeControls={false}
+      
+      <UnifiedVideoPlayer
+        uri={episode.videoUrl}
+        videoData={videoData}
+        mode="episode"
+        autoPlay={true}
+        loop={false}
+        showControls={true}
+        showInteractions={true}
+        showDetails={true}
+        showComments={true}
+        showWallet={true}
+        episodeTitle={episodeName || episode.name}
+        seriesTitle={seriesTitle || episode.series?.title}
+        episodeNumber={episodeNumber ? parseInt(episodeNumber, 10) : episode.episode_number}
+        seasonNumber={seasonNumber ? parseInt(seasonNumber, 10) : episode.season_number}
+        style={{ width, height }}
+        setGiftingData={() => {}} // Add empty handlers for now
+        setIsWantToGift={() => {}}
+        setShowCommentsModal={() => {}}
       />
-
-      {/* Play/Pause Overlay */}
-      <Pressable style={styles.fullScreenPressable} onPress={togglePlayPause}>
-        {isPaused && (
-          <View style={styles.playButtonContainer}>
-            <Play size={60} color="white" fill="white" />
-          </View>
-        )}
-      </Pressable>
-
-      {/* Progress Bar */}
-      <View style={styles.progressBarContainer}>
-        <View
-          style={[
-            styles.progressBar,
-            {
-              width: `${
-                player.duration > 0 ? (currentTime / player.duration) * 100 : 0
-              }%`,
-            },
-          ]}
-        />
-      </View>
-
-      {/* Back Button */}
-      <TouchableOpacity onPress={handleBack} style={styles.backButton}>
-        <Ionicons name="chevron-back" size={24} color="white" />
-      </TouchableOpacity>
-
-      {/* Episode Title Overlay */}
-      <View style={styles.titleOverlay}>
-        <Text style={styles.episodeTitle} numberOfLines={2}>
-          {episodeName || episode.name}
-        </Text>
-        <Text style={styles.seriesInfo} numberOfLines={1}>
-          {seriesTitle || episode.series?.title} • S{seasonNumber || episode.season_number}E{episodeNumber || episode.episode_number}
-        </Text>
-      </View>
     </View>
   );
 };
@@ -258,64 +208,6 @@ const styles = StyleSheet.create({
   container: {
     position: "relative",
     backgroundColor: "black",
-  },
-  video: {
-    width: "100%",
-    height: "100%",
-  },
-  fullScreenPressable: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 2, // Account for progress bar
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  playButtonContainer: {
-    backgroundColor: "rgba(0, 0, 0, 0.5)",
-    borderRadius: 50,
-    padding: 20,
-  },
-  progressBarContainer: {
-    position: "absolute",
-    bottom: 0,
-    left: 0,
-    right: 0,
-    height: 2,
-    backgroundColor: "rgba(255, 255, 255, 0.3)",
-  },
-  progressBar: {
-    height: "100%",
-    backgroundColor: "white",
-  },
-  backButton: {
-    position: "absolute",
-    top: 50,
-    left: 16,
-    backgroundColor: "rgba(0, 0, 0, 0.5)",
-    borderRadius: 20,
-    padding: 8,
-    zIndex: 10,
-  },
-  titleOverlay: {
-    position: "absolute",
-    bottom: 20,
-    left: 16,
-    right: 16,
-    backgroundColor: "rgba(0, 0, 0, 0.7)",
-    borderRadius: 8,
-    padding: 12,
-  },
-  episodeTitle: {
-    color: "white",
-    fontSize: 18,
-    fontWeight: "600",
-    marginBottom: 4,
-  },
-  seriesInfo: {
-    color: "#9CA3AF",
-    fontSize: 14,
   },
   loadingContainer: {
     position: "absolute",
@@ -326,33 +218,6 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     backgroundColor: "black",
-  },
-  loadingText: {
-    color: "white",
-    marginTop: 10,
-    fontSize: 16,
-  },
-  errorContainer: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: "black",
-    paddingHorizontal: 20,
-  },
-  errorText: {
-    color: "#EF4444",
-    fontSize: 18,
-    fontWeight: "600",
-    marginBottom: 8,
-  },
-  errorSubtext: {
-    color: "white",
-    fontSize: 16,
-    textAlign: "center",
   },
 });
 

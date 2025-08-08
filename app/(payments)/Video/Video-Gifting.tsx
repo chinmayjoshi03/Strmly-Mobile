@@ -17,6 +17,7 @@ import {
 import CreatorInfo from "./_components/CreatorInfo";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { router, useLocalSearchParams } from "expo-router";
+import { ChevronLeft } from "lucide-react-native";
 import { useAuthStore } from "@/store/useAuthStore";
 import Constants from "expo-constants";
 
@@ -42,9 +43,12 @@ const VideoContentGifting = ({
   setIsGifted,
   giftMessage,
 }: GiftingData) => {
+  const { mode } = useLocalSearchParams();
+  const isWithdrawMode = mode === 'withdraw';
   const [amount, setAmount] = useState("");
-  const [walletInfo, setWalletInfo] = useState();
+  const [walletInfo, setWalletInfo] = useState<{ balance?: number }>({});
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const keyboardHeight = useRef(new Animated.Value(0)).current;
 
@@ -56,6 +60,7 @@ const VideoContentGifting = ({
   const handleAmountChange = (text: string) => {
     const filtered = text.replace(/[^0-9]/g, "");
     setAmount(filtered);
+    setError(null); // Clear error when user types
   };
 
   // ------------ Transaction -------------------
@@ -81,17 +86,120 @@ const VideoContentGifting = ({
       if (!response.ok) throw new Error("Failed to provide gifting");
       const data = await response.json();
       console.log("dWallet data---------------", data);
-      giftMessage(data.gift);
-      setIsWantToGift(false);
+      giftMessage?.(data.gift);
+      setIsWantToGift?.(false);
       setIsGifted(true);
     } catch (err) {
       console.log(err);
     }
   };
 
+  const withdrawMoney = async () => {
+    if (!token || !amount) {
+      return;
+    }
+
+    const withdrawAmount = parseInt(amount);
+
+    // Validate amount
+    if (withdrawAmount <= 0) {
+      setError("Please enter a valid amount");
+      return;
+    }
+
+    if (walletInfo.balance && withdrawAmount > walletInfo.balance) {
+      setError("Insufficient balance");
+      return;
+    }
+
+    if (withdrawAmount < 100) {
+      setError("Minimum withdrawal amount is ₹100");
+      return;
+    }
+
+    setError(null);
+
+    try {
+      console.log('💰 Creating withdrawal request for amount:', withdrawAmount);
+      console.log('🔗 API URL:', `${BACKEND_API_URL}/withdrawal/create`);
+      console.log('🔑 Token:', token?.substring(0, 20) + '...');
+
+      const response = await fetch(
+        `${BACKEND_API_URL}/withdrawal/create`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ amount: withdrawAmount }),
+        }
+      );
+
+      console.log('📡 Response status:', response.status);
+      console.log('📡 Response headers:', response.headers);
+
+      // Check if response is JSON
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        const textResponse = await response.text();
+        console.error('❌ Non-JSON response:', textResponse);
+        setError('Server returned invalid response. Please try again.');
+        return;
+      }
+
+      const data = await response.json();
+      console.log('✅ Withdrawal API response:', data);
+
+      // Check for specific error codes first, regardless of HTTP status
+      if (!data.success) {
+        console.log('❌ API returned success: false');
+        console.log('🔍 Error code:', data.code);
+        console.log('🔍 Error message:', data.error);
+        
+        if (data.code === "BANK_ACCOUNT_NOT_SETUP") {
+          console.log('🏦 Navigating to bank setup...');
+          try {
+            // Navigate to bank setup form
+            setTimeout(() => {
+              router.push('/(payments)/BankSetup');
+              console.log('✅ Navigation initiated');
+            }, 100);
+          } catch (navError) {
+            console.error('❌ Navigation error:', navError);
+            // Fallback: show error with manual button
+            setError(data.error + " - Please setup your bank account");
+          }
+          return;
+        }
+        setError(data.error || "Failed to create withdrawal request");
+        return;
+      }
+
+      // Check HTTP status for other errors
+      if (!response.ok) {
+        setError(data.error || `Server error: ${response.status}`);
+        return;
+      }
+
+      router.back();
+    } catch (err) {
+      console.error('❌ Withdrawal error:', err);
+      if (err instanceof SyntaxError && err.message.includes('JSON')) {
+        setError('Server returned invalid response. Please check your connection.');
+      } else {
+        setError(err instanceof Error ? err.message : "Failed to create withdrawal request");
+      }
+    }
+  };
+
   const handleProceed = async () => {
     setLoading(true);
-    await giftVideo();
+    if (isWithdrawMode) {
+      await withdrawMoney();
+    } else {
+      await giftVideo();
+    }
     setLoading(false);
     Keyboard.dismiss();
   };
@@ -170,25 +278,59 @@ const VideoContentGifting = ({
           <View className="flex-1 justify-between px-5 py-6">
             {/* Top section */}
             <View className="mt-10">
-              <CreatorInfo
+              {isWithdrawMode ? (
+                <View className="flex-row items-center justify-between mb-8">
+                  <Pressable onPress={() => router.back()} className="p-2">
+                    <ChevronLeft size={28} color="white" />
+                  </Pressable>
+                  <Text className="text-white text-xl font-semibold">
+                    Withdraw from account
+                  </Text>
+                  <View className="w-8" />
+                </View>
+              ) : (
+                <CreatorInfo
                 setIsWantToGift={setIsWantToGift}
                 profile={creator?.profile_photo}
                 name={creator?.name}
                 username={creator?.username}
               />
+              )}
             </View>
 
             {/* Middle section */}
-            <View className="gap-2 flex-row items-center justify-center">
-              <Text className="text-2xl text-white">₹</Text>
-              <TextInput
-                value={amount}
-                onChangeText={handleAmountChange}
-                keyboardType="numeric"
-                returnKeyType={Platform.OS === "ios" ? "done" : "none"}
-                placeholder="0"
-                className="text-3xl text-white placeholder:text-white font-semibold items-center justify-center"
-              />
+            <View className="items-center">
+              <View className="gap-2 flex-row items-center justify-center">
+                <Text className="text-2xl text-white">₹</Text>
+                <TextInput
+                  value={amount}
+                  onChangeText={handleAmountChange}
+                  keyboardType="number-pad"
+                  returnKeyType={Platform.OS === "ios" ? "done" : "none"}
+                  placeholder="0"
+                  placeholderTextColor="#666"
+                  className="text-3xl text-white placeholder:text-gray-500 font-semibold items-center justify-center"
+                  style={{ minWidth: 100, textAlign: 'center' }}
+                />
+              </View>
+
+              {/* Error Message */}
+              {error && (
+                <View className="mt-4">
+                  <Text className="text-red-400 text-sm text-center">{error}</Text>
+                  {error.includes('setup bank') && (
+                    <Pressable 
+                      onPress={() => {
+                        console.log('🔧 Manual navigation to bank setup');
+                        router.push('/(payments)/BankSetup');
+                      }}
+                      className="mt-2 p-2 bg-blue-600 rounded"
+                    >
+                      <Text className="text-white text-center text-sm">Setup Bank Account</Text>
+                    </Pressable>
+                  )}
+                </View>
+              )}
             </View>
 
             <View></View>
@@ -203,25 +345,37 @@ const VideoContentGifting = ({
               }}
               className="gap-2 justify-end"
             >
-              <Pressable disabled={loading || !amount} onPress={handleProceed}>
-                <View className="bg-[#008A3C] p-4 rounded-lg items-center justify-center">
-                  {loading ? (
-                    <ActivityIndicator color="#fff" />
-                  ) : (
-                    <Text
-                      style={{ color: "#fff", fontSize: 16, fontWeight: "600" }}
-                    >
-                      Proceed
-                    </Text>
-                  )}
-                </View>
+              <Pressable
+                disabled={loading || !amount || parseInt(amount) <= 0}
+                onPress={handleProceed}
+                className={`p-4 rounded-lg items-center justify-center ${loading || !amount || parseInt(amount) <= 0
+                  ? 'bg-gray-600'
+                  : 'bg-[#008A3C]'
+                  }`}
+              >
+                {loading ? (
+                  <ActivityIndicator color="#fff" />
+                ) : (
+                  <Text className="text-white text-base font-semibold">
+                    {isWithdrawMode ? 'Withdraw' : 'Proceed'}
+                  </Text>
+                )}
               </Pressable>
 
               <View className="items-center justify-center mt-1">
                 <Text className="text-white text-sm">
-                  Total balance ₹ {walletInfo?.balance}
+                  {isWithdrawMode ? 'Current balance' : 'Total balance'} ₹{walletInfo.balance?.toFixed(2) || '0.00'}
                 </Text>
               </View>
+
+              {isWithdrawMode && (
+                <View className="items-center justify-center mt-2">
+                  <Text className="text-gray-400 text-xs text-center">
+                    Minimum withdrawal: ₹100{'\n'}
+                    Processing time: 3-7 working days
+                  </Text>
+                </View>
+              )}
             </Animated.View>
           </View>
         </TouchableWithoutFeedback>

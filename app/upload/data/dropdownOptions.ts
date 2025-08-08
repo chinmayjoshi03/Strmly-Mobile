@@ -11,28 +11,12 @@ import { DropdownOption } from '../types';
  * - Implement search/filter functionality
  */
 
-// Community options for video categorization
-// Backend: GET /api/communities
+// Community options are now fetched dynamically via useCommunities hook
+// This static array is kept as fallback only
 export const communityOptions: DropdownOption[] = [
   {
     label: 'No Community',
     value: 'none',
-  },
-  {
-    label: '#Startup India',
-    value: 'startup-india',
-  },
-  {
-    label: '#Tech Talk',
-    value: 'tech-talk',
-  },
-  {
-    label: '#Business',
-    value: 'business',
-  },
-  {
-    label: '#Entertainment',
-    value: 'entertainment',
   },
 ];
 
@@ -110,11 +94,12 @@ export const genreOptions: DropdownOption[] = [
 /**
  * Helper function to get options by type
  * Useful for dynamic option loading
+ * Note: Community options are now fetched dynamically via useCommunities hook
  */
 export const getDropdownOptions = (type: 'community' | 'format' | 'genre' | 'videoType'): DropdownOption[] => {
   switch (type) {
     case 'community':
-      return communityOptions;
+      return communityOptions; // Fallback only - use useCommunities hook instead
     case 'format':
       return formatOptions;
     case 'genre':

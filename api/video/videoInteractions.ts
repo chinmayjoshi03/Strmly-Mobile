@@ -31,7 +31,7 @@ export class VideoInteractionsAPI {
     videoId: string
   ): Promise<LikeResponse> {
     const response = await fetch(
-      `${CONFIG.API_BASE_URL}/api/v1/interaction/like`,
+      `${CONFIG.API_BASE_URL}/interactions/like`,
       {
         method: 'POST',
         headers: VideoInteractionsAPI.getHeaders(token),
@@ -54,7 +54,7 @@ export class VideoInteractionsAPI {
     videoId: string
   ): Promise<ShareResponse> {
     const response = await fetch(
-      `${CONFIG.API_BASE_URL}/api/v1/interaction/share`,
+      `${CONFIG.API_BASE_URL}/interactions/share`,
       {
         method: 'POST',
         headers: VideoInteractionsAPI.getHeaders(token),
@@ -77,7 +77,7 @@ export class VideoInteractionsAPI {
     videoId: string
   ): Promise<LikeStatusResponse> {
     const response = await fetch(
-      `${CONFIG.API_BASE_URL}/api/v1/interaction/like/status`,
+      `${CONFIG.API_BASE_URL}/interactions/like/status`,
       {
         method: 'POST',
         headers: VideoInteractionsAPI.getHeaders(token),
@@ -100,7 +100,7 @@ export class VideoInteractionsAPI {
     videoId: string
   ): Promise<{success: boolean; message: string; totalShares: number}> {
     const response = await fetch(
-      `${CONFIG.API_BASE_URL}/api/v1/interaction/shares/${videoId}`,
+      `${CONFIG.API_BASE_URL}/interactions/shares/${videoId}`,
       {
         method: 'GET',
         headers: VideoInteractionsAPI.getHeaders(token),

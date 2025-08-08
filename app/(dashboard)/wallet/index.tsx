@@ -13,9 +13,11 @@ import {
 import React, { useState, useEffect } from "react";
 import ThemedView from "@/components/ThemedView";
 import CommonTopBar from "@/components/CommonTopBar";
+import { router } from "expo-router";
 import WalletButtons from "./_components/WalletButtons";
 import TotalBalanceHistory from "./_components/TotalBalanceHistory";
 import TotalWalletHistory from "./_components/TotalWalletHistory";
+import RevenueHistory from "./_components/RevenueHistory";
 import { useWallet } from "./_components/useWallet";
 import { useAuthStore } from "@/store/useAuthStore";
 
@@ -39,16 +41,13 @@ const WalletPage = () => {
 
   const [isOpenTBalance, setIsOpenTotalBalance] = useState<boolean>(false);
   const [isOpenWBalance, setIsOpenWalletBalance] = useState<boolean>(false);
+  const [isOpenRevenue, setIsOpenRevenue] = useState<boolean>(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
 
   // Handle withdrawal request
-  const handleWithdrawalRequest = async (amount: number) => {
-    try {
-      await requestWithdrawal(amount);
-      setShowSuccessModal(true);
-    } catch (err) {
-      Alert.alert("Error", "Failed to create withdrawal request");
-    }
+  const handleWithdrawalRequest = () => {
+    console.log('💰 Navigating to withdrawal screen');
+    router.push('/(payments)/Video/VideoContentGifting?mode=withdraw');
   };
 
   // Show error alert when error occurs
@@ -86,12 +85,14 @@ const WalletPage = () => {
         </Modal>
       )}
 
-      {isOpenTBalance || isOpenWBalance ? (
+      {isOpenTBalance || isOpenWBalance || isOpenRevenue ? (
         <View>
           {isOpenTBalance ? (
             <TotalBalanceHistory closeTBalance={setIsOpenTotalBalance} />
-          ) : (
+          ) : isOpenWBalance ? (
             <TotalWalletHistory closeTBalance={setIsOpenWalletBalance}/>
+          ) : (
+            <RevenueHistory closeTBalance={setIsOpenRevenue}/>
           )}
         </View>
       ) : (
@@ -134,16 +135,21 @@ const WalletPage = () => {
               </Pressable>
 
               {/* Card 3 */}
-              <View className="bg-[#B0B0B033] flex-1 justify-center gap-2 items-center h-full rounded-xl p-4">
-                <Text className="text-[14px] text-white">Revenue</Text>
-                {isLoading ? (
-                  <ActivityIndicator size="small" color="#fff" />
-                ) : (
-                  <Text className="text-[28px] text-white">
-                    ₹ {walletData?.totalReceived?.toFixed(2) || "0.00"}
-                  </Text>
-                )}
-              </View>
+              <Pressable
+                onPress={() => setIsOpenRevenue(!isOpenRevenue)}
+                className="flex-1"
+              >
+                <View className="bg-[#B0B0B033] flex-1 justify-center gap-2 items-center h-full rounded-xl p-4">
+                  <Text className="text-[14px] text-white">Revenue</Text>
+                  {isLoading ? (
+                    <ActivityIndicator size="small" color="#fff" />
+                  ) : (
+                    <Text className="text-[28px] text-white">
+                      ₹ {walletData?.totalReceived?.toFixed(2) || "0.00"}
+                    </Text>
+                  )}
+                </View>
+              </Pressable>
             </View>
 
             <Text className="text-white text-lg">Withdrawals request</Text>

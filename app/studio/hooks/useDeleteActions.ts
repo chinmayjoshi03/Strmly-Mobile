@@ -12,9 +12,9 @@ export const useDeleteActions = () => {
       }
 
       console.log('Attempting to delete draft:', draftId);
-      console.log('Using endpoint:', `${CONFIG.API_BASE_URL}/api/v1/drafts/${draftId}`);
+      console.log('Using endpoint:', `${CONFIG.API_BASE_URL}/drafts/${draftId}`);
 
-      const response = await fetch(`${CONFIG.API_BASE_URL}/api/v1/drafts/${draftId}`, {
+      const response = await fetch(`${CONFIG.API_BASE_URL}/drafts/${draftId}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -46,9 +46,9 @@ export const useDeleteActions = () => {
       }
 
       console.log('Attempting to delete series:', seriesId);
-      console.log('Using endpoint:', `${CONFIG.API_BASE_URL}/api/v1/series/${seriesId}`);
+      console.log('Using endpoint:', `${CONFIG.API_BASE_URL}/series/${seriesId}`);
 
-      const response = await fetch(`${CONFIG.API_BASE_URL}/api/v1/series/${seriesId}`, {
+      const response = await fetch(`${CONFIG.API_BASE_URL}/series/${seriesId}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -83,9 +83,9 @@ export const useDeleteActions = () => {
 
       // Try different possible endpoints for episode deletion
       const endpoints = [
-        `${CONFIG.API_BASE_URL}/api/v1/series/${seriesId}/episodes/${episodeId}`,
-        `${CONFIG.API_BASE_URL}/api/v1/episodes/${episodeId}`,
-        `${CONFIG.API_BASE_URL}/api/v1/videos/${episodeId}?seriesId=${seriesId}`,
+        `${CONFIG.API_BASE_URL}/series/${seriesId}/episodes/${episodeId}`,
+        `${CONFIG.API_BASE_URL}/episodes/${episodeId}`,
+        `${CONFIG.API_BASE_URL}/videos/${episodeId}?seriesId=${seriesId}`,
       ];
 
       let lastError = null;

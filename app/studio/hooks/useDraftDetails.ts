@@ -50,7 +50,7 @@ export const useDraftDetails = (draftId: string | null) => {
       setLoading(true);
       setError(null);
 
-      const response = await fetch(`${CONFIG.API_BASE_URL}/api/v1/drafts/${id}`, {
+      const response = await fetch(`${CONFIG.API_BASE_URL}/drafts/${id}`, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`,

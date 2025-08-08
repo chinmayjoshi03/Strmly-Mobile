@@ -1,10 +1,10 @@
 import { View, Text, FlatList, Image, TouchableOpacity, ActivityIndicator } from "react-native";
 import React, { useEffect } from "react";
 import { ChevronLeft } from "lucide-react-native";
-import { useTransactionHistory } from "./useTransactionHistory";
 import { useAuthStore } from "@/store/useAuthStore";
+import { useTransactionHistory } from "./useTransactionHistory";
 
-const TotalBalanceHistory = ({ closeTBalance }: { closeTBalance: any }) => {
+const RevenueHistory = ({ closeTBalance }: { closeTBalance: any }) => {
   const { token } = useAuthStore();
   const { transactions, isLoading, error, fetchTransactionHistory } = useTransactionHistory(token || "");
 
@@ -14,6 +14,17 @@ const TotalBalanceHistory = ({ closeTBalance }: { closeTBalance: any }) => {
     }
   }, [token]);
 
+  // Filter transactions to show only revenue-related ones (credits)
+  const revenueTransactions = transactions.filter(transaction => 
+    transaction.type === 'credit' && 
+    (transaction.description.toLowerCase().includes('revenue') ||
+     transaction.description.toLowerCase().includes('earning') ||
+     transaction.description.toLowerCase().includes('view') ||
+     transaction.description.toLowerCase().includes('engagement') ||
+     transaction.description.toLowerCase().includes('gift') ||
+     transaction.description.toLowerCase().includes('creator'))
+  );
+
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     return date.toLocaleDateString('en-GB', {
@@ -22,6 +33,7 @@ const TotalBalanceHistory = ({ closeTBalance }: { closeTBalance: any }) => {
       year: 'numeric'
     });
   };
+
   return (
     <View className="absolute -top-2 gap-5 w-full">
       <View className="w-full flex-row items-center justify-between">
@@ -31,7 +43,7 @@ const TotalBalanceHistory = ({ closeTBalance }: { closeTBalance: any }) => {
 
         <View>
           <Text className={`text-lg capitalize font-semibold text-white`}>
-            Transaction History
+            Revenue History
           </Text>
         </View>
 
@@ -41,7 +53,7 @@ const TotalBalanceHistory = ({ closeTBalance }: { closeTBalance: any }) => {
       {isLoading ? (
         <View className="flex-1 justify-center items-center">
           <ActivityIndicator size="large" color="#fff" />
-          <Text className="text-white mt-2">Loading transactions...</Text>
+          <Text className="text-white mt-2">Loading revenue...</Text>
         </View>
       ) : error ? (
         <View className="flex-1 justify-center items-center">
@@ -53,24 +65,24 @@ const TotalBalanceHistory = ({ closeTBalance }: { closeTBalance: any }) => {
             <Text className="text-white">Retry</Text>
           </TouchableOpacity>
         </View>
-      ) : transactions.length === 0 ? (
+      ) : revenueTransactions.length === 0 ? (
         <View className="flex-1 justify-center items-center">
-          <Text className="text-gray-400 text-center">No transactions found</Text>
+          <Text className="text-gray-400 text-center">No revenue transactions found</Text>
         </View>
       ) : (
         <FlatList
-          data={transactions}
+          data={revenueTransactions}
           keyExtractor={(item) => item.id}
           renderItem={({ item }) => (
             <View className="flex-row items-center my-2">
               <View className="flex-row items-center gap-3 flex-1">
-                {/* Profile Picture */}
+                {/* Icon */}
                 <Image
-                  source={require("../../../../assets/images/bank-icon.png")}
+                  source={require("../../../../assets/images/rupee.png")}
                   className="w-12 h-12 rounded-full bg-gray-500"
                 />
 
-                {/* User Info */}
+                {/* Transaction Info */}
                 <View className="justify-center items-start">
                   <Text className="text-sm text-white">{item.description}</Text>
                   <Text className="text-xs text-gray-500">{formatDate(item.date)}</Text>
@@ -81,10 +93,8 @@ const TotalBalanceHistory = ({ closeTBalance }: { closeTBalance: any }) => {
               </View>
 
               {/* Amount */}
-              <Text
-                className={`${item.type === "debit" ? "text-red-500" : "text-green-500"} text-[16px]`}
-              >
-                {item.type === "debit" ? "-" : "+"} ₹{item.amount}
+              <Text className="text-green-500 text-[16px]">
+                +₹{item.amount}
               </Text>
             </View>
           )}
@@ -96,4 +106,4 @@ const TotalBalanceHistory = ({ closeTBalance }: { closeTBalance: any }) => {
   );
 };
 
-export default TotalBalanceHistory;
+export default RevenueHistory;

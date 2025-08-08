@@ -215,7 +215,22 @@ const VideoItem = ({
       <VideoProgressBar player={player} isActive={isActive} />
 
       <View className="absolute w-fit top-16 left-5">
-        <Pressable onPress={() => router.push("/(dashboard)/wallet/wallet")}>
+        <Pressable onPress={() => {
+          console.log('💰 Wallet button pressed!');
+          try {
+            // Try different path formats
+            router.push("/(dashboard)/wallet" as any);
+            console.log('✅ Navigation to wallet initiated');
+          } catch (error) {
+            console.error('❌ Navigation error:', error);
+            // Fallback to replace
+            try {
+              router.replace("/(dashboard)/wallet" as any);
+            } catch (fallbackError) {
+              console.error('❌ Fallback navigation error:', fallbackError);
+            }
+          }
+        }}>
           <Image
             source={require("../../../assets/images/Wallet.png")}
             className="size-8"

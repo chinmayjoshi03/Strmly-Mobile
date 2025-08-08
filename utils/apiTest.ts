@@ -9,7 +9,7 @@ export const testApiConnection = async (token: string) => {
   // Test 1: Basic connection
   try {
     console.log('\n--- Test 1: Basic API connection ---');
-    const response = await fetch(`${CONFIG.API_BASE_URL}/api/v1/user/profile`, {
+    const response = await fetch(`${CONFIG.API_BASE_URL}/user/profile`, {
       method: 'GET',
       headers: {
         'Authorization': `Bearer ${token}`,

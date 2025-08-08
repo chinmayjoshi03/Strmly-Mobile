@@ -1,13 +1,14 @@
 import React, { useRef, useState, useEffect, useCallback } from "react";
 import { FlatList, Dimensions, ActivityIndicator, Text, Pressable } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import VideoItem from "./VideoItem";
 import ThemedView from "@/components/ThemedView";
 import { useAuthStore } from "@/store/useAuthStore";
-import Constants from "expo-constants";
+import { CONFIG } from "@/Constants/config";
 import { VideoItemType } from "@/types/VideosType";
 import GiftingMessage from "./_components/GiftingMessage";
-import VideoContentGifting from "@/app/(payments)/Video/Video-Gifting";
+import UnifiedVideoPlayer from "@/components/UnifiedVideoPlayer";
+import VideoItem from "./VideoItem";
+import { VideoContentGifting } from "@/app/(payments)/Video/Video-Gifting";
 
 export type GiftType = {
   _id: string;
@@ -23,7 +24,8 @@ const VideoFeed: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const BACKEND_API_URL = Constants.expoConfig?.extra?.BACKEND_API_URL;
+  const BACKEND_API_URL = CONFIG.API_BASE_URL;
+  console.log('🔧 VideoFeed API URL:', BACKEND_API_URL);
   const { height } = Dimensions.get("screen");
   const insets = useSafeAreaInsets();
   const TAB_BAR_HEIGHT = 55; // Height of the bottom navigation bar (reduced from 70)
@@ -57,10 +59,21 @@ const VideoFeed: React.FC = () => {
         throw new Error('Backend API URL is not configured');
       }
 
-      console.log('Fetching videos from:', `${BACKEND_API_URL}/api/v1/videos/trending?page=1&limit=10`);
+      if (!token) {
+        throw new Error('Authentication token is missing');
+      }
+
+      console.log('Fetching videos from:', `${BACKEND_API_URL}/videos/trending?page=1&limit=10`);
 
       const res = await fetch(
-        `${BACKEND_API_URL}/api/v1/videos/trending?page=1&limit=10`
+        `${BACKEND_API_URL}/videos/trending?page=1&limit=10`,
+        {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+          },
+        }
       );
 
       if (!res.ok) {
@@ -81,8 +94,10 @@ const VideoFeed: React.FC = () => {
   };
 
   useEffect(() => {
-    fetchTrendingVideos();
-  }, []);
+    if (token) {
+      fetchTrendingVideos();
+    }
+  }, [token]);
 
   // OPTIMIZATION 1: Stabilize the onViewableItemsChanged callback
   // This prevents FlatList from re-rendering just because the parent re-rendered.
@@ -193,17 +208,23 @@ const VideoFeed: React.FC = () => {
           data={videos}
           keyExtractor={(item) => item._id}
           renderItem={({ item, index }) => (
-            <VideoItem
-              BACKEND_API_URL={BACKEND_API_URL || ''}
-              setGiftingData={setGiftingData}
-              showCommentsModal={showCommentsModal}
-              setShowCommentsModal={setShowCommentsModal}
-              setIsWantToGift={setIsWantToGift}
+            <UnifiedVideoPlayer
               key={`${item._id}-${visibleIndex === index}`}
               uri={item.videoUrl}
-              isActive={index === visibleIndex}
               videoData={item}
+              mode="feed"
+              isActive={index === visibleIndex}
+              autoPlay={index === visibleIndex}
+              loop={true}
+              showControls={true}
+              showInteractions={true}
+              showDetails={true}
+              showComments={true}
               containerHeight={adjustedHeight}
+              setGiftingData={setGiftingData}
+              setIsWantToGift={setIsWantToGift}
+              showCommentsModal={showCommentsModal}
+              setShowCommentsModal={setShowCommentsModal}
             />
           )}
           style={{ flex: 1 }}

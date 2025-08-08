@@ -39,7 +39,7 @@ export class CommentAPI {
     limit: number = 10
   ): Promise<CommentAPIResponse> {
     const response = await fetch(
-      `${CONFIG.API_BASE_URL}/api/v1/interaction/videos/${videoId}/comments?page=${page}&limit=${limit}`,
+      `${CONFIG.API_BASE_URL}/interactions/videos/${videoId}/comments?page=${page}&limit=${limit}`,
       {
         method: 'GET',
         headers: CommentAPI.getHeaders(token),
@@ -59,11 +59,11 @@ export class CommentAPI {
     videoId: string,
     content: string
   ): Promise<CommentAPIResponse> {
-    console.log('Posting comment to:', `${CONFIG.API_BASE_URL}/api/v1/interaction/comment`);
+    console.log('Posting comment to:', `${CONFIG.API_BASE_URL}/interactions/comment`);
     console.log('Request body:', { videoId, comment: content });
     
     const response = await fetch(
-      `${CONFIG.API_BASE_URL}/api/v1/interaction/comment`,
+      `${CONFIG.API_BASE_URL}/interactions/comment`,
       {
         method: 'POST',
         headers: CommentAPI.getHeaders(token),
@@ -92,7 +92,7 @@ export class CommentAPI {
     limit: number = 5
   ): Promise<CommentAPIResponse> {
     const response = await fetch(
-      `${CONFIG.API_BASE_URL}/api/v1/interaction/videos/${videoId}/comments/${commentId}/replies?page=${page}&limit=${limit}`,
+      `${CONFIG.API_BASE_URL}/interactions/videos/${videoId}/comments/${commentId}/replies?page=${page}&limit=${limit}`,
       {
         method: 'GET',
         headers: CommentAPI.getHeaders(token),
@@ -118,7 +118,7 @@ export class CommentAPI {
     }
     
     const response = await fetch(
-      `${CONFIG.API_BASE_URL}/api/v1/interaction/comments/reply`,
+      `${CONFIG.API_BASE_URL}/interactions/comments/reply`,
       {
         method: 'POST',
         headers: CommentAPI.getHeaders(token),
@@ -144,7 +144,7 @@ export class CommentAPI {
     videoId?: string
   ): Promise<VoteResponse> {
     const response = await fetch(
-      `${CONFIG.API_BASE_URL}/api/v1/interaction/comments/upvote`,
+      `${CONFIG.API_BASE_URL}/interactions/comments/upvote`,
       {
         method: 'POST',
         headers: CommentAPI.getHeaders(token),
@@ -171,7 +171,7 @@ export class CommentAPI {
     videoId?: string
   ): Promise<VoteResponse> {
     const response = await fetch(
-      `${CONFIG.API_BASE_URL}/api/v1/interaction/comments/downvote`,
+      `${CONFIG.API_BASE_URL}/interactions/comments/downvote`,
       {
         method: 'POST',
         headers: CommentAPI.getHeaders(token),
@@ -198,7 +198,7 @@ export class CommentAPI {
     videoId: string
   ): Promise<VoteResponse> {
     const response = await fetch(
-      `${CONFIG.API_BASE_URL}/api/v1/interaction/replies/upvote`,
+      `${CONFIG.API_BASE_URL}/interactions/replies/upvote`,
       {
         method: 'POST',
         headers: CommentAPI.getHeaders(token),
@@ -226,7 +226,7 @@ export class CommentAPI {
     commentId: string
   ): Promise<VoteResponse> {
     const response = await fetch(
-      `${CONFIG.API_BASE_URL}/api/v1/interaction/replies/downvote`,
+      `${CONFIG.API_BASE_URL}/interactions/replies/downvote`,
       {
         method: 'POST',
         headers: CommentAPI.getHeaders(token),

@@ -12,7 +12,7 @@ import {
 import { useRouter } from "expo-router";
 import { X } from "lucide-react-native";
 import { useAuthStore } from "@/store/useAuthStore";
-import { CONFIG } from "@/Constants/config";
+import { updateCreatorPassPrice, getUserProfile } from "@/api/user/userActions";
 import ThemedView from "@/components/ThemedView";
 
 export default function CreatorPassPage() {
@@ -31,17 +31,11 @@ export default function CreatorPassPage() {
     if (!token) return;
 
     try {
-      const response = await fetch(`${CONFIG.API_BASE_URL}/api/v1/user/profile`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        const creatorPassPrice = data.user?.creator_profile?.creator_pass_price;
-        if (creatorPassPrice) {
-          setCurrentPrice(creatorPassPrice);
-          setPrice(creatorPassPrice.toString());
-        }
+      const data = await getUserProfile(token);
+      const creatorPassPrice = data.user?.creator_profile?.creator_pass_price;
+      if (creatorPassPrice) {
+        setCurrentPrice(creatorPassPrice);
+        setPrice(creatorPassPrice.toString());
       }
     } catch (error) {
       console.error('Error fetching current price:', error);
@@ -61,36 +55,21 @@ export default function CreatorPassPage() {
 
     setLoading(true);
     try {
-      const response = await fetch(`${CONFIG.API_BASE_URL}/api/v1/user/creator-pass-price`, {
-        method: 'PUT',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          price: Number(price)
-        }),
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        Alert.alert(
-          'Success',
-          'Creator pass price updated successfully!',
-          [
-            {
-              text: 'OK',
-              onPress: () => router.back()
-            }
-          ]
-        );
-      } else {
-        const errorData = await response.json();
-        Alert.alert('Error', errorData.message || 'Failed to update creator pass price');
-      }
+      await updateCreatorPassPrice(token, Number(price));
+      
+      Alert.alert(
+        'Success',
+        'Creator pass price updated successfully!',
+        [
+          {
+            text: 'OK',
+            onPress: () => router.back()
+          }
+        ]
+      );
     } catch (error) {
       console.error('Error updating creator pass price:', error);
-      Alert.alert('Error', 'Failed to update creator pass price');
+      Alert.alert('Error', error instanceof Error ? error.message : 'Failed to update creator pass price');
     } finally {
       setLoading(false);
     }
