@@ -73,10 +73,6 @@ export default function PersonalCommunityPage() {
   );
 
   useEffect(() => {
-    if (!isLoggedIn) {
-      router.push("/(auth)/Sign-in"); // Use router.push for navigation in Expo Router
-      return;
-    }
 
     const fetchUserVideos = async () => {
       setIsLoadingVideos(true);
@@ -117,11 +113,6 @@ export default function PersonalCommunityPage() {
   }, [isLoggedIn, activeTab, router, token, id]);
 
   useEffect(() => {
-    if (!isLoggedIn) {
-      router.push("/(auth)/Sign-in");
-      return;
-    }
-
     const fetchCommunityData = async () => {
       try {
         setIsLoading(true);

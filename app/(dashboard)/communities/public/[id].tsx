@@ -9,11 +9,7 @@ import {
   Pressable,
   FlatList,
 } from "react-native";
-import {
-  IndianRupee,
-  HeartIcon,
-  PaperclipIcon,
-} from "lucide-react-native"; // React Native Lucide icons
+import { IndianRupee, HeartIcon, PaperclipIcon } from "lucide-react-native"; // React Native Lucide icons
 import { useAuthStore } from "@/store/useAuthStore";
 import { useThumbnailsGenerate } from "@/utils/useThumbnailGenerator";
 import ThemedView from "@/components/ThemedView";
@@ -53,13 +49,8 @@ export default function PublicCommunityPage() {
   const [isLoadingVideos, setIsLoadingVideos] = useState(false);
   const { token } = useAuthStore();
 
-  // Valid video types for the API
-  const validVideoTypes = ["long", "series"];
-
-  //  const { id } = useLocalSearchParams();
   const route = useRoute();
   const { id } = route.params as { id: string };
-
 
   const BACKEND_API_URL = Constants.expoConfig?.extra?.BACKEND_API_URL;
 
@@ -76,18 +67,12 @@ export default function PublicCommunityPage() {
 
   useEffect(() => {
     const fetchUserVideos = async () => {
-      // Only fetch videos if activeTab is a valid video type
-      if (!validVideoTypes.includes(activeTab)) {
-        console.log('🔄 Skipping video fetch for non-video tab:', activeTab);
-        setVideos([]);
-        return;
-      }
 
       setIsLoadingVideos(true);
       try {
-        console.log('🔄 Fetching videos for tab:', activeTab);
+        console.log("🔄 Fetching videos for tab:", activeTab);
         const response = await fetch(
-          `${BACKEND_API_URL}/community/${id}/videos?videoType=${activeTab}`,
+          `${BACKEND_API_URL}/community/${id}/videos?type=${activeTab}`,
           {
             method: "GET",
             headers: {
@@ -115,7 +100,6 @@ export default function PublicCommunityPage() {
   }, [activeTab, token, id]);
 
   useEffect(() => {
-
     const fetchCommunityData = async () => {
       try {
         setIsLoading(true);
@@ -231,19 +215,28 @@ export default function PublicCommunityPage() {
 
           {/* Stats */}
           <View className="mt-6 flex flex-row justify-around items-center">
-            <TouchableOpacity className="flex flex-col gap-1 items-center">
+            <TouchableOpacity
+              className="flex flex-col gap-1 items-center"
+              // onPress={() => setActiveTab("followers")}
+            >
               <Text className="font-bold text-lg text-white">
                 {communityData?.followers?.length || 0}
               </Text>
               <Text className="text-gray-400 text-md">Followers</Text>
             </TouchableOpacity>
-            <TouchableOpacity className="flex flex-col gap-1 items-center">
+            <TouchableOpacity
+              className="flex flex-col gap-1 items-center"
+              // onPress={() => setActiveTab("following")}
+            >
               <Text className="font-bold text-lg text-white">
                 {communityData?.creators?.length || 0}
               </Text>
               <Text className="text-gray-400 text-md">Creators</Text>
             </TouchableOpacity>
-            <TouchableOpacity className="flex flex-col gap-1 items-center">
+            <TouchableOpacity
+              className="flex flex-col gap-1 items-center"
+              // onPress={() => setActiveTab("posts")}
+            >
               <Text className="font-bold text-lg text-white">
                 {communityData?.total_uploads || 0}
               </Text>
@@ -308,11 +301,11 @@ export default function PublicCommunityPage() {
 
               <TouchableOpacity
                 className={`pb-4 flex-1 items-center justify-center`}
-                onPress={() => setActiveTab("series")}
+                onPress={() => setActiveTab("liked")}
               >
                 <HeartIcon
-                  color={activeTab === "series" ? "white" : "gray"}
-                  fill={activeTab === "series" ? "white" : ""}
+                  color={activeTab === "liked" ? "white" : "gray"}
+                  fill={activeTab === "liked" ? "white" : ""}
                 />
               </TouchableOpacity>
             </View>
@@ -325,35 +318,25 @@ export default function PublicCommunityPage() {
           <View className="w-full h-96 flex items-center justify-center mt-20">
             <ActivityIndicator size="large" color="white" />
           </View>
-        ) : validVideoTypes.includes(activeTab) ? (
-          activeTab === "long" ? (
-            <FlatList
-              key="long-videos" // Add key to force re-render
-              data={videos}
-              keyExtractor={(item) => item._id}
-              renderItem={renderVideoItem}
-              contentContainerStyle={{ paddingBottom: 30, paddingHorizontal: 0 }}
-              showsVerticalScrollIndicator={false}
-            />
-          ) : (
-            <FlatList
-              key="series-videos" // Add key to force re-render
-              data={videos}
-              keyExtractor={(item) => item._id}
-              renderItem={renderGridItem}
-              numColumns={3}
-              contentContainerStyle={{ paddingBottom: 30, paddingHorizontal: 0 }}
-              showsVerticalScrollIndicator={false}
-            />
-          )
+        ) : activeTab === "long" ? (
+          <FlatList
+            key="long-videos" // Add key to force re-render
+            data={videos}
+            keyExtractor={(item) => item._id}
+            renderItem={renderVideoItem}
+            contentContainerStyle={{ paddingBottom: 30, paddingHorizontal: 0 }}
+            showsVerticalScrollIndicator={false}
+          />
         ) : (
-          <View className="w-full h-96 flex items-center justify-center mt-20">
-            <Text className="text-gray-400 text-center">
-              {activeTab === "followers" && "Community followers will be shown here"}
-              {activeTab === "creators" && "Community creators will be shown here"}
-              {activeTab === "stats" && "Community statistics will be shown here"}
-            </Text>
-          </View>
+          <FlatList
+            key="liked-videos"
+            data={videos}
+            keyExtractor={(item) => item._id}
+            renderItem={renderGridItem}
+            numColumns={3}
+            contentContainerStyle={{ paddingBottom: 30, paddingHorizontal: 0 }}
+            showsVerticalScrollIndicator={false}
+          />
         )}
       </>
     </ThemedView>

@@ -1,12 +1,7 @@
-import VideoFeed from '../(dashboard)/long/VideoFeed';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import VideosFeed from '../(dashboard)/long/VideosFeed';
 
 export default function HomeTab() {
-  return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: 'black' }} edges={['top']}>
-      <VideoFeed />
-    </SafeAreaView>
-  );
+  return <VideosFeed />;
 }
 
 // In app/(tabs)/profile.tsx

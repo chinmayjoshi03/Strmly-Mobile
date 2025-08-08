@@ -8,42 +8,45 @@ import {
   Alert,
   Linking,
   Image,
-  FlatList,
-  FlatList,
+  FlatList, // For opening external links
 } from "react-native";
 import { CONFIG } from "@/Constants/config";
 import {
   MapPin,
   LinkIcon,
+  Calendar,
+  VideoIcon, // Replaces PlayIcon for video tab
   HeartIcon,
-  PaperclipIcon,
-  LogOut,
+  BookmarkIcon,
+  IndianRupee,
+  Video,
+  PaperclipIcon, // For the gradient button
 } from "lucide-react-native";
-import { useRouter, useLocalSearchParams } from "expo-router";
-import { useFocusEffect } from '@react-navigation/native';
-import { useRouter, useLocalSearchParams } from "expo-router";
-import { useFocusEffect } from '@react-navigation/native';
+import { useLocalSearchParams, useRouter } from "expo-router"; // Use useRouter from expo-router
 import { useAuthStore } from "@/store/useAuthStore";
 import { useThumbnailsGenerate } from "@/utils/useThumbnailGenerator";
-import ThemedView from "@/components/ThemedView";
-import ProfileTopbar from "@/components/profileTopbar";
-import ThemedView from "@/components/ThemedView";
-import ProfileTopbar from "@/components/profileTopbar";
+import ThemedView from "@/components/ThemedView"; // Assuming this is a basic wrapper for styling
+import ProfileTopbar from "@/components/profileTopbar"; // Assuming this is the converted ProfileTopbar
 import { LinearGradient } from "expo-linear-gradient";
 import Constants from "expo-constants";
 
+// Note: testVideos, api, toast, and format are not directly used in the final render
+// but if `api` or `toast` are custom internal modules, ensure they are RN compatible.
+// `format` (from date-fns) is compatible with React Native.
+
 export default function PersonalProfilePage() {
-  const [activeTab, setActiveTab] = useState("long");
-  const [activeTab, setActiveTab] = useState("long");
+  const [activeTab, setActiveTab] = useState("long"); // Default to 'clips' as in original
   const [userData, setUserData] = useState<any>(null);
   const [videos, setVideos] = useState<any[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
+
+  const [isLoading, setIsLoading] = useState(false); // Keep true initially to show loader
+
   const [isError, setIsError] = useState<string | null>(null);
   const [isLoadingVideos, setIsLoadingVideos] = useState(false);
-
-  const { token, user } = useAuthStore();
+  const { isLoggedIn, token } = useAuthStore();
   const router = useRouter();
+
+  const BACKEND_API_URL = Constants.expoConfig?.extra?.BACKEND_API_URL;
 
   const thumbnails = useThumbnailsGenerate(
     videos.map((video) => ({
@@ -52,166 +55,125 @@ export default function PersonalProfilePage() {
     }))
   );
 
-  // Refresh profile data when auth store user changes (e.g., after profile update)
   useEffect(() => {
-    if (user?.profile_photo && userData && user.profile_photo !== userData.profile_photo) {
-      console.log('🔄 Auth store profile photo changed, refreshing profile data');
-      // Update userData with the new profile photo from auth store
-      setUserData(prev => prev ? { ...prev, profile_photo: user.profile_photo } : prev);
+    if (!isLoggedIn) {
+      router.push("/(auth)/Sign-in");
+      return;
     }
-  }, [user?.profile_photo, userData?.profile_photo]);
 
-  useFocusEffect(
-    React.useCallback(() => {
-      const fetchUserVideos = async () => {
-        setIsLoadingVideos(true);
-        try {
-          const params = new URLSearchParams();
-          params.append("type", activeTab);
+    const fetchUserVideos = async (page = 1) => {
+      if(activeTab == 'repost') return;
 
-          const response = await fetch(`${CONFIG.API_BASE_URL}/user/videos?${params.toString()}`, {
+      setIsLoadingVideos(true);
+      try {
+        const response = await fetch(
+          // Assuming your API server is accessible from the Expo client
+          `${BACKEND_API_URL}/user/videos?type=${activeTab}&page=${page}`,
+          {
             method: "GET",
             headers: {
               Authorization: `Bearer ${token}`,
-              "Content-Type": "application/json",
-              "Cache-Control": "no-cache, no-store, must-revalidate",
-              "Pragma": "no-cache",
-              "Expires": "0"
-              "Content-Type": "application/json",
-              "Cache-Control": "no-cache, no-store, must-revalidate",
-              "Pragma": "no-cache",
-              "Expires": "0"
             },
-          });
-          });
-
-          const data = await response.json();
-          const data = await response.json();
-
-          if (!response.ok) {
-            throw new Error(data.message || "Failed to fetch user videos");
           }
-          if (!response.ok) {
-            throw new Error(data.message || "Failed to fetch user videos");
-          }
+        );
 
-          console.log("videos", data);
-          setVideos(data.videos);
-        } catch (err) {
-          console.error("Error fetching user videos:", err);
-          Alert.alert(
-            "Error",
-            err instanceof Error
-              ? err.message
-              : "An unknown error occurred while fetching videos."
-          );
-        } finally {
-          setIsLoadingVideos(false);
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.message || "Failed to fetch user videos");
         }
-      };
 
-      const fetchUserData = async () => {
-        setIsLoading(true);
-        try {
-          const timestamp = new Date().getTime();
-          const response = await fetch(`${CONFIG.API_BASE_URL}/user/profile?_=${timestamp}`, {
-            method: "GET",
-            headers: {
-              Authorization: `Bearer ${token}`,
-              "Content-Type": "application/json",
-              "Cache-Control": "no-cache, no-store, must-revalidate",
-              "Pragma": "no-cache",
-              "Expires": "0"
-            },
-          });
-
-          const data = await response.json();
-          const data = await response.json();
-
-          if (!response.ok) {
-            throw new Error(data.message || "Failed to fetch user profile");
-          }
-          if (!response.ok) {
-            throw new Error(data.message || "Failed to fetch user profile");
-          }
-
-          console.log("Fetched fresh user data:", data.user);
-          setUserData(data.user);
-          setIsError(null);
-        } catch (error) {
-          console.log("error", error);
-          setIsError(
-            error instanceof Error ? error.message : "An unknown error occurred."
-          );
-          Alert.alert(
-            "Error",
-            error instanceof Error ? error.message : "An unknown error occurred."
-          );
-        } finally {
-          setIsLoading(false);
-        }
-      };
-          console.log("Fetched fresh user data:", data.user);
-          setUserData(data.user);
-          setIsError(null);
-        } catch (error) {
-          console.log("error", error);
-          setIsError(
-            error instanceof Error ? error.message : "An unknown error occurred."
-          );
-          Alert.alert(
-            "Error",
-            error instanceof Error ? error.message : "An unknown error occurred."
-          );
-        } finally {
-          setIsLoading(false);
-        }
-      };
-
-      if (token) {
-        fetchUserData();
-        fetchUserVideos();
+        setVideos(data.videos);
+      } catch (err) {
+        console.error("Error fetching user videos:", err);
+        Alert.alert(
+          "Error",
+          err instanceof Error
+            ? err.message
+            : "An unknown error occurred while fetching videos."
+        );
+      } finally {
+        setIsLoadingVideos(false);
       }
-    }, [token, activeTab])
-  );
-      if (token) {
-        fetchUserData();
-        fetchUserVideos();
-      }
-    }, [token, activeTab])
-  );
+    };
 
-  const currentProfileData = {
-    name: userData?.name || "User",
-    email: userData?.email || "",
-    image:
-      user?.profile_photo ||
-      userData?.profile_photo ||
-      userData?.avatar ||
-      userData?.image ||
-      "https://api.dicebear.com/7.x/avataaars/svg?seed=default",
-    username: userData?.username || userData?.email?.split("@")[0] || "user",
-    bio: userData?.bio || "Welcome to my profile! 👋",
-    location: userData?.location || "Not specified",
-    website: userData?.website || "",
-    joinedDate: userData?.createdAt
-      ? new Date(userData.createdAt).toLocaleDateString("en-US", {
-        month: "long",
-        year: "numeric",
-      })
-      : "N/A",
-        month: "long",
-        year: "numeric",
-      })
-      : "N/A",
-    coverImage:
-      "https://images.unsplash.com/photo-1579546929518-9e396f3cc809?w=800&h=200&fit=crop",
-    followers: userData?.stats?.followersCount || 0,
-    following: userData?.stats?.followingCount || 0,
-    posts: userData?.stats?.videosCount || 0,
-    communityLength: userData?.community?.length || 0,
-    communityLength: userData?.community?.length || 0,
-    isVerified: userData?.isVerified || false,
+    if (token) {
+      fetchUserVideos();
+    }
+  }, [isLoggedIn, router, token, activeTab]);
+
+  useEffect(() => {
+    if (!isLoggedIn) {
+      router.push("/(auth)/Sign-in");
+      return;
+    }
+
+    const fetchUserData = async () => {
+      try {
+        const response = await fetch(`${BACKEND_API_URL}/user/profile`, {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.message || "Failed to fetch user profile");
+        }
+
+        setUserData(data.user);
+        setIsError(null);
+      } catch (error) {
+        console.log("error", error);
+        setIsError(
+          error instanceof Error ? error.message : "An unknown error occurred."
+        );
+        Alert.alert(
+          "Error",
+          error instanceof Error ? error.message : "An unknown error occurred."
+        );
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    if (token) {
+      fetchUserData();
+    }
+  }, [isLoggedIn, router, token]);
+
+  const userReshareVideos = async () => {
+    setIsLoadingVideos(true);
+    try {
+      const response = await fetch(`${BACKEND_API_URL}/user/reshares`, {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || "Failed to fetch user videos");
+      }
+
+      setVideos(data.reshares);
+      console.log(data);
+    } catch (err) {
+      console.error("Error fetching user videos:", err);
+      Alert.alert(
+        "Error",
+        err instanceof Error
+          ? err.message
+          : "An unknown error occurred while fetching videos."
+      );
+    } finally {
+      setIsLoadingVideos(false);
+    }
   };
 
   const renderGridItem = ({ item }: { item: any }) => (
@@ -241,14 +203,17 @@ export default function PersonalProfilePage() {
       <ScrollView className="flex-1">
         {!isLoading && (
           <View className="h-48 relative">
-            <ProfileTopbar hashtag={false} name={currentProfileData.username} />
+            <ProfileTopbar
+              hashtag={false}
+              name={userData?.username}
+            />
           </View>
         )}
 
         {/* Profile Info */}
         {isLoading ? (
           <View className="w-full h-96 flex items-center justify-center -mt-20 relative">
-            <ActivityIndicator size="large" color="#F1C40F" />
+            <ActivityIndicator size="large" color="white" />
           </View>
         ) : isError ? (
           <View className="flex-1 items-center justify-center h-60 -mt-20">
@@ -260,37 +225,30 @@ export default function PersonalProfilePage() {
         ) : (
           <View className="max-w-4xl -mt-28 relative mx-6">
             <View className="flex flex-col items-center md:flex-row md:items-end space-y-4 md:space-y-0 md:space-x-4">
-              <View className="relative">
-                <Image
-                  source={currentProfileData?.image ? {
-                    uri: currentProfileData.image,
-                  } : require('../../../assets/images/user.png')}
-                  style={{ 
-                    width: 80, 
-                    height: 80, 
-                    borderRadius: 40,
-                    borderWidth: 2,
-                    borderColor: 'white',
-                    resizeMode: 'cover'
-                  }}
-                />
+              <View className="relative items-center">
+                <View className="size-24 rounded-full border overflow-hidden">
+                  <Image
+                    source={
+                      userData?.profile_photo
+                        ? {
+                            uri: userData?.profile_photo,
+                          }
+                        : require("../../../assets/images/user.png")
+                    }
+                    className="w-full h-full object-cover rounded-full"
+                  />
+                </View>
 
                 <View className="flex flex-row gap-2 items-center justify-center mt-2">
                   <Text className="text-gray-400">
-                    @{currentProfileData.username}
+                    @{userData?.username}
                   </Text>
-                  {(currentProfileData.isVerified ||
-                    userData?.creator_profile?.verification_status ===
-                    "verified") && (
-                      <Text className="ml-2 px-2 py-1 rounded-full text-xs font-medium bg-blue-500 text-white">
-                        Verified
-                      </Text>
-                    )}
-                    "verified") && (
-                      <Text className="ml-2 px-2 py-1 rounded-full text-xs font-medium bg-blue-500 text-white">
-                        Verified
-                      </Text>
-                    )}
+                  {userData?.creator_profile?.verification_status ===
+                    "verified" && (
+                    <Text className="ml-2 px-2 py-1 rounded-full text-xs font-medium bg-blue-500 text-white">
+                      Verified
+                    </Text>
+                  )}
                 </View>
               </View>
             </View>
@@ -299,49 +257,28 @@ export default function PersonalProfilePage() {
             <View className="mt-6 flex-row justify-around items-center">
               <TouchableOpacity
                 className="flex flex-col gap-1 items-center"
-                onPress={() => router.push({
-                  pathname: "/(dashboard)/profile/ProfileSections",
-                  params: { section: "followers", userName: currentProfileData.username }
-                })}
-                onPress={() => router.push({
-                  pathname: "/(dashboard)/profile/ProfileSections",
-                  params: { section: "followers", userName: currentProfileData.username }
-                })}
+                // onPress={() => router.push("/communities?type=followers")}
               >
                 <Text className="font-bold text-lg text-white">
-                  {currentProfileData.followers}
+                  {userData?.followers.length}
                 </Text>
                 <Text className="text-gray-400 text-md">Followers</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 className="flex flex-col gap-1 items-center"
-                onPress={() => router.push({
-                  pathname: "/(dashboard)/profile/ProfileSections",
-                  params: { section: "myCommunity", userName: currentProfileData.username }
-                })}
-                onPress={() => router.push({
-                  pathname: "/(dashboard)/profile/ProfileSections",
-                  params: { section: "myCommunity", userName: currentProfileData.username }
-                })}
+                // onPress={() => router.push("/communities?type=community")}
               >
                 <Text className="font-bold text-lg text-white">
-                  {currentProfileData.communityLength}
+                  {userData?.community.length}
                 </Text>
                 <Text className="text-gray-400 text-md">Community</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 className="flex flex-col gap-1 items-center"
-                onPress={() => router.push({
-                  pathname: "/(dashboard)/profile/ProfileSections",
-                  params: { section: "following", userName: currentProfileData.username }
-                })}
-                onPress={() => router.push({
-                  pathname: "/(dashboard)/profile/ProfileSections",
-                  params: { section: "following", userName: currentProfileData.username }
-                })}
+                // onPress={() => router.push("/communities?type=following")}
               >
                 <Text className="font-bold text-lg text-white">
-                  {currentProfileData.following}
+                  {userData?.following.length}
                 </Text>
                 <Text className="text-gray-400 text-md">Followings</Text>
               </TouchableOpacity>
@@ -350,14 +287,7 @@ export default function PersonalProfilePage() {
             <View className="flex flex-row w-full items-center justify-center gap-2 mt-5">
               {/* My Community Button */}
               <TouchableOpacity
-                onPress={() => router.push({
-                  pathname: "/(dashboard)/profile/ProfileSections",
-                  params: { section: "myCommunity", userName: currentProfileData.username }
-                })}
-                onPress={() => router.push({
-                  pathname: "/(dashboard)/profile/ProfileSections",
-                  params: { section: "myCommunity", userName: currentProfileData.username }
-                })}
+                onPress={() => router.push("/(communities)/CommunitiesPage")}
                 className="px-4 py-2 rounded-lg border border-white"
               >
                 <Text className="text-white text-center font-bold">
@@ -368,8 +298,7 @@ export default function PersonalProfilePage() {
               {/* Dashboard Button (Gradient Border) */}
               <TouchableOpacity
                 onPress={() => router.push("/(dashboard)/profile/Dashboard")}
-                className="px-4 py-2 rounded-lg border border-white"
-                className="px-4 py-2 rounded-lg border border-white"
+                className="px-4 py-2 rounded-lg border border-white" // Use rounded-md for consistency
               >
                 <Text className="text-white text-center font-bold">
                   Dashboard
@@ -394,15 +323,12 @@ export default function PersonalProfilePage() {
               <TouchableOpacity
                 onPress={() => router.push("/(dashboard)/profile/access")}
                 className="rounded-lg overflow-hidden"
-                onPress={() => router.push("/(dashboard)/profile/access")}
-                className="rounded-lg overflow-hidden"
               >
                 <LinearGradient
                   colors={["#4400FFA6", "#FFFFFF", "#FF00004D", "#FFFFFF"]}
                   start={{ x: 0, y: 0 }}
                   end={{ x: 1, y: 1 }}
-                  className="p-[1.5px] rounded-lg flex-1"
-                  className="p-[1.5px] rounded-lg flex-1"
+                  className="p-[1.5px] rounded-lg flex-1" // Use rounded-md here
                 >
                   <View className="flex-1 px-4 py-2 rounded-lg bg-black items-center justify-center">
                     <Text className="text-white text-center font-bold">
@@ -416,29 +342,8 @@ export default function PersonalProfilePage() {
             {/* Bio */}
             <View className="mt-6 flex flex-col items-center justify-center px-4">
               <Text className="text-gray-400 text-center text-xs">
-                {currentProfileData.bio}
+                {userData?.bio}
               </Text>
-              <View className="mt-2 flex flex-row flex-wrap gap-4 text-gray-400 justify-center">
-                {currentProfileData.location !== "Not specified" && (
-                  <View className="flex-row items-center">
-                    <MapPin className="w-4 h-4 mr-1 text-gray-400" />
-                    <Text className="text-gray-400">
-                      {currentProfileData.location}
-                    </Text>
-                  </View>
-                )}
-                {currentProfileData.website && (
-                  <TouchableOpacity
-                    onPress={() => Linking.openURL(currentProfileData.website)}
-                    className="flex-row items-center"
-                  >
-                    <LinkIcon className="w-4 h-4 mr-1 text-white" />
-                    <Text className="text-white underline">
-                      {currentProfileData.website}
-                    </Text>
-                  </TouchableOpacity>
-                )}
-              </View>
             </View>
           </View>
         )}
@@ -455,7 +360,7 @@ export default function PersonalProfilePage() {
 
             <TouchableOpacity
               className={`pb-4 flex-1 items-center justify-center`}
-              onPress={() => setActiveTab("repost")}
+              onPress={() =>{ userReshareVideos(); setActiveTab("repost");}}
             >
               <Image
                 source={require("../../../assets/images/repost.png")}
@@ -478,31 +383,18 @@ export default function PersonalProfilePage() {
         {/* Video Grid */}
         {isLoadingVideos ? (
           <View className="w-full h-96 flex-1 items-center justify-center mt-20">
-            <ActivityIndicator size="large" color="#F1C40F" />
+            <ActivityIndicator size="large" color="#fff" />
           </View>
         ) : (
-          <View className="flex-1">
-            <FlatList
-              data={videos}
-              keyExtractor={(item) => item._id}
-              renderItem={renderGridItem}
-              numColumns={3}
-              contentContainerStyle={{ paddingBottom: 30, paddingHorizontal: 0 }}
-              showsVerticalScrollIndicator={false}
-              nestedScrollEnabled={true}
-            />
-          </View>
-          <View className="flex-1">
-            <FlatList
-              data={videos}
-              keyExtractor={(item) => item._id}
-              renderItem={renderGridItem}
-              numColumns={3}
-              contentContainerStyle={{ paddingBottom: 30, paddingHorizontal: 0 }}
-              showsVerticalScrollIndicator={false}
-              nestedScrollEnabled={true}
-            />
-          </View>
+          <FlatList
+            data={videos}
+            keyExtractor={(item) => item._id}
+            renderItem={renderGridItem}
+            numColumns={3}
+            contentContainerStyle={{ paddingBottom: 30, paddingHorizontal: 0 }}
+            showsVerticalScrollIndicator={false}
+            nestedScrollEnabled={true}
+          />
         )}
       </ScrollView>
     </ThemedView>

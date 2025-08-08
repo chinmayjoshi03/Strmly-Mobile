@@ -1,6 +1,6 @@
 import ThemedText from "@/components/ThemedText";
 import ThemedView from "@/components/ThemedView";
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import { useFonts } from "expo-font";
 import { Signinstyles } from "@/styles/signin";
 import {
@@ -11,13 +11,16 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { CreateProfileStyles } from "@/styles/createprofile";
 import { Link, router } from "expo-router";
 import { Alert } from "react-native";
-import { useGoogleAuth, BACKEND_API_URL, getGoogleClientId } from "@/utils/authConfig";
+import {
+  useGoogleAuth,
+  BACKEND_API_URL,
+  getGoogleClientId,
+} from "@/utils/authConfig";
 import axios from "axios";
 
-export const SignUp = () => {
+const SignUp = () => {
   const [useEmail, setUseEmail] = useState(false);
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
@@ -39,7 +42,7 @@ export const SignUp = () => {
     console.warn("Google Auth not properly configured:", error);
     googleAuth = { promptAsync: null, response: null };
   }
-  
+
   const { promptAsync, response } = googleAuth;
 
   const registerWithGoogle = async () => {
@@ -47,11 +50,11 @@ export const SignUp = () => {
       Alert.alert("Error", "Google authentication is not properly configured");
       return;
     }
-    
+
     try {
       const clientId = getGoogleClientId();
       const result = await promptAsync();
-      console.log(clientId, result);
+      // console.log(clientId, result);
 
       if (result.type === "success") {
         const id_token = result.authentication?.idToken;
@@ -90,101 +93,60 @@ export const SignUp = () => {
 
   if (!fontsLoaded) return null;
 
-  if (!useEmail) {
-    return (
-      <ThemedView style={Signinstyles.Container} className="px-4">
-        <Image
-          source={require("../../assets/images/logo2.png")}
-          className="size-20 text-white"
-        ></Image>
-        <ThemedText style={Signinstyles.Title}> Sign up for Strmly </ThemedText>
-        <Text className="text-center text-[#B0B0B0] text-sm justify-center w-60">
-          Create a profile in India&apos;s first decrentralized social media
-          platform.
-        </Text>
-        <TouchableOpacity
-          onPress={() => router.push("/Profile/CreateProfile")}
-          style={Signinstyles.button}
-        >
-          <View className="flex-row items-center justify-between w-full px-4">
-            <Image
-              source={require("../../assets/images/user.png")}
-              className="size-7"
-            />
-            <Text className="text-white text-[16px]">Use Email</Text>
-            <View></View>
-          </View>
-        </TouchableOpacity>
-        <TouchableOpacity
-          onPress={registerWithGoogle}
-          style={Signinstyles.button}
-        >
-          <View className="flex-row items-center justify-between w-full px-4">
-            <Image
-              source={require("../../assets/images/google.png")}
-              className="size-7"
-            />
-            <Text className="text-white text-[16px]">Continue with Google</Text>
-            <View></View>
-          </View>
-        </TouchableOpacity>
-        <ThemedText style={Signinstyles.Text}>
-          By continuing, you agree to Strmly&apos;s Terms of Use.
-        </ThemedText>
+  return (
+    <ThemedView style={Signinstyles.Container} className="px-4">
+      <Image
+        source={require("../../assets/images/logo2.png")}
+        className="size-20 text-white"
+      ></Image>
+      <ThemedText style={Signinstyles.Title}> Sign up for Strmly </ThemedText>
+      <Text className="text-center text-[#B0B0B0] text-sm justify-center w-60">
+        Create a profile in India&apos;s first decrentralized social media
+        platform.
+      </Text>
+      <TouchableOpacity
+        onPress={() => router.push("/Profile/CreateProfile")}
+        style={Signinstyles.button}
+      >
+        <View className="flex-row items-center justify-between w-full px-4">
+          <Image
+            source={require("../../assets/images/user.png")}
+            className="size-7"
+          />
+          <Text className="text-white text-[16px]">Use Email</Text>
+          <View></View>
+        </View>
+      </TouchableOpacity>
+      <TouchableOpacity
+        onPress={registerWithGoogle}
+        style={Signinstyles.button}
+      >
+        <View className="flex-row items-center justify-between w-full px-4">
+          <Image
+            source={require("../../assets/images/google.png")}
+            className="size-7"
+          />
+          <Text className="text-white text-[16px]">Continue with Google</Text>
+          <View></View>
+        </View>
+      </TouchableOpacity>
+      <ThemedText style={Signinstyles.Text}>
+        By continuing, you agree to Strmly&apos;s Terms of Use.
+      </ThemedText>
 
-        <Link
-          href={"/(auth)/Sign-in"}
-          className="mt-14"
-          style={Signinstyles.Text16R}
-        >
-          Already have an account?
-          <ThemedText style={Signinstyles.Text16M}> Sign in</ThemedText>
-        </Link>
-      </ThemedView>
-    );
-  } else {
-    return (
-      <ThemedView style={Signinstyles.Container} className="px-4">
-        <Image
-          source={require("../../assets/images/logo2.png")}
-          className="size-14"
-        ></Image>
-        <ThemedText style={Signinstyles.Title}> Sign in to Strmly </ThemedText>
-
-        <ThemedText style={Signinstyles.Text}>
-          Welcome back to India&apos;s first decentralized social media
-          platform.
-        </ThemedText>
-        <TextInput
-          style={CreateProfileStyles.Input}
-          placeholder="username"
-          className="placeholder:text-[#B0B0B0]"
-          value={username}
-          onChangeText={setUsername}
-        />
-        <TextInput
-          style={CreateProfileStyles.Input}
-          placeholder="Password"
-          className="placeholder:text-[#B0B0B0]"
-          value={password}
-          onChangeText={setPassword}
-          secureTextEntry
-        />
-        <TouchableOpacity style={CreateProfileStyles.button}>
-          <Text>Sign in</Text>
-        </TouchableOpacity>
-        <ThemedText style={Signinstyles.Text16R}>
-          <ThemedText style={Signinstyles.Text16M}>
-            Forgotten password?
-          </ThemedText>
-        </ThemedText>
-      </ThemedView>
-    );
-  }
+      <Link
+        href={"/(auth)/Sign-in"}
+        className="mt-14"
+        style={Signinstyles.Text16R}
+      >
+        Already have an account?
+        <ThemedText style={Signinstyles.Text16M}> Sign in</ThemedText>
+      </Link>
+    </ThemedView>
+  );
 };
 
-
-// // export default SignUp;
+export default SignUp;
 // import * as React from "react";
 // import { Button, Platform, View, Text, StyleSheet } from "react-native";
 // import * as WebBrowser from "expo-web-browser";

@@ -5,18 +5,16 @@ import { GiftType } from "../VideoFeed";
 type ActionModalProps = {
   isVisible: boolean;
   onClose: (value: boolean) => void;
-  message: any;
-  giftData: GiftType | null;
-  setGiftData: (value: null) => void;
-  giftMessage: (value: null) => void;
+  amount: number | null;
+  creator: GiftType | null;
+  giftMessage: (value: number | null) => void;
 };
 
 const GiftingMessage = ({
   isVisible,
   onClose,
-  message,
-  giftData,
-  setGiftData,
+  amount,
+  creator,
   giftMessage,
 }: ActionModalProps) => {
   return (
@@ -26,7 +24,6 @@ const GiftingMessage = ({
       visible={isVisible}
       onRequestClose={() => {
         onClose(false);
-        setGiftData(null);
         giftMessage(null);
       }} // Allows closing with the back button on Android
     >
@@ -35,34 +32,40 @@ const GiftingMessage = ({
         style={styles.backdrop}
         onPress={() => {
           onClose(false);
-          setGiftData(null);
           giftMessage(null);
         }}
       >
-        <View className="rounded-full bg-gray-500">
-          <Image
-            source={
-              giftData?.creator.profile_photo
-                ? { uri: giftData?.creator.profile_photo }
-                : require("../../../../assets/images/user.png")
-            }
-            className="size-10 rounded-full"
-          />
-        </View>
+        <View className="bg-black items-center justify-center rounded-2xl px-2 py-6">
+          <View className="rounded-full bg-gray-500">
+            <Image
+              source={
+                creator?.profile_photo
+                  ? { uri: creator.profile_photo }
+                  : require("../../../../assets/images/user.png")
+              }
+              className="size-16 rounded-full"
+            />
+          </View>
 
-        <Pressable style={styles.modalContainer}>
-          <Text className="text-white text-sm text-center">
-            Successfully gifted ₹{message.amount} to {message.to}
-          </Text>
-        </Pressable>
+          {creator?.name && (
+            <Text className="text-white text-2xl font-bold text-center mt-5">
+              {creator.name}
+            </Text>
+          )}
 
-        <View className="items-center justify-center gap-5">
-          <Text className="text-white text-3xl text-center">
-            ₹{message.amount}
-          </Text>
-          <Image
-            source={require("../../../../assets/images/successGift.png")}
-          />
+          <Pressable style={styles.modalContainer}>
+            <Text className="text-white text-lg text-center">
+              Successfully gifted ₹{amount} to {creator?.username}
+            </Text>
+          </Pressable>
+
+          <View className="flex-row items-center justify-center gap-5">
+            <Text className="text-white text-6xl text-center">₹{amount}</Text>
+            <Image
+              source={require("../../../../assets/images/successGift.png")}
+              className="size-10"
+            />
+          </View>
         </View>
       </Pressable>
     </Modal>
@@ -72,7 +75,7 @@ const GiftingMessage = ({
 const styles = StyleSheet.create({
   backdrop: {
     flex: 1,
-    backgroundColor: "#B0B0B0BB",
+    backgroundColor: "#000000A8",
     justifyContent: "center",
     alignItems: "center",
     paddingHorizontal: 20,

@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { View, Pressable, StyleSheet, LayoutChangeEvent } from "react-native";
 import { VideoPlayer } from "expo-video";
 
-const PROGRESS_BAR_HEIGHT = 2;
+const PROGRESS_BAR_HEIGHT = 3;
 
 type Props = {
   player: VideoPlayer;
@@ -51,12 +51,10 @@ const VideoProgressBar = ({ player, isActive }: Props) => {
 
   const duration = player.duration ?? 0;
   const progress = duration > 0 ? (currentTime / duration) * 100 : 0;
-  const showProgressBar = duration > 0;
-
-  // Don't render anything if there's no duration (e.g., video is still loading)
-  if (!showProgressBar) {
-    return null; 
-  }
+  const showProgressBar = duration > 0; 
+  
+  // Don't render anything if there's no duration (e.g., video is still loading) 
+  if (!showProgressBar) return null;
 
   return (
     <Pressable
@@ -72,8 +70,6 @@ const VideoProgressBar = ({ player, isActive }: Props) => {
 const styles = StyleSheet.create({
   progressBarContainer: {
     width: "100%",
-    position: "absolute",
-    bottom: 0,
     height: PROGRESS_BAR_HEIGHT,
     backgroundColor: "rgba(255, 255, 255, 0.3)",
     zIndex: 10, // Ensure it's visible on top of other content
