@@ -69,7 +69,9 @@ const VideoPlayer = ({ videoData, isActive }: Props) => {
     if (isActive) {
       // This video is visible and playing
       setActivePlayer(player);
-      player.play();
+      // Use the smart play function to handle audio interaction logic
+      const { smartPlay } = usePlayerStore.getState();
+      smartPlay();
     } else {
       // This video is not visible, pause and reset
       player.pause();
@@ -125,9 +127,9 @@ const VideoPlayer = ({ videoData, isActive }: Props) => {
             <VideoProgressBar player={player} isActive={isActive}/>
           </View>
 
-          <View className="z-10 absolute top-4 left-5">
+          <View className="z-10 absolute top-16 left-5">
             <Pressable
-              onPress={() => router.push("/(dashboard)/wallet/wallet")}
+              onPress={() => router.push("/(dashboard)/wallet")}
             >
               <Image
                 source={require("../../../../assets/images/Wallet.png")}
