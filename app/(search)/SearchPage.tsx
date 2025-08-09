@@ -161,8 +161,20 @@ const SearchScreen: React.FC = () => {
 
     // Render account items like followers/following in profile
     const renderAccountItem = ({ item }: { item: any }) => {
-        const profilePhoto = item.profile_photo || item.profile_picture || `https://api.dicebear.com/7.x/identicon/svg?seed=${item.username}`;
+        const userName = item.username || item.name || 'user';
+        const profilePhoto = (item.profile_photo && item.profile_photo.trim() !== '') 
+            ? item.profile_photo 
+            : (item.profile_picture && item.profile_picture.trim() !== '') 
+            ? item.profile_picture 
+            : `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(userName)}&backgroundColor=random`;
         const userId = item._id || item.id;
+        
+        console.log('🖼️ Account image data:', {
+            username: userName,
+            profile_photo: item.profile_photo,
+            profile_picture: item.profile_picture,
+            finalUrl: profilePhoto
+        });
 
         return (
             <TouchableOpacity
@@ -179,6 +191,9 @@ const SearchScreen: React.FC = () => {
                     <Image
                         source={{ uri: profilePhoto }}
                         style={styles.accountAvatar}
+                        onError={() => {
+                            console.log('Failed to load account profile photo:', item.username);
+                        }}
                     />
                     <View style={styles.accountInfo}>
                         <Text style={styles.accountName}>{item.username}</Text>
@@ -199,8 +214,17 @@ const SearchScreen: React.FC = () => {
 
     // Render community items like communities in profile
     const renderCommunityItem = ({ item }: { item: any }) => {
-        const profilePhoto = item.profile_photo || `https://api.dicebear.com/7.x/identicon/svg?seed=${item.name}`;
+        const communityName = item.name || 'community';
+        const profilePhoto = (item.profile_photo && item.profile_photo.trim() !== '') 
+            ? item.profile_photo 
+            : `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(communityName)}&backgroundColor=random`;
         const communityId = item._id || item.id;
+        
+        console.log('🖼️ Community image data:', {
+            name: communityName,
+            profile_photo: item.profile_photo,
+            finalUrl: profilePhoto
+        });
 
         return (
             <TouchableOpacity
@@ -217,6 +241,9 @@ const SearchScreen: React.FC = () => {
                     <Image
                         source={{ uri: profilePhoto }}
                         style={styles.communityAvatar}
+                        onError={() => {
+                            console.log('Failed to load community profile photo:', item.name);
+                        }}
                     />
                     <View style={styles.communityInfo}>
                         <Text style={styles.communityName}>{item.name}</Text>

@@ -5,7 +5,7 @@ import Dropdown from '../components/Dropdown';
 import TimePicker from '../components/TimePicker';
 import ContinueButton from '../components/ContinueButton';
 import { FinalStageProps } from '../types';
-import { genreOptions } from '../data/dropdownOptions';
+import { getGenreOptions } from '../data/dropdownOptions';
 
 /**
  * Final Stage Screen
@@ -41,6 +41,9 @@ const FinalStageScreen: React.FC<FinalStageProps> = ({
   isEditingDraft
 }) => {
   const [genreDropdownOpen, setGenreDropdownOpen] = useState(false);
+
+  // Get genre options based on selected format
+  const genreOptions = getGenreOptions(videoDetails.format);
 
   // Handle genre selection
   const handleGenreSelect = (genre: string) => {

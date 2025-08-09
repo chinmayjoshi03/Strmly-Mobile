@@ -19,7 +19,7 @@ const ProfileTopbar = ({ hashtag, name, isMore=true }: ProfileTopbarProps) => {
 
   const handleLogout = async () => {
     try {
-      const response = await fetch(`${CONFIG.API_BASE_URL}/api/v1/auth/logout`, {
+      const response = await fetch(`${CONFIG.API_BASE_URL}/auth/logout`, {
         method: "GET",
         headers: {
           "Content-Type": "application/json",

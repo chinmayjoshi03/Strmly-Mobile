@@ -80,7 +80,7 @@ export default function AccessPage() {
     setIsLoading(true);
     try {
       const response = await fetch(
-        `${CONFIG.API_BASE_URL}/api/v1/user/purchased-access`,
+        `${CONFIG.API_BASE_URL}/user/purchased-access`,
         {
           method: "GET",
           headers: {
@@ -120,8 +120,8 @@ export default function AccessPage() {
             setIsRemoving(id);
             try {
               const endpoint = type === 'asset'
-                ? `${CONFIG.API_BASE_URL}/api/v1/user/purchased-access/asset/${id}`
-                : `${CONFIG.API_BASE_URL}/api/v1/user/purchased-access/creator-pass/${id}`;
+                ? `${CONFIG.API_BASE_URL}/user/purchased-access/asset/${id}`
+                : `${CONFIG.API_BASE_URL}/user/purchased-access/creator-pass/${id}`;
 
               const response = await fetch(endpoint, {
                 method: "DELETE",

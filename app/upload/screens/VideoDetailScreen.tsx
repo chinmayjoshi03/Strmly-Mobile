@@ -104,9 +104,6 @@ const VideoDetailScreen: React.FC<VideoDetailProps> = ({
         <Text className="text-white text-xl font-medium">
           {isEditingDraft ? 'Edit Draft' : 'Video detail'}
         </Text>
-        <Text className="text-white text-xl font-medium">
-          {isEditingDraft ? 'Edit Draft' : 'Video detail'}
-        </Text>
         <View className="w-6" />
       </View>
 
@@ -136,7 +133,7 @@ const VideoDetailScreen: React.FC<VideoDetailProps> = ({
             </View>
           ) : null}
           <Dropdown
-            value={formData.community}
+            value={formData.community ? communityOptions.find(option => option.value === formData.community)?.label || formData.community : null}
             placeholder="Select"
             options={communityOptions}
             onSelect={handleCommunitySelect}

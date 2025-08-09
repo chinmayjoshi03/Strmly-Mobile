@@ -15,7 +15,8 @@ import {
   LinkIcon,
   HeartIcon,
   IndianRupee,
-  PaperclipIcon, // Added for the gradient button
+  PaperclipIcon,
+  ExternalLink,
 } from "lucide-react-native";
 import { useAuthStore } from "@/store/useAuthStore";
 import { useThumbnailsGenerate } from "@/utils/useThumbnailGenerator"; // Ensure this path is correct
@@ -24,11 +25,13 @@ import ProfileTopbar from "@/components/profileTopbar"; // Assuming this is the 
 import { LinearGradient } from "expo-linear-gradient"; // For the gradient border
 import Constants from "expo-constants";
 import { useRoute } from "@react-navigation/native";
+import { router } from "expo-router";
 
 export default function PublicProfilePageWithId() {
   const [activeTab, setActiveTab] = useState("long");
   const [userData, setUserData] = useState<any>(null);
   const [userError, setUserError] = useState<string | null>(null);
+  const [communities, setCommunities] = useState<any[]>([]);
 
   const [videos, setVideos] = useState<any[]>([]);
 
@@ -118,9 +121,20 @@ export default function PublicProfilePageWithId() {
 
         setUserData(data.user);
         setIsFollowing(data.user?.isBeingFollowed)
-        console.log(data.user);
+        console.log("User data:", data.user);
+        console.log("User details:", data.user?.userDetails);
+        console.log("My communities:", data.user?.userDetails?.my_communities);
         setUserError(null);
         if (data.user?.tags && data.user.tags.length > 2) setShowMore(true);
+        
+        // Set communities from user data
+        if (data.user?.userDetails?.my_communities) {
+          console.log("Setting communities:", data.user.userDetails.my_communities);
+          setCommunities(data.user.userDetails.my_communities);
+        } else {
+          console.log("No communities found in user data");
+          setCommunities([]);
+        }
       } catch (error) {
         console.log(error);
         setUserError(
@@ -398,16 +412,103 @@ export default function PublicProfilePageWithId() {
                       </Text>
                     </TouchableOpacity>
                   )}
-                  {/* {currentProfileData.joinedDate !== "N/A" && (
-                  <View className="items-center">
-                    <Calendar className="text-gray-400" />
-                    <Text className="text-gray-400">
-                      Joined {currentProfileData.joinedDate}
-                    </Text>
-                  </View>
-                )} */}
                 </View>
               </View>
+
+              {/* Social Media Links */}
+              {userData?.social_media_links && (
+                <View className="mt-4 flex flex-row justify-center gap-4 flex-wrap">
+                  {userData.social_media_links.facebook && (
+                    <TouchableOpacity
+                      onPress={() => Linking.openURL(userData.social_media_links.facebook)}
+                      className="w-12 h-12 rounded-lg overflow-hidden"
+                      style={{ backgroundColor: '#1877F2' }}
+                    >
+                      <View className="w-full h-full items-center justify-center">
+                        <Text className="text-white text-lg font-bold">f</Text>
+                      </View>
+                    </TouchableOpacity>
+                  )}
+                  {userData.social_media_links.twitter && (
+                    <TouchableOpacity
+                      onPress={() => Linking.openURL(userData.social_media_links.twitter)}
+                      className="w-12 h-12 rounded-lg overflow-hidden"
+                      style={{ backgroundColor: '#1DA1F2' }}
+                    >
+                      <View className="w-full h-full items-center justify-center">
+                        <Text className="text-white text-lg">𝕏</Text>
+                      </View>
+                    </TouchableOpacity>
+                  )}
+                  {userData.social_media_links.instagram && (
+                    <TouchableOpacity
+                      onPress={() => Linking.openURL(userData.social_media_links.instagram)}
+                      className="w-12 h-12 rounded-lg overflow-hidden"
+                      style={{ backgroundColor: '#E4405F' }}
+                    >
+                      <View className="w-full h-full items-center justify-center">
+                        <Text className="text-white text-lg">📷</Text>
+                      </View>
+                    </TouchableOpacity>
+                  )}
+                  {userData.social_media_links.snapchat && (
+                    <TouchableOpacity
+                      onPress={() => Linking.openURL(userData.social_media_links.snapchat)}
+                      className="w-12 h-12 rounded-lg overflow-hidden"
+                      style={{ backgroundColor: '#FFFC00' }}
+                    >
+                      <View className="w-full h-full items-center justify-center">
+                        <Text className="text-black text-lg">👻</Text>
+                      </View>
+                    </TouchableOpacity>
+                  )}
+                  {userData.social_media_links.youtube && (
+                    <TouchableOpacity
+                      onPress={() => Linking.openURL(userData.social_media_links.youtube)}
+                      className="w-12 h-12 rounded-lg overflow-hidden"
+                      style={{ backgroundColor: '#FF0000' }}
+                    >
+                      <View className="w-full h-full items-center justify-center">
+                        <Text className="text-white text-lg">▶</Text>
+                      </View>
+                    </TouchableOpacity>
+                  )}
+                </View>
+              )}
+
+              {/* Communities as Hashtags */}
+              {communities.length > 0 && (
+                <View className="flex flex-row flex-wrap w-full items-center justify-center gap-2 mt-5">
+                  {communities.slice(0, 2).map((community) => (
+                    <TouchableOpacity
+                      key={community._id}
+                      onPress={() => {
+                        router.push({
+                          pathname: "/(dashboard)/communities/public/[id]",
+                          params: { id: community._id }
+                        });
+                      }}
+                      className="px-4 py-2 border border-gray-400 rounded-[8px]"
+                    >
+                      <Text className="text-white">#{community.name}</Text>
+                    </TouchableOpacity>
+                  ))}
+                  
+                  {communities.length > 2 && (
+                    <TouchableOpacity
+                      onPress={() => {
+                        router.push({
+                          pathname: "/(dashboard)/profile/ProfileSections",
+                          params: { section: "myCommunity", userName: userData?.username }
+                        });
+                      }}
+                      className="px-4 py-2 border border-gray-400 rounded-[8px]"
+                    >
+                      <Text className="text-white">More</Text>
+                    </TouchableOpacity>
+                  )}
+                </View>
+              )}
             </View>
           )}
 

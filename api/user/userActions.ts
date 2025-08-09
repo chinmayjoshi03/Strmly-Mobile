@@ -126,6 +126,45 @@ export const getUserProfile = async (token: string) => {
 };
 
 
+// Dashboard API
+export const getUserDashboard = async (token: string) => {
+  try {
+    const url = `${API_BASE_URL}/user/dashboard`;
+    console.log(`Fetching user dashboard from: ${url}`);
+    
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+    });
+
+    const responseText = await response.text();
+    console.log('Dashboard raw response:', responseText);
+
+    if (!response.ok) {
+      let errorMessage = "Failed to get dashboard data";
+      try {
+        const error = JSON.parse(responseText);
+        errorMessage = error.message || errorMessage;
+      } catch (parseError) {
+        errorMessage = `HTTP ${response.status}: ${responseText}`;
+      }
+      throw new Error(errorMessage);
+    }
+
+    try {
+      return JSON.parse(responseText);
+    } catch (parseError) {
+      throw new Error(`Invalid JSON response: ${responseText}`);
+    }
+  } catch (error) {
+    console.error('getUserDashboard error:', error);
+    throw error;
+  }
+};
+
 //Earnings API
 export const getUserEarnings = async (token: string) => {
   try {

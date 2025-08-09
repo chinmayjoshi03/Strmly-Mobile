@@ -91,7 +91,7 @@ const StrmlyStudio = () => {
                 return;
             }
 
-            const response = await fetch(`${CONFIG.API_BASE_URL}/api/v1/drafts/${draftId}`, {
+            const response = await fetch(`${CONFIG.API_BASE_URL}/drafts/${draftId}`, {
                 method: 'GET',
                 headers: {
                     'Authorization': `Bearer ${token}`,

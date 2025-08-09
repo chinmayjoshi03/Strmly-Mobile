@@ -63,14 +63,24 @@ export const useSearch = (): UseSearchReturn => {
         totalResults: data.totalResults,
         videos: data.results?.videos?.length || 0,
         users: data.results?.users?.length || 0,
+        communities: data.results?.communities?.length || 0,
         series: data.results?.series?.length || 0
       });
+
+      // Log community data structure for debugging
+      if (data.results?.communities?.length > 0) {
+        console.log('🏘️ Community search results:', data.results.communities.map(c => ({
+          name: c.name,
+          profile_photo: c.profile_photo,
+          founder: c.founder
+        })));
+      }
 
       // Handle the actual API response structure based on your Postman response
       setSearchResults({
         videos: data.results?.videos || [],
         accounts: data.results?.users || [],
-        communities: data.results?.series || []
+        communities: data.results?.communities || []
       });
 
     } catch (err) {

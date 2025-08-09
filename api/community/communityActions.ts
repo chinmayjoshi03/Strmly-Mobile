@@ -33,11 +33,11 @@ export class CommunityAPI {
     const headers: any = {
       'Authorization': `Bearer ${token}`,
     };
-    
+
     if (!isFormData) {
       headers['Content-Type'] = 'application/json';
     }
-    
+
     return headers;
   }
 
@@ -47,13 +47,13 @@ export class CommunityAPI {
     communityData: CreateCommunityRequest
   ): Promise<CreateCommunityResponse> {
     const formData = new FormData();
-    
+
     formData.append('name', communityData.name);
     if (communityData.bio) {
       formData.append('bio', communityData.bio);
     }
     formData.append('type', communityData.type);
-    
+
     if (communityData.type === 'paid') {
       if (communityData.amount) {
         formData.append('amount', communityData.amount.toString());
@@ -62,7 +62,7 @@ export class CommunityAPI {
         formData.append('fee_description', communityData.fee_description);
       }
     }
-    
+
     if (communityData.imageFile) {
       formData.append('imageFile', communityData.imageFile);
     }
@@ -282,19 +282,94 @@ export class CommunityAPI {
     return response.json();
   }
 
+  // Update community settings (creator limit, fee, etc.)
+  static async updateCommunitySettings(
+    token: string,
+    communityId: string,
+    settings: {
+      creator_limit?: number;
+      community_fee_type?: 'free' | 'paid';
+      community_fee_amount?: number;
+      community_fee_description?: string;
+    }
+  ): Promise<{ message: string; community: Community }> {
+    console.log('📤 Updating community settings:', { communityId, settings });
+
+    const response = await fetch(
+      `${CONFIG.API_BASE_URL}/community/update-settings`,
+      {
+        method: 'PUT',
+        headers: CommunityAPI.getHeaders(token),
+        body: JSON.stringify({ communityId, ...settings }),
+      }
+    );
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('❌ Update community settings error response:', errorText);
+      throw new Error(`Failed to update community settings: ${response.status} - ${errorText}`);
+    }
+
+    return response.json();
+  }
+
   // Get community analytics
   static async getCommunityAnalytics(
     token: string,
     communityId: string
   ): Promise<{
-    totalFollowers: number;
-    totalCreators: number;
-    totalVideos: number;
-    communityFee: number;
-    recentActivity: any[];
+    success: boolean;
+    message: string;
+    community: {
+      id: string;
+      name: string;
+      founder: any;
+      createdAt: string;
+    };
+    analytics: {
+      followers: {
+        total: number;
+        growth: any;
+      };
+      creators: {
+        total: number;
+        limit: number;
+        utilizationPercentage: number;
+      };
+      content: {
+        totalVideos: number;
+        totalSeries: number;
+        totalContent: number;
+      };
+      engagement: {
+        totalLikes: number;
+        totalViews: number;
+        totalShares: number;
+        averageLikesPerVideo: number;
+      };
+      earnings: {
+        communityFees: {
+          totalEarned: number;
+          totalCollected: number;
+          totalTransactions: number;
+        };
+        contentSales: {
+          totalEarnings: number;
+          totalRevenue: number;
+          totalSales: number;
+        };
+        totalEarnings: number;
+        totalRevenue: number;
+      };
+      growth: any;
+      topPerforming: {
+        videos: any[];
+        series: any[];
+      };
+    };
   }> {
     const response = await fetch(
-      `${CONFIG.API_BASE_URL}/community/profile/${communityId}`,
+      `${CONFIG.API_BASE_URL}/community-analytics/${communityId}`,
       {
         method: 'GET',
         headers: CommunityAPI.getHeaders(token),
@@ -307,14 +382,7 @@ export class CommunityAPI {
       throw new Error(`Failed to get community analytics: ${response.status} - ${errorText}`);
     }
 
-    const data = await response.json();
-    return {
-      totalFollowers: data.totalFollowers || 0,
-      totalCreators: data.totalCreators || 0,
-      totalVideos: data.totalVideos || 0,
-      communityFee: data.community_fee_amount || 0,
-      recentActivity: [] // This would need a separate endpoint for activity logs
-    };
+    return response.json();
   }
 
   // Get user communities
@@ -394,6 +462,7 @@ export const communityActions = {
   renameCommunity: CommunityAPI.renameCommunity,
   updateCommunityBio: CommunityAPI.updateCommunityBio,
   updateCommunityPhoto: CommunityAPI.updateCommunityPhoto,
+  updateCommunitySettings: CommunityAPI.updateCommunitySettings,
   getCommunityAnalytics: CommunityAPI.getCommunityAnalytics,
   getUserCommunities: CommunityAPI.getUserCommunities,
   getTrendingVideos: CommunityAPI.getTrendingVideos,

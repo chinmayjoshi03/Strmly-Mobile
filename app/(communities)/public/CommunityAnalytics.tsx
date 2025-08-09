@@ -20,6 +20,10 @@ interface CommunityStats {
     totalCreators?: number;
     totalVideos?: number;
     totalFollowers?: number;
+    totalLikes?: number;
+    totalViews?: number;
+    totalShares?: number;
+    totalEarnings?: number;
 }
 
 interface RecentActivity {
@@ -64,7 +68,7 @@ const CommunityAnalytics = () => {
         try {
             // First, get user's communities to get a real community ID
             const userCommunitiesResponse = await fetch(
-                `${CONFIG.API_BASE_URL}/api/v1/community/user-communities?type=created`,
+                `${CONFIG.API_BASE_URL}/community/user-communities?type=created`,
                 {
                     headers: { 'Authorization': `Bearer ${token}` }
                 }
@@ -79,20 +83,43 @@ const CommunityAnalytics = () => {
                     const firstCommunity = userCommunities[0];
                     
                     try {
-                        // Use the real community analytics API function
-                        const analyticsData = await communityActions.getCommunityAnalytics(token, firstCommunity._id);
-                        setStats({
-                            communityFee: analyticsData.communityFee,
-                            totalCreators: analyticsData.totalCreators,
-                            totalVideos: analyticsData.totalVideos,
-                            totalFollowers: analyticsData.totalFollowers
-                        });
+                        // Use the correct community analytics API function
+                        const analyticsResponse = await communityActions.getCommunityAnalytics(token, firstCommunity._id);
                         
-                        // Only set recent activity if there is actual activity
-                        if (analyticsData.recentActivity && analyticsData.recentActivity.length > 0) {
-                            setRecentActivity(analyticsData.recentActivity);
+                        if (analyticsResponse.success) {
+                            const analytics = analyticsResponse.analytics;
+                            setStats({
+                                communityFee: analytics.earnings.communityFees.totalEarned,
+                                totalCreators: analytics.creators.total,
+                                totalVideos: analytics.content.totalContent,
+                                totalFollowers: analytics.followers.total,
+                                totalLikes: analytics.engagement.totalLikes,
+                                totalViews: analytics.engagement.totalViews,
+                                totalShares: analytics.engagement.totalShares,
+                                totalEarnings: analytics.earnings.totalEarnings
+                            });
+                            
+                            // Set recent activity from top performing content
+                            const recentActivities: RecentActivity[] = [];
+                            
+                            // Add top videos as recent activity
+                            analytics.topPerforming.videos.forEach((video: any, index: number) => {
+                                if (index < 3) { // Show only top 3
+                                    recentActivities.push({
+                                        id: video._id,
+                                        user: {
+                                            name: video.created_by?.username || 'Unknown',
+                                            avatar: video.created_by?.profile_photo || ''
+                                        },
+                                        action: `uploaded "${video.name}" - ${video.views} views, ${video.likes} likes`,
+                                        timestamp: new Date(video.createdAt || Date.now()).toLocaleDateString()
+                                    });
+                                }
+                            });
+                            
+                            setRecentActivity(recentActivities);
                         } else {
-                            setRecentActivity([]); // Don't show anything if no activity
+                            throw new Error(analyticsResponse.message || 'Failed to get analytics');
                         }
                     } catch (apiError) {
                         console.log('Analytics API call failed:', apiError);
@@ -242,7 +269,7 @@ const CommunityAnalytics = () => {
                             </Text>
 
                             {/* Stats Content */}
-                            {activeTab === 'non-revenue' && (
+                            {activeTab === 'non-revenue' ? (
                                 <View className="space-y-2">
                                     <View className="flex-row justify-between items-center">
                                         <Text className="text-gray-400 text-base" style={{ fontFamily: 'Inter' }}>Total Videos</Text>
@@ -251,6 +278,21 @@ const CommunityAnalytics = () => {
                                     <View className="flex-row justify-between items-center">
                                         <Text className="text-gray-400 text-base" style={{ fontFamily: 'Inter' }}>Total followers</Text>
                                         <Text className="text-white text-base" style={{ fontFamily: 'Inter' }}>{stats ? formatNumber(stats.totalFollowers || 0) : '0'}</Text>
+                                    </View>
+                                    <View className="flex-row justify-between items-center">
+                                        <Text className="text-gray-400 text-base" style={{ fontFamily: 'Inter' }}>Total likes</Text>
+                                        <Text className="text-white text-base" style={{ fontFamily: 'Inter' }}>{stats ? formatNumber(stats.totalLikes || 0) : '0'}</Text>
+                                    </View>
+                                    <View className="flex-row justify-between items-center">
+                                        <Text className="text-gray-400 text-base" style={{ fontFamily: 'Inter' }}>Total views</Text>
+                                        <Text className="text-white text-base" style={{ fontFamily: 'Inter' }}>{stats ? formatNumber(stats.totalViews || 0) : '0'}</Text>
+                                    </View>
+                                </View>
+                            ) : (
+                                <View className="space-y-2">
+                                    <View className="flex-row justify-between items-center">
+                                        <Text className="text-gray-400 text-base" style={{ fontFamily: 'Inter' }}>Total earnings</Text>
+                                        <Text className="text-white text-base" style={{ fontFamily: 'Inter' }}>₹{stats ? (stats.totalEarnings || 0) : '0'}</Text>
                                     </View>
                                 </View>
                             )}

@@ -133,7 +133,11 @@ export default function PublicCommunityPage() {
           throw new Error(data.message || "Failed to fetch community profile");
         }
 
-        console.log(data);
+        console.log('🏘️ Community data received:', {
+          name: data.name,
+          profile_photo: data.profile_photo,
+          founder: data.founder
+        });
         setCommunityData(data);
       } catch (error) {
         console.log(error);
@@ -210,9 +214,21 @@ export default function PublicCommunityPage() {
               <View className="size-24 rounded-full border border-white overflow-hidden">
                 <Image
                   source={{
-                    uri: communityData?.profile_photo || profileData.image,
+                    uri: (communityData?.profile_photo && communityData.profile_photo.trim() !== '')
+                      ? communityData.profile_photo
+                      : `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(communityData?.name || 'community')}&backgroundColor=random`,
                   }}
                   className="w-full h-full object-cover rounded-full"
+                  onError={(error) => {
+                    console.log('🖼️ Failed to load community profile photo:', {
+                      name: communityData?.name,
+                      profile_photo: communityData?.profile_photo,
+                      error: error.nativeEvent.error
+                    });
+                  }}
+                  onLoad={() => {
+                    console.log('🖼️ Community profile photo loaded successfully');
+                  }}
                 />
               </View>
               <View className="flex flex-row items-center justify-center w-full mt-2">

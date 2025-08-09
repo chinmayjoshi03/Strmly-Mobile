@@ -10,7 +10,7 @@ import {
 } from 'react-native';
 import { ChevronLeft, ChevronDown } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useAuthStore } from '@/store/useAuthStore';
 import { useDashboard } from './_components/useDashboard';
 import { testApiConnection } from '@/utils/apiTest';
@@ -30,7 +30,6 @@ interface RevenueBreakdown {
     estimateRevenue: number;
     contentSubscription: number;
     creatorPass: number;
-    commentEarning: number;
     giftingEarning: number;
     communityFee: number;
     strmlyAds: number;
@@ -49,7 +48,10 @@ interface RecentActivity {
 }
 
 const Dashboard = () => {
-    const [activeTab, setActiveTab] = useState<'non-revenue' | 'revenue'>('non-revenue');
+    const params = useLocalSearchParams();
+    const initialTab = params.tab === 'revenue' ? 'revenue' : 'non-revenue';
+    
+    const [activeTab, setActiveTab] = useState<'non-revenue' | 'revenue'>(initialTab);
     const [timeFilter, setTimeFilter] = useState('Last 30 Days');
     const [showTimeDropdown, setShowTimeDropdown] = useState(false);
     const [recentActivity, setRecentActivity] = useState<RecentActivity[]>([]);
@@ -206,10 +208,6 @@ const Dashboard = () => {
                                         <Text className="text-white text-base" style={{ fontFamily: 'Inter' }}>₹{revenueBreakdown?.creatorPass || '0'}</Text>
                                     </View>
                                     <View className="flex-row justify-between items-center">
-                                        <Text className="text-gray-400 text-base" style={{ fontFamily: 'Inter' }}>Comment earning</Text>
-                                        <Text className="text-white text-base" style={{ fontFamily: 'Inter' }}>₹{revenueBreakdown?.commentEarning || '0'}</Text>
-                                    </View>
-                                    <View className="flex-row justify-between items-center">
                                         <Text className="text-gray-400 text-base" style={{ fontFamily: 'Inter' }}>Gifting earning</Text>
                                         <Text className="text-white text-base" style={{ fontFamily: 'Inter' }}>₹{revenueBreakdown?.giftingEarning || '0'}</Text>
                                     </View>
@@ -253,36 +251,38 @@ const Dashboard = () => {
                             )}
                         </LinearGradient>
 
-                        {/* Recent Activity - Hidden until API integration */}
-                        {/* <View className="mb-6">
-                            <Text className="text-white text-2xl font-semibold mb-4">Recent</Text>
-                            <View className="space-y-4">
-                                {recentActivity.length > 0 ? (
-                                    recentActivity.map((activity) => (
-                                        <View key={activity.id} className="flex-row items-center">
-                                            <Image
-                                                source={{ uri: activity.user.avatar }}
-                                                className="w-10 h-10 rounded-full mr-3"
-                                            />
-                                            <View className="flex-1">
-                                                <Text className="text-white text-lg">
-                                                    <Text className="font-semibold">{activity.user.name}</Text>
-                                                    <Text className="text-gray-400"> {getActionText(activity)}</Text>
-                                                </Text>
-                                                <Text className="text-gray-500 text-base">{activity.timestamp}</Text>
+                        {/* Recent Revenue History - Only show in revenue tab */}
+                        {activeTab === 'revenue' && (
+                            <View className="mb-6">
+                                <Text className="text-white text-2xl font-semibold mb-4">Recent</Text>
+                                <View className="space-y-4">
+                                    {recentActivity.length > 0 ? (
+                                        recentActivity.map((activity) => (
+                                            <View key={activity.id} className="flex-row items-center">
+                                                <Image
+                                                    source={{ uri: activity.user.avatar }}
+                                                    className="w-10 h-10 rounded-full mr-3"
+                                                />
+                                                <View className="flex-1">
+                                                    <Text className="text-white text-lg">
+                                                        <Text className="font-semibold">{activity.user.name}</Text>
+                                                        <Text className="text-gray-400"> {getActionText(activity)}</Text>
+                                                    </Text>
+                                                    <Text className="text-gray-500 text-base">{activity.timestamp}</Text>
+                                                </View>
+                                                {activity.amount && (
+                                                    <Text className="text-white text-lg font-medium">
+                                                        +₹{activity.amount.toFixed(1)}
+                                                    </Text>
+                                                )}
                                             </View>
-                                            {activeTab === 'revenue' && activity.amount && (
-                                                <Text className="text-white text-lg font-medium">
-                                                    +₹{activity.amount.toFixed(1)}
-                                                </Text>
-                                            )}
-                                        </View>
-                                    ))
-                                ) : (
-                                    <Text className="text-gray-400 text-base">No recent activity to display</Text>
-                                )}
+                                        ))
+                                    ) : (
+                                        <Text className="text-gray-400 text-base">No recent revenue activity</Text>
+                                    )}
+                                </View>
                             </View>
-                        </View> */}
+                        )}
                     </>
                 )}
             </ScrollView>

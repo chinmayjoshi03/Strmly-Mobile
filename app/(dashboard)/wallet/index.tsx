@@ -20,6 +20,7 @@ import TotalWalletHistory from "./_components/TotalWalletHistory";
 import RevenueHistory from "./_components/RevenueHistory";
 import { useWallet } from "./_components/useWallet";
 import { useAuthStore } from "@/store/useAuthStore";
+import { useDashboard } from "../profile/_components/useDashboard";
 
 const { height } = Dimensions.get("screen");
 
@@ -38,6 +39,9 @@ const WalletPage = () => {
     requestWithdrawal,
     clearError,
   } = useWallet(token || "");
+
+  // Get revenue data from dashboard to ensure consistency
+  const { revenueBreakdown, loading: dashboardLoading } = useDashboard(token || "", "revenue");
 
   const [isOpenTBalance, setIsOpenTotalBalance] = useState<boolean>(false);
   const [isOpenWBalance, setIsOpenWalletBalance] = useState<boolean>(false);
@@ -136,16 +140,16 @@ const WalletPage = () => {
 
               {/* Card 3 */}
               <Pressable
-                onPress={() => setIsOpenRevenue(!isOpenRevenue)}
+                onPress={() => router.push("/(dashboard)/profile/Dashboard?tab=revenue")}
                 className="flex-1"
               >
                 <View className="bg-[#B0B0B033] flex-1 justify-center gap-2 items-center h-full rounded-xl p-4">
                   <Text className="text-[14px] text-white">Revenue</Text>
-                  {isLoading ? (
+                  {isLoading || dashboardLoading ? (
                     <ActivityIndicator size="small" color="#fff" />
                   ) : (
                     <Text className="text-[28px] text-white">
-                      ₹ {walletData?.totalReceived?.toFixed(2) || "0.00"}
+                      ₹ {revenueBreakdown?.estimateRevenue?.toFixed(2) || "0.00"}
                     </Text>
                   )}
                 </View>

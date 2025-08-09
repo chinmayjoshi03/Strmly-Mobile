@@ -7,6 +7,7 @@ import { Image, Text, TouchableOpacity, View, ScrollView, Alert, ActivityIndicat
 import { useAuthStore } from '@/store/useAuthStore';
 import Constants from 'expo-constants';
 import { router } from 'expo-router';
+import { YOUTUBE_CATEGORIES, NETFLIX_CATEGORIES, ContentType } from '@/Constants/contentCategories';
 
 const Interests = () => {
     const [Step, setStep] = useState(1)
