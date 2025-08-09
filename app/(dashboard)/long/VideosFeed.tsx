@@ -34,6 +34,7 @@ const VideosFeed: React.FC = () => {
     setLoading(true);
     try {
       const res = await fetch(`${BACKEND_API_URL}/videos/trending`, { //recommendations/videos
+
         method: "GET",
         headers: {
           Authorization: `Bearer ${token}`,
@@ -137,6 +138,7 @@ const VideosFeed: React.FC = () => {
     // <SafeAreaProvider>
     //   <SafeAreaView style={{ flex: 1 }} edges={["bottom"]}>
         <ThemedView>
+
           <FlatList
             data={videos}
             renderItem={renderItem}

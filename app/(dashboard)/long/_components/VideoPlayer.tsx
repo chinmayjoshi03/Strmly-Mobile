@@ -72,6 +72,7 @@ const VideoPlayer = ({ videoData, isActive }: Props) => {
       // Use the smart play function to handle audio interaction logic
       const { smartPlay } = usePlayerStore.getState();
       smartPlay();
+
     } else {
       // This video is not visible, pause and reset
       player.pause();
@@ -173,5 +174,6 @@ const styles = StyleSheet.create({
     height: "100%",
   },
 });
+
 
 export default React.memo(VideoPlayer);

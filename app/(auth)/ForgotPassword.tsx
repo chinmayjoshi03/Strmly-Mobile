@@ -49,6 +49,7 @@ const ForgotPassword = () => {
     setShowAlert(() => true);
     setNeedButton(true);
   }
+
   const handleRequestResetEmail = async () => {
     setIsLoading(true);
     try {

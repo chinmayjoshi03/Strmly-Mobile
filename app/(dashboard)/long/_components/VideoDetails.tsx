@@ -143,6 +143,7 @@ const VideoDetails = ({
 
       console.log("following data", data);
       setIsFollowCreator(data.isFollowing);
+
       Alert.alert(
         isFollowCreator
           ? "You unFollowed this creator"
@@ -150,6 +151,7 @@ const VideoDetails = ({
       );
     } catch (error) {
       console.log("error", error);
+
       Alert.alert(
         "Error",
         error instanceof Error
@@ -185,6 +187,7 @@ const VideoDetails = ({
       console.log("data", data);
     } catch (err) {
       console.log("err", err);
+
     } finally {
       setIsFollowCommunityLoading(false);
     }
@@ -357,9 +360,11 @@ const VideoDetails = ({
                 <Pressable
                   onPress={() =>
                     router.push(
+
                       series === null || series?.type === "Free"
                         ? "/(demo)/CreatorPassDemo"
                         : "/(demo)/SeriesAccessDemo"
+
                     )
                   }
                 >
