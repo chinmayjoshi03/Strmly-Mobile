@@ -83,6 +83,7 @@ const VideoPlayer = ({ videoData, isActive }: Props) => {
       // Use the smart play function to handle audio interaction logic
       const { smartPlay } = usePlayerStore.getState();
       smartPlay();
+
     } else {
       // This video is not visible, pause and reset
       player.pause();

@@ -90,8 +90,10 @@ const InteractOptions = ({
             body: JSON.stringify({ videoId: videoId }),
           }
         );
+        
         if (!response.ok)
           throw new Error("Failed while checking video like status");
+
         const data = await response.json();
         console.log("check like", data);
         setLike(data.likes);

@@ -315,7 +315,7 @@ const VideoDetails = ({
                 }}
               >
                 <Pressable
-                  onPress={() => {initiateGifting(createdBy, videoId); router.push(`/(payments)/CreatorPassBuy/${createdBy._id}`);}}
+                  onPress={() => {initiateGifting(createdBy, videoId); router.push(`/(demo)/PurchaseCreatorPass/${createdBy._id}`);}}
                 >
                   <View
                     className={`bg-black h-11 px-2 py-1 flex-row items-center justify-between rounded-t-xl`}
@@ -356,7 +356,7 @@ const VideoDetails = ({
                   onPress={() =>
                     router.push(
                       series === null || series?.type === "Free"
-                        ? `/(payments)/CreatorPassBuy/${createdBy._id}`
+                        ? `/(demo)/PurchaseCreatorPass/${createdBy._id}`
                         : "/(demo)/SeriesAccessDemo"
                     )
                   }

@@ -136,6 +136,7 @@ const VideosFeed: React.FC = () => {
     // <SafeAreaProvider>
     //   <SafeAreaView style={{ flex: 1 }} edges={["bottom"]}>
         <ThemedView>
+
           <FlatList
             data={videos}
             renderItem={renderItem}

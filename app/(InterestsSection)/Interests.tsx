@@ -64,6 +64,7 @@ const Interests = () => {
 
       // Success - navigate to next screen or show success message
       updateUser({ isOnboarded: true });
+
       Alert.alert("Success", "Your interests have been updated successfully!");
       router.push("/(dashboard)/long/VideosFeed");
     } catch (error) {
@@ -249,7 +250,7 @@ const Interests = () => {
   };
 
   if (!fontsLoaded) return null;
-
+        
   if (Step === 1) {
     return (
       <ThemedView style={CreateProfileStyles.Container}>

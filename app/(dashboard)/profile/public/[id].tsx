@@ -62,6 +62,7 @@ export default function PublicProfilePageWithId() {
     if (!id) return;
 
     const fetchUserVideos = async (page = 1) => {
+
       if (activeTab == "repost") return;
 
       setIsLoadingVideos(true);
@@ -100,6 +101,36 @@ export default function PublicProfilePageWithId() {
       fetchUserVideos();
     }
   }, [token, activeTab, id]);
+
+  const userReshareVideos = async (page = 1) => {
+    setIsLoadingVideos(true);
+    try {
+      const response = await fetch(`${BACKEND_API_URL}/user/reshares`, {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || "Failed to fetch user videos");
+      }
+
+      setVideos(data.reshares);
+    } catch (err) {
+      console.error("Error fetching user videos:", err);
+      Alert.alert(
+        "Error",
+        err instanceof Error
+          ? err.message
+          : "An unknown error occurred while fetching videos."
+      );
+    } finally {
+      setIsLoadingVideos(false);
+    }
+  };
 
   useEffect(() => {
     if (!id) return;
@@ -159,6 +190,7 @@ export default function PublicProfilePageWithId() {
           "Content-Type": "application/json",
         },
       });
+
 
       const data = await response.json();
 
@@ -397,6 +429,7 @@ export default function PublicProfilePageWithId() {
                     }
                     className={`h-10 rounded-lg overflow-hidden`}
                   >
+
                     <LinearGradient
                       colors={["#4400FFA6", "#FFFFFF", "#FF00004D", "#FFFFFF"]}
                       start={{ x: 0, y: 0 }}
@@ -406,6 +439,7 @@ export default function PublicProfilePageWithId() {
                       <View
                         className={`flex-1 px-2 rounded-lg bg-black items-center justify-center`}
                       >
+
                         <View className="flex-row items-center justify-center">
                           <Text className="text-white text-center">
                             Access at

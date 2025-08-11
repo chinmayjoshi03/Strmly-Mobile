@@ -62,6 +62,7 @@ export default function PersonalProfilePage() {
     }
 
     const fetchUserVideos = async (page = 1) => {
+
       if (activeTab == "repost") return;
 
       setIsLoadingVideos(true);
@@ -146,6 +147,7 @@ export default function PersonalProfilePage() {
   }, [isLoggedIn, router, token]);
 
   const userReshareVideos = async () => {
+
     if (!userData._id && !token && activeTab !== "repost") return;
     console.log(userData._id)
 
@@ -160,6 +162,7 @@ export default function PersonalProfilePage() {
           },
         }
       );
+
 
       const data = await response.json();
 
@@ -179,6 +182,7 @@ export default function PersonalProfilePage() {
       );
     } finally {
       setIsLoading(false);
+
     }
   };
 
