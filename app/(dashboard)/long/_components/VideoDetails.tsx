@@ -18,6 +18,7 @@ import {
 import { useAuthStore } from "@/store/useAuthStore";
 import Constants from "expo-constants";
 import { router } from "expo-router";
+import { useGiftingStore } from "@/store/useGiftingStore";
 
 type VideoDetailsProps = {
   videoId: string;
@@ -25,9 +26,11 @@ type VideoDetailsProps = {
   type: string;
   is_monetized: boolean;
   videoAmount: number;
-  createdBy?: {
+
+  createdBy: {
     _id: string;
     username: string;
+    name?: string;
     profile_photo: string;
   };
 
@@ -74,7 +77,8 @@ const VideoDetails = ({
   const [isFollowCommunityLoading, setIsFollowCommunityLoading] =
     useState<boolean>(false);
 
-  const { token, user } = useAuthStore();
+  const { token } = useAuthStore();
+  const {initiateGifting} = useGiftingStore();
 
   const BACKEND_API_URL = Constants.expoConfig?.extra?.BACKEND_API_URL;
 
@@ -141,17 +145,9 @@ const VideoDetails = ({
         throw new Error(data.message || "Failed to follow user profile");
       }
 
-      console.log("following data", data);
       setIsFollowCreator(data.isFollowing);
-
-      Alert.alert(
-        isFollowCreator
-          ? "You unFollowed this creator"
-          : "You are now Following this creator"
-      );
     } catch (error) {
       console.log("error", error);
-
       Alert.alert(
         "Error",
         error instanceof Error
@@ -167,13 +163,13 @@ const VideoDetails = ({
     if (!token || !community?._id) {
       return;
     }
-    console.log(community, isFollowCommunity);
+    
     setIsFollowCommunityLoading(true);
     try {
       const response = await fetch(
         `${BACKEND_API_URL}/${isFollowCommunity ? "caution/community/unfollow" : "community/follow"}`,
         {
-          method: "POST",
+          method: isFollowCommunity ? "PATCH" : "POST",
           headers: {
             Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
@@ -187,7 +183,6 @@ const VideoDetails = ({
       console.log("data", data);
     } catch (err) {
       console.log("err", err);
-
     } finally {
       setIsFollowCommunityLoading(false);
     }
@@ -196,7 +191,6 @@ const VideoDetails = ({
   return (
     <View className="w-full gap-3.5">
       {/* Top tags */}
-      
       <View className="flex-row items-center justify-start gap-2">
         {community && (
           <>
@@ -216,7 +210,7 @@ const VideoDetails = ({
               {isFollowCommunityLoading ? (
                 <ActivityIndicator className="size-5" color="white" />
               ) : isFollowCommunity ? (
-                <SquareCheck className="size-6" />
+                <SquareCheck size={14} color={'white'} />
               ) : (
                 <Image
                   source={require("../../../../assets/images/plus.png")}
@@ -301,12 +295,13 @@ const VideoDetails = ({
           )}
         </View>
 
-        <Pressable onPress={onToggleFullScreen}>
+        {/* Full Screen */}
+        {/* <Pressable onPress={onToggleFullScreen}>
           <Image
             source={require("../../../../assets/images/fullscreen.png")}
             className={`size-5 ${isFullScreen ? "scale-110" : "scale-100"} ease-in`}
           />
-        </Pressable>
+        </Pressable> */}
 
         {/* Paid Dropdown */}
         {showPriceDropdown && (
@@ -320,7 +315,7 @@ const VideoDetails = ({
                 }}
               >
                 <Pressable
-                  onPress={() => router.push("/(demo)/CreatorPassDemo")}
+                  onPress={() => {initiateGifting(createdBy, videoId); router.push(`/(demo)/PurchaseCreatorPass/${createdBy._id}`);}}
                 >
                   <View
                     className={`bg-black h-11 px-2 py-1 flex-row items-center justify-between rounded-t-xl`}
@@ -360,11 +355,9 @@ const VideoDetails = ({
                 <Pressable
                   onPress={() =>
                     router.push(
-
                       series === null || series?.type === "Free"
-                        ? "/(demo)/CreatorPassDemo"
+                        ? `/(demo)/PurchaseCreatorPass/${createdBy._id}`
                         : "/(demo)/SeriesAccessDemo"
-
                     )
                   }
                 >

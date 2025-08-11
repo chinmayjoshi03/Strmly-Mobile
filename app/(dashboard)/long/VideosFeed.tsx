@@ -30,10 +30,9 @@ const VideosFeed: React.FC = () => {
   const BACKEND_API_URL = Constants.expoConfig?.extra?.BACKEND_API_URL;
 
   const fetchTrendingVideos = async () => {
-    // This function is fine as is.
     setLoading(true);
     try {
-      const res = await fetch(`${BACKEND_API_URL}/videos/trending`, { //recommendations/videos
+      const res = await fetch(`${BACKEND_API_URL}/recommendations/videos`, { //recommendations/videos
 
         method: "GET",
         headers: {
@@ -43,7 +42,7 @@ const VideosFeed: React.FC = () => {
       });
       if (!res.ok) throw new Error("Failed to fetch videos");
       const json = await res.json();
-      setVideos(json.data);
+      setVideos(json.recommendations);
     } catch (err: any) {
       setError(err.message || "Something went wrong");
     } finally {

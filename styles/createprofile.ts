@@ -59,10 +59,7 @@ export const CreateProfileStyles = StyleSheet.create({
   Container: {
     flex: 1,
     display: "flex",
-    gap: 10,
-    alignContent: "center",
-    alignItems: "center",
-    justifyContent: "flex-start",
+    gap: 10
   },
   Centered: {
     flex: 1,

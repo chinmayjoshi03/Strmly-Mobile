@@ -23,6 +23,8 @@ import Constants from "expo-constants";
 import CreatorInfo from "../Video/_components/CreatorInfo";
 import { useRoute } from "@react-navigation/native";
 
+import { useGiftingStore } from "@/store/useGiftingStore";
+
 const BACKEND_API_URL = Constants.expoConfig?.extra?.BACKEND_API_URL;
 
 type GiftingData = {
@@ -45,10 +47,13 @@ const CreatorPassBuy = ({
   setIsGifted,
   giftMessage,
 }: GiftingData) => {
-    const route = useRoute();
+
+  const route = useRoute();
   const { id } = route.params as { id: string };
   const [userData, setUserData] = useState<any>(null);
   const [walletInfo, setWalletInfo] = useState<{ balance?: number }>({});
+  const [hasCreatorPass, setHasCreatorPass] = useState<boolean>(false);
+  
   const [loading, setLoading] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -57,15 +62,14 @@ const CreatorPassBuy = ({
   const animatedBottom = useRef(new Animated.Value(insets.bottom)).current;
 
   const { token } = useAuthStore();
+  const { completeGifting } = useGiftingStore();
 
+  // Check if Creator pass is already purchased
   useEffect(() => {
-    console.log('creatorId', id)
-    if (!id) return;
-
-    const fetchUserData = async () => {
+    const hasCreatorPass = async () => {
       try {
         const response = await fetch(
-          `${BACKEND_API_URL}/user/profile/${id}`,
+          `${BACKEND_API_URL}/user/has-creator-pass/${id}`,
           {
             method: "GET",
             headers: {
@@ -74,6 +78,45 @@ const CreatorPassBuy = ({
             },
           }
         );
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.message || "Failed to fetch user creator pass");
+        }
+
+        console.log("has Creator pass", data);
+        setHasCreatorPass(data.hasCreatorPass);
+      } catch (error) {
+        console.log(error);
+        Alert.alert(
+          "Error",
+          error instanceof Error
+            ? error.message
+            : "An unknown error occurred while following user."
+        );
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    if (id && token) {
+      hasCreatorPass();
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!id) return;
+
+    const fetchUserData = async () => {
+      try {
+        const response = await fetch(`${BACKEND_API_URL}/user/profile/${id}`, {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        });
 
         const data = await response.json();
 
@@ -104,29 +147,34 @@ const CreatorPassBuy = ({
   // ------------ Transaction -------------------
 
   const purchasePass = async () => {
-    if (!token && !id) {
+    if (!token && !id && hasCreatorPass) {
+      console.log("hasCreatorPass", hasCreatorPass);
+      return;
+    }
+
+    if (hasCreatorPass) {
+      console.log("creator pass already purchased", hasCreatorPass);
+      Alert.alert("You already purchased creator pass");
       return;
     }
 
     try {
       const response = await fetch(
-        `${BACKEND_API_URL}/interactions/purchase-with-wallet`,
+        `${BACKEND_API_URL}/creator-pass/purchase-with-wallet`,
         {
           method: "POST",
           headers: {
             Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({ id }),
+          body: JSON.stringify({ creatorId: id }),
         }
       );
 
       if (!response.ok) throw new Error("Failed to provide creator pass");
       const data = await response.json();
-      console.log("dWallet data---------------", data);
-      //   giftMessage?.(data.gift);
-      //   setIsWantToGift?.(false);
-      //   setIsGifted(true);
+      console.log("purchase creator pass data---------------", data);
+      // completeGifting(data.gift.amount);
       router.back();
     } catch (err) {
       console.log(err);
@@ -177,7 +225,6 @@ const CreatorPassBuy = ({
         {/* Top section */}
         <View className="mt-5">
           <CreatorInfo
-            setIsWantToGift={setIsWantToGift}
             profile={userData?.userDetails?.profile_photo}
             name={userData?.userDetails?.name}
             username={userData?.userDetails?.username}
@@ -216,9 +263,7 @@ const CreatorPassBuy = ({
             disabled={loading}
             onPress={handleProceed}
             className={`p-4 rounded-lg items-center justify-center ${
-              loading
-                ? "bg-gray-600"
-                : "bg-[#008A3C]"
+              loading ? "bg-gray-600" : "bg-[#008A3C]"
             }`}
           >
             {loading ? (

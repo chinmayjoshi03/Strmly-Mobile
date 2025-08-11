@@ -5,6 +5,7 @@ export type VideoItemType = {
   video: string; // or `videoUrl` if your backend returns it that way
   title?: string;
   videoUrl: string;
+  duration?: number;
   start_time: number;
   display_till_time: number;
   visibility: string;
@@ -16,6 +17,16 @@ export type VideoItemType = {
   gifts: number;
   shares: number;
   views: number;
+  access: {
+    isPlayable: boolean;
+    freeRange: {
+      start_time: number;
+      display_till_time: number;
+    };
+    isPurchased: boolean;
+    accessType: string;
+    price: number;
+  }
   
   genre: string;
   type: string;

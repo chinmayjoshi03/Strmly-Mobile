@@ -13,6 +13,7 @@ import {
   Animated,
   EmitterSubscription,
   KeyboardEvent,
+  Dimensions,
 } from "react-native";
 import CreatorInfo from "./_components/CreatorInfo";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -20,7 +21,10 @@ import { router, useLocalSearchParams } from "expo-router";
 import { ChevronLeft } from "lucide-react-native";
 import { useAuthStore } from "@/store/useAuthStore";
 import Constants from "expo-constants";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useGiftingStore } from "@/store/useGiftingStore";
 
+const { height } = Dimensions.get("screen");
 const BACKEND_API_URL = Constants.expoConfig?.extra?.BACKEND_API_URL;
 
 type GiftingData = {
@@ -31,20 +35,11 @@ type GiftingData = {
     profile_photo: string;
   };
   videoId: string;
-  setIsWantToGift: (value: boolean) => void;
-  setIsGifted: (value: boolean) => void;
-  giftMessage: any;
 };
 
-const VideoContentGifting = ({
-  creator,
-  videoId,
-  setIsWantToGift,
-  setIsGifted,
-  giftMessage,
-}: GiftingData) => {
+const VideoContentGifting = () => {
   const { mode } = useLocalSearchParams();
-  const isWithdrawMode = mode === 'withdraw';
+  const isWithdrawMode = mode === "withdraw";
   const [amount, setAmount] = useState("");
   const [walletInfo, setWalletInfo] = useState<{ balance?: number }>({});
   const [loading, setLoading] = useState(false);
@@ -55,7 +50,9 @@ const VideoContentGifting = ({
   const insets = useSafeAreaInsets();
   const animatedBottom = useRef(new Animated.Value(insets.bottom)).current;
 
-  const { token, isLoggedIn } = useAuthStore();
+  const { token } = useAuthStore();
+
+  const { creator, videoId, completeGifting } = useGiftingStore();
 
   const handleAmountChange = (text: string) => {
     const filtered = text.replace(/[^0-9]/g, "");
@@ -65,11 +62,12 @@ const VideoContentGifting = ({
 
   // ------------ Transaction -------------------
 
-  const giftVideo = async (amount=50) => {
-    if (!token && !videoId) {
+  const giftVideo = async () => {
+    console.log(videoId);
+    if (!token && !videoId == null) {
       return;
     }
-    
+
     try {
       const response = await fetch(
         `${BACKEND_API_URL}/interactions/gift-video`,
@@ -79,16 +77,18 @@ const VideoContentGifting = ({
             Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({ videoId: videoId, amount, }),
+          body: JSON.stringify({ videoId: videoId, amount: parseInt(amount) }),
         }
       );
-      
+
       if (!response.ok) throw new Error("Failed to provide gifting");
       const data = await response.json();
       console.log("dWallet data---------------", data);
-      giftMessage?.(data.gift);
-      setIsWantToGift?.(false);
-      setIsGifted(true);
+
+      // Setting data when gifting done
+      completeGifting(data.gift.amount);
+
+      router.back();
     } catch (err) {
       console.log(err);
     }
@@ -120,53 +120,50 @@ const VideoContentGifting = ({
     setError(null);
 
     try {
-      console.log('💰 Creating withdrawal request for amount:', withdrawAmount);
-      console.log('🔗 API URL:', `${BACKEND_API_URL}/withdrawal/create`);
-      console.log('🔑 Token:', token?.substring(0, 20) + '...');
+      console.log("💰 Creating withdrawal request for amount:", withdrawAmount);
+      console.log("🔗 API URL:", `${BACKEND_API_URL}/withdrawal/create`);
+      console.log("🔑 Token:", token?.substring(0, 20) + "...");
 
-      const response = await fetch(
-        `${BACKEND_API_URL}/withdrawal/create`,
-        {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ amount: withdrawAmount }),
-        }
-      );
+      const response = await fetch(`${BACKEND_API_URL}/withdrawal/create`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ amount: withdrawAmount }),
+      });
 
-      console.log('📡 Response status:', response.status);
-      console.log('📡 Response headers:', response.headers);
+      console.log("📡 Response status:", response.status);
+      console.log("📡 Response headers:", response.headers);
 
       // Check if response is JSON
-      const contentType = response.headers.get('content-type');
-      if (!contentType || !contentType.includes('application/json')) {
+      const contentType = response.headers.get("content-type");
+      if (!contentType || !contentType.includes("application/json")) {
         const textResponse = await response.text();
-        console.error('❌ Non-JSON response:', textResponse);
-        setError('Server returned invalid response. Please try again.');
+        console.error("❌ Non-JSON response:", textResponse);
+        setError("Server returned invalid response. Please try again.");
         return;
       }
 
       const data = await response.json();
-      console.log('✅ Withdrawal API response:', data);
+      console.log("✅ Withdrawal API response:", data);
 
       // Check for specific error codes first, regardless of HTTP status
       if (!data.success) {
-        console.log('❌ API returned success: false');
-        console.log('🔍 Error code:', data.code);
-        console.log('🔍 Error message:', data.error);
-        
+        console.log("❌ API returned success: false");
+        console.log("🔍 Error code:", data.code);
+        console.log("🔍 Error message:", data.error);
+
         if (data.code === "BANK_ACCOUNT_NOT_SETUP") {
-          console.log('🏦 Navigating to bank setup...');
+          console.log("🏦 Navigating to bank setup...");
           try {
             // Navigate to bank setup form
             setTimeout(() => {
-              router.push('/(payments)/BankSetup');
-              console.log('✅ Navigation initiated');
+              router.push("/(payments)/BankSetup");
+              console.log("✅ Navigation initiated");
             }, 100);
           } catch (navError) {
-            console.error('❌ Navigation error:', navError);
+            console.error("❌ Navigation error:", navError);
             // Fallback: show error with manual button
             setError(data.error + " - Please setup your bank account");
           }
@@ -184,11 +181,17 @@ const VideoContentGifting = ({
 
       router.back();
     } catch (err) {
-      console.error('❌ Withdrawal error:', err);
-      if (err instanceof SyntaxError && err.message.includes('JSON')) {
-        setError('Server returned invalid response. Please check your connection.');
+      console.error("❌ Withdrawal error:", err);
+      if (err instanceof SyntaxError && err.message.includes("JSON")) {
+        setError(
+          "Server returned invalid response. Please check your connection."
+        );
       } else {
-        setError(err instanceof Error ? err.message : "Failed to create withdrawal request");
+        setError(
+          err instanceof Error
+            ? err.message
+            : "Failed to create withdrawal request"
+        );
       }
     }
   };
@@ -268,7 +271,7 @@ const VideoContentGifting = ({
   }, [token]);
 
   return (
-    <ThemedView className="flex-1 bg-black">
+    <ThemedView style={{ height }}>
       <KeyboardAvoidingView
         style={{ flex: 1 }}
         behavior={Platform.OS === "ios" ? "padding" : "height"}
@@ -289,12 +292,13 @@ const VideoContentGifting = ({
                   <View className="w-8" />
                 </View>
               ) : (
-                <CreatorInfo
-                setIsWantToGift={setIsWantToGift}
-                profile={creator?.profile_photo}
-                name={creator?.name}
-                username={creator?.username}
-              />
+                creator && (
+                  <CreatorInfo
+                    profile={creator?.profile_photo}
+                    name={creator?.name}
+                    username={creator?.username}
+                  />
+                )
               )}
             </View>
 
@@ -310,23 +314,27 @@ const VideoContentGifting = ({
                   placeholder="0"
                   placeholderTextColor="#666"
                   className="text-3xl text-white placeholder:text-gray-500 font-semibold items-center justify-center"
-                  style={{ minWidth: 100, textAlign: 'center' }}
+                  style={{ minWidth: 100, textAlign: "center" }}
                 />
               </View>
 
               {/* Error Message */}
               {error && (
                 <View className="mt-4">
-                  <Text className="text-red-400 text-sm text-center">{error}</Text>
-                  {error.includes('setup bank') && (
-                    <Pressable 
+                  <Text className="text-red-400 text-sm text-center">
+                    {error}
+                  </Text>
+                  {error.includes("setup bank") && (
+                    <Pressable
                       onPress={() => {
-                        console.log('🔧 Manual navigation to bank setup');
-                        router.push('/(payments)/BankSetup');
+                        console.log("🔧 Manual navigation to bank setup");
+                        router.push("/(payments)/BankSetup");
                       }}
                       className="mt-2 p-2 bg-blue-600 rounded"
                     >
-                      <Text className="text-white text-center text-sm">Setup Bank Account</Text>
+                      <Text className="text-white text-center text-sm">
+                        Setup Bank Account
+                      </Text>
                     </Pressable>
                   )}
                 </View>
@@ -340,7 +348,7 @@ const VideoContentGifting = ({
                 position: "absolute",
                 left: 0,
                 right: 0,
-                bottom: Animated.add(new Animated.Value(80), animatedBottom),
+                bottom: Animated.add(new Animated.Value(20), animatedBottom),
                 paddingBottom: insets.bottom,
               }}
               className="gap-2 justify-end"
@@ -348,30 +356,32 @@ const VideoContentGifting = ({
               <Pressable
                 disabled={loading || !amount || parseInt(amount) <= 0}
                 onPress={handleProceed}
-                className={`p-4 rounded-lg items-center justify-center ${loading || !amount || parseInt(amount) <= 0
-                  ? 'bg-gray-600'
-                  : 'bg-[#008A3C]'
-                  }`}
+                className={`p-4 rounded-lg items-center justify-center ${
+                  loading || !amount || parseInt(amount) <= 0
+                    ? "bg-gray-600"
+                    : "bg-[#008A3C]"
+                }`}
               >
                 {loading ? (
                   <ActivityIndicator color="#fff" />
                 ) : (
                   <Text className="text-white text-base font-semibold">
-                    {isWithdrawMode ? 'Withdraw' : 'Proceed'}
+                    {isWithdrawMode ? "Withdraw" : "Proceed"}
                   </Text>
                 )}
               </Pressable>
 
               <View className="items-center justify-center mt-1">
                 <Text className="text-white text-sm">
-                  {isWithdrawMode ? 'Current balance' : 'Total balance'} ₹{walletInfo.balance?.toFixed(2) || '0.00'}
+                  {isWithdrawMode ? "Current balance" : "Total balance"} ₹
+                  {walletInfo.balance?.toFixed(2) || "0.00"}
                 </Text>
               </View>
 
               {isWithdrawMode && (
                 <View className="items-center justify-center mt-2">
                   <Text className="text-gray-400 text-xs text-center">
-                    Minimum withdrawal: ₹100{'\n'}
+                    Minimum withdrawal: ₹100{"\n"}
                     Processing time: 3-7 working days
                   </Text>
                 </View>

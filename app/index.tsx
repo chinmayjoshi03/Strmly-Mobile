@@ -85,10 +85,10 @@ export default function Index() {
   }
 
   // Redirect based on authentication status
-  // if (token && isLoggedIn && !isOnboarded) {
-  //   console.log("✅ User not completed Onboarding, redirecting to Onboarding");
-  //   return <Redirect href="/Interests" />;
-  // }
+  if (token && isLoggedIn && !isOnboarded) {
+    console.log("✅ User not completed Onboarding, redirecting to Onboarding");
+    return <Redirect href="/Interests" />;
+  }
   if (token && isLoggedIn) {
     console.log("✅ User is authenticated, redirecting to home");
     return <Redirect href="/(tabs)/home" />;

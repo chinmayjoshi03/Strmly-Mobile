@@ -8,12 +8,10 @@ import VideoDetails from "./VideoDetails";
 type Props = {
   videoData: any;
   setShowCommentsModal: (visible: boolean) => void;
-  isWantToGift: (visible: boolean) => void;
 };
 
 const VideoControls = ({
   videoData,
-  isWantToGift,
   setShowCommentsModal,
 }: Props) => {
   const isPlaying = usePlayerStore((state) => state.isPlaying);
@@ -61,7 +59,6 @@ const VideoControls = ({
           shares={videoData.shares}
           comments={videoData.comments?.length}
           onCommentPress={() => setShowCommentsModal(true)}
-          setIsWantToGift={isWantToGift}
         />
       </View>
       <View style={styles.details}>
