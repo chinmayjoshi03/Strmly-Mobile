@@ -1,13 +1,14 @@
 import React from "react";
 import { Modal, View, Text, Pressable, StyleSheet, Image } from "react-native";
 import { GiftType } from "../VideoFeed";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useGiftingStore } from "@/store/useGiftingStore";
 
 type ActionModalProps = {
   isVisible: boolean;
   onClose: (value: boolean) => void;
   amount: number | null;
   creator: GiftType | null;
-  giftMessage: (value: number | null) => void;
 };
 
 const GiftingMessage = ({
@@ -15,24 +16,25 @@ const GiftingMessage = ({
   onClose,
   amount,
   creator,
-  giftMessage,
 }: ActionModalProps) => {
+  const {clearGiftingData} = useGiftingStore();
+
   return (
     <Modal
       animationType="fade"
       transparent={true}
       visible={isVisible}
-      onRequestClose={() => {
+      onRequestClose={async () => {
         onClose(false);
-        giftMessage(null);
+        clearGiftingData()
       }} // Allows closing with the back button on Android
     >
       {/* Semi-transparent backdrop */}
       <Pressable
         style={styles.backdrop}
-        onPress={() => {
+        onPress={async () => {
           onClose(false);
-          giftMessage(null);
+          clearGiftingData();
         }}
       >
         <View className="bg-black items-center justify-center rounded-2xl px-2 py-6">
@@ -75,25 +77,16 @@ const GiftingMessage = ({
 const styles = StyleSheet.create({
   backdrop: {
     flex: 1,
-    backgroundColor: "#000000A8",
+    backgroundColor: "#000000AF",
     justifyContent: "center",
     alignItems: "center",
     paddingHorizontal: 20,
+    opacity: 0.5,
   },
   modalContainer: {
     width: "100%",
-    backgroundColor: "black", // A dark grey, fitting for a dark theme
-    borderRadius: 14,
     padding: 24,
     alignItems: "center",
-    shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
-    elevation: 5,
   },
 });
 

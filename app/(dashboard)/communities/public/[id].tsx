@@ -18,39 +18,21 @@ import { LinearGradient } from "expo-linear-gradient";
 import Constants from "expo-constants";
 import { useRoute } from "@react-navigation/native";
 
-const profileData = {
-  id: 1,
-  name: "Tech Entrepreneurs",
-  description: "A community for tech entrepreneurs to share ideas and network",
-  image: "https://via.placeholder.com/60", // Replaced with a direct URL for placeholder
-  banner: "https://via.placeholder.com/400x200", // Replaced with a direct URL for placeholder
-  followers: 12500,
-  creators: 12500,
-  videos: 1250,
-  category: "Business",
-  isPrivate: false,
-  isJoined: true,
-  communityFee: 30,
-  role: "member",
-  tags: ["startup", "technology", "business"],
-  owner: {
-    name: "John Doe",
-    avatar: "https://via.placeholder.com/32", // Replaced with a direct URL for placeholder
-  },
-};
-
 export default function PublicCommunityPage() {
   const [activeTab, setActiveTab] = useState("long");
   const [communityData, setCommunityData] = useState<any>(null);
   const [videos, setVideos] = useState<any[]>([]);
 
   const [isLoading, setIsLoading] = useState(false);
+  const [isFollowingCommunity, setIsFollowingCommunity] = useState(false);
+  const [isFollowingLoading, setFollowingLoading] = useState(false);
 
   const [isLoadingVideos, setIsLoadingVideos] = useState(false);
-  const { token } = useAuthStore();
+  const { token, user } = useAuthStore();
 
   const route = useRoute();
   const { id } = route.params as { id: string };
+  // const id = "6890586c8039a7684646c364";
 
   const BACKEND_API_URL = Constants.expoConfig?.extra?.BACKEND_API_URL;
 
@@ -67,12 +49,11 @@ export default function PublicCommunityPage() {
 
   useEffect(() => {
     const fetchUserVideos = async () => {
-
       setIsLoadingVideos(true);
       try {
         console.log("🔄 Fetching videos for tab:", activeTab);
         const response = await fetch(
-          `${BACKEND_API_URL}/community/${id}/videos?type=${activeTab}`,
+          `${BACKEND_API_URL}/community/${id}/videos?videoType=${activeTab}`,
           {
             method: "GET",
             headers: {
@@ -88,14 +69,47 @@ export default function PublicCommunityPage() {
         setVideos(data.videos || []);
       } catch (err) {
         console.error("❌ Error fetching community videos:", err);
-        setVideos([]); // Set empty array on error instead of showing alert
+        setVideos([]);
+      } finally {
+        setIsLoadingVideos(false);
+      }
+    };
+
+    const fetchUserLikeVideos = async () => {
+      setIsLoadingVideos(true);
+      try {
+        console.log("🔄 Fetching Like videos for tab:", activeTab);
+        const response = await fetch(
+          `${BACKEND_API_URL}/user/liked-videos-community?communityId=${id}`,
+          {
+            method: "GET",
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
+        const data = await response.json();
+        if (!response.ok) {
+          throw new Error(
+            data.message || "Failed to fetch community like videos"
+          );
+        }
+        console.log("✅ Like Videos fetched:", data.videos?.length || 0);
+        setVideos(data.videos || []);
+      } catch (err) {
+        console.error("❌ Error fetching community like videos:", err);
+        setVideos([]);
       } finally {
         setIsLoadingVideos(false);
       }
     };
 
     if (token && id) {
-      fetchUserVideos();
+      if (activeTab == "long") {
+        fetchUserVideos();
+      } else {
+        fetchUserLikeVideos();
+      }
     }
   }, [activeTab, token, id]);
 
@@ -119,6 +133,7 @@ export default function PublicCommunityPage() {
 
         console.log(data);
         setCommunityData(data);
+        setIsFollowingCommunity(data.followers.some((follower:{_id: string}) => follower._id === user?.id))
       } catch (error) {
         console.log(error);
         Alert.alert(
@@ -136,6 +151,39 @@ export default function PublicCommunityPage() {
       fetchCommunityData();
     }
   }, [id, token]);
+
+  const followCommunity = async () => {
+    try {
+      setFollowingLoading(true);
+      const response = await fetch(`${BACKEND_API_URL}/${isFollowingCommunity ? 'caution/community/unfollow' : 'community/follow'}`, {
+        method: !isFollowingCommunity ? "POST" : "PATCH",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({communityId: id})
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || "Failed to follow community profile");
+      }
+
+      console.log(data.message);
+      setIsFollowingCommunity(data.isFollowingCommunity);
+    } catch (error) {
+      console.log(error);
+      Alert.alert(
+        "Error",
+        error instanceof Error
+          ? error.message
+          : "An unknown error occurred while following community."
+      );
+    } finally {
+      setFollowingLoading(false);
+    }
+  };
 
   const renderVideoItem = ({ item }: { item: any }) => (
     <Pressable className="w-full h-[100vh] mb-4 relative rounded-lg overflow-hidden bg-black">
@@ -177,7 +225,7 @@ export default function PublicCommunityPage() {
           <ProfileTopbar
             isMore={false}
             hashtag={true}
-            name={communityData?.name || profileData.name}
+            name={communityData?.name}
           />
         </View>
       )}
@@ -194,7 +242,7 @@ export default function PublicCommunityPage() {
               <View className="size-24 rounded-full border border-white overflow-hidden">
                 <Image
                   source={{
-                    uri: communityData?.profile_photo || profileData.image,
+                    uri: communityData?.profile_photo,
                   }}
                   className="w-full h-full object-cover rounded-full"
                 />
@@ -204,11 +252,11 @@ export default function PublicCommunityPage() {
                   {communityData?.founder &&
                     `By @ ${communityData?.founder.username}`}
                 </Text>
-                {profileData.isPrivate && (
+                {/* {profileData.isPrivate && (
                   <Text className="ml-2 px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
                     Private
                   </Text>
-                )}
+                )} */}
               </View>
             </View>
           </View>
@@ -246,8 +294,8 @@ export default function PublicCommunityPage() {
 
           {/* Buttons */}
           <View className="flex flex-row w-full items-center justify-center gap-2 mt-5 md:mt-0">
-            <TouchableOpacity className="flex-1 px-4 py-2 rounded-xl bg-transparent border border-gray-400">
-              <Text className="text-white text-center">Follow</Text>
+            <TouchableOpacity onPress={followCommunity} className="flex-1 px-4 py-2 rounded-xl bg-transparent border border-gray-400">
+              <Text className="text-white text-center">{!isFollowingCommunity ? 'Follow' : 'Following'}</Text>
             </TouchableOpacity>
 
             {communityData?.community_fee_type !== "free" && (
@@ -268,8 +316,7 @@ export default function PublicCommunityPage() {
                           <IndianRupee color={"white"} size={13} />
                         </Text>
                         <Text className="text-white text-center">
-                          {communityData?.community_fee_amount ||
-                            profileData.communityFee}
+                          {communityData?.community_fee_amount}
                           /month
                         </Text>
                       </View>
@@ -283,7 +330,7 @@ export default function PublicCommunityPage() {
           {/* Bio */}
           <View className="mt-6 flex flex-col items-center justify-center px-4">
             <Text className="text-gray-400 text-xs text-center">
-              {communityData?.bio || profileData.description}
+              {communityData?.bio}
             </Text>
           </View>
 

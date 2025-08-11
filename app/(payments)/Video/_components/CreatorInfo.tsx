@@ -1,18 +1,18 @@
 import { View, Text, Image, Pressable } from "react-native";
 import React from "react";
+import { router } from "expo-router";
 
 type CreatorData = {
-  setIsWantToGift: (value: boolean) => void;
   profile: string;
   name?: string;
   username: string;
 };
 
-const CreatorInfo = ({ setIsWantToGift, profile, name, username }: CreatorData) => {
+const CreatorInfo = ({ profile, name, username }: CreatorData) => {
   return (
     <View>
       <View className="flex-row items-center gap-3 mb-4">
-        <Pressable onPress={()=> setIsWantToGift(false)}>
+        <Pressable onPress={()=> router.back()}>
           <Image
             source={require("../../../../assets/images/back.png")}
             className="size-5 rounded-full"

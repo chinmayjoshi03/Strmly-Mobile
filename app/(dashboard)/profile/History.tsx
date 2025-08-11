@@ -36,7 +36,7 @@ const HistoryPage = () => {
         {
           method: "GET",
           headers: {
-            Authorization: `Bearer ${'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI2ODkwNTI2MDRlMmNkNjE5YTZkN2I2YTYiLCJpYXQiOjE3NTQyODg3MzYsImV4cCI6MTc1Njg4MDczNn0.WMl7fDTW7eiPtWIeyqaJRA8J-nvJYHzJPtnmbWRXC70'}`,
+            Authorization: `Bearer ${token}`,
           },
         }
       );

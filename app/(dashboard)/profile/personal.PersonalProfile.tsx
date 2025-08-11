@@ -147,6 +147,7 @@ export default function PersonalProfilePage() {
 
   const userReshareVideos = async () => {
     if (!userData._id && !token && activeTab !== "repost") return;
+    console.log(userData._id)
 
     try {
       const response = await fetch(

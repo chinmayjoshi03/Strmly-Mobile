@@ -33,6 +33,7 @@ export default function PublicProfilePageWithId() {
 
   const [videos, setVideos] = useState<any[]>([]);
 
+  const [hasCreatorPass, setHasCreatorPass] = useState(false);
   const [isFollowing, setIsFollowing] = useState(false);
 
   const [isLoading, setIsLoading] = useState(false);
@@ -121,7 +122,7 @@ export default function PublicProfilePageWithId() {
 
         setUserData(data.user);
         setIsFollowing(data.user?.isBeingFollowed);
-        console.log("Pubic User data", data.user);
+        // console.log("Pubic User data", data.user);
         setUserError(null);
         if (data.user?.tags && data.user.tags.length > 2) setShowMore(true);
       } catch (error) {
@@ -145,7 +146,7 @@ export default function PublicProfilePageWithId() {
     if (token && id) {
       fetchUserData();
     }
-  }, [token, id]);
+  }, [token, id, router]);
 
   const fetchUserReshareVideos = async () => {
     if (!id && !token && activeTab !== "repost") return;
@@ -166,7 +167,7 @@ export default function PublicProfilePageWithId() {
       }
 
       setVideos(data.reshares);
-      console.log("reshare videos", data);
+      // console.log("reshare videos", data);
     } catch (error) {
       console.log(error);
       Alert.alert(
@@ -206,7 +207,7 @@ export default function PublicProfilePageWithId() {
         throw new Error(data.message || "Failed to follow user profile");
       }
 
-      console.log(data);
+      // console.log(data);
       setIsFollowing(data.isFollowing);
       Alert.alert(
         isFollowing
@@ -225,6 +226,46 @@ export default function PublicProfilePageWithId() {
       setIsLoading(false);
     }
   };
+
+  useEffect(() => {
+    const hasCreatorPass = async () => {
+      try {
+        const response = await fetch(
+          `${BACKEND_API_URL}/user/has-creator-pass/${id}`,
+          {
+            method: "GET",
+            headers: {
+              Authorization: `Bearer ${token}`,
+              "Content-Type": "application/json",
+            },
+          }
+        );
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.message || "Failed to fetch user creator pass");
+        }
+
+        // console.log("has Creator pass", data);
+        setHasCreatorPass(data.hasCreatorPass);
+      } catch (error) {
+        console.log(error);
+        Alert.alert(
+          "Error",
+          error instanceof Error
+            ? error.message
+            : "An unknown error occurred while following user."
+        );
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    if (id && token) {
+      hasCreatorPass();
+    }
+  }, []);
 
   const renderGridItem = ({ item }: { item: any }) => (
     <TouchableOpacity className="relative aspect-[9/16] flex-1 rounded-sm overflow-hidden">
@@ -321,7 +362,7 @@ export default function PublicProfilePageWithId() {
 
               {/* Stats */}
               <View
-                className={`mt-6 flex-row justify-evenly items-center ${userData?.userDetails?.creator_profile?.creator_pass_price !== 0 && "gap-4"}`}
+                className={`mt-6 flex-row items-center ${userData?.userDetails?.creator_profile?.creator_pass_price !== 0 && !hasCreatorPass ? "justify-evenly gap-4" : "justify-center gap-5"}`}
               >
                 <TouchableOpacity
                   className="text-center items-center"
@@ -347,10 +388,14 @@ export default function PublicProfilePageWithId() {
 
                 {/* Access Button with Gradient Border */}
                 {userData?.userDetails?.creator_profile?.creator_pass_price !==
-                  0 && (
+                  0 && !hasCreatorPass ? (
                   <TouchableOpacity
-                    onPress={() => router.push(`/(demo)/PurchaseCreatorPass/${userData?.userDetails._id}`)}
-                    className={`${userData?.creatorPassPrice !== 0 && "flex-grow"} h-10 rounded-lg overflow-hidden`}
+                    onPress={() =>
+                      router.push(
+                        `/(demo)/PurchaseCreatorPass/${userData?.userDetails._id}`
+                      )
+                    }
+                    className={`h-10 rounded-lg overflow-hidden`}
                   >
                     <LinearGradient
                       colors={["#4400FFA6", "#FFFFFF", "#FF00004D", "#FFFFFF"]}
@@ -359,7 +404,7 @@ export default function PublicProfilePageWithId() {
                       className="p-[1px] rounded-lg flex-1"
                     >
                       <View
-                        className={`flex-1 ${userData?.userDetails?.creator_profile?.creator_pass_price == 0 && "px-4"} rounded-lg bg-black items-center justify-center`}
+                        className={`flex-1 px-2 rounded-lg bg-black items-center justify-center`}
                       >
                         <View className="flex-row items-center justify-center">
                           <Text className="text-white text-center">
@@ -372,6 +417,27 @@ export default function PublicProfilePageWithId() {
                                 ?.creator_pass_price
                             }
                             /month
+                          </Text>
+                        </View>
+                      </View>
+                    </LinearGradient>
+                  </TouchableOpacity>
+                ) : (
+                  <TouchableOpacity
+                    className={`h-10 rounded-lg overflow-hidden`}
+                  >
+                    <LinearGradient
+                      colors={["#4400FFA6", "#FFFFFF", "#FF00004D", "#FFFFFF"]}
+                      start={{ x: 0, y: 0 }}
+                      end={{ x: 1, y: 1 }}
+                      className="p-[1px] rounded-lg flex-1"
+                    >
+                      <View
+                        className={`flex-1 px-4 rounded-lg bg-black items-center justify-center`}
+                      >
+                        <View className="flex-row items-center justify-center">
+                          <Text className="text-white text-center">
+                            Joined
                           </Text>
                         </View>
                       </View>

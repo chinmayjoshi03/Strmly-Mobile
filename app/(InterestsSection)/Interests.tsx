@@ -322,28 +322,27 @@ const Interests = () => {
     const items = isCinema
       ? Type === "Netflix"
         ? [
-  "Drama",
-  "Comedy",
-  "Action & Adventure",
-  "Thriller & Suspense",
-  "Horror",
-  "Romance",
-  "Sci-Fi & Fantasy",
-  "Crime & Mystery",
-  "Documentary",
-  "Biography & True Story",
-  "Family & Kids",
-  "Teen & Young Adult",
-  "Animation & Anime",
-  "Reality & Unscripted",
-  "Talk Shows & Stand-up Comedy",
-  "Historical & Period Pieces",
-  "Musical & Music-Based",
-  "International & World Cinema",
-  "Sports & Fitness",
-  "Short Films & Anthologies",
-]
-
+            "Drama",
+            "Comedy",
+            "Action & Adventure",
+            "Thriller & Suspense",
+            "Horror",
+            "Romance",
+            "Sci-Fi & Fantasy",
+            "Crime & Mystery",
+            "Documentary",
+            "Biography & True Story",
+            "Family & Kids",
+            "Teen & Young Adult",
+            "Animation & Anime",
+            "Reality & Unscripted",
+            "Talk Shows & Stand-up Comedy",
+            "Historical & Period Pieces",
+            "Musical & Music-Based",
+            "International & World Cinema",
+            "Sports & Fitness",
+            "Short Films & Anthologies",
+          ]
         : [
             "Entertainment",
             "Education",
@@ -390,28 +389,27 @@ const Interests = () => {
             "Live Streams & Podcasts",
           ]
         : [
-  "Drama",
-  "Comedy",
-  "Action & Adventure",
-  "Thriller & Suspense",
-  "Horror",
-  "Romance",
-  "Sci-Fi & Fantasy",
-  "Crime & Mystery",
-  "Documentary",
-  "Biography & True Story",
-  "Family & Kids",
-  "Teen & Young Adult",
-  "Animation & Anime",
-  "Reality & Unscripted",
-  "Talk Shows & Stand-up Comedy",
-  "Historical & Period Pieces",
-  "Musical & Music-Based",
-  "International & World Cinema",
-  "Sports & Fitness",
-  "Short Films & Anthologies",
-]
-;
+            "Drama",
+            "Comedy",
+            "Action & Adventure",
+            "Thriller & Suspense",
+            "Horror",
+            "Romance",
+            "Sci-Fi & Fantasy",
+            "Crime & Mystery",
+            "Documentary",
+            "Biography & True Story",
+            "Family & Kids",
+            "Teen & Young Adult",
+            "Animation & Anime",
+            "Reality & Unscripted",
+            "Talk Shows & Stand-up Comedy",
+            "Historical & Period Pieces",
+            "Musical & Music-Based",
+            "International & World Cinema",
+            "Sports & Fitness",
+            "Short Films & Anthologies",
+          ];
     return (
       <ThemedView style={CreateProfileStyles.Container}>
         <View style={CreateProfileStyles.TopBar}>
@@ -433,31 +431,28 @@ const Interests = () => {
             Select only 3 of your interest from
             {isCinema ? " “Cinema content”" : " “Non-cinema content”"}
           </Text>
-          <View style={{ marginTop: 20 }}>{renderGrid(items)}</View>
-
-          <View className="relative h-[70%] justify-end bottom-10">
-            <TouchableOpacity
-              disabled={
-                (Step === 2
-                  ? Interests.length !== 3
-                  : Interests2.length !== 3) ||
-                (Step === 3 &&
-                  (Interests.length !== 3 || Interests2.length !== 3)) ||
-                isSubmitting
-              }
-              onPress={() => HandleStep(true)}
-              className="rounded-3xl z-10 bg-white items-center justify-center h-[55px]"
-            >
-              {isSubmitting ? (
-                <ActivityIndicator color="black" />
-              ) : (
-                <Text className="text-black absolute text-xl">
-                  {Step === 3 ? "Submit" : "Continue"}
-                </Text>
-              )}
-            </TouchableOpacity>
-          </View>
+          <View style={{ marginBottom: 30, marginTop: 10 }}>{renderGrid(items)}</View>
         </ScrollView>
+        <View className="absolute bottom-0 left-0 right-0 px-4 pb-20">
+          <TouchableOpacity
+            disabled={
+              (Step === 2 ? Interests.length !== 3 : Interests2.length !== 3) ||
+              (Step === 3 &&
+                (Interests.length !== 3 || Interests2.length !== 3)) ||
+              isSubmitting
+            }
+            onPress={() => HandleStep(true)}
+            className="rounded-3xl z-10 bg-white items-center justify-center h-[55px]"
+          >
+            {isSubmitting ? (
+              <ActivityIndicator color="black" />
+            ) : (
+              <Text className="text-black text-xl">
+                {Step === 3 ? "Submit" : "Continue"}
+              </Text>
+            )}
+          </TouchableOpacity>
+        </View>
       </ThemedView>
     );
   }
