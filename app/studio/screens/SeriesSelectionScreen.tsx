@@ -43,7 +43,7 @@ const SeriesSelectionScreen: React.FC<SeriesSelectionScreenProps> = ({
 
       // Try to fetch user's series
       // Using a different endpoint that's known to work better with the current auth system
-      const response = await fetch(`${CONFIG.API_BASE_URL}/api/v1/series/all`, {
+      const response = await fetch(`${CONFIG.API_BASE_URL}/series/all`, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`,

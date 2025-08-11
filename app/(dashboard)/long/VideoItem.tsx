@@ -33,7 +33,7 @@ type Props = {
 const PROGRESS_BAR_HEIGHT = 2;
 const FULL_SCREEN_PRESSABLE_BOTTOM_OFFSET = PROGRESS_BAR_HEIGHT;
 const { height } = Dimensions.get("screen");
-const actualHeight = height-50;
+const actualHeight = height - 50;
 
 const VideoItem = ({
   BACKEND_API_URL,
@@ -44,7 +44,7 @@ const VideoItem = ({
   setShowCommentsModal,
   setGiftingData,
   setIsWantToGift,
-  containerHeight,
+
 }: Props) => {
   const player = useVideoPlayer(uri, (p) => {
     p.loop = true;
@@ -218,17 +218,10 @@ const VideoItem = ({
         <Pressable onPress={() => {
           console.log('💰 Wallet button pressed!');
           try {
-            // Try different path formats
-            router.push("/(dashboard)/wallet" as any);
-            console.log('✅ Navigation to wallet initiated');
+            router.push("/(dashboard)/wallet");
+            console.log('✅ Navigation to wallet successful');
           } catch (error) {
             console.error('❌ Navigation error:', error);
-            // Fallback to replace
-            try {
-              router.replace("/(dashboard)/wallet" as any);
-            } catch (fallbackError) {
-              console.error('❌ Fallback navigation error:', fallbackError);
-            }
           }
         }}>
           <Image
@@ -243,10 +236,8 @@ const VideoItem = ({
           creator={{
             _id: videoData.created_by?._id || '',
             username: videoData.created_by?.username || '',
-            name: videoData.created_by?.username || '', // Use username as name fallback
             profile_photo: videoData.created_by?.profile_photo || ''
           }}
-          setGiftingData={setGiftingData}
           setIsWantToGift={setIsWantToGift}
           videoId={videoData._id}
           likes={videoData.likes}
@@ -259,11 +250,22 @@ const VideoItem = ({
 
       {showCommentsModal && (
         <CommentsSection
-          isOpen={showCommentsModal}
           onClose={handleCloseComments}
-          commentss={videoData.comments}
           videoId={videoData._id}
-          longVideosOnly={false}
+          onPressUsername={(userId) => {
+            // Navigate to user profile
+            console.log('Navigate to user profile:', userId);
+            try {
+              router.push(`/(dashboard)/profile/public/${userId}`);
+            } catch (error) {
+              console.error('Navigation error:', error);
+            }
+          }}
+          onPressTip={(commentId) => {
+            // Open tip modal for comment
+            console.log('Open tip modal for comment:', commentId);
+            // You can implement tip modal logic here
+          }}
         />
       )}
 

@@ -54,7 +54,7 @@ const VideoDetailScreen: React.FC<VideoDetailProps> = ({
 
   // Handle format selection
   const handleFormatSelect = (format: string) => {
-    onFormChange({ ...formData, format: format as 'Netflix' | 'Youtube' });
+    onFormChange({ ...formData, format: format as 'Netflix' | 'YouTube' });
     setFormatDropdownOpen(false);
   };
 
@@ -136,7 +136,7 @@ const VideoDetailScreen: React.FC<VideoDetailProps> = ({
             </View>
           ) : null}
           <Dropdown
-            value={formData.community}
+            value={formData.community ? communityOptions.find(option => option.value === formData.community)?.label || formData.community : null}
             placeholder="Select"
             options={communityOptions}
             onSelect={handleCommunitySelect}

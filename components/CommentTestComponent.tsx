@@ -29,13 +29,20 @@ const CommentTestComponent = () => {
         Real-time features will work when APIs are connected.
       </Text>
 
-      <CommentsSection
-        isOpen={showComments}
-        onClose={() => setShowComments(false)}
-        videoId={testVideoData._id}
-        longVideosOnly={true}
-        commentss={[]}
-      />
+      {showComments && (
+        <CommentsSection
+          onClose={() => setShowComments(false)}
+          videoId={testVideoData._id}
+          longVideosOnly={true}
+          commentss={[]}
+          onPressUsername={(userId) => {
+            Alert.alert('Profile Navigation', `Would navigate to user: ${userId}`);
+          }}
+          onPressTip={(commentId) => {
+            Alert.alert('Tip Modal', `Would open tip modal for comment: ${commentId}`);
+          }}
+        />
+      )}
     </View>
   );
 };

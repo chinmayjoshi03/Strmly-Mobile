@@ -9,7 +9,7 @@ import {
 import { router, useLocalSearchParams } from 'expo-router';
 import { CONFIG } from '../../../Constants/config';
 import { useAuthStore } from '../../../store/useAuthStore';
-import UnifiedVideoPlayer from '../../../components/UnifiedVideoPlayer';
+import VideoPlayer from '../../(dashboard)/long/_components/VideoPlayer';
 import { VideoItemType } from '../../../types/VideosType';
 
 interface Episode {
@@ -53,6 +53,7 @@ const EpisodePlayerScreen: React.FC = () => {
   const [episode, setEpisode] = useState<Episode | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [showCommentsModal, setShowCommentsModal] = useState(false);
   const { token } = useAuthStore();
   const { width, height } = Dimensions.get('screen');
 
@@ -180,25 +181,11 @@ const EpisodePlayerScreen: React.FC = () => {
     <View style={[styles.container, { width, height }]}>
       <StatusBar barStyle="light-content" backgroundColor="#000" />
       
-      <UnifiedVideoPlayer
-        uri={episode.videoUrl}
+      <VideoPlayer
         videoData={videoData}
-        mode="episode"
-        autoPlay={true}
-        loop={false}
-        showControls={true}
-        showInteractions={true}
-        showDetails={true}
-        showComments={true}
-        showWallet={true}
-        episodeTitle={episodeName || episode.name}
-        seriesTitle={seriesTitle || episode.series?.title}
-        episodeNumber={episodeNumber ? parseInt(episodeNumber, 10) : episode.episode_number}
-        seasonNumber={seasonNumber ? parseInt(seasonNumber, 10) : episode.season_number}
-        style={{ width, height }}
-        setGiftingData={() => {}} // Add empty handlers for now
-        setIsWantToGift={() => {}}
-        setShowCommentsModal={() => {}}
+        isActive={true}
+        showCommentsModal={showCommentsModal}
+        setShowCommentsModal={setShowCommentsModal}
       />
     </View>
   );

@@ -24,6 +24,10 @@ interface CommunityDetails {
   name: string;
   bio: string;
   profilePhoto: string;
+  community_fee_type?: 'free' | 'paid';
+  community_fee_amount?: number;
+  community_fee_description?: string;
+  creator_limit?: number;
 }
 
 export default function EditCommunity() {
@@ -73,9 +77,14 @@ export default function EditCommunity() {
       setImageUri(result.profilePhoto);
       // Set access type based on community data if available
       setAccessType(result.community_fee_type || 'free');
-      setCreatorStrength(result.creator_strength?.toString() || "");
+      setCreatorStrength(result.creator_limit?.toString() || "");
       setCommunityFee(result.community_fee_amount?.toString() || "");
-      console.log('✅ Community details fetched for editing:', result);
+      console.log('✅ Community details fetched for editing:', {
+        name: result.name,
+        community_fee_type: result.community_fee_type,
+        creator_limit: result.creator_limit,
+        community_fee_amount: result.community_fee_amount
+      });
     } catch (error) {
       console.error('❌ Error fetching community details:', error);
       Alert.alert('Error', 'Failed to load community details');
@@ -86,15 +95,29 @@ export default function EditCommunity() {
   };
 
   const pickImage = async () => {
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ['images'],
-      allowsEditing: true,
-      aspect: [1, 1],
-      quality: 0.7,
-    });
+    try {
+      // Request permissions first
+      const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      
+      if (permissionResult.granted === false) {
+        Alert.alert("Permission Required", "Permission to access camera roll is required!");
+        return;
+      }
 
-    if (!result.canceled) {
-      setImageUri(result.assets[0].uri);
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ['images'],
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.7,
+      });
+
+      if (!result.canceled) {
+        setImageUri(result.assets[0].uri);
+        console.log('📷 Image selected:', result.assets[0].uri);
+      }
+    } catch (error) {
+      console.error('❌ Error picking image:', error);
+      Alert.alert("Error", "Failed to pick image. Please try again.");
     }
   };
 
@@ -142,6 +165,43 @@ export default function EditCommunity() {
         if (imageFile) {
           await communityActions.updateCommunityPhoto(token, communityId, imageFile);
         }
+      }
+
+      // Update community settings if changed
+      const settingsToUpdate: any = {};
+      let hasSettingsChanges = false;
+
+      // Check creator strength
+      if (creatorStrength && creatorStrength !== (community?.creator_limit?.toString() || "")) {
+        const limit = parseInt(creatorStrength);
+        if (!isNaN(limit)) {
+          settingsToUpdate.creator_limit = limit;
+          hasSettingsChanges = true;
+        }
+      }
+
+      // Check access type and fee
+      if (accessType !== (community?.community_fee_type || 'free')) {
+        settingsToUpdate.community_fee_type = accessType;
+        hasSettingsChanges = true;
+
+        if (accessType === 'paid' && communityFee) {
+          const amount = parseInt(communityFee);
+          if (!isNaN(amount)) {
+            settingsToUpdate.community_fee_amount = amount;
+          }
+        }
+      } else if (accessType === 'paid' && communityFee && communityFee !== (community?.community_fee_amount?.toString() || "")) {
+        const amount = parseInt(communityFee);
+        if (!isNaN(amount)) {
+          settingsToUpdate.community_fee_amount = amount;
+          hasSettingsChanges = true;
+        }
+      }
+
+      if (hasSettingsChanges) {
+        console.log('📝 Updating community settings:', settingsToUpdate);
+        await communityActions.updateCommunitySettings(token, communityId, settingsToUpdate);
       }
 
       Alert.alert(

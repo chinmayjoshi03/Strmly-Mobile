@@ -126,6 +126,45 @@ export const getUserProfile = async (token: string) => {
 };
 
 
+// Dashboard API
+export const getUserDashboard = async (token: string) => {
+  try {
+    const url = `${API_BASE_URL}/user/dashboard`;
+    console.log(`Fetching user dashboard from: ${url}`);
+    
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+    });
+
+    const responseText = await response.text();
+    console.log('Dashboard raw response:', responseText);
+
+    if (!response.ok) {
+      let errorMessage = "Failed to get dashboard data";
+      try {
+        const error = JSON.parse(responseText);
+        errorMessage = error.message || errorMessage;
+      } catch (parseError) {
+        errorMessage = `HTTP ${response.status}: ${responseText}`;
+      }
+      throw new Error(errorMessage);
+    }
+
+    try {
+      return JSON.parse(responseText);
+    } catch (parseError) {
+      throw new Error(`Invalid JSON response: ${responseText}`);
+    }
+  } catch (error) {
+    console.error('getUserDashboard error:', error);
+    throw error;
+  }
+};
+
 //Earnings API
 export const getUserEarnings = async (token: string) => {
   try {
@@ -523,6 +562,44 @@ export const updateCreatorPassPrice = async (token: string, price: number) => {
     return data;
   } catch (error) {
     console.error("❌ Failed to update creator pass price:", error);
+    throw error;
+  }
+};
+
+// User Monetization Status API
+export interface MonetizationStatus {
+  message: string;
+  comment_monetization_status: boolean;
+  video_monetization_status: boolean;
+}
+
+export const getUserMonetizationStatus = async (token: string): Promise<MonetizationStatus> => {
+  try {
+    const url = `${API_BASE_URL}/user/monetization-status`;
+    console.log(`📤 Fetching user monetization status from: ${url}`);
+
+    const res = await fetch(url, {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json"
+      }
+    });
+
+    console.log(`📊 Monetization status response status: ${res.status}`);
+
+    if (!res.ok) {
+      const errorText = await res.text();
+      console.error(`❌ Monetization status API error: ${res.status}`);
+      console.error(`❌ Error response:`, errorText.substring(0, 500));
+      throw new Error(`Failed to get monetization status: ${res.status} - ${errorText}`);
+    }
+
+    const data = await res.json();
+    console.log('✅ Monetization status retrieved successfully:', data);
+    return data;
+  } catch (error) {
+    console.error("❌ Failed to get user monetization status:", error);
     throw error;
   }
 };

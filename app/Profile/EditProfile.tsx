@@ -3,11 +3,14 @@ import ThemedView from "@/components/ThemedView";
 import { EditProfile } from "@/styles/EditProfile";
 import { useFonts } from "expo-font";
 import React, { useState, useEffect } from "react";
+
 import { Image, Modal, TextInput, TouchableOpacity, View, Alert, ActivityIndicator } from "react-native";
 import * as ImagePicker from "expo-image-picker";
 import { router, useFocusEffect } from "expo-router";
+
 import { useAuthStore } from "@/store/useAuthStore";
 import { getUserProfile, updateUserProfile } from "@/api/user/userActions";
+import { YOUTUBE_CATEGORIES, NETFLIX_CATEGORIES, ContentType } from "@/Constants/contentCategories";
 
 const EditProfilePage: React.FC = () => {
   const [fontsLoaded] = useFonts({
@@ -38,8 +41,8 @@ const EditProfilePage: React.FC = () => {
   const [dropdownType, setDropdownType] = useState<'gender' | 'interest1' | 'interest2' | 'contentInterest'>('gender');
   const [gender, setGender] = useState("");
   const [contentInterest, setContentInterest] = useState("");
-  const [interest1, setInterest1] = useState("");
-  const [interest2, setInterest2] = useState("");
+  const [interest1, setInterest1] = useState<string[]>([]); // YouTube interests (up to 3)
+  const [interest2, setInterest2] = useState<string[]>([]); // Netflix interests (up to 3)
 
   // Loading states
   const [loading, setLoading] = useState(true);
@@ -47,9 +50,11 @@ const EditProfilePage: React.FC = () => {
 
   // Options for dropdowns
   const genderOptions = ["Male", "Female", "Other"];
-  const contentInterestOptions = ["Entertainment", "Education", "Comedy", "Drama", "Action", "Romance"];
-  const interestOptions = ["Crime", "Comedy", "Romance", "Action", "Drama", "Thriller", "Horror", "Sci-Fi"];
+  const contentInterestOptions = ["YouTube", "Netflix"];
+  const youtubeInterestOptions = YOUTUBE_CATEGORIES;
+  const netflixInterestOptions = NETFLIX_CATEGORIES;
 
+  // Load user profile data on mount
   // Load user profile data on mount
   useEffect(() => {
     loadUserProfile();
@@ -68,7 +73,7 @@ const EditProfilePage: React.FC = () => {
     if (user && user.profile_photo) {
       console.log('🔄 Auth store profile photo changed:', user.profile_photo);
       console.log('📸 Current imageUri:', imageUri);
-      
+
       // Update imageUri if the auth store has a different profile photo
       // This happens after a successful profile update
       if (user.profile_photo !== imageUri) {
@@ -87,17 +92,24 @@ const EditProfilePage: React.FC = () => {
 
       if (profileData.user) {
         console.log('📸 Profile photo from API:', profileData.user.profile_photo);
+        console.log('📸 Profile photo from API:', profileData.user.profile_photo);
         setName(profileData.user.username || "");
         setUsername(profileData.user.username || "");
         setBio(profileData.user.bio || "");
-        
+
         // Always update imageUri with the latest profile photo from API
         setImageUri(profileData.user.profile_photo || null);
 
-        // Set interests if available
-        if (profileData.user.interests && profileData.user.interests.length > 0) {
-          setInterest1(profileData.user.interests[0] || "");
-          setInterest2(profileData.user.interests[1] || "");
+        // Set gender and content interests
+        setGender(profileData.user.gender || "");
+        setContentInterest(profileData.user.content_interests || "");
+
+        // Set interests if available - split between YouTube and Netflix
+        if (profileData.user.interest1 && profileData.user.interest1.length > 0) {
+          setInterest1(profileData.user.interest1);
+        }
+        if (profileData.user.interest2 && profileData.user.interest2.length > 0) {
+          setInterest2(profileData.user.interest2);
         }
       }
     } catch (error) {
@@ -112,18 +124,37 @@ const EditProfilePage: React.FC = () => {
     switch (dropdownType) {
       case 'gender':
         setGender(value);
+        setVisible(false);
         break;
       case 'contentInterest':
         setContentInterest(value);
+        setVisible(false);
         break;
       case 'interest1':
-        setInterest1(value);
+        // Handle YouTube interests (up to 3)
+        if (interest1.includes(value)) {
+          // Remove if already selected
+          setInterest1(interest1.filter(item => item !== value));
+        } else if (interest1.length < 3) {
+          // Add if less than 3 selected
+          setInterest1([...interest1, value]);
+        } else {
+          Alert.alert('Maximum Reached', 'You can only select up to 3 YouTube interests.');
+        }
         break;
       case 'interest2':
-        setInterest2(value);
+        // Handle Netflix interests (up to 3)
+        if (interest2.includes(value)) {
+          // Remove if already selected
+          setInterest2(interest2.filter(item => item !== value));
+        } else if (interest2.length < 3) {
+          // Add if less than 3 selected
+          setInterest2([...interest2, value]);
+        } else {
+          Alert.alert('Maximum Reached', 'You can only select up to 3 Netflix interests.');
+        }
         break;
     }
-    setVisible(false);
   };
 
   const openDropdown = (type: 'gender' | 'interest1' | 'interest2' | 'contentInterest') => {
@@ -138,8 +169,11 @@ const EditProfilePage: React.FC = () => {
       case 'contentInterest':
         return contentInterestOptions;
       case 'interest1':
+        // Return YouTube categories for Interest 1
+        return youtubeInterestOptions;
       case 'interest2':
-        return interestOptions;
+        // Return Netflix categories for Interest 2
+        return netflixInterestOptions;
       default:
         return [];
     }
@@ -152,9 +186,9 @@ const EditProfilePage: React.FC = () => {
       case 'contentInterest':
         return contentInterest;
       case 'interest1':
-        return interest1;
+        return interest1.length > 0 ? `${interest1.length} selected` : "";
       case 'interest2':
-        return interest2;
+        return interest2.length > 0 ? `${interest2.length} selected` : "";
       default:
         return "";
     }
@@ -182,24 +216,31 @@ const EditProfilePage: React.FC = () => {
     try {
       setSaving(true);
 
-      const interests = [interest1, interest2].filter(Boolean);
-
       const profileData = {
         username: username.trim(),
         bio: bio.trim(),
-        ...(interests.length > 0 && { interests: JSON.stringify(interests) }),
+        ...(gender && { gender }),
+        ...(contentInterest && { content_interests: contentInterest }),
+        ...(interest1.length > 0 && { interest1: JSON.stringify(interest1) }),
+        ...(interest2.length > 0 && { interest2: JSON.stringify(interest2) }),
         ...(imageUri && { profile_photo: imageUri })
       };
 
       const response = await updateUserProfile(token, profileData);
+     
 
+      // Update the auth store with new data (use the URL from server response if available)
+     
       // Update the auth store with new data (use the URL from server response if available)
       const updatedProfilePhoto = response.user?.profile_photo || imageUri;
       updateUser({
         ...user,
         username: username.trim(),
         bio: bio.trim(),
-        interests: interests,
+        gender: gender,
+        content_interests: contentInterest,
+        interest1: interest1,
+        interest2: interest2,
         ...(updatedProfilePhoto && { profile_photo: updatedProfilePhoto })
       });
 
@@ -207,10 +248,10 @@ const EditProfilePage: React.FC = () => {
       router.back();
     } catch (error) {
       console.error('Error updating profile:', error);
-      
+
       if (error instanceof Error && error.message.includes('Network request failed') && imageUri) {
         Alert.alert(
-          'Profile Updated', 
+          'Profile Updated',
           'Your profile information was updated, but the profile photo could not be uploaded. Please try uploading the photo again.',
           [{ text: 'OK' }]
         );
@@ -222,6 +263,8 @@ const EditProfilePage: React.FC = () => {
       setSaving(false);
     }
   };
+
+  
 
   const renderDropdownField = (label: string, value: string, placeholder: string, dropdownKey: 'gender' | 'interest1' | 'interest2' | 'contentInterest') => (
     <TouchableOpacity
@@ -315,26 +358,55 @@ const EditProfilePage: React.FC = () => {
           <View style={EditProfile.HalfField}>
             <ThemedText style={EditProfile.InfoLabel}>Gender</ThemedText>
             {renderDropdownField("Gender", gender, "Select", 'gender')}
+            {renderDropdownField("Gender", gender, "Select", 'gender')}
           </View>
 
           <View style={EditProfile.HalfField}>
             <ThemedText style={EditProfile.InfoLabel}>Content interest</ThemedText>
             {renderDropdownField("Content interest", contentInterest, "Select", 'contentInterest')}
+            <ThemedText style={EditProfile.InfoLabel}>Content interest</ThemedText>
+            {renderDropdownField("Content interest", contentInterest, "Select", 'contentInterest')}
           </View>
         </View>
 
-        {/* Interest 1 & 2 */}
-        {["Interest 1", "Interest 2"].map((interest, i) => (
-          <View key={i} style={EditProfile.InfoFrame}>
-            <ThemedText style={EditProfile.InfoLabel}>{interest}</ThemedText>
-            {renderDropdownField(
-              interest,
-              i === 0 ? interest1 : interest2,
-              "Select interest",
-              i === 0 ? 'interest1' : 'interest2'
-            )}
-          </View>
-        ))}
+        {/* Interest 1 (YouTube) & Interest 2 (Netflix) */}
+        <View style={EditProfile.InfoFrame}>
+          <ThemedText style={EditProfile.InfoLabel}>Interest 1 </ThemedText>
+          {renderDropdownField(
+            "Interest 1",
+            getCurrentValue() === "" && dropdownType === 'interest1' ? "" : interest1.length > 0 ? `${interest1.length} selected` : "",
+            "Crime, Comedy, Romance",
+            'interest1'
+          )}
+          {interest1.length > 0 && (
+            <View style={{ marginTop: 8, flexDirection: 'row', flexWrap: 'wrap' }}>
+              {interest1.map((item, index) => (
+                <View key={index} style={{ backgroundColor: '#333', padding: 4, margin: 2, borderRadius: 4 }}>
+                  <ThemedText style={{ color: '#fff', fontSize: 12 }}>{item}</ThemedText>
+                </View>
+              ))}
+            </View>
+          )}
+        </View>
+
+        <View style={EditProfile.InfoFrame}>
+          <ThemedText style={EditProfile.InfoLabel}>Interest 2 </ThemedText>
+          {renderDropdownField(
+            "Interest 2",
+            getCurrentValue() === "" && dropdownType === 'interest2' ? "" : interest2.length > 0 ? `${interest2.length} selected` : "",
+            "Crime, Comedy, Romance",
+            'interest2'
+          )}
+          {interest2.length > 0 && (
+            <View style={{ marginTop: 8, flexDirection: 'row', flexWrap: 'wrap' }}>
+              {interest2.map((item, index) => (
+                <View key={index} style={{ backgroundColor: '#333', padding: 4, margin: 2, borderRadius: 4 }}>
+                  <ThemedText style={{ color: '#fff', fontSize: 12 }}>{item}</ThemedText>
+                </View>
+              ))}
+            </View>
+          )}
+        </View>
 
         {/* Dropdown Modal (shared) */}
         <Modal transparent animationType="fade" visible={visible}>
@@ -343,23 +415,72 @@ const EditProfilePage: React.FC = () => {
             onPress={() => setVisible(false)}
           >
             <View style={EditProfile.dropdownBox}>
-              {getDropdownOptions().map((item) => (
-                <TouchableOpacity
-                  key={item}
-                  style={EditProfile.dropdownItem}
-                  onPress={() => handleSelect(item)}
-                >
-                  <ThemedText style={EditProfile.dropdownItemText}>
-                    {item}
-                  </ThemedText>
-                </TouchableOpacity>
-              ))}
+              {dropdownType === 'interest1' || dropdownType === 'interest2' ? (
+                // Multi-select for interests
+                <>
+                  <View style={{ padding: 10, borderBottomWidth: 1, borderBottomColor: '#333' }}>
+                    <ThemedText style={{ color: '#fff', fontWeight: 'bold' }}>
+                      {dropdownType === 'interest1' ? 'YouTube Interests (Select up to 3)' : 'Netflix Interests (Select up to 3)'}
+                    </ThemedText>
+                    <ThemedText style={{ color: '#888', fontSize: 12 }}>
+                      {dropdownType === 'interest1' ? `${interest1.length}/3 selected` : `${interest2.length}/3 selected`}
+                    </ThemedText>
+                  </View>
+                  {getDropdownOptions().map((item) => {
+                    const isSelected = dropdownType === 'interest1' ? interest1.includes(item) : interest2.includes(item);
+                    return (
+                      <TouchableOpacity
+                        key={item}
+                        style={[EditProfile.dropdownItem, { flexDirection: 'row', alignItems: 'center' }]}
+                        onPress={() => handleSelect(item)}
+                      >
+                        <View style={{
+                          width: 20,
+                          height: 20,
+                          borderWidth: 2,
+                          borderColor: isSelected ? '#007AFF' : '#666',
+                          backgroundColor: isSelected ? '#007AFF' : 'transparent',
+                          marginRight: 10,
+                          alignItems: 'center',
+                          justifyContent: 'center'
+                        }}>
+                          {isSelected && <ThemedText style={{ color: '#fff', fontSize: 12 }}>✓</ThemedText>}
+                        </View>
+                        <ThemedText style={EditProfile.dropdownItemText}>
+                          {item}
+                        </ThemedText>
+                      </TouchableOpacity>
+                    );
+                  })}
+                  <TouchableOpacity
+                    style={[EditProfile.dropdownItem, { backgroundColor: '#007AFF', marginTop: 10 }]}
+                    onPress={() => setVisible(false)}
+                  >
+                    <ThemedText style={[EditProfile.dropdownItemText, { textAlign: 'center', fontWeight: 'bold' }]}>
+                      Done
+                    </ThemedText>
+                  </TouchableOpacity>
+                </>
+              ) : (
+                // Single select for other dropdowns
+                getDropdownOptions().map((item) => (
+                  <TouchableOpacity
+                    key={item}
+                    style={EditProfile.dropdownItem}
+                    onPress={() => handleSelect(item)}
+                  >
+                    <ThemedText style={EditProfile.dropdownItemText}>
+                      {item}
+                    </ThemedText>
+                  </TouchableOpacity>
+                ))
+              )}
             </View>
           </TouchableOpacity>
         </Modal>
 
         {/* Social Media Links Button */}
-        <TouchableOpacity 
+        <TouchableOpacity
           style={EditProfile.CreatorPassButton}
           onPress={() => router.push('/Profile/SocialMediaLinks')}
         >
@@ -369,7 +490,7 @@ const EditProfilePage: React.FC = () => {
         </TouchableOpacity>
 
         {/* Creator Pass Button */}
-        <TouchableOpacity 
+        <TouchableOpacity
           style={EditProfile.CreatorPassButton}
           onPress={() => router.push('/Profile/CreatorPass')}
         >

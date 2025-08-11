@@ -5,7 +5,7 @@ import Dropdown from '../components/Dropdown';
 import TimePicker from '../components/TimePicker';
 import ContinueButton from '../components/ContinueButton';
 import { FinalStageProps } from '../types';
-import { genreOptions } from '../data/dropdownOptions';
+import { getGenreOptions } from '../data/dropdownOptions';
 
 /**
  * Final Stage Screen
@@ -34,13 +34,16 @@ const FinalStageScreen: React.FC<FinalStageProps> = ({
   videoDetails,
   onFormChange,
   onUpload,
-  onSaveToDraft,
+
   onBack,
   selectedSeries,
   videoFormat,
   isEditingDraft
 }) => {
   const [genreDropdownOpen, setGenreDropdownOpen] = useState(false);
+
+  // Get genre options based on selected format
+  const genreOptions = getGenreOptions(videoDetails.format);
 
   // Handle genre selection
   const handleGenreSelect = (genre: string) => {
@@ -78,7 +81,7 @@ const FinalStageScreen: React.FC<FinalStageProps> = ({
   return (
     <View className="flex-1 bg-black">
       <StatusBar barStyle="light-content" backgroundColor="#000" />
-      
+
       {/* Header */}
       <View className="flex-row items-center justify-between px-4 py-3 mt-12">
         <TouchableOpacity onPress={onBack}>

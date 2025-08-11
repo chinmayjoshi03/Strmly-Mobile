@@ -20,19 +20,22 @@ const VIDEO_HEIGHT = screenHeight;
 type Props = {
   videoData: VideoItemType;
   isActive: boolean;
+  showCommentsModal?: boolean;
+  setShowCommentsModal?: (show: boolean) => void;
 };
 
-const VideoPlayer = ({ videoData, isActive }: Props) => {
-  const [showCommentsModal, setShowCommentsModal] = useState(false);
+const VideoPlayer = ({ 
+  videoData, 
+  isActive, 
+  showCommentsModal = false, 
+  setShowCommentsModal 
+}: Props) => {
 
-
-  const {
-    isGifted,
-    giftSuccessMessage,
-    hasFetched,
-    creator,
-    clearGiftingData,
-  } = useGiftingStore();
+  const [isWantToGift, setIsWantToGift] = useState(false);
+  const [isGifted, setIsGifted] = useState(false);
+  const [giftSuccessMessage, setGiftSuccessMessage] = useState<number | null>(
+    null
+  );
 
   // FIX: Gracefully handle cases where videoUrl might be missing
   if (!videoData?.videoUrl) {
@@ -124,6 +127,29 @@ const VideoPlayer = ({ videoData, isActive }: Props) => {
           setShowCommentsModal={setShowCommentsModal}
         />
 
+          <View className="absolute bottom-12 left-0 h-5 z-10 right-0">
+            <VideoProgressBar player={player} isActive={isActive}/>
+          </View>
+
+          <View className="z-10 absolute top-4 left-5">
+            <Pressable
+              onPress={() => {
+                console.log('💰 Wallet button pressed in VideoPlayer!');
+                try {
+                  router.push("/(dashboard)/wallet");
+                  console.log('✅ Navigation to wallet successful');
+                } catch (error) {
+                  console.error('❌ Navigation error:', error);
+                }
+              }}
+            >
+              <Image
+                source={require("../../../../assets/images/Wallet.png")}
+                className="size-10"
+              />
+            </Pressable>
+          </View>
+        </>
         {/* <View className="absolute bottom-[2.57rem] left-0 h-5 z-10 right-0">
             <VideoProgressBar
               videoId={videoData._id}
@@ -153,12 +179,25 @@ const VideoPlayer = ({ videoData, isActive }: Props) => {
         />
       )}
 
-      {showCommentsModal && (
+      {showCommentsModal && setShowCommentsModal && (
         <CommentsSection
           onClose={() => setShowCommentsModal(false)}
           videoId={videoData._id}
-          commentss={videoData.comments}
-          longVideosOnly={videoData.type === "long"}
+          onPressUsername={(userId) => {
+            // Navigate to user profile
+            console.log('Navigate to user profile:', userId);
+            try {
+              router.push(`/(dashboard)/profile/public/${userId}`);
+            } catch (error) {
+              console.error('Navigation error:', error);
+            }
+          }}
+          onPressTip={(commentId) => {
+            // Open tip modal for comment
+            console.log('Open tip modal for comment:', commentId);
+            // You can implement tip modal logic here
+            // For now, we'll show a simple alert or implement later
+          }}
         />
       )}
     </View>

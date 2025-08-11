@@ -45,34 +45,45 @@ export const useStudioDrafts = () => {
   const [drafts, setDrafts] = useState<TransformedDraft[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [lastFetchTime, setLastFetchTime] = useState<number>(0);
 
   const { token } = useAuthStore();
 
-  const fetchDrafts = async () => {
+  const fetchDrafts = async (forceRefresh = false) => {
+    // Rate limiting: prevent calls within 2 seconds unless forced
+    const now = Date.now();
+    if (!forceRefresh && now - lastFetchTime < 2000) {
+      console.log('🚫 Skipping drafts fetch due to rate limiting');
+      return;
+    }
 
     try {
       setLoading(true);
       setError(null);
+      setLastFetchTime(now);
 
       if (!token) {
         throw new Error('No authentication token available');
       }
 
+      console.log('📋 Fetching drafts...');
       const response = await fetch(`${CONFIG.API_BASE_URL}/drafts/all`, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`,
-          
           'Content-Type': 'application/json',
         },
       });
 
       if (!response.ok) {
+        if (response.status === 429) {
+          throw new Error('Too many requests. Please wait a moment and try again.');
+        }
         throw new Error(`Failed to fetch drafts: ${response.status}`);
       }
 
       const data: DraftsResponse = await response.json();
-
+      console.log('✅ Drafts fetched successfully:', data.drafts?.length || 0);
 
       // Transform drafts data for UI
       const transformedDrafts: TransformedDraft[] = data.drafts.map((draft) => ({
@@ -100,11 +111,16 @@ export const useStudioDrafts = () => {
   };
 
   useEffect(() => {
-    fetchDrafts();
-  }, []);
+    // Add a small delay to prevent immediate calls on mount
+    const timer = setTimeout(() => {
+      fetchDrafts(true); // Force refresh on initial load
+    }, 100);
+
+    return () => clearTimeout(timer);
+  }, [token]); // Only depend on token changes
 
   const refetch = () => {
-    fetchDrafts();
+    fetchDrafts(true); // Force refresh when manually triggered
   };
 
   return {

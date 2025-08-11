@@ -4,7 +4,7 @@
 export interface VideoFormData {
   title: string;
   community: string | null;
-  format: 'Netflix' | 'Youtube' | null;
+  format: 'Netflix' | 'YouTube' | null;
   videoType: 'free' | 'paid' | null;
   amount?: number; // Price for paid videos
 }

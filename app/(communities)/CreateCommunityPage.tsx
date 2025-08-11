@@ -54,15 +54,29 @@ const CreateCommunityPage: React.FC = () => {
   };
 
   const pickImage = async () => {
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ['images'],
-      allowsEditing: true,
-      aspect: [1, 1],
-      quality: 0.7,
-    });
+    try {
+      // Request permissions first
+      const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      
+      if (permissionResult.granted === false) {
+        Alert.alert("Permission Required", "Permission to access camera roll is required!");
+        return;
+      }
 
-    if (!result.canceled) {
-      setImageUri(result.assets[0].uri);
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ['images'],
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.7,
+      });
+
+      if (!result.canceled) {
+        setImageUri(result.assets[0].uri);
+        console.log('📷 Image selected:', result.assets[0].uri);
+      }
+    } catch (error) {
+      console.error('❌ Error picking image:', error);
+      Alert.alert("Error", "Failed to pick image. Please try again.");
     }
   };
 
@@ -165,7 +179,14 @@ const CreateCommunityPage: React.FC = () => {
       </View>
 
       {/* Image picker */}
-      <TouchableOpacity className="items-center w-fit" onPress={pickImage}>
+      <TouchableOpacity 
+        className="items-center w-fit" 
+        onPress={() => {
+          console.log('📷 Image picker button pressed');
+          pickImage();
+        }}
+        activeOpacity={0.7}
+      >
         <Image
           source={
             imageUri

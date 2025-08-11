@@ -1,16 +1,13 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useCallback } from "react";
 import {
   FlatList,
   Dimensions,
   ActivityIndicator,
   Text,
-  View,
 } from "react-native";
 import ThemedView from "@/components/ThemedView";
-import { useAuthStore } from "@/store/useAuthStore";
-import Constants from "expo-constants";
 import { VideoItemType } from "@/types/VideosType";
-import { router, useLocalSearchParams } from "expo-router";
+import { useLocalSearchParams } from "expo-router";
 import VideoPlayer from "@/app/(dashboard)/long/_components/VideoPlayer";
 
 export type GiftType = {
@@ -27,15 +24,12 @@ const BOTTOM_NAV_HEIGHT = 50;
 const VIDEO_HEIGHT = screenHeight - BOTTOM_NAV_HEIGHT;
 
 const GlobalVideoPlayer: React.FC = () => {
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [loading] = useState(false); // Set to false since we're not actually loading anything
+  const [error] = useState<string | null>(null);
   const [visibleIndex, setVisibleIndex] = useState(0);
-  const {id, data} = useLocalSearchParams();
-  
-  const videos = data ? JSON.parse(data as string) : [];
+  const { data } = useLocalSearchParams();
 
-  const { token } = useAuthStore();
-  const BACKEND_API_URL = Constants.expoConfig?.extra?.BACKEND_API_URL;
+  const videos = data ? JSON.parse(data as string) : [];
 
 
   // OPTIMIZATION 1: Stabilize the onViewableItemsChanged callback
@@ -66,7 +60,7 @@ const GlobalVideoPlayer: React.FC = () => {
       offset: VIDEO_HEIGHT * index,
       index,
     }),
-    [router]
+    []
   );
 
   if (loading) {

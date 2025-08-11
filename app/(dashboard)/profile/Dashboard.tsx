@@ -10,11 +10,12 @@ import {
 } from 'react-native';
 import { ChevronLeft, ChevronDown } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useAuthStore } from '@/store/useAuthStore';
 import { useDashboard } from './_components/useDashboard';
 import { testApiConnection } from '@/utils/apiTest';
 import { testUserEndpoints } from '@/utils/endpointTester';
+import { useTransactionHistory } from '../wallet/_components/useTransactionHistory';
 
 interface DashboardStats {
     totalViews: number;
@@ -30,7 +31,6 @@ interface RevenueBreakdown {
     estimateRevenue: number;
     contentSubscription: number;
     creatorPass: number;
-    commentEarning: number;
     giftingEarning: number;
     communityFee: number;
     strmlyAds: number;
@@ -49,7 +49,10 @@ interface RecentActivity {
 }
 
 const Dashboard = () => {
-    const [activeTab, setActiveTab] = useState<'non-revenue' | 'revenue'>('non-revenue');
+    const params = useLocalSearchParams();
+    const initialTab = params.tab === 'revenue' ? 'revenue' : 'non-revenue';
+    
+    const [activeTab, setActiveTab] = useState<'non-revenue' | 'revenue'>(initialTab);
     const [timeFilter, setTimeFilter] = useState('Last 30 Days');
     const [showTimeDropdown, setShowTimeDropdown] = useState(false);
     const [recentActivity, setRecentActivity] = useState<RecentActivity[]>([]);
@@ -59,6 +62,9 @@ const Dashboard = () => {
 
     // Use the custom dashboard hook
     const { stats, revenueBreakdown, loading, error } = useDashboard(token || '', activeTab);
+    
+    // Use transaction history hook to get recent revenue activities
+    const { transactions, gifts, fetchTransactionHistory, fetchGiftHistory } = useTransactionHistory(token || '');
 
     // Test API connection on mount
     useEffect(() => {
@@ -89,10 +95,72 @@ const Dashboard = () => {
         'Last Year'
     ];
 
-    // Initialize with empty recent activity
+    // Fetch recent revenue activities when in revenue tab
     useEffect(() => {
-        setRecentActivity([]);
-    }, [activeTab]);
+        if (activeTab === 'revenue' && token) {
+            console.log('🔍 Fetching recent revenue activities...');
+            fetchTransactionHistory();
+            fetchGiftHistory();
+        }
+    }, [activeTab, token]);
+
+    // Generate recent activity from transactions and gifts
+    useEffect(() => {
+        if (activeTab === 'revenue') {
+            const recentRevenue: RecentActivity[] = [];
+            
+            // Add recent credit transactions (revenue)
+            const revenueTransactions = transactions
+                .filter(tx => tx.type === 'credit')
+                .slice(0, 5)
+                .map(tx => ({
+                    id: tx.id,
+                    user: {
+                        name: tx.from || 'User',
+                        avatar: 'https://via.placeholder.com/40'
+                    },
+                    action: 'gift' as const,
+                    content: tx.description,
+                    timestamp: new Date(tx.date).toLocaleDateString('en-GB', {
+                        day: 'numeric',
+                        month: 'short',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                    }),
+                    amount: tx.amount
+                }));
+
+            // Add recent gifts
+            const recentGifts = gifts
+                .slice(0, 5)
+                .map(gift => ({
+                    id: gift.id,
+                    user: {
+                        name: gift.from.username,
+                        avatar: gift.from.profile_photo || 'https://via.placeholder.com/40'
+                    },
+                    action: 'gift' as const,
+                    content: `sent you a gift${gift.video ? ` on "${gift.video.title}"` : ''}`,
+                    timestamp: new Date(gift.createdAt).toLocaleDateString('en-GB', {
+                        day: 'numeric',
+                        month: 'short',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                    }),
+                    amount: gift.amount
+                }));
+
+            // Combine and sort by date
+            const combined = [...revenueTransactions, ...recentGifts]
+                .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+                .slice(0, 5);
+
+            console.log('🔍 Generated recent revenue activities:', combined);
+            setRecentActivity(combined);
+        } else {
+            setRecentActivity([]);
+        }
+    }, [activeTab, transactions, gifts]);
 
     const formatNumber = (num: number): string => {
         if (num >= 1000000) {
@@ -206,10 +274,6 @@ const Dashboard = () => {
                                         <Text className="text-white text-base" style={{ fontFamily: 'Inter' }}>₹{revenueBreakdown?.creatorPass || '0'}</Text>
                                     </View>
                                     <View className="flex-row justify-between items-center">
-                                        <Text className="text-gray-400 text-base" style={{ fontFamily: 'Inter' }}>Comment earning</Text>
-                                        <Text className="text-white text-base" style={{ fontFamily: 'Inter' }}>₹{revenueBreakdown?.commentEarning || '0'}</Text>
-                                    </View>
-                                    <View className="flex-row justify-between items-center">
                                         <Text className="text-gray-400 text-base" style={{ fontFamily: 'Inter' }}>Gifting earning</Text>
                                         <Text className="text-white text-base" style={{ fontFamily: 'Inter' }}>₹{revenueBreakdown?.giftingEarning || '0'}</Text>
                                     </View>
@@ -253,36 +317,44 @@ const Dashboard = () => {
                             )}
                         </LinearGradient>
 
-                        {/* Recent Activity - Hidden until API integration */}
-                        {/* <View className="mb-6">
-                            <Text className="text-white text-2xl font-semibold mb-4">Recent</Text>
-                            <View className="space-y-4">
-                                {recentActivity.length > 0 ? (
-                                    recentActivity.map((activity) => (
-                                        <View key={activity.id} className="flex-row items-center">
-                                            <Image
-                                                source={{ uri: activity.user.avatar }}
-                                                className="w-10 h-10 rounded-full mr-3"
-                                            />
-                                            <View className="flex-1">
-                                                <Text className="text-white text-lg">
-                                                    <Text className="font-semibold">{activity.user.name}</Text>
-                                                    <Text className="text-gray-400"> {getActionText(activity)}</Text>
-                                                </Text>
-                                                <Text className="text-gray-500 text-base">{activity.timestamp}</Text>
-                                            </View>
-                                            {activeTab === 'revenue' && activity.amount && (
-                                                <Text className="text-white text-lg font-medium">
-                                                    +₹{activity.amount.toFixed(1)}
-                                                </Text>
-                                            )}
-                                        </View>
-                                    ))
-                                ) : (
-                                    <Text className="text-gray-400 text-base">No recent activity to display</Text>
-                                )}
+                        {/* Recent Revenue History - Only show in revenue tab */}
+                        {activeTab === 'revenue' && (
+                            <View className="mb-6">
+                                <Text className="text-white text-2xl font-semibold mb-4">Recent</Text>
+                                <ScrollView 
+                                    className="max-h-96"
+                                    showsVerticalScrollIndicator={true}
+                                    nestedScrollEnabled={true}
+                                >
+                                    <View className="space-y-4">
+                                        {recentActivity.length > 0 ? (
+                                            recentActivity.map((activity) => (
+                                                <View key={activity.id} className="flex-row items-center mb-4">
+                                                    <Image
+                                                        source={{ uri: activity.user.avatar }}
+                                                        className="w-10 h-10 rounded-full mr-3"
+                                                    />
+                                                    <View className="flex-1">
+                                                        <Text className="text-white text-lg">
+                                                            <Text className="font-semibold">{activity.user.name}</Text>
+                                                            <Text className="text-gray-400"> {getActionText(activity)}</Text>
+                                                        </Text>
+                                                        <Text className="text-gray-500 text-base">{activity.timestamp}</Text>
+                                                    </View>
+                                                    {activity.amount && (
+                                                        <Text className="text-white text-lg font-medium">
+                                                            +₹{activity.amount.toFixed(1)}
+                                                        </Text>
+                                                    )}
+                                                </View>
+                                            ))
+                                        ) : (
+                                            <Text className="text-gray-400 text-base">No recent revenue activity</Text>
+                                        )}
+                                    </View>
+                                </ScrollView>
                             </View>
-                        </View> */}
+                        )}
                     </>
                 )}
             </ScrollView>
