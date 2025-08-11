@@ -14,6 +14,7 @@ type InteractOptionsProps = {
   gifts: number;
   shares: number;
   comments?: number;
+
   creator: {
     _id: string;
     username: string;
@@ -38,6 +39,7 @@ const InteractOptions = ({
   const [isResharedVideo, setIsResharedVideo] = useState(false);
 
   const { token, user } = useAuthStore();
+
   const { initiateGifting } = useGiftingStore();
 
   const BACKEND_API_URL = CONFIG.API_BASE_URL;
@@ -210,6 +212,18 @@ const InteractOptions = ({
 
   return (
     <View className="p-1">
+      {isResharedVideo && (
+        <View className="absolute -left-[21.5rem] bottom-0">
+          <View className="flex-row gap-2 items-center bg-[#000000A8] w-40 py-0.5 justify-center rounded-xl">
+            <Image
+              source={require("../../../../assets/images/repost.png")}
+              className="size-5"
+            />
+            <Text className="text-white">by {user?.username}</Text>
+          </View>
+        </View>
+      )}
+
       <View className="gap-5">
         <View className="items-center gap-1">
           <Pressable onPress={() => LikeVideo()}>

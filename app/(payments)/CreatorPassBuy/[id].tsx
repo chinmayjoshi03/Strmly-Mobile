@@ -22,6 +22,7 @@ import { useAuthStore } from "@/store/useAuthStore";
 import Constants from "expo-constants";
 import CreatorInfo from "../Video/_components/CreatorInfo";
 import { useRoute } from "@react-navigation/native";
+
 import { useGiftingStore } from "@/store/useGiftingStore";
 
 const BACKEND_API_URL = Constants.expoConfig?.extra?.BACKEND_API_URL;
@@ -46,11 +47,13 @@ const CreatorPassBuy = ({
   setIsGifted,
   giftMessage,
 }: GiftingData) => {
+
   const route = useRoute();
   const { id } = route.params as { id: string };
   const [userData, setUserData] = useState<any>(null);
   const [walletInfo, setWalletInfo] = useState<{ balance?: number }>({});
   const [hasCreatorPass, setHasCreatorPass] = useState<boolean>(false);
+  
   const [loading, setLoading] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

@@ -26,6 +26,7 @@ type VideoDetailsProps = {
   type: string;
   is_monetized: boolean;
   videoAmount: number;
+
   createdBy: {
     _id: string;
     username: string;
@@ -190,7 +191,6 @@ const VideoDetails = ({
   return (
     <View className="w-full gap-3.5">
       {/* Top tags */}
-
       <View className="flex-row items-center justify-start gap-2">
         {community && (
           <>

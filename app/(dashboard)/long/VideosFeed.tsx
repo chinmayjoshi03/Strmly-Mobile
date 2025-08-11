@@ -33,6 +33,7 @@ const VideosFeed: React.FC = () => {
     setLoading(true);
     try {
       const res = await fetch(`${BACKEND_API_URL}/recommendations/videos`, { //recommendations/videos
+
         method: "GET",
         headers: {
           Authorization: `Bearer ${token}`,
