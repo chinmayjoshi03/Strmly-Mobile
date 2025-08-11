@@ -15,6 +15,8 @@ import { CONFIG } from "@/Constants/config";
 import {
   MapPin,
   LinkIcon,
+  Calendar,
+  VideoIcon, // Replaces PlayIcon for video tab
   HeartIcon,
   PaperclipIcon,
   LogOut,
@@ -31,6 +33,10 @@ import ProfileTopbar from "@/components/profileTopbar";
 import { LinearGradient } from "expo-linear-gradient";
 import Constants from "expo-constants";
 
+// Note: testVideos, api, toast, and format are not directly used in the final render
+// but if `api` or `toast` are custom internal modules, ensure they are RN compatible.
+// `format` (from date-fns) is compatible with React Native.
+
 export default function PersonalProfilePage() {
 
   const [activeTab, setActiveTab] = useState("long");
@@ -43,6 +49,8 @@ export default function PersonalProfilePage() {
 
   const { token, user } = useAuthStore();
   const router = useRouter();
+
+  const BACKEND_API_URL = Constants.expoConfig?.extra?.BACKEND_API_URL;
 
   const thumbnails = useThumbnailsGenerate(
     videos.map((video) => ({
@@ -72,10 +80,6 @@ export default function PersonalProfilePage() {
             method: "GET",
             headers: {
               Authorization: `Bearer ${token}`,
-              "Content-Type": "application/json",
-              "Cache-Control": "no-cache, no-store, must-revalidate",
-              "Pragma": "no-cache",
-              "Expires": "0"
             },
           });
 
@@ -84,24 +88,34 @@ export default function PersonalProfilePage() {
 
 
 
-          if (!response.ok) {
-            throw new Error(data.message || "Failed to fetch user videos");
-          }
-
-          console.log("videos", data);
-          setVideos(data.videos);
-        } catch (err) {
-          console.error("Error fetching user videos:", err);
-          Alert.alert(
-            "Error",
-            err instanceof Error
-              ? err.message
-              : "An unknown error occurred while fetching videos."
-          );
-        } finally {
-          setIsLoadingVideos(false);
+        if (!response.ok) {
+          throw new Error(data.message || "Failed to fetch user videos");
         }
-      };
+
+        setVideos(data.videos);
+      } catch (err) {
+        console.error("Error fetching user videos:", err);
+        Alert.alert(
+          "Error",
+          err instanceof Error
+            ? err.message
+            : "An unknown error occurred while fetching videos."
+        );
+      } finally {
+        setIsLoadingVideos(false);
+      }
+    };
+
+    if (token) {
+      fetchUserVideos();
+    }
+  }, [isLoggedIn, router, token, activeTab]);
+
+  useEffect(() => {
+    if (!isLoggedIn) {
+      router.push("/(auth)/Sign-in");
+      return;
+    }
 
       const fetchUserData = async () => {
         setIsLoading(true);
@@ -121,9 +135,9 @@ export default function PersonalProfilePage() {
           const data = await response.json();
 
 
-          if (!response.ok) {
-            throw new Error(data.message || "Failed to fetch user profile");
-          }
+        if (!response.ok) {
+          throw new Error(data.message || "Failed to fetch user profile");
+        }
 
           console.log("Fetched fresh user data:", data.user);
           console.log("Profile counts - Followers:", data.user.totalFollowers, "Following:", data.user.totalFollowing, "Communities:", data.user.totalCommunities);
@@ -143,13 +157,40 @@ export default function PersonalProfilePage() {
         }
       };
 
-      if (token) {
-        fetchUserData();
-        fetchUserVideos();
-      }
-    }, [token, activeTab])
-  );
+    if (token) {
+      fetchUserData();
+    }
+  }, [isLoggedIn, router, token]);
 
+  const userReshareVideos = async () => {
+    setIsLoadingVideos(true);
+    try {
+      const response = await fetch(`${BACKEND_API_URL}/user/reshares`, {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || "Failed to fetch user videos");
+      }
+
+      setVideos(data.reshares);
+      console.log(data);
+    } catch (err) {
+      console.error("Error fetching user videos:", err);
+      Alert.alert(
+        "Error",
+        err instanceof Error
+          ? err.message
+          : "An unknown error occurred while fetching videos."
+      );
+    } finally {
+      setIsLoadingVideos(false);
+    }
   const currentProfileData = {
     name: userData?.name || "User",
     email: userData?.email || "",
@@ -205,14 +246,17 @@ export default function PersonalProfilePage() {
       <ScrollView className="flex-1">
         {!isLoading && (
           <View className="h-48 relative">
-            <ProfileTopbar hashtag={false} name={currentProfileData.username} />
+            <ProfileTopbar
+              hashtag={false}
+              name={userData?.username}
+            />
           </View>
         )}
 
         {/* Profile Info */}
         {isLoading ? (
           <View className="w-full h-96 flex items-center justify-center -mt-20 relative">
-            <ActivityIndicator size="large" color="#F1C40F" />
+            <ActivityIndicator size="large" color="white" />
           </View>
         ) : isError ? (
           <View className="flex-1 items-center justify-center h-60 -mt-20">
@@ -241,15 +285,14 @@ export default function PersonalProfilePage() {
 
                 <View className="flex flex-row gap-2 items-center justify-center mt-2">
                   <Text className="text-gray-400">
-                    @{currentProfileData.username}
+                    @{userData?.username}
                   </Text>
-                  {(currentProfileData.isVerified ||
-                    userData?.creator_profile?.verification_status ===
-                    "verified") && (
-                      <Text className="ml-2 px-2 py-1 rounded-full text-xs font-medium bg-blue-500 text-white">
-                        Verified
-                      </Text>
-                    )}
+                  {userData?.creator_profile?.verification_status ===
+                    "verified" && (
+                    <Text className="ml-2 px-2 py-1 rounded-full text-xs font-medium bg-blue-500 text-white">
+                      Verified
+                    </Text>
+                  )}
                 </View>
               </View>
             </View>
@@ -258,37 +301,28 @@ export default function PersonalProfilePage() {
             <View className="mt-6 flex-row justify-around items-center">
               <TouchableOpacity
                 className="flex flex-col gap-1 items-center"
-                onPress={() => router.push({
-                  pathname: "/(dashboard)/profile/ProfileSections",
-                  params: { section: "followers", userName: currentProfileData.username }
-                })}
+                // onPress={() => router.push("/communities?type=followers")}
               >
                 <Text className="font-bold text-lg text-white">
-                  {currentProfileData.followers}
+                  {userData?.followers.length}
                 </Text>
                 <Text className="text-gray-400 text-md">Followers</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 className="flex flex-col gap-1 items-center"
-                onPress={() => router.push({
-                  pathname: "/(dashboard)/profile/ProfileSections",
-                  params: { section: "myCommunity", userName: currentProfileData.username }
-                })}
+                // onPress={() => router.push("/communities?type=community")}
               >
                 <Text className="font-bold text-lg text-white">
-                  {currentProfileData.communityLength}
+                  {userData?.community.length}
                 </Text>
                 <Text className="text-gray-400 text-md">Community</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 className="flex flex-col gap-1 items-center"
-                onPress={() => router.push({
-                  pathname: "/(dashboard)/profile/ProfileSections",
-                  params: { section: "following", userName: currentProfileData.username }
-                })}
+                // onPress={() => router.push("/communities?type=following")}
               >
                 <Text className="font-bold text-lg text-white">
-                  {currentProfileData.following}
+                  {userData?.following.length}
                 </Text>
                 <Text className="text-gray-400 text-md">Followings</Text>
               </TouchableOpacity>
@@ -297,10 +331,7 @@ export default function PersonalProfilePage() {
             <View className="flex flex-row w-full items-center justify-center gap-2 mt-5">
               {/* My Community Button */}
               <TouchableOpacity
-                onPress={() => router.push({
-                  pathname: "/(dashboard)/profile/ProfileSections",
-                  params: { section: "myCommunity", userName: currentProfileData.username }
-                })}
+                onPress={() => router.push("/(communities)/CommunitiesPage")}
                 className="px-4 py-2 rounded-lg border border-white"
               >
                 <Text className="text-white text-center font-bold">
@@ -311,7 +342,7 @@ export default function PersonalProfilePage() {
               {/* Dashboard Button (Gradient Border) */}
               <TouchableOpacity
                 onPress={() => router.push("/(dashboard)/profile/Dashboard")}
-                className="px-4 py-2 rounded-lg border border-white"
+                className="px-4 py-2 rounded-lg border border-white" // Use rounded-md for consistency
               >
                 <Text className="text-white text-center font-bold">
                   Dashboard
@@ -341,7 +372,7 @@ export default function PersonalProfilePage() {
                   colors={["#4400FFA6", "#FFFFFF", "#FF00004D", "#FFFFFF"]}
                   start={{ x: 0, y: 0 }}
                   end={{ x: 1, y: 1 }}
-                  className="p-[1.5px] rounded-lg flex-1"
+                  className="p-[1.5px] rounded-lg flex-1" // Use rounded-md here
                 >
                   <View className="flex-1 px-4 py-2 rounded-lg bg-black items-center justify-center">
                     <Text className="text-white text-center font-bold">
@@ -355,29 +386,8 @@ export default function PersonalProfilePage() {
             {/* Bio */}
             <View className="mt-6 flex flex-col items-center justify-center px-4">
               <Text className="text-gray-400 text-center text-xs">
-                {currentProfileData.bio}
+                {userData?.bio}
               </Text>
-              <View className="mt-2 flex flex-row flex-wrap gap-4 text-gray-400 justify-center">
-                {currentProfileData.location !== "Not specified" && (
-                  <View className="flex-row items-center">
-                    <MapPin className="w-4 h-4 mr-1 text-gray-400" />
-                    <Text className="text-gray-400">
-                      {currentProfileData.location}
-                    </Text>
-                  </View>
-                )}
-                {currentProfileData.website && (
-                  <TouchableOpacity
-                    onPress={() => Linking.openURL(currentProfileData.website)}
-                    className="flex-row items-center"
-                  >
-                    <LinkIcon className="w-4 h-4 mr-1 text-white" />
-                    <Text className="text-white underline">
-                      {currentProfileData.website}
-                    </Text>
-                  </TouchableOpacity>
-                )}
-              </View>
             </View>
           </View>
         )}
@@ -394,7 +404,7 @@ export default function PersonalProfilePage() {
 
             <TouchableOpacity
               className={`pb-4 flex-1 items-center justify-center`}
-              onPress={() => setActiveTab("repost")}
+              onPress={() =>{ userReshareVideos(); setActiveTab("repost");}}
             >
               <Image
                 source={require("../../../assets/images/repost.png")}
@@ -417,20 +427,18 @@ export default function PersonalProfilePage() {
         {/* Video Grid */}
         {isLoadingVideos ? (
           <View className="w-full h-96 flex-1 items-center justify-center mt-20">
-            <ActivityIndicator size="large" color="#F1C40F" />
+            <ActivityIndicator size="large" color="#fff" />
           </View>
         ) : (
-          <View className="flex-1">
-            <FlatList
-              data={videos}
-              keyExtractor={(item) => item._id}
-              renderItem={renderGridItem}
-              numColumns={3}
-              contentContainerStyle={{ paddingBottom: 30, paddingHorizontal: 0 }}
-              showsVerticalScrollIndicator={false}
-              nestedScrollEnabled={true}
-            />
-          </View>
+          <FlatList
+            data={videos}
+            keyExtractor={(item) => item._id}
+            renderItem={renderGridItem}
+            numColumns={3}
+            contentContainerStyle={{ paddingBottom: 30, paddingHorizontal: 0 }}
+            showsVerticalScrollIndicator={false}
+            nestedScrollEnabled={true}
+          />
         )}
       </ScrollView>
     </ThemedView>

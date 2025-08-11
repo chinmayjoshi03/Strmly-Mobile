@@ -14,6 +14,8 @@ import { YOUTUBE_CATEGORIES, NETFLIX_CATEGORIES } from '@/Constants/contentCateg
 
 // Community options are now fetched dynamically via useCommunities hook
 // This static array is kept as fallback only
+// Community options are now fetched dynamically via useCommunities hook
+// This static array is kept as fallback only
 export const communityOptions: DropdownOption[] = [
   {
     label: 'No Community',
@@ -117,6 +119,7 @@ export const genreOptions: DropdownOption[] = [
 export const getDropdownOptions = (type: 'community' | 'format' | 'genre' | 'videoType', format?: 'Netflix' | 'YouTube' | null): DropdownOption[] => {
   switch (type) {
     case 'community':
+      return communityOptions; // Fallback only - use useCommunities hook instead
       return communityOptions; // Fallback only - use useCommunities hook instead
     case 'format':
       return formatOptions;

@@ -15,17 +15,9 @@ import CommentsSection from "./_components/CommentSection";
 import { VideoItemType } from "@/types/VideosType";
 import { router } from "expo-router";
 import { useAuthStore } from "@/store/useAuthStore";
+import { GiftType } from "./VideoFeed";
+// ADDED: Import the new self-contained progress bar component
 import VideoProgressBar from "./_components/VideoProgressBar";
-
-type GiftDataType = {
-  creator: {
-    _id: string;
-    profile_photo: string;
-    name: string;
-    username: string;
-  };
-  videoId: string;
-};
 
 type Props = {
   BACKEND_API_URL: string;
@@ -35,13 +27,13 @@ type Props = {
   showCommentsModal: boolean;
   setShowCommentsModal: any;
   setIsWantToGift: any;
-  setGiftingData: (data: GiftDataType) => void;
-  containerHeight?: number;
+  setGiftingData: (type: GiftType) => void;
 };
 
-// Define constants for layout to avoid magic numbers and make adjustments easier
-const PROGRESS_BAR_HEIGHT = 2; // Keep your original height for the progress bar
-const FULL_SCREEN_PRESSABLE_BOTTOM_OFFSET = PROGRESS_BAR_HEIGHT; // 10px buffer above progress bar
+const PROGRESS_BAR_HEIGHT = 2;
+const FULL_SCREEN_PRESSABLE_BOTTOM_OFFSET = PROGRESS_BAR_HEIGHT;
+const { height } = Dimensions.get("screen");
+const actualHeight = height-50;
 
 const VideoItem = ({
   BACKEND_API_URL,
@@ -54,7 +46,6 @@ const VideoItem = ({
   setIsWantToGift,
   containerHeight,
 }: Props) => {
-  const { width, height } = Dimensions.get("screen");
   const player = useVideoPlayer(uri, (p) => {
     p.loop = true;
     p.volume = 1;
@@ -170,7 +161,7 @@ const VideoItem = ({
         styles.container,
         {
           width: screenSize.width,
-          height: isFullScreen ? screenSize.width : (containerHeight || screenSize.height),
+          height: isFullScreen ? screenSize.width : actualHeight,
         },
       ]}
     >
@@ -268,6 +259,7 @@ const VideoItem = ({
 
       {showCommentsModal && (
         <CommentsSection
+          isOpen={showCommentsModal}
           onClose={handleCloseComments}
           commentss={videoData.comments}
           videoId={videoData._id}

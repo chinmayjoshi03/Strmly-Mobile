@@ -22,13 +22,11 @@ type InteractOptionsProps = {
   gifts: number;
   shares: number;
   comments?: number;
-  setIsWantToGift: any;
-  setGiftingData: (data: GiftDataType) => void;
+  setIsWantToGift: (value: boolean)=> void;
   creator: {
     _id: string;
-    profile_photo: string;
-    name: string;
     username: string;
+    profile_photo: string;
   };
 };
 
@@ -40,7 +38,6 @@ const InteractOptions = ({
   shares,
   comments,
   setIsWantToGift,
-  setGiftingData,
   creator,
 }: InteractOptionsProps) => {
   // Destructure onCommentPress from props
@@ -64,7 +61,7 @@ const InteractOptions = ({
 
     try {
       const response = await fetch(
-        `${BACKEND_API_URL}/interaction/${isLikedVideo ? "unlike" : "like"}`,
+        `${BACKEND_API_URL}/interactions/${isLikedVideo ? "unlike" : "like"}`,
         {
           method: "POST",
           headers: {
@@ -89,10 +86,11 @@ const InteractOptions = ({
       if (!token || !videoId) {
         return;
       }
+      console.log(videoId);
 
       try {
         const response = await fetch(
-          `${BACKEND_API_URL}/interaction/like/status`,
+          `${BACKEND_API_URL}/interactions/like/status`,
           {
             method: "POST",
             headers: {
@@ -102,7 +100,7 @@ const InteractOptions = ({
             body: JSON.stringify({ videoId: videoId }),
           }
         );
-        if (!response.ok) throw new Error("Failed while like video");
+        if (!response.ok) throw new Error("Failed while checking video like status");
         const data = await response.json();
         console.log("check like", data);
         setLike(data.likes);
@@ -128,7 +126,7 @@ const InteractOptions = ({
 
       try {
         const response = await fetch(
-          `${BACKEND_API_URL}/interaction/reshare/status`,
+          `${BACKEND_API_URL}/interactions/reshare/status`,
           {
             method: "POST",
             headers: {
@@ -140,8 +138,7 @@ const InteractOptions = ({
         );
         if (!response.ok) throw new Error("Failed while checking reshare status");
         const data = await response.json();
-        console.log("data", data);
-        // setReshares(data.video_reshares); 
+        console.log("reshared or not", data.isReshared);
         setIsResharedVideo(data.isReshared);
       } catch (err) {
         console.log(err);
@@ -149,7 +146,7 @@ const InteractOptions = ({
     };
 
     if (token && videoId) {
-      // checkIfReshare();
+      checkIfReshare();
     }
   }, [token, videoId, shares]);
 
@@ -160,7 +157,7 @@ const InteractOptions = ({
     }
 
     try {
-      const response = await fetch(`${BACKEND_API_URL}/interaction/reshare`, {
+      const response = await fetch(`${BACKEND_API_URL}/interactions/reshare`, {
         method: "POST",
         headers: {
           Authorization: `Bearer ${token}`,
@@ -168,7 +165,9 @@ const InteractOptions = ({
         },
         body: JSON.stringify({ videoId: videoId }),
       });
-      if (!response.ok) throw new Error("Failed to reshare video");
+      if (!response.ok) {
+        throw new Error("Failed to reshare video");
+      }
       const data = await response.json();
       setIsResharedVideo(!isResharedVideo);
       setReshares(data.totalReshares);
@@ -181,7 +180,6 @@ const InteractOptions = ({
   useEffect(()=> setGifts(gifts), [gifts]);
 
   const openGifting = () => {
-    setGiftingData({ creator, videoId });
     setIsWantToGift(true);
   };
 

@@ -4,7 +4,7 @@ import React from "react";
 type CreatorData = {
   setIsWantToGift: (value: boolean) => void;
   profile: string;
-  name: string;
+  name?: string;
   username: string;
 };
 

@@ -104,6 +104,9 @@ const VideoDetailScreen: React.FC<VideoDetailProps> = ({
         <Text className="text-white text-xl font-medium">
           {isEditingDraft ? 'Edit Draft' : 'Video detail'}
         </Text>
+        <Text className="text-white text-xl font-medium">
+          {isEditingDraft ? 'Edit Draft' : 'Video detail'}
+        </Text>
         <View className="w-6" />
       </View>
 

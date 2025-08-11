@@ -3,8 +3,10 @@ import ThemedView from "@/components/ThemedView";
 import { EditProfile } from "@/styles/EditProfile";
 import { useFonts } from "expo-font";
 import React, { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { Image, Modal, TextInput, TouchableOpacity, View, Alert, ActivityIndicator } from "react-native";
 import * as ImagePicker from "expo-image-picker";
+import { router, useFocusEffect } from "expo-router";
 import { router, useFocusEffect } from "expo-router";
 import { useAuthStore } from "@/store/useAuthStore";
 import { getUserProfile, updateUserProfile } from "@/api/user/userActions";
@@ -53,6 +55,7 @@ const EditProfilePage: React.FC = () => {
   const netflixInterestOptions = NETFLIX_CATEGORIES;
 
   // Load user profile data on mount
+  // Load user profile data on mount
   useEffect(() => {
     loadUserProfile();
   }, []);
@@ -88,6 +91,7 @@ const EditProfilePage: React.FC = () => {
       const profileData = await getUserProfile(token);
 
       if (profileData.user) {
+        console.log('📸 Profile photo from API:', profileData.user.profile_photo);
         console.log('📸 Profile photo from API:', profileData.user.profile_photo);
         setName(profileData.user.username || "");
         setUsername(profileData.user.username || "");
@@ -223,7 +227,10 @@ const EditProfilePage: React.FC = () => {
       };
 
       const response = await updateUserProfile(token, profileData);
+      const response = await updateUserProfile(token, profileData);
 
+      // Update the auth store with new data (use the URL from server response if available)
+      const updatedProfilePhoto = response.user?.profile_photo || imageUri;
       // Update the auth store with new data (use the URL from server response if available)
       const updatedProfilePhoto = response.user?.profile_photo || imageUri;
       updateUser({
@@ -256,6 +263,23 @@ const EditProfilePage: React.FC = () => {
       setSaving(false);
     }
   };
+
+  const renderDropdownField = (label: string, value: string, placeholder: string, dropdownKey: 'gender' | 'interest1' | 'interest2' | 'contentInterest') => (
+    <TouchableOpacity
+      onPress={() => openDropdown(dropdownKey)}
+      style={EditProfile.dropdownTrigger}
+    >
+      <ThemedText
+        style={[
+          EditProfile.dropdownText,
+          { color: value ? "#fff" : "#888" }
+        ]}
+      >
+        {value || placeholder}
+      </ThemedText>
+      <ThemedText style={EditProfile.arrow}>▼</ThemedText>
+    </TouchableOpacity>
+  );
 
   const renderDropdownField = (label: string, value: string, placeholder: string, dropdownKey: 'gender' | 'interest1' | 'interest2' | 'contentInterest') => (
     <TouchableOpacity
@@ -349,9 +373,12 @@ const EditProfilePage: React.FC = () => {
           <View style={EditProfile.HalfField}>
             <ThemedText style={EditProfile.InfoLabel}>Gender</ThemedText>
             {renderDropdownField("Gender", gender, "Select", 'gender')}
+            {renderDropdownField("Gender", gender, "Select", 'gender')}
           </View>
 
           <View style={EditProfile.HalfField}>
+            <ThemedText style={EditProfile.InfoLabel}>Content interest</ThemedText>
+            {renderDropdownField("Content interest", contentInterest, "Select", 'contentInterest')}
             <ThemedText style={EditProfile.InfoLabel}>Content interest</ThemedText>
             {renderDropdownField("Content interest", contentInterest, "Select", 'contentInterest')}
           </View>

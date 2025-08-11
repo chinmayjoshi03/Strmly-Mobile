@@ -137,7 +137,7 @@ const CreateCommunityPage: React.FC = () => {
             onPress: () => {
               // Navigate back to profile sections with myCommunity tab
               router.push({
-                pathname: "/(dashboard)/profile/ProfileSections",
+                pathname: "/(communities)/CommunitiesPage",
                 params: { section: "myCommunity" }
               });
             }

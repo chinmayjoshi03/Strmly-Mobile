@@ -229,7 +229,8 @@ export const getUserEarnings = async (token: string) => {
       totalVideos: 0
     };
   }
-};// U
+};
+
 //user Videos API
 export const getUserVideos = async (
   token: string,

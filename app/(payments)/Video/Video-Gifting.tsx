@@ -24,25 +24,25 @@ import Constants from "expo-constants";
 const BACKEND_API_URL = Constants.expoConfig?.extra?.BACKEND_API_URL;
 
 type GiftingData = {
-  giftData?: {
-    creator: {
-      _id: string;
-      username: string;
-      profile_photo: string;
-    };
-    videoId: string;
-  } | null;
-  setIsWantToGift?: (value: boolean) => void;
-  setIsGifted?: (value: boolean) => void;
-  giftMessage?: any;
+  creator: {
+    _id: string;
+    username: string;
+    name?: string;
+    profile_photo: string;
+  };
+  videoId: string;
+  setIsWantToGift: (value: boolean) => void;
+  setIsGifted: (value: boolean) => void;
+  giftMessage: any;
 };
 
 const VideoContentGifting = ({
-  giftData,
+  creator,
+  videoId,
   setIsWantToGift,
   setIsGifted,
   giftMessage,
-}: GiftingData = {}) => {
+}: GiftingData) => {
   const { mode } = useLocalSearchParams();
   const isWithdrawMode = mode === 'withdraw';
   const [amount, setAmount] = useState("");
@@ -65,30 +65,30 @@ const VideoContentGifting = ({
 
   // ------------ Transaction -------------------
 
-  const giftVideo = async () => {
-    if (!token && !giftData?.videoId) {
+  const giftVideo = async (amount=50) => {
+    if (!token && !videoId) {
       return;
     }
-    console.log('giftdata---', giftData)
-
+    
     try {
       const response = await fetch(
-        `${BACKEND_API_URL}/interaction/gift-video`,
+        `${BACKEND_API_URL}/interactions/gift-video`,
         {
           method: "POST",
           headers: {
             Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({ videoId: giftData?.videoId, amount }),
+          body: JSON.stringify({ videoId: videoId, amount, }),
         }
       );
+      
       if (!response.ok) throw new Error("Failed to provide gifting");
       const data = await response.json();
       console.log("dWallet data---------------", data);
       giftMessage?.(data.gift);
       setIsWantToGift?.(false);
-      router.back();
+      setIsGifted(true);
     } catch (err) {
       console.log(err);
     }
@@ -290,11 +290,11 @@ const VideoContentGifting = ({
                 </View>
               ) : (
                 <CreatorInfo
-                  setIsWantToGift={setIsWantToGift || (() => {})}
-                  profile={giftData?.creator?.profile_photo || ""}
-                  name={giftData?.creator?.username || ""}
-                  username={giftData?.creator?.username || ""}
-                />
+                setIsWantToGift={setIsWantToGift}
+                profile={creator?.profile_photo}
+                name={creator?.name}
+                username={creator?.username}
+              />
               )}
             </View>
 
@@ -384,10 +384,4 @@ const VideoContentGifting = ({
   );
 };
 
-// Default component for standalone usage (withdrawal mode)
-const VideoContentGiftingScreen = () => {
-  return <VideoContentGifting />;
-};
-
-export default VideoContentGiftingScreen;
-export { VideoContentGifting };
+export default VideoContentGifting;

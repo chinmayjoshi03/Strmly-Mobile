@@ -9,11 +9,7 @@ import {
   Pressable,
   FlatList,
 } from "react-native";
-import {
-  IndianRupee,
-  HeartIcon,
-  PaperclipIcon,
-} from "lucide-react-native"; // React Native Lucide icons
+import { IndianRupee, HeartIcon, PaperclipIcon } from "lucide-react-native"; // React Native Lucide icons
 import { useAuthStore } from "@/store/useAuthStore";
 import { useThumbnailsGenerate } from "@/utils/useThumbnailGenerator";
 import ThemedView from "@/components/ThemedView";
@@ -60,7 +56,6 @@ export default function PublicCommunityPage() {
   const route = useRoute();
   const { id } = route.params as { id: string };
 
-
   const BACKEND_API_URL = Constants.expoConfig?.extra?.BACKEND_API_URL;
 
   const thumbnails = useThumbnailsGenerate(
@@ -87,7 +82,7 @@ export default function PublicCommunityPage() {
       try {
         console.log('🔄 Fetching videos for tab:', activeTab);
         const response = await fetch(
-          `${BACKEND_API_URL}/community/${id}/videos?videoType=${activeTab}`,
+          `${BACKEND_API_URL}/community/${id}/videos?type=${activeTab}`,
           {
             method: "GET",
             headers: {
@@ -101,7 +96,11 @@ export default function PublicCommunityPage() {
         }
         console.log("✅ Videos fetched:", data.videos?.length || 0);
         setVideos(data.videos || []);
+        console.log("✅ Videos fetched:", data.videos?.length || 0);
+        setVideos(data.videos || []);
       } catch (err) {
+        console.error("❌ Error fetching community videos:", err);
+        setVideos([]); // Set empty array on error instead of showing alert
         console.error("❌ Error fetching community videos:", err);
         setVideos([]); // Set empty array on error instead of showing alert
       } finally {
@@ -115,7 +114,6 @@ export default function PublicCommunityPage() {
   }, [activeTab, token, id]);
 
   useEffect(() => {
-
     const fetchCommunityData = async () => {
       try {
         setIsLoading(true);
