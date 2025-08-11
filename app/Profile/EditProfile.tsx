@@ -3,11 +3,11 @@ import ThemedView from "@/components/ThemedView";
 import { EditProfile } from "@/styles/EditProfile";
 import { useFonts } from "expo-font";
 import React, { useState, useEffect } from "react";
-import React, { useState, useEffect } from "react";
+
 import { Image, Modal, TextInput, TouchableOpacity, View, Alert, ActivityIndicator } from "react-native";
 import * as ImagePicker from "expo-image-picker";
 import { router, useFocusEffect } from "expo-router";
-import { router, useFocusEffect } from "expo-router";
+
 import { useAuthStore } from "@/store/useAuthStore";
 import { getUserProfile, updateUserProfile } from "@/api/user/userActions";
 import { YOUTUBE_CATEGORIES, NETFLIX_CATEGORIES, ContentType } from "@/Constants/contentCategories";
@@ -227,10 +227,10 @@ const EditProfilePage: React.FC = () => {
       };
 
       const response = await updateUserProfile(token, profileData);
-      const response = await updateUserProfile(token, profileData);
+     
 
       // Update the auth store with new data (use the URL from server response if available)
-      const updatedProfilePhoto = response.user?.profile_photo || imageUri;
+     
       // Update the auth store with new data (use the URL from server response if available)
       const updatedProfilePhoto = response.user?.profile_photo || imageUri;
       updateUser({
@@ -264,22 +264,7 @@ const EditProfilePage: React.FC = () => {
     }
   };
 
-  const renderDropdownField = (label: string, value: string, placeholder: string, dropdownKey: 'gender' | 'interest1' | 'interest2' | 'contentInterest') => (
-    <TouchableOpacity
-      onPress={() => openDropdown(dropdownKey)}
-      style={EditProfile.dropdownTrigger}
-    >
-      <ThemedText
-        style={[
-          EditProfile.dropdownText,
-          { color: value ? "#fff" : "#888" }
-        ]}
-      >
-        {value || placeholder}
-      </ThemedText>
-      <ThemedText style={EditProfile.arrow}>▼</ThemedText>
-    </TouchableOpacity>
-  );
+  
 
   const renderDropdownField = (label: string, value: string, placeholder: string, dropdownKey: 'gender' | 'interest1' | 'interest2' | 'contentInterest') => (
     <TouchableOpacity

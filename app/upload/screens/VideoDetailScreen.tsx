@@ -54,7 +54,7 @@ const VideoDetailScreen: React.FC<VideoDetailProps> = ({
 
   // Handle format selection
   const handleFormatSelect = (format: string) => {
-    onFormChange({ ...formData, format: format as 'Netflix' | 'Youtube' });
+    onFormChange({ ...formData, format: format as 'Netflix' | 'YouTube' });
     setFormatDropdownOpen(false);
   };
 

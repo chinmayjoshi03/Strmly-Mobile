@@ -7,13 +7,18 @@ import {
   ScrollView,
   ActivityIndicator,
   Image,
-  RefreshControl
+  RefreshControl,
+  FlatList,
+  Dimensions,
+  BackHandler
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { CONFIG } from '@/Constants/config';
 import { useAuthStore } from '@/store/useAuthStore';
 import { router } from 'expo-router';
 import EpisodeList from '../components/EpisodeList';
+import VideoPlayer from '@/app/(dashboard)/long/_components/VideoPlayer';
+import Constants from 'expo-constants';
 
 interface SeriesDetailsScreenProps {
   seriesId: string;
@@ -83,6 +88,13 @@ const SeriesDetailsScreen: React.FC<SeriesDetailsScreenProps> = ({
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Video player state
+  const [isVideoPlayerActive, setIsVideoPlayerActive] = useState(false);
+  const [currentVideoData, setCurrentVideoData] = useState<any>(null);
+  const [currentVideoList, setCurrentVideoList] = useState<any[]>([]);
+  const [currentVideoIndex, setCurrentVideoIndex] = useState(0);
+  const [showCommentsModal, setShowCommentsModal] = useState(false);
+
   const fetchSeriesDetails = async (showLoadingIndicator = true) => {
     try {
       const { token } = useAuthStore.getState();
@@ -113,7 +125,7 @@ const SeriesDetailsScreen: React.FC<SeriesDetailsScreenProps> = ({
       if (response.ok && result.data) {
         // Find the specific series by ID
         const foundSeries = result.data.find((series: any) => series._id === seriesId);
-        
+
         if (foundSeries) {
           console.log('Found series:', foundSeries);
           console.log('Episodes data:', foundSeries.episodes);
@@ -140,6 +152,20 @@ const SeriesDetailsScreen: React.FC<SeriesDetailsScreenProps> = ({
     fetchSeriesDetails();
   }, [seriesId]);
 
+  // Handle back button press
+  useEffect(() => {
+    const backAction = () => {
+      if (isVideoPlayerActive) {
+        closeVideoPlayer();
+        return true; // Prevent default back action
+      }
+      return false; // Allow default back action
+    };
+
+    const backHandler = BackHandler.addEventListener('hardwareBackPress', backAction);
+    return () => backHandler.remove();
+  }, [isVideoPlayerActive]);
+
   const onRefresh = useCallback(() => {
     setRefreshing(true);
     fetchSeriesDetails(false);
@@ -162,6 +188,49 @@ const SeriesDetailsScreen: React.FC<SeriesDetailsScreenProps> = ({
     }
     return num.toString();
   };
+
+  // Video player functions
+  const handleVideoPlayerOpen = (episode: Episode, allEpisodes: Episode[]) => {
+    console.log('🎬 Opening video player for episode:', episode.name);
+
+    // Convert episodes to video format
+    const videoList = allEpisodes.map(ep => ({
+      _id: ep._id,
+      name: ep.name,
+      title: ep.name,
+      videoUrl: ep.videoUrl,
+      thumbnailUrl: ep.thumbnailUrl,
+      description: ep.description,
+      episode_number: ep.episode_number,
+      season_number: ep.season_number,
+      created_by: ep.created_by,
+      views: ep.views || 0,
+      likes: ep.likes || 0,
+      type: 'episode',
+      comments: []
+    }));
+
+    const currentIndex = allEpisodes.findIndex(ep => ep._id === episode._id);
+
+    setCurrentVideoData(videoList[currentIndex]);
+    setCurrentVideoList(videoList);
+    setCurrentVideoIndex(currentIndex >= 0 ? currentIndex : 0);
+    setIsVideoPlayerActive(true);
+  };
+
+  const closeVideoPlayer = () => {
+    setIsVideoPlayerActive(false);
+    setCurrentVideoData(null);
+    setCurrentVideoList([]);
+    setCurrentVideoIndex(0);
+    setShowCommentsModal(false);
+  };
+
+  const onViewableItemsChanged = useCallback(({ viewableItems }: any) => {
+    if (viewableItems.length > 0) {
+      setCurrentVideoIndex(viewableItems[0].index);
+    }
+  }, []);
 
   if (loading) {
     return (
@@ -269,11 +338,12 @@ const SeriesDetailsScreen: React.FC<SeriesDetailsScreenProps> = ({
 
         {/* Episodes List */}
         <View className="px-4">
-          <EpisodeList 
+          <EpisodeList
             episodes={seriesData.episodes || []}
             seriesTitle={seriesData.title}
             seriesId={seriesData._id}
             onEpisodeDeleted={() => fetchSeriesDetails(false)}
+            onVideoPlayerOpen={handleVideoPlayerOpen}
           />
         </View>
 
@@ -290,6 +360,46 @@ const SeriesDetailsScreen: React.FC<SeriesDetailsScreenProps> = ({
           <Text className="text-black text-lg font-medium">Add new episode</Text>
         </TouchableOpacity>
       </View>
+
+      {/* Integrated Video Player */}
+      {isVideoPlayerActive && currentVideoData && (
+        <View style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'black',
+          zIndex: 1000,
+        }}>
+          <FlatList
+            data={currentVideoList}
+            keyExtractor={(item) => item._id}
+            renderItem={({ item, index }) => (
+              <VideoPlayer
+                key={`${item._id}-${index === currentVideoIndex}`}
+                videoData={item}
+                isActive={index === currentVideoIndex}
+                showCommentsModal={showCommentsModal}
+                setShowCommentsModal={setShowCommentsModal}
+              />
+            )}
+            initialScrollIndex={currentVideoIndex}
+            getItemLayout={(_, index) => ({
+              length: Dimensions.get('window').height,
+              offset: Dimensions.get('window').height * index,
+              index,
+            })}
+            pagingEnabled
+            onViewableItemsChanged={onViewableItemsChanged}
+            viewabilityConfig={{ itemVisiblePercentThreshold: 80 }}
+            decelerationRate="fast"
+            showsVerticalScrollIndicator={false}
+            snapToInterval={Dimensions.get('window').height}
+            snapToAlignment="start"
+          />
+        </View>
+      )}
     </View>
   );
 };

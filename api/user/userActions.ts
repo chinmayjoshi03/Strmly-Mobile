@@ -566,6 +566,44 @@ export const updateCreatorPassPrice = async (token: string, price: number) => {
   }
 };
 
+// User Monetization Status API
+export interface MonetizationStatus {
+  message: string;
+  comment_monetization_status: boolean;
+  video_monetization_status: boolean;
+}
+
+export const getUserMonetizationStatus = async (token: string): Promise<MonetizationStatus> => {
+  try {
+    const url = `${API_BASE_URL}/user/monetization-status`;
+    console.log(`📤 Fetching user monetization status from: ${url}`);
+
+    const res = await fetch(url, {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json"
+      }
+    });
+
+    console.log(`📊 Monetization status response status: ${res.status}`);
+
+    if (!res.ok) {
+      const errorText = await res.text();
+      console.error(`❌ Monetization status API error: ${res.status}`);
+      console.error(`❌ Error response:`, errorText.substring(0, 500));
+      throw new Error(`Failed to get monetization status: ${res.status} - ${errorText}`);
+    }
+
+    const data = await res.json();
+    console.log('✅ Monetization status retrieved successfully:', data);
+    return data;
+  } catch (error) {
+    console.error("❌ Failed to get user monetization status:", error);
+    throw error;
+  }
+};
+
 // Update User Profile API
 export const updateUserProfile = async (token: string, profileData: {
   username?: string;

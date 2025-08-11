@@ -16,7 +16,7 @@ type GiftDataType = {
 };
 
 type InteractOptionsProps = {
-  onCommentPress: () => void; // Callback function for comment button press
+  onCommentPress?: () => void; // Callback function for comment button press - now optional
   videoId: string;
   likes: number;
   gifts: number;
@@ -200,7 +200,7 @@ const InteractOptions = ({
 
         <View className="items-center gap-1">
           {/* Add Pressable around the comment icon */}
-          <Pressable onPress={onCommentPress}>
+          <Pressable onPress={onCommentPress ? onCommentPress : () => console.log('Comments not available')}>
             <Image
               className="size-7"
               source={require("../../../../assets/images/comments.png")}

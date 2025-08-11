@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   View,
   Text,
@@ -8,6 +8,9 @@ import {
   Image,
   Alert,
   StatusBar,
+  FlatList,
+  Dimensions,
+  BackHandler,
 } from "react-native";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { ArrowLeft, MoreHorizontal } from "lucide-react-native";
@@ -15,6 +18,8 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAuthStore } from "@/store/useAuthStore";
 import ThemedView from "@/components/ThemedView";
 import { communityActions } from "@/api/community/communityActions";
+import VideoPlayer from "@/app/(dashboard)/long/_components/VideoPlayer";
+import BottomNavBar from "@/components/BottomNavBar";
 
 interface CommunityDetails {
   communityId: string;
@@ -42,7 +47,28 @@ export default function CommunityDetails() {
   const [error, setError] = useState<string | null>(null);
   const [videos, setVideos] = useState<any[]>([]);
 
+  // Video player state
+  const [isVideoPlayerActive, setIsVideoPlayerActive] = useState(false);
+  const [currentVideoData, setCurrentVideoData] = useState<any>(null);
+  const [currentVideoList, setCurrentVideoList] = useState<any[]>([]);
+  const [currentVideoIndex, setCurrentVideoIndex] = useState(0);
+  const [showCommentsModal, setShowCommentsModal] = useState(false);
+
   const communityId = params.id as string;
+
+  // Handle back button press
+  useEffect(() => {
+    const backAction = () => {
+      if (isVideoPlayerActive) {
+        closeVideoPlayer();
+        return true; // Prevent default back action
+      }
+      return false; // Allow default back action
+    };
+
+    const backHandler = BackHandler.addEventListener('hardwareBackPress', backAction);
+    return () => backHandler.remove();
+  }, [isVideoPlayerActive]);
 
   useEffect(() => {
     if (communityId && token) {
@@ -90,6 +116,31 @@ export default function CommunityDetails() {
     }
     return count.toString();
   };
+
+  // Video player functions
+  const navigateToVideoPlayer = (videoData: any, allVideos: any[]) => {
+    console.log('🎬 Opening video player for:', videoData.title || videoData.name);
+    const currentIndex = allVideos.findIndex(video => video._id === videoData._id);
+
+    setCurrentVideoData(videoData);
+    setCurrentVideoList(allVideos);
+    setCurrentVideoIndex(currentIndex >= 0 ? currentIndex : 0);
+    setIsVideoPlayerActive(true);
+  };
+
+  const closeVideoPlayer = () => {
+    setIsVideoPlayerActive(false);
+    setCurrentVideoData(null);
+    setCurrentVideoList([]);
+    setCurrentVideoIndex(0);
+    setShowCommentsModal(false);
+  };
+
+  const onViewableItemsChanged = useCallback(({ viewableItems }: any) => {
+    if (viewableItems.length > 0) {
+      setCurrentVideoIndex(viewableItems[0].index);
+    }
+  }, []);
 
   if (loading) {
     return (
@@ -264,6 +315,7 @@ export default function CommunityDetails() {
                 <TouchableOpacity
                   key={video._id || index}
                   className="w-[32%] aspect-[9/16] bg-gray-800 rounded-lg mb-2 overflow-hidden"
+                  onPress={() => navigateToVideoPlayer(video, videos)}
                 >
                   {video.thumbnailUrl ? (
                     <Image
@@ -284,6 +336,51 @@ export default function CommunityDetails() {
           </View>
         )}
       </ScrollView>
+
+      {/* Integrated Video Player */}
+      {isVideoPlayerActive && currentVideoData && (
+        <View style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'black',
+          zIndex: 1000,
+        }}>
+          <FlatList
+            data={currentVideoList}
+            keyExtractor={(item) => item._id}
+            renderItem={({ item, index }) => (
+              <VideoPlayer
+                key={`${item._id}-${index === currentVideoIndex}`}
+                videoData={item}
+                isActive={index === currentVideoIndex}
+                showCommentsModal={showCommentsModal}
+                setShowCommentsModal={setShowCommentsModal}
+              />
+            )}
+            initialScrollIndex={currentVideoIndex}
+            getItemLayout={(_, index) => ({
+              length: Dimensions.get('window').height,
+              offset: Dimensions.get('window').height * index,
+              index,
+            })}
+            pagingEnabled
+            onViewableItemsChanged={onViewableItemsChanged}
+            viewabilityConfig={{ itemVisiblePercentThreshold: 80 }}
+            decelerationRate="fast"
+            showsVerticalScrollIndicator={false}
+            snapToInterval={Dimensions.get('window').height}
+            snapToAlignment="start"
+          />
+        </View>
+      )}
+      
+      {/* Bottom Navigation Bar */}
+      {!isVideoPlayerActive && (
+        <BottomNavBar />
+      )}
     </ThemedView>
   );
 }

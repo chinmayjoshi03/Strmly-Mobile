@@ -77,11 +77,24 @@ export const useSearch = (): UseSearchReturn => {
       }
 
       // Handle the actual API response structure based on your Postman response
-      setSearchResults({
+      const searchResults = {
         videos: data.results?.videos || [],
         accounts: data.results?.users || [],
         communities: data.results?.communities || []
-      });
+      };
+
+      // Debug logging for video search results
+      if (searchResults.videos.length > 0) {
+        console.log('🔍 Video search results:', searchResults.videos.length, 'videos found');
+        console.log('🔍 First video sample:', {
+          id: searchResults.videos[0]._id,
+          title: searchResults.videos[0].title || searchResults.videos[0].name,
+          hasVideoUrl: !!(searchResults.videos[0].videoUrl || searchResults.videos[0].video),
+          thumbnailUrl: searchResults.videos[0].thumbnailUrl || searchResults.videos[0].thumbnail
+        });
+      }
+
+      setSearchResults(searchResults);
 
     } catch (err) {
       console.error('Search error:', err);

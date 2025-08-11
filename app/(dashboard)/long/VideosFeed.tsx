@@ -26,8 +26,14 @@ const VideosFeed: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [visibleIndex, setVisibleIndex] = useState(0);
+  const [showCommentsModal, setShowCommentsModal] = useState(false);
 
   const { token } = useAuthStore();
+
+  // Debug log for comments modal state changes
+  useEffect(() => {
+    console.log('🎬 VideosFeed: Comments modal state changed:', showCommentsModal);
+  }, [showCommentsModal]);
   const BACKEND_API_URL = Constants.expoConfig?.extra?.BACKEND_API_URL;
 
   const fetchTrendingVideos = async () => {
@@ -67,9 +73,14 @@ const VideosFeed: React.FC = () => {
   // This prevents creating a new render function on every parent render.
   const renderItem = useCallback(
     ({ item, index }: { item: VideoItemType; index: number }) => (
-      <VideoPlayer videoData={item} isActive={index === visibleIndex} />
+      <VideoPlayer 
+        videoData={item} 
+        isActive={index === visibleIndex}
+        showCommentsModal={showCommentsModal}
+        setShowCommentsModal={setShowCommentsModal}
+      />
     ),
-    [visibleIndex]
+    [visibleIndex, showCommentsModal]
   );
 
   // OPTIMIZATION 3: Use consistent VIDEO_HEIGHT for layout calculations
@@ -144,6 +155,7 @@ const VideosFeed: React.FC = () => {
             keyExtractor={(item) => item._id}
             getItemLayout={getItemLayout}
             pagingEnabled
+            scrollEnabled={!showCommentsModal}
             onViewableItemsChanged={onViewableItemsChanged}
             viewabilityConfig={{ itemVisiblePercentThreshold: 80 }}
             initialNumToRender={2}
@@ -153,6 +165,11 @@ const VideosFeed: React.FC = () => {
             contentInsetAdjustmentBehavior="automatic" // iOS
             contentContainerStyle={{ paddingBottom: 0 }}
             style={{ height: VIDEO_HEIGHT }}
+            onScrollBeginDrag={() => {
+              if (showCommentsModal) {
+                console.log('🚫 VideosFeed: Scroll blocked - comments modal is open');
+              }
+            }}
           />
         </ThemedView>
       </SafeAreaView>

@@ -13,6 +13,8 @@ import {
   Animated,
   EmitterSubscription,
   KeyboardEvent,
+  Image,
+  Alert,
 } from "react-native";
 import CreatorInfo from "./_components/CreatorInfo";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -43,12 +45,30 @@ const VideoContentGifting = ({
   setIsGifted,
   giftMessage,
 }: GiftingData) => {
-  const { mode } = useLocalSearchParams();
+  const { mode, commentId, creatorName, creatorUsername, creatorPhoto, creatorId, videoId: routeVideoId } = useLocalSearchParams();
   const isWithdrawMode = mode === 'withdraw';
+  const isCommentGiftMode = mode === 'comment-gift';
+
+  // Use route videoId for comment gifting, prop videoId for video gifting
+  const currentVideoId = isCommentGiftMode ? routeVideoId : videoId;
+
+  // Debug log the parameters
+  console.log('🔍 Route parameters:', {
+    mode,
+    commentId,
+    videoId: currentVideoId,
+    propVideoId: videoId,
+    routeVideoId,
+    creatorName,
+    creatorUsername,
+    creatorPhoto,
+    creatorId
+  });
   const [amount, setAmount] = useState("");
   const [walletInfo, setWalletInfo] = useState<{ balance?: number }>({});
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   const keyboardHeight = useRef(new Animated.Value(0)).current;
 
@@ -65,11 +85,11 @@ const VideoContentGifting = ({
 
   // ------------ Transaction -------------------
 
-  const giftVideo = async (amount=50) => {
+  const giftVideo = async (amount = 50) => {
     if (!token && !videoId) {
       return;
     }
-    
+
     try {
       const response = await fetch(
         `${BACKEND_API_URL}/interactions/gift-video`,
@@ -82,7 +102,7 @@ const VideoContentGifting = ({
           body: JSON.stringify({ videoId: videoId, amount, }),
         }
       );
-      
+
       if (!response.ok) throw new Error("Failed to provide gifting");
       const data = await response.json();
       console.log("dWallet data---------------", data);
@@ -91,6 +111,90 @@ const VideoContentGifting = ({
       setIsGifted(true);
     } catch (err) {
       console.log(err);
+    }
+  };
+
+  const giftCommentHandler = async () => {
+    console.log('🔍 Debug - Checking required parameters:', {
+      token: token ? 'Present' : 'Missing',
+      commentId: commentId || 'Missing',
+      videoId: currentVideoId || 'Missing',
+      amount: amount || 'Missing'
+    });
+
+    if (!token || !commentId || !currentVideoId || !amount) {
+      const missingFields = [];
+      if (!token) missingFields.push('token');
+      if (!commentId) missingFields.push('commentId');
+      if (!currentVideoId) missingFields.push('videoId');
+      if (!amount) missingFields.push('amount');
+
+      setError(`Missing required information: ${missingFields.join(', ')}`);
+      return;
+    }
+
+    const giftAmount = parseInt(amount);
+    if (giftAmount <= 0) {
+      setError("Please enter a valid amount");
+      return;
+    }
+
+    if (walletInfo.balance && giftAmount > walletInfo.balance) {
+      setError("Insufficient balance");
+      return;
+    }
+
+    try {
+      console.log('🎁 Gifting comment with:', {
+        commentId,
+        videoId,
+        amount: giftAmount
+      });
+
+      // Use direct API call with correct URL format
+      const response = await fetch(`${BACKEND_API_URL}/interactions/gift-comment`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          commentId: commentId as string,
+          videoId: currentVideoId as string,
+          videoType: 'long',
+          amount: giftAmount,
+          giftNote: `Gift of ₹${giftAmount}`
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to send gift");
+      }
+
+      const data = await response.json();
+
+      console.log('✅ Comment gift response:', data);
+
+      // Show success message
+      setSuccessMessage(`Successfully gifted ₹${giftAmount} to ${creatorName || 'the creator'}!`);
+
+      // Navigate back after showing success
+      setTimeout(() => {
+        router.back();
+      }, 2000);
+
+    } catch (err: any) {
+      console.error('❌ Comment gift error:', err);
+      
+      // Provide more user-friendly error messages
+      if (err.message === "Comment not monetized") {
+        setError("This comment cannot receive gifts. The creator may not have enabled comment monetization for this content.");
+      } else if (err.message.includes("insufficient")) {
+        setError("Insufficient wallet balance. Please add money to your wallet.");
+      } else {
+        setError(err.message || "Failed to send gift");
+      }
     }
   };
 
@@ -156,7 +260,7 @@ const VideoContentGifting = ({
         console.log('❌ API returned success: false');
         console.log('🔍 Error code:', data.code);
         console.log('🔍 Error message:', data.error);
-        
+
         if (data.code === "BANK_ACCOUNT_NOT_SETUP") {
           console.log('🏦 Navigating to bank setup...');
           try {
@@ -195,11 +299,16 @@ const VideoContentGifting = ({
 
   const handleProceed = async () => {
     setLoading(true);
+    setError(null);
+
     if (isWithdrawMode) {
       await withdrawMoney();
+    } else if (isCommentGiftMode) {
+      await giftCommentHandler();
     } else {
       await giftVideo();
     }
+
     setLoading(false);
     Keyboard.dismiss();
   };
@@ -288,13 +397,49 @@ const VideoContentGifting = ({
                   </Text>
                   <View className="w-8" />
                 </View>
+              ) : isCommentGiftMode ? (
+                <View className="flex-row items-center justify-between mb-8">
+                  <Pressable onPress={() => router.back()} className="p-2">
+                    <ChevronLeft size={28} color="white" />
+                  </Pressable>
+                  <Text className="text-white text-xl font-semibold">
+                    Gift Comment
+                  </Text>
+                  <View className="w-8" />
+                </View>
               ) : (
                 <CreatorInfo
-                setIsWantToGift={setIsWantToGift}
-                profile={creator?.profile_photo}
-                name={creator?.name}
-                username={creator?.username}
-              />
+                  setIsWantToGift={setIsWantToGift}
+                  profile={creator?.profile_photo}
+                  name={creator?.name}
+                  username={creator?.username}
+                />
+              )}
+
+              {/* Show creator info for comment gifting */}
+              {isCommentGiftMode && (
+                <View className="items-center mb-6">
+                  <View className="w-16 h-16 rounded-full bg-gray-600 mb-3 overflow-hidden">
+                    {creatorPhoto ? (
+                      <Image
+                        source={{ uri: creatorPhoto as string }}
+                        className="w-full h-full"
+                      />
+                    ) : (
+                      <View className="w-full h-full bg-gray-600 items-center justify-center">
+                        <Text className="text-white text-lg">
+                          {(creatorName as string)?.charAt(0) || 'U'}
+                        </Text>
+                      </View>
+                    )}
+                  </View>
+                  <Text className="text-white text-lg font-semibold">
+                    {creatorName || 'Anonymous User'}
+                  </Text>
+                  <Text className="text-gray-400 text-sm">
+                    @{creatorUsername || 'user'}
+                  </Text>
+                </View>
               )}
             </View>
 
@@ -319,7 +464,7 @@ const VideoContentGifting = ({
                 <View className="mt-4">
                   <Text className="text-red-400 text-sm text-center">{error}</Text>
                   {error.includes('setup bank') && (
-                    <Pressable 
+                    <Pressable
                       onPress={() => {
                         console.log('🔧 Manual navigation to bank setup');
                         router.push('/(payments)/BankSetup');
@@ -329,6 +474,16 @@ const VideoContentGifting = ({
                       <Text className="text-white text-center text-sm">Setup Bank Account</Text>
                     </Pressable>
                   )}
+                </View>
+              )}
+
+              {/* Success Message */}
+              {successMessage && (
+                <View className="mt-4 p-4 bg-green-600 rounded-lg">
+                  <Text className="text-white text-sm text-center">{successMessage}</Text>
+                  <Text className="text-green-200 text-xs text-center mt-1">
+                    Returning to comments...
+                  </Text>
                 </View>
               )}
             </View>
@@ -346,9 +501,9 @@ const VideoContentGifting = ({
               className="gap-2 justify-end"
             >
               <Pressable
-                disabled={loading || !amount || parseInt(amount) <= 0}
+                disabled={loading || !amount || parseInt(amount) <= 0 || successMessage !== null}
                 onPress={handleProceed}
-                className={`p-4 rounded-lg items-center justify-center ${loading || !amount || parseInt(amount) <= 0
+                className={`p-4 rounded-lg items-center justify-center ${loading || !amount || parseInt(amount) <= 0 || successMessage !== null
                   ? 'bg-gray-600'
                   : 'bg-[#008A3C]'
                   }`}
@@ -357,7 +512,7 @@ const VideoContentGifting = ({
                   <ActivityIndicator color="#fff" />
                 ) : (
                   <Text className="text-white text-base font-semibold">
-                    {isWithdrawMode ? 'Withdraw' : 'Proceed'}
+                    {isWithdrawMode ? 'Withdraw' : isCommentGiftMode ? 'Send Gift' : 'Proceed'}
                   </Text>
                 )}
               </Pressable>

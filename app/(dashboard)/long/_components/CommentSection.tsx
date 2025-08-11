@@ -1,67 +1,66 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
   TextInput,
   TouchableOpacity,
+  Dimensions,
   ScrollView,
-  KeyboardAvoidingView,
-  Platform,
-  Animated,
   ActivityIndicator,
   Image,
   Alert,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { X, Send, Heart, MessageCircle } from "lucide-react-native";
-import { useAuthStore } from "@/store/useAuthStore";
+import { MaterialIcons } from "@expo/vector-icons";
 import { useComments } from "./useComments";
 import { Comment } from "@/types/Comments";
+import { useMonetization } from "./useMonetization";
+import { router } from "expo-router";
 
 interface CommentsSectionProps {
   onClose: () => void;
   videoId: string | null;
-  longVideosOnly: boolean;
-  commentss?: Comment[];
+  onPressUsername?: (userId: string) => void;
+  onPressTip?: (commentId: string) => void;
 }
 
-const CommentsSection = ({ onClose, videoId, longVideosOnly, commentss }: CommentsSectionProps) => {
+const { height: SCREEN_HEIGHT } = Dimensions.get("window");
+const SHEET_MAX_HEIGHT = SCREEN_HEIGHT * 0.60;
+const BOTTOM_NAV_HEIGHT = 50;
+
+const CommentsSection = ({
+  onClose,
+  videoId,
+  onPressUsername,
+  onPressTip,
+}: CommentsSectionProps) => {
   const [comment, setComment] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [replyingTo, setReplyingTo] = useState<string | null>(null);
   const [replyingToUser, setReplyingToUser] = useState<string>("");
-  const [viewingReplies, setViewingReplies] = useState<string | null>(null);
+  const [expandedReplies, setExpandedReplies] = useState<Set<string>>(new Set());
   const [repliesData, setRepliesData] = useState<{ [key: string]: any[] }>({});
-
-  const { token } = useAuthStore();
   const insets = useSafeAreaInsets();
-  const animatedBottom = useRef(new Animated.Value(insets.bottom)).current;
-  const scrollViewRef = useRef<ScrollView>(null);
+  const { commentMonetizationEnabled, loading: monetizationLoading } = useMonetization(true, 30000); // Enable polling every 30 seconds
 
-  // Use the existing useComments hook
   const {
     comments,
     loading: isLoading,
-    error,
     fetchComments,
     addComment,
     upvoteComment,
     downvoteComment,
     addReply,
-    fetchReplies
+    fetchReplies,
+    upvoteReply,
+    downvoteReply
   } = useComments({ videoId });
 
-  // Fetch comments when component mounts with throttling
   useEffect(() => {
-    if (videoId) {
-      // Add a small delay to prevent rate limiting
-      const timer = setTimeout(() => {
-        fetchComments();
-      }, 100);
-
-      return () => clearTimeout(timer);
-    }
+    if (videoId) fetchComments();
   }, [videoId, fetchComments]);
+
+
 
   const handleSubmitComment = async () => {
     if (!comment.trim() || isSubmitting) return;
@@ -69,37 +68,24 @@ const CommentsSection = ({ onClose, videoId, longVideosOnly, commentss }: Commen
     setIsSubmitting(true);
     try {
       if (replyingTo) {
-        // Submit as reply
-        console.log('Submitting reply to comment:', replyingTo, 'content:', comment.trim());
-        const replyResult = await addReply(replyingTo, comment.trim());
-        console.log('Reply result:', replyResult);
+        await addReply(replyingTo, comment.trim());
 
-        // Refresh replies for this comment
         try {
-          console.log('Fetching updated replies for comment:', replyingTo);
           const updatedReplies = await fetchReplies(replyingTo);
-          console.log('Updated replies:', updatedReplies);
-
           setRepliesData(prev => ({
             ...prev,
             [replyingTo]: updatedReplies || []
           }));
-
-          // Keep viewing replies to show the new reply
-          setViewingReplies(replyingTo);
+          setExpandedReplies(prev => new Set([...prev, replyingTo]));
         } catch (error) {
           console.error('Error refreshing replies:', error);
         }
 
         handleCancelReply();
       } else {
-        // Submit as new comment
         await addComment(comment.trim());
         setComment("");
       }
-
-      // Scroll to top to show the new comment
-      scrollViewRef.current?.scrollTo({ y: 0, animated: true });
     } catch (error: any) {
       console.error('Error submitting comment:', error);
       const errorMessage = error.message || 'Failed to post comment';
@@ -121,13 +107,18 @@ const CommentsSection = ({ onClose, videoId, longVideosOnly, commentss }: Commen
     setComment("");
   };
 
-  const handleViewReplies = async (commentId: string) => {
-    if (viewingReplies === commentId) {
-      setViewingReplies(null);
-    } else {
-      setViewingReplies(commentId);
+  const handleToggleReplies = async (commentId: string) => {
+    const isExpanded = expandedReplies.has(commentId);
 
-      // Fetch replies if we don't have them already
+    if (isExpanded) {
+      setExpandedReplies(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(commentId);
+        return newSet;
+      });
+    } else {
+      setExpandedReplies(prev => new Set([...prev, commentId]));
+
       if (!repliesData[commentId]) {
         try {
           const replies = await fetchReplies(commentId);
@@ -146,253 +137,445 @@ const CommentsSection = ({ onClose, videoId, longVideosOnly, commentss }: Commen
     }
   };
 
-  const renderComment = (comment: Comment) => {
-    // Safety check to ensure comment and user exist
-    if (!comment || !comment._id) return null;
+  const handleUpvote = async (commentId: string) => {
+    await upvoteComment(commentId);
+  };
 
-    return (
-      <View key={comment._id} className="mb-3 px-4 py-3">
-        <View className="flex-row items-start justify-between">
-          <View className="flex-row items-start space-x-3 flex-1">
+  const handleDownvote = async (commentId: string) => {
+    await downvoteComment(commentId);
+  };
+
+  const handleUpvoteReply = async (replyId: string, commentId: string) => {
+    try {
+      await upvoteReply(replyId, commentId);
+      // Refresh replies to get updated vote counts
+      const updatedReplies = await fetchReplies(commentId);
+      setRepliesData(prev => ({
+        ...prev,
+        [commentId]: updatedReplies || []
+      }));
+    } catch (error) {
+      console.error('Error upvoting reply:', error);
+    }
+  };
+
+  const handleDownvoteReply = async (replyId: string, commentId: string) => {
+    try {
+      await downvoteReply(replyId, commentId);
+      // Refresh replies to get updated vote counts
+      const updatedReplies = await fetchReplies(commentId);
+      setRepliesData(prev => ({
+        ...prev,
+        [commentId]: updatedReplies || []
+      }));
+    } catch (error) {
+      console.error('Error downvoting reply:', error);
+    }
+  };
+
+  const renderReply = (reply: any, parentCommentId: string) => (
+    <View key={reply._id} style={{ marginLeft: 56, marginBottom: 12 }}>
+      <View style={{ flexDirection: 'row', alignItems: 'flex-start' }}>
+        {/* Left content */}
+        <View style={{ flex: 1, flexDirection: 'row', alignItems: 'flex-start' }}>
+          <TouchableOpacity
+            onPress={() => onPressUsername?.(reply.user?.id)}
+            accessibilityLabel={`View ${reply.user?.name || 'user'} profile`}
+            style={{ minHeight: 44, minWidth: 44, justifyContent: 'center' }}
+          >
             <Image
               source={
-                comment.user?.avatar
-                  ? { uri: comment.user.avatar }
+                reply.user?.avatar
+                  ? { uri: reply.user.avatar }
                   : require('@/assets/images/user.png')
               }
-              className="w-8 h-8 rounded-full"
+              style={{ width: 32, height: 32, borderRadius: 16 }}
             />
-            <View className="flex-1">
-              <Text className="text-white font-medium text-sm">
-                {comment.user?.name || 'Anonymous User'}
-              </Text>
-              <Text className="text-gray-300 text-sm mt-1">
-                {comment.content || 'No content'}
-              </Text>
-              <View className="flex-row items-center mt-2 space-x-6">
-                <TouchableOpacity onPress={() => handleReplyToComment(comment._id, comment.user?.name || 'Anonymous User')}>
-                  <Text className="text-gray-400 text-xs">Reply</Text>
-                </TouchableOpacity>
-                <TouchableOpacity onPress={() => handleViewReplies(comment._id)}>
-                  <Text className="text-gray-500 text-xs">
-                    {viewingReplies === comment._id ? 'Hide replies' : `View replies (${comment.replies || comment.repliesCount || 0})`}
-                  </Text>
-                </TouchableOpacity>
-              </View>
+          </TouchableOpacity>
 
-              {/* Show replies if viewing */}
-              {viewingReplies === comment._id && (
-                <View className="mt-3 ml-4 pl-4 border-l border-gray-600">
-                  {repliesData[comment._id] && repliesData[comment._id].length > 0 ? (
-                    repliesData[comment._id].map((reply: any) => (
-                      <View key={reply._id} className="mb-2 flex-row items-start space-x-2">
-                        <Image
-                          source={
-                            reply.user?.avatar
-                              ? { uri: reply.user.avatar }
-                              : require('@/assets/images/user.png')
-                          }
-                          className="w-6 h-6 rounded-full"
-                        />
-                        <View className="flex-1">
-                          <Text className="text-white font-medium text-xs">
-                            {reply.user?.name || reply.user?.username || 'Anonymous'}
-                          </Text>
-                          <Text className="text-gray-300 text-xs mt-1">
-                            {reply.content}
-                          </Text>
-                        </View>
-                      </View>
-                    ))
-                  ) : (
-                    <Text className="text-gray-400 text-xs">
-                      No replies yet
-                    </Text>
-                  )}
-                </View>
-              )}
+          <View style={{ flex: 1, marginLeft: 12 }}>
+            <TouchableOpacity onPress={() => onPressUsername?.(reply.user?.id)}>
+              <Text style={{ color: '#FFFFFF', fontSize: 14, fontWeight: '600' }}>
+                {reply.user?.name || 'Anonymous User'}
+              </Text>
+            </TouchableOpacity>
+            <Text style={{ color: '#FFFFFF', fontSize: 16, marginTop: 2 }}>
+              {reply.content || 'No content'}
+            </Text>
+          </View>
+        </View>
+
+        {/* Right action icons - aligned horizontally (no tip for replies) */}
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 16, paddingLeft: 8 }}>
+          <TouchableOpacity
+            onPress={() => handleUpvoteReply(reply._id, parentCommentId)}
+            accessibilityLabel="Upvote reply"
+            style={{ alignItems: 'center', minHeight: 44, justifyContent: 'center' }}
+          >
+            <MaterialIcons
+              name="arrow-upward"
+              size={18}
+              color={reply.upvoted ? '#4CAF50' : '#FFFFFF'}
+            />
+            <Text style={{ color: '#9E9E9E', fontSize: 11, marginTop: 1 }}>
+              {reply.upvotes || 0}
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            onPress={() => handleDownvoteReply(reply._id, parentCommentId)}
+            accessibilityLabel="Downvote reply"
+            style={{ alignItems: 'center', minHeight: 44, justifyContent: 'center' }}
+          >
+            <MaterialIcons
+              name="arrow-downward"
+              size={18}
+              color={reply.downvoted ? '#F44336' : '#FFFFFF'}
+            />
+            <Text style={{ color: '#9E9E9E', fontSize: 11, marginTop: 1 }}>
+              {reply.downvotes || 0}
+            </Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+
+      {/* Reply button directly below the reply */}
+      <View style={{ marginLeft: 44, marginTop: 4 }}>
+        <TouchableOpacity
+          onPress={() => handleReplyToComment(parentCommentId, reply.user?.name || 'Anonymous User')}
+          accessibilityLabel="Reply to reply"
+          style={{ minHeight: 32, justifyContent: 'center' }}
+        >
+          <Text style={{ color: '#9E9E9E', fontSize: 13 }}>Reply</Text>
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
+
+  const renderComment = (item: Comment) => {
+    if (!item || !item._id) return null;
+
+    const isExpanded = expandedReplies.has(item._id);
+    const replies = repliesData[item._id] || [];
+
+    return (
+      <View key={item._id} style={{ paddingHorizontal: 20, paddingVertical: 12 }}>
+        <View style={{ flexDirection: 'row', alignItems: 'flex-start' }}>
+          {/* Left content */}
+          <View style={{ flex: 1, flexDirection: 'row', alignItems: 'flex-start' }}>
+            <TouchableOpacity
+              onPress={() => onPressUsername?.(item.user?.id)}
+              accessibilityLabel={`View ${item.user?.name || 'user'} profile`}
+              style={{ minHeight: 44, minWidth: 44, justifyContent: 'center' }}
+            >
+              <Image
+                source={
+                  item.user?.avatar
+                    ? { uri: item.user.avatar }
+                    : require('@/assets/images/user.png')
+                }
+                style={{ width: 44, height: 44, borderRadius: 22 }}
+              />
+            </TouchableOpacity>
+
+            <View style={{ flex: 1, marginLeft: 12 }}>
+              <TouchableOpacity onPress={() => onPressUsername?.(item.user?.id)}>
+                <Text style={{ color: '#FFFFFF', fontSize: 14, fontWeight: '600' }}>
+                  {item.user?.name || 'Anonymous User'}
+                </Text>
+              </TouchableOpacity>
+              <Text style={{ color: '#FFFFFF', fontSize: 16, marginTop: 2 }}>
+                {item.content || 'No content'}
+              </Text>
             </View>
           </View>
 
-          {/* Right side actions - Properly aligned in single row */}
-          <View
-            style={{
-              flexDirection: 'row',
-              alignItems: 'center',
-              marginLeft: 16,
-              gap: 12,
-            }}
-          >
-            {/* Rupee/Gift button */}
+          {/* Right action icons - aligned horizontally */}
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 16, paddingLeft: 8 }}>
+            {/* Only show rupee icon if both global and comment-specific monetization are enabled */}
+            {commentMonetizationEnabled && item.is_monetized && (
+              <TouchableOpacity
+                onPress={() => {
+                  // Navigate to VideoContentGifting with comment parameters
+                  router.push({
+                    pathname: "/(payments)/Video/Video-Gifting",
+                    params: {
+                      mode: 'comment-gift',
+                      commentId: item._id,
+                      videoId: videoId,
+                      creatorName: item.user?.name || 'Anonymous User',
+                      creatorUsername: item.user?.username || 'user',
+                      creatorPhoto: item.user?.avatar || '',
+                      creatorId: item.user?.id || ''
+                    }
+                  });
+                }}
+                accessibilityLabel="Tip creator"
+                style={{ alignItems: 'center', minHeight: 44, justifyContent: 'center' }}
+              >
+                <MaterialIcons name="currency-rupee" size={20} color="#FFD24D" />
+                <Text style={{ color: '#9E9E9E', fontSize: 12, marginTop: 2 }}>
+                  {item.donations || 0}
+                </Text>
+              </TouchableOpacity>
+            )}
+
             <TouchableOpacity
-              style={{
-                alignItems: 'center',
-                justifyContent: 'center',
-                minWidth: 24,
-              }}
+              onPress={() => handleUpvote(item._id)}
+              accessibilityLabel="Upvote comment"
+              style={{ alignItems: 'center', minHeight: 44, justifyContent: 'center' }}
             >
-              <Text style={{ color: '#FBBF24', fontSize: 14, lineHeight: 16 }}>₹</Text>
-              <Text style={{ color: '#9CA3AF', fontSize: 10, lineHeight: 12 }}>
-                {comment.donations || 0}
+              <MaterialIcons
+                name="arrow-upward"
+                size={20}
+                color={item.upvoted ? '#4CAF50' : '#FFFFFF'}
+              />
+              <Text style={{ color: '#9E9E9E', fontSize: 12, marginTop: 2 }}>
+                {item.upvotes || 0}
               </Text>
             </TouchableOpacity>
 
-            {/* Upvote button */}
             <TouchableOpacity
-              onPress={() => upvoteComment(comment._id)}
-              style={{
-                alignItems: 'center',
-                justifyContent: 'center',
-                minWidth: 24,
-              }}
+              onPress={() => handleDownvote(item._id)}
+              accessibilityLabel="Downvote comment"
+              style={{ alignItems: 'center', minHeight: 44, justifyContent: 'center' }}
             >
-              <Text
-                style={{
-                  fontSize: 18,
-                  lineHeight: 20,
-                  color: comment.upvoted ? '#10B981' : '#FFFFFF'
-                }}
-              >
-                ↑
-              </Text>
-              <Text style={{ color: '#9CA3AF', fontSize: 10, lineHeight: 12 }}>
-                {comment.upvotes || 0}
-              </Text>
-            </TouchableOpacity>
-
-            {/* Downvote button */}
-            <TouchableOpacity
-              onPress={() => downvoteComment(comment._id)}
-              style={{
-                alignItems: 'center',
-                justifyContent: 'center',
-                minWidth: 24,
-              }}
-            >
-              <Text
-                style={{
-                  fontSize: 18,
-                  lineHeight: 20,
-                  color: comment.downvoted ? '#EF4444' : '#FFFFFF'
-                }}
-              >
-                ↓
-              </Text>
-              <Text style={{ color: '#9CA3AF', fontSize: 10, lineHeight: 12 }}>
-                {comment.downvotes || 0}
+              <MaterialIcons
+                name="arrow-downward"
+                size={20}
+                color={item.downvoted ? '#F44336' : '#FFFFFF'}
+              />
+              <Text style={{ color: '#9E9E9E', fontSize: 12, marginTop: 2 }}>
+                {item.downvotes || 0}
               </Text>
             </TouchableOpacity>
           </View>
         </View>
+
+        {/* Reply and View replies buttons on the same line */}
+        <View style={{ marginLeft: 56, marginTop: 4, flexDirection: 'row', alignItems: 'center', gap: 24 }}>
+          <TouchableOpacity
+            onPress={() => handleReplyToComment(item._id, item.user?.name || 'Anonymous User')}
+            accessibilityLabel="Reply to comment"
+            style={{ minHeight: 32, justifyContent: 'center' }}
+          >
+            <Text style={{ color: '#9E9E9E', fontSize: 13 }}>Reply</Text>
+          </TouchableOpacity>
+
+          {(item.replies > 0 || item.repliesCount > 0) && (
+            <TouchableOpacity
+              onPress={() => handleToggleReplies(item._id)}
+              accessibilityLabel={`${isExpanded ? 'Hide' : 'View'} replies`}
+              style={{ minHeight: 32, justifyContent: 'center' }}
+            >
+              <Text style={{ color: '#9E9E9E', fontSize: 13 }}>
+                {isExpanded ? 'Hide replies' : `View replies (${item.replies || item.repliesCount || 0})`}
+              </Text>
+            </TouchableOpacity>
+          )}
+        </View>
+
+        {/* Replies section */}
+        {isExpanded && (
+          <View style={{ marginTop: 12 }}>
+            {replies.length > 0 ? (
+              replies.map((reply) => renderReply(reply, item._id))
+            ) : (
+              <View style={{ marginLeft: 56 }}>
+                <Text style={{ color: '#9E9E9E', fontSize: 13 }}>
+                  No replies yet
+                </Text>
+              </View>
+            )}
+          </View>
+        )}
       </View>
     );
   };
 
   return (
-    <>
-      {/* Backdrop overlay */}
+    <View
+      style={{
+        position: "absolute",
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        backgroundColor: "rgba(0, 0, 0, 0.6)",
+        zIndex: 1000,
+        justifyContent: "flex-end",
+      }}
+    >
+
+      {/* Backdrop */}
       <TouchableOpacity
         style={{
-          position: 'absolute',
+          position: "absolute",
           top: 0,
           left: 0,
           right: 0,
-          bottom: 0,
-          backgroundColor: 'rgba(0, 0, 0, 0.3)',
-          zIndex: 999,
-          elevation: 999,
+          bottom: SHEET_MAX_HEIGHT + BOTTOM_NAV_HEIGHT,
         }}
         onPress={onClose}
         activeOpacity={1}
       />
 
-      <KeyboardAvoidingView
-        className="w-full absolute rounded-t-lg max-h-[60%] bottom-0"
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
+      {/* Bottom Sheet */}
+      <View
         style={{
-          backgroundColor: "#1A1A1A",
-          borderTopLeftRadius: 20,
-          borderTopRightRadius: 20,
-          zIndex: 1000,
-          elevation: 1000, // For Android
+          backgroundColor: "#0E0E0E",
+          borderTopLeftRadius: 36,
+          borderTopRightRadius: 36,
+          height: SHEET_MAX_HEIGHT,
+          marginBottom: BOTTOM_NAV_HEIGHT,
         }}
       >
+        {/* Drag handle */}
+        <View style={{ alignItems: 'center', paddingTop: 12, paddingBottom: 8 }}>
+          <View
+            style={{
+              width: 56,
+              height: 4,
+              backgroundColor: '#9E9E9E',
+              borderRadius: 2,
+            }}
+          />
+        </View>
+
         {/* Header */}
-        <View className="items-center py-4">
-          <Text className="text-white text-xl font-semibold">
+        <View style={{ alignItems: 'center', paddingBottom: 16 }}>
+          <Text style={{ color: '#FFFFFF', fontSize: 22, fontWeight: '700' }}>
             Comments
           </Text>
         </View>
 
-        {/* Comments List */}
+        {/* Comments List - Using ScrollView for reliable scrolling */}
         <ScrollView
-          ref={scrollViewRef}
-          className="flex-1"
+          style={{ flex: 1 }}
           showsVerticalScrollIndicator={false}
+          bounces={true}
+          scrollEnabled={true}
+          nestedScrollEnabled={false}
           keyboardShouldPersistTaps="handled"
         >
-          {isLoading ? (
-            <View className="flex-1 items-center justify-center py-8">
+          {isLoading || monetizationLoading ? (
+            <View
+              style={{
+                flex: 1,
+                alignItems: "center",
+                justifyContent: "center",
+                paddingVertical: 50,
+              }}
+            >
               <ActivityIndicator size="large" color="#F1C40F" />
-              <Text className="text-gray-400 mt-2">Loading comments...</Text>
+              <Text style={{ color: "#9E9E9E", marginTop: 8 }}>
+                {isLoading ? "Loading comments..." : "Loading..."}
+              </Text>
             </View>
           ) : comments.length === 0 ? (
-            <View className="flex-1 items-center justify-center py-8">
-              <Text className="text-gray-400 text-center">
+            <View
+              style={{
+                flex: 1,
+                alignItems: "center",
+                justifyContent: "center",
+                paddingVertical: 50,
+              }}
+            >
+              <Text style={{ color: "#9E9E9E", textAlign: "center" }}>
                 No comments yet. Be the first to comment!
               </Text>
             </View>
           ) : (
-            <View className="gap-2 py-4">
-              {comments.map(renderComment)}
-            </View>
+            <>
+              {comments.map((item) => renderComment(item))}
+              <View style={{ height: 20 }} />
+            </>
           )}
         </ScrollView>
 
         {/* Input Bar */}
-        <Animated.View
+        <View
           style={{
-            paddingBottom: animatedBottom,
-            backgroundColor: "#1A1A1A",
+            paddingHorizontal: 20,
+            paddingBottom: Math.max(insets.bottom, 16),
+            paddingTop: 16,
+            backgroundColor: '#0E0E0E',
           }}
-          className="p-4"
         >
           {/* Reply indicator */}
           {replyingTo && (
-            <View className="flex-row items-center justify-between mb-2 p-2 bg-gray-800 rounded">
-              <Text className="text-gray-300 text-sm">
+            <View style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              marginBottom: 12,
+              paddingHorizontal: 16,
+              paddingVertical: 8,
+              backgroundColor: 'rgba(158, 158, 158, 0.1)',
+              borderRadius: 8,
+            }}>
+              <Text style={{ color: '#9E9E9E', fontSize: 14 }}>
                 Replying to @{replyingToUser}
               </Text>
               <TouchableOpacity onPress={handleCancelReply}>
-                <Text className="text-red-400 text-sm">Cancel</Text>
+                <Text style={{ color: '#FF3B30', fontSize: 14 }}>Cancel</Text>
               </TouchableOpacity>
             </View>
           )}
 
-          <View className="flex-row items-center space-x-3">
+          <View style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            backgroundColor: '#0E0E0E',
+            borderRadius: 28,
+            height: 52,
+            paddingHorizontal: 16,
+            borderWidth: 1,
+            borderColor: '#333333',
+          }}>
+            {/* Text Input */}
             <TextInput
-              className="flex-1 bg-transparent text-white px-4 py-3 border-b border-gray-600"
+              style={{
+                flex: 1,
+                color: '#FFFFFF',
+                fontSize: 16,
+                paddingVertical: 0,
+              }}
               placeholder="Add comment........."
-              placeholderTextColor="#6b7280"
+              placeholderTextColor="#9E9E9E"
               value={comment}
               onChangeText={setComment}
               multiline={false}
               maxLength={500}
             />
+
+            {/* Send button - no outer circle */}
             <TouchableOpacity
               onPress={handleSubmitComment}
               disabled={!comment.trim() || isSubmitting}
+              accessibilityLabel="Send comment"
+              style={{
+                alignItems: 'center',
+                justifyContent: 'center',
+                marginLeft: 12,
+                minHeight: 44,
+                minWidth: 44,
+              }}
             >
               {isSubmitting ? (
-                <ActivityIndicator size="small" color="white" />
+                <ActivityIndicator size="small" color="#FFFFFF" />
               ) : (
-                <Text className="text-white text-2xl">▷</Text>
+                <MaterialIcons
+                  name="send"
+                  size={20}
+                  color={comment.trim() ? '#FFFFFF' : '#9E9E9E'}
+                />
               )}
             </TouchableOpacity>
           </View>
-        </Animated.View>
-      </KeyboardAvoidingView>
-    </>
+        </View>
+      </View>
+    </View>
   );
 };
 

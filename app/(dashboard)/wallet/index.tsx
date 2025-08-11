@@ -21,6 +21,7 @@ import RevenueHistory from "./_components/RevenueHistory";
 import { useWallet } from "./_components/useWallet";
 import { useAuthStore } from "@/store/useAuthStore";
 import { useDashboard } from "../profile/_components/useDashboard";
+import BottomNavBar from "@/components/BottomNavBar";
 
 const { height } = Dimensions.get("screen");
 
@@ -51,7 +52,7 @@ const WalletPage = () => {
   // Handle withdrawal request
   const handleWithdrawalRequest = () => {
     console.log('💰 Navigating to withdrawal screen');
-    router.push('/(payments)/Video/VideoContentGifting?mode=withdraw');
+    router.push('/(payments)/Video/Video-Gifting?mode=withdraw');
   };
 
   // Show error alert when error occurs
@@ -73,7 +74,7 @@ const WalletPage = () => {
         <Modal transparent visible={showSuccessModal} animationType="fade">
           <TouchableWithoutFeedback onPress={() => setShowSuccessModal(false)}>
             <View className="flex-1 bg-transparent bg-opacity-80 bottom-60 items-center justify-end px-5 right-0">
-              <TouchableWithoutFeedback onPress={() => {}}>
+              <TouchableWithoutFeedback onPress={() => { }}>
                 <View className="bg-[#1E1E1E] p-6 rounded-xl">
                   <Text className="text-white text-base text-center mb-2 font-semibold">
                     Your withdrawal request of ₹500 has been successfully
@@ -94,9 +95,9 @@ const WalletPage = () => {
           {isOpenTBalance ? (
             <TotalBalanceHistory closeTBalance={setIsOpenTotalBalance} />
           ) : isOpenWBalance ? (
-            <TotalWalletHistory closeTBalance={setIsOpenWalletBalance}/>
+            <TotalWalletHistory closeTBalance={setIsOpenWalletBalance} />
           ) : (
-            <RevenueHistory closeTBalance={setIsOpenRevenue}/>
+            <RevenueHistory closeTBalance={setIsOpenRevenue} />
           )}
         </View>
       ) : (
@@ -212,6 +213,11 @@ const WalletPage = () => {
             />
           </View>
         </>
+      )}
+      
+      {/* Bottom Navigation Bar */}
+      {!isOpenTBalance && !isOpenWBalance && !isOpenRevenue && (
+        <BottomNavBar />
       )}
     </ThemedView>
   );

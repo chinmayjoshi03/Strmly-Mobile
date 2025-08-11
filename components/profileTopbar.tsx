@@ -2,6 +2,8 @@ import React from "react";
 import { View, Text, TouchableOpacity, Alert } from "react-native";
 import { MoreHorizontal, ChevronLeft } from "lucide-react-native";
 import { useRouter } from "expo-router";
+import { useAuthStore } from "@/store/useAuthStore";
+import { CONFIG } from "@/Constants/config";
 
 interface ProfileTopbarProps {
   hashtag: boolean;
@@ -37,8 +39,6 @@ const ProfileTopbar = ({ hashtag, name, isMore=true }: ProfileTopbarProps) => {
           ? error.message
           : "Failed to logout. Please try again."
       );
-    } finally {
-      setShowDropdown(false);
     }
   };
 

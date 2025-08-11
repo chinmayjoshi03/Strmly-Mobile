@@ -10,12 +10,12 @@ interface WalletButtonsProps {
   walletBalance: number;
 }
 
-const WalletButtons: React.FC<WalletButtonsProps> = ({ 
-  onWithdraw, 
-  onCreateOrder, 
-  onVerifyPayment, 
+const WalletButtons: React.FC<WalletButtonsProps> = ({
+  onWithdraw,
+  onCreateOrder,
+  onVerifyPayment,
   onRefreshWallet,
-  walletBalance 
+  walletBalance
 }) => {
   const [showWithdrawModal, setShowWithdrawModal] = useState(false);
   const [showAddMoneyModal, setShowAddMoneyModal] = useState(false);
@@ -35,7 +35,7 @@ const WalletButtons: React.FC<WalletButtonsProps> = ({
 
   const handleWithdrawConfirm = async () => {
     const amount = parseFloat(withdrawAmount);
-    
+
     if (!amount || amount <= 0) {
       Alert.alert('Error', 'Please enter a valid amount');
       return;
@@ -94,11 +94,11 @@ const WalletButtons: React.FC<WalletButtonsProps> = ({
             <Text className="text-white text-lg font-semibold mb-4 text-center">
               Withdraw Money
             </Text>
-            
+
             <Text className="text-gray-300 text-sm mb-2">
               Available Balance: ₹{walletBalance.toFixed(2)}
             </Text>
-            
+
             <TextInput
               value={withdrawAmount}
               onChangeText={setWithdrawAmount}
@@ -107,7 +107,7 @@ const WalletButtons: React.FC<WalletButtonsProps> = ({
               keyboardType="numeric"
               className="bg-gray-800 text-white p-3 rounded-lg mb-4"
             />
-            
+
             <View className="flex-row gap-3">
               <Pressable
                 onPress={() => setShowWithdrawModal(false)}
@@ -115,7 +115,7 @@ const WalletButtons: React.FC<WalletButtonsProps> = ({
               >
                 <Text className="text-white text-center font-semibold">Cancel</Text>
               </Pressable>
-              
+
               <Pressable
                 onPress={handleWithdrawConfirm}
                 className="flex-1 bg-white p-3 rounded-lg"

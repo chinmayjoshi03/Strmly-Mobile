@@ -17,7 +17,6 @@ import { CONFIG } from "@/Constants/config";
 // Import all the components from VideoItem
 import InteractOptions from "@/app/(dashboard)/long/_components/interactOptions";
 import VideoDetails from "@/app/(dashboard)/long/_components/VideoDetails";
-import CommentsSection from "@/app/(dashboard)/long/_components/CommentSection";
 import VideoProgressBar from "@/app/(dashboard)/long/_components/VideoProgressBar";
 import { VideoItemType } from "@/types/VideosType";
 
@@ -29,13 +28,13 @@ export interface UnifiedVideoPlayerProps {
   // Core video props
   uri: string;
   videoData?: VideoItemType;
-  
+
   // Player behavior
   mode: VideoPlayerMode;
   autoPlay?: boolean;
   loop?: boolean;
   isActive?: boolean;
-  
+
   // UI customization - Default to true for unified experience
   showControls?: boolean;
   showInteractions?: boolean;
@@ -43,28 +42,28 @@ export interface UnifiedVideoPlayerProps {
   showComments?: boolean;
   showWallet?: boolean;
   containerHeight?: number;
-  
+
   // Callbacks
   onPlaybackStatusUpdate?: (status: any) => void;
   onVideoEnd?: () => void;
   onError?: (error: string) => void;
-  
+
   // Interaction props (always available for unified experience)
   setGiftingData?: (data: any) => void;
   setIsWantToGift?: (value: boolean) => void;
   showCommentsModal?: boolean;
   setShowCommentsModal?: (value: boolean) => void;
-  
+
   // Episode-specific props
   episodeTitle?: string;
   seriesTitle?: string;
   episodeNumber?: number;
   seasonNumber?: number;
-  
+
   // Studio-specific props
   onDelete?: () => void;
   showDeleteButton?: boolean;
-  
+
   // Style overrides
   style?: any;
 }
@@ -99,7 +98,7 @@ const UnifiedVideoPlayer: React.FC<UnifiedVideoPlayerProps> = ({
 }) => {
   const { width, height } = Dimensions.get("screen");
   const { token } = useAuthStore();
-  
+
   // Player setup
   const player = useVideoPlayer(uri, (p) => {
     p.loop = loop;
@@ -135,7 +134,7 @@ const UnifiedVideoPlayer: React.FC<UnifiedVideoPlayerProps> = ({
       case 'studio':
         return {
           width: '100%',
-          aspectRatio: 16/9,
+          aspectRatio: 16 / 9,
         };
       default:
         return {
@@ -158,7 +157,7 @@ const UnifiedVideoPlayer: React.FC<UnifiedVideoPlayerProps> = ({
 
   const shouldShowComments = () => {
     if (mode === 'preview') return false; // No comments in preview mode
-    return showComments && videoData && setShowCommentsModal;
+    return showComments && videoData && setShowCommentsModal && typeof setShowCommentsModal === 'function';
   };
 
   const shouldShowWallet = () => {
@@ -187,7 +186,7 @@ const UnifiedVideoPlayer: React.FC<UnifiedVideoPlayerProps> = ({
         console.error("Failed to save video to history:", err);
       }
     };
-    
+
     if (mode === 'feed' && (token && videoData?._id)) {
       saveVideoToHistory();
     }
@@ -211,7 +210,7 @@ const UnifiedVideoPlayer: React.FC<UnifiedVideoPlayerProps> = ({
   useEffect(() => {
     const subscription = player.addListener("statusChange", (event) => {
       setVideoStatus(event.status);
-      
+
       if (onPlaybackStatusUpdate) {
         onPlaybackStatusUpdate({
           status: event.status,
@@ -260,15 +259,17 @@ const UnifiedVideoPlayer: React.FC<UnifiedVideoPlayerProps> = ({
 
   // Comments handlers
   const handleOpenComments = useCallback(() => {
-    if (setShowCommentsModal) {
+    if (setShowCommentsModal && typeof setShowCommentsModal === 'function') {
       setShowCommentsModal(true);
       player.pause();
       setIsPaused(true);
+    } else {
+      console.log('⚠️ Comments not available - setShowCommentsModal not provided');
     }
   }, [player, setShowCommentsModal]);
 
   const handleCloseComments = useCallback(() => {
-    if (setShowCommentsModal) {
+    if (setShowCommentsModal && typeof setShowCommentsModal === 'function') {
       setShowCommentsModal(false);
       player.play();
       setIsPaused(false);
@@ -339,7 +340,7 @@ const UnifiedVideoPlayer: React.FC<UnifiedVideoPlayerProps> = ({
       {/* Wallet button - Show in feed and fullscreen modes */}
       {shouldShowWallet() && (
         <View className="absolute top-16 left-5 z-50">
-          <Pressable 
+          <Pressable
             onPress={() => {
               console.log('💰 Wallet button pressed in UnifiedVideoPlayer!');
               try {
@@ -398,7 +399,7 @@ const UnifiedVideoPlayer: React.FC<UnifiedVideoPlayerProps> = ({
             gifts={videoData!.gifts}
             shares={videoData!.shares}
             comments={videoData!.comments?.length}
-            onCommentPress={handleOpenComments}
+            onCommentPress={shouldShowComments() ? handleOpenComments : undefined}
           />
         </View>
       )}
@@ -435,15 +436,7 @@ const UnifiedVideoPlayer: React.FC<UnifiedVideoPlayerProps> = ({
         </View>
       )}
 
-      {/* Comments modal - Show in all modes except preview */}
-      {shouldShowComments() && showCommentsModal && (
-        <CommentsSection
-          onClose={handleCloseComments}
-          commentss={videoData!.comments}
-          videoId={videoData!._id}
-          longVideosOnly={false}
-        />
-      )}
+      {/* Comments modal is now handled at VideoFeed level */}
 
       {/* Delete button for studio mode */}
       {mode === 'studio' && showDeleteButton && onDelete && (

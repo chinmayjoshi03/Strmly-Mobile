@@ -1,14 +1,14 @@
 import React, { useRef, useState, useEffect, useCallback } from "react";
 import { FlatList, Dimensions, ActivityIndicator, Text, Pressable } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { router } from "expo-router";
 import ThemedView from "@/components/ThemedView";
 import { useAuthStore } from "@/store/useAuthStore";
 import { CONFIG } from "@/Constants/config";
 import { VideoItemType } from "@/types/VideosType";
 import GiftingMessage from "./_components/GiftingMessage";
 import UnifiedVideoPlayer from "@/components/UnifiedVideoPlayer";
-import VideoItem from "./VideoItem";
-import { VideoContentGifting } from "@/app/(payments)/Video/Video-Gifting";
+import VideoContentGifting from "@/app/(payments)/Video/Video-Gifting";
+import CommentsSection from "./_components/CommentSection";
 
 export type GiftType = {
   _id: string;
@@ -26,8 +26,6 @@ const VideoFeed: React.FC = () => {
 
   const BACKEND_API_URL = CONFIG.API_BASE_URL;
   console.log('🔧 VideoFeed API URL:', BACKEND_API_URL);
-  const { height } = Dimensions.get("screen");
-  const insets = useSafeAreaInsets();
   const TAB_BAR_HEIGHT = 55; // Height of the bottom navigation bar (reduced from 70)
   const TAB_BAR_PADDING = 10; // paddingBottom from tab bar (reduced from 15)
   const BUFFER = 10; // Additional buffer to ensure no overlap
@@ -41,8 +39,7 @@ const VideoFeed: React.FC = () => {
   console.log('Adjusted height:', adjustedHeight);
 
   const [visibleIndex, setVisibleIndex] = useState(0);
-  const { token, user, isLoggedIn } = useAuthStore();
-  const [videosPage, setVideosPage] = useState(1);
+  const { token } = useAuthStore();
 
   // State for overlays
   const [isWantToGift, setIsWantToGift] = useState(false);
@@ -50,6 +47,11 @@ const VideoFeed: React.FC = () => {
   const [giftingData, setGiftingData] = useState<GiftType | null>(null);
   const [giftSuccessMessage, setGiftSuccessMessage] = useState<any>();
   const [showCommentsModal, setShowCommentsModal] = useState(false);
+
+  // Debug log for comments modal state changes
+  useEffect(() => {
+    console.log('🎬 VideoFeed: Comments modal state changed:', showCommentsModal);
+  }, [showCommentsModal]);
 
   const fetchTrendingVideos = async () => {
     // This function is fine as is.
@@ -101,39 +103,47 @@ const VideoFeed: React.FC = () => {
 
   // OPTIMIZATION 1: Stabilize the onViewableItemsChanged callback
   // This prevents FlatList from re-rendering just because the parent re-rendered.
-  const onViewableItemsChanged = useCallback(({ viewableItems }: any) => {
+  const onViewableItemsChanged = useRef(({ viewableItems }: any) => {
     if (viewableItems.length > 0) {
       setVisibleIndex(viewableItems[0].index);
     }
-  }, []); // Empty dependency array means this function is created only once.
+  });
 
   // OPTIMIZATION 2: Memoize the renderItem function
   // This prevents creating a new render function on every parent render.
   const renderItem = useCallback(
     ({ item, index }: { item: VideoItemType; index: number }) => (
-      <VideoItem
-        BACKEND_API_URL={BACKEND_API_URL}
+      <UnifiedVideoPlayer
+        key={`${item._id}-${visibleIndex === index}`}
+        uri={item.videoUrl}
+        videoData={item}
+        mode="feed"
+        isActive={index === visibleIndex}
+        autoPlay={index === visibleIndex}
+        loop={true}
+        showControls={true}
+        showInteractions={true}
+        showDetails={true}
+        showComments={true}
+        containerHeight={adjustedHeight}
         setGiftingData={setGiftingData}
+        setIsWantToGift={setIsWantToGift}
         showCommentsModal={showCommentsModal}
         setShowCommentsModal={setShowCommentsModal}
-        setIsWantToGift={setIsWantToGift}
-        uri={item.videoUrl}
-        isActive={index === visibleIndex}
-        videoData={item}
       />
     ),
-    [visibleIndex, showCommentsModal, BACKEND_API_URL]
-  ); // Dependencies that, when changed, should cause the item to update.
+    [visibleIndex, showCommentsModal, adjustedHeight]
+  );
 
   // OPTIMIZATION 3: If all your video items have the same height (full screen), use getItemLayout
   // This is a major performance boost as it avoids on-the-fly layout calculations.
   const getItemLayout = useCallback(
     (_data: any, index: number) => ({
-      length: height,
-      offset: height * index,
+      length: adjustedHeight,
+      offset: adjustedHeight * index,
       index,
     }),
-    [height]
+    [adjustedHeight]
   );
 
   if (loading) {
@@ -189,50 +199,27 @@ const VideoFeed: React.FC = () => {
     }}>
       {isGifted && giftingData ? (
         <GiftingMessage
-          isVisible={modalVisible}
-          giftData={giftingData}
-          setGiftData={setGiftingData}
-          onClose={setModalVisible}
-          message={giftSuccessMessage}
+          isVisible={isGifted}
+          creator={giftingData}
+          amount={giftSuccessMessage}
+          onClose={setIsGifted}
           giftMessage={setGiftSuccessMessage}
         />
       ) : isWantToGift && giftingData ? (
         <VideoContentGifting
-          giftData={giftingData}
-          setIsGifted={setIsGifted}
+          creator={giftingData}
+          videoId={videos[visibleIndex]?._id || ''}
           setIsWantToGift={setIsWantToGift}
+          setIsGifted={setIsGifted}
           giftMessage={setGiftSuccessMessage}
         />
       ) : (
         <FlatList
           data={videos}
           keyExtractor={(item) => item._id}
-          renderItem={({ item, index }) => (
-            <UnifiedVideoPlayer
-              key={`${item._id}-${visibleIndex === index}`}
-              uri={item.videoUrl}
-              videoData={item}
-              mode="feed"
-              isActive={index === visibleIndex}
-              autoPlay={index === visibleIndex}
-              loop={true}
-              showControls={true}
-              showInteractions={true}
-              showDetails={true}
-              showComments={true}
-              containerHeight={adjustedHeight}
-              setGiftingData={setGiftingData}
-              setIsWantToGift={setIsWantToGift}
-              showCommentsModal={showCommentsModal}
-              setShowCommentsModal={setShowCommentsModal}
-            />
-          )}
+          renderItem={renderItem}
           style={{ flex: 1 }}
-          getItemLayout={(_, index) => ({
-            length: adjustedHeight,
-            offset: adjustedHeight * index,
-            index,
-          })}
+          getItemLayout={getItemLayout}
           pagingEnabled
           scrollEnabled={!showCommentsModal}
           onViewableItemsChanged={onViewableItemsChanged.current}
@@ -241,6 +228,34 @@ const VideoFeed: React.FC = () => {
           showsVerticalScrollIndicator={false}
           snapToInterval={adjustedHeight}
           snapToAlignment="start"
+          onScrollBeginDrag={() => {
+            if (showCommentsModal) {
+              console.log('🚫 VideoFeed: Scroll blocked - comments modal is open');
+            }
+          }}
+        />
+      )}
+
+      {/* Comments modal - Rendered at VideoFeed level to cover entire screen */}
+      {showCommentsModal && (
+        <CommentsSection
+          onClose={() => {
+            console.log('🎬 VideoFeed: Closing comments modal');
+            setShowCommentsModal(false);
+          }}
+          videoId={videos[visibleIndex]?._id || null}
+          onPressUsername={(userId) => {
+            console.log('Navigate to user profile:', userId);
+            try {
+              router.push(`/(dashboard)/profile/public/${userId}` as any);
+            } catch (error) {
+              console.error('Navigation error:', error);
+            }
+          }}
+          onPressTip={(commentId) => {
+            console.log('Open tip modal for comment:', commentId);
+            // You can implement tip modal logic here
+          }}
         />
       )}
     </ThemedView>
