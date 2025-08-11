@@ -219,39 +219,7 @@ export default function PublicProfilePageWithId() {
     }
   }, [token, id, router]);
 
-  const fetchUserReshareVideos = async () => {
-    if (!id && !token && activeTab !== "repost") return;
-
-    try {
-      const response = await fetch(`${BACKEND_API_URL}/user/reshares/${id}`, {
-        method: "GET",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-      });
-
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.message || "Failed to fetch user reshare videos");
-      }
-
-      setVideos(data.reshares);
-      // console.log("reshare videos", data);
-    } catch (error) {
-      console.log(error);
-      Alert.alert(
-        "Error",
-        error instanceof Error
-          ? error.message
-          : "An unknown error occurred while fetching user reshare videos."
-      );
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  
 
   const fetchUserReshareVideos = async () => {
     if (!id && !token && activeTab !== "repost") return;
