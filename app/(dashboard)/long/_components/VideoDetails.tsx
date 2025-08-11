@@ -18,15 +18,19 @@ import {
 import { useAuthStore } from "@/store/useAuthStore";
 import Constants from "expo-constants";
 import { router } from "expo-router";
+import { useGiftingStore } from "@/store/useGiftingStore";
 
 type VideoDetailsProps = {
   videoId: string;
   name: string;
   type: string;
   is_monetized: boolean;
-  createdBy?: {
+  videoAmount: number;
+
+  createdBy: {
     _id: string;
     username: string;
+    name?: string;
     profile_photo: string;
   };
 
@@ -54,6 +58,7 @@ const VideoDetails = ({
   type,
   is_monetized,
   name,
+  videoAmount,
   series,
   episode_number,
   createdBy,
@@ -73,6 +78,7 @@ const VideoDetails = ({
     useState<boolean>(false);
 
   const { token } = useAuthStore();
+  const {initiateGifting} = useGiftingStore();
 
   const BACKEND_API_URL = Constants.expoConfig?.extra?.BACKEND_API_URL;
 
@@ -139,15 +145,9 @@ const VideoDetails = ({
         throw new Error(data.message || "Failed to follow user profile");
       }
 
-      console.log('following data', data);
-      // setIsFollowCreator(data.isFollowing);
-      Alert.alert(
-        isFollowCreator
-          ? "You unFollowed this creator"
-          : "You are now Following this creator"
-      );
+      setIsFollowCreator(data.isFollowing);
     } catch (error) {
-      console.log('error', error);
+      console.log("error", error);
       Alert.alert(
         "Error",
         error instanceof Error
@@ -163,13 +163,13 @@ const VideoDetails = ({
     if (!token || !community?._id) {
       return;
     }
-    console.log(community, isFollowCommunity)
+    
     setIsFollowCommunityLoading(true);
     try {
       const response = await fetch(
         `${BACKEND_API_URL}/${isFollowCommunity ? "caution/community/unfollow" : "community/follow"}`,
         {
-          method: "POST",
+          method: isFollowCommunity ? "PATCH" : "POST",
           headers: {
             Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
@@ -182,7 +182,7 @@ const VideoDetails = ({
       setIsFollowCommunity(!isFollowCommunity);
       console.log("data", data);
     } catch (err) {
-      console.log('err', err);
+      console.log("err", err);
     } finally {
       setIsFollowCommunityLoading(false);
     }
@@ -210,7 +210,7 @@ const VideoDetails = ({
               {isFollowCommunityLoading ? (
                 <ActivityIndicator className="size-5" color="white" />
               ) : isFollowCommunity ? (
-                <SquareCheck className="size-6" />
+                <SquareCheck size={14} color={'white'} />
               ) : (
                 <Image
                   source={require("../../../../assets/images/plus.png")}
@@ -258,20 +258,19 @@ const VideoDetails = ({
           </TouchableOpacity>
         </View>
 
-        {type !== "Free" ||
-          (is_monetized && (
-            <View>
-              <TouchableOpacity
-                onPress={() => {
-                  setShowPriceDropdown((prev) => !prev);
-                  setShowDropdown(false);
-                }}
-                className="border border-white rounded-md px-2"
-              >
-                <Text className="font-semibold text-sm text-white">Paid</Text>
-              </TouchableOpacity>
-            </View>
-          ))}
+        {type !== "Free" && (
+          <View>
+            <TouchableOpacity
+              onPress={() => {
+                setShowPriceDropdown((prev) => !prev);
+                setShowDropdown(false);
+              }}
+              className="border border-white rounded-md px-2"
+            >
+              <Text className="font-semibold text-sm text-white">Paid</Text>
+            </TouchableOpacity>
+          </View>
+        )}
       </View>
 
       {/* Episode + Fullscreen */}
@@ -296,17 +295,18 @@ const VideoDetails = ({
           )}
         </View>
 
-        <Pressable onPress={onToggleFullScreen}>
+        {/* Full Screen */}
+        {/* <Pressable onPress={onToggleFullScreen}>
           <Image
             source={require("../../../../assets/images/fullscreen.png")}
             className={`size-5 ${isFullScreen ? "scale-110" : "scale-100"} ease-in`}
           />
-        </Pressable>
+        </Pressable> */}
 
         {/* Paid Dropdown */}
         {showPriceDropdown && (
-          <View className="absolute bottom-12 -right-2 rounded-xl p-2 w-80">
-            {series?.type !== "free" && is_monetized ? (
+          <View className="absolute bottom-14 -right-2 rounded-xl p-2 w-80">
+            {series != null ? (
               <TouchableOpacity
                 className="mb-0.5"
                 onPress={() => {
@@ -315,13 +315,13 @@ const VideoDetails = ({
                 }}
               >
                 <Pressable
-                  onPress={() => router.push("/(demo)/SeriesAccessDemo")}
+                  onPress={() => {initiateGifting(createdBy, videoId); router.push(`/(demo)/PurchaseCreatorPass/${createdBy._id}`);}}
                 >
                   <View
                     className={`bg-black h-11 px-2 py-1 flex-row items-center justify-between rounded-t-xl`}
                   >
                     <Text className="text-white text-[16px] flex-row items-center">
-                      Content access
+                      Creator Pass
                     </Text>
                     <Text className="text-white text-[16px]">
                       ₹{series?.price}
@@ -330,16 +330,16 @@ const VideoDetails = ({
                 </Pressable>
 
                 <Pressable
-                  onPress={() => router.push("/(demo)/CreatorPassDemo")}
+                  onPress={() => router.push("/(demo)/SeriesAccessDemo")}
                 >
                   <View
                     className={`bg-black h-11 px-2 py-1 flex-row items-center justify-between rounded-b-xl`}
                   >
                     <Text className="text-white text-[16px] flex-row items-center">
-                      Creator Pass
+                      Content access
                     </Text>
                     <Text className="text-white text-[16px]">
-                      ₹{series?.price}
+                      ₹{videoAmount}
                     </Text>
                   </View>
                 </Pressable>
@@ -355,27 +355,34 @@ const VideoDetails = ({
                 <Pressable
                   onPress={() =>
                     router.push(
-                      !is_monetized
-                        ? "/(demo)/SeriesAccessDemo"
-                        : "/(demo)/CreatorPassDemo"
+                      series === null || series?.type === "Free"
+                        ? `/(demo)/PurchaseCreatorPass/${createdBy._id}`
+                        : "/(demo)/SeriesAccessDemo"
                     )
                   }
                 >
                   <View
                     className={`bg-black h-11 px-2 py-1 flex-row items-center justify-between rounded-t-xl`}
                   >
-                    {!is_monetized ? (
-                      <Text className="text-white text-[16px] flex-row items-center">
-                        Content access
-                      </Text>
+                    {series === null || series?.type === "Free" ? (
+                      <>
+                        <Text className="text-white text-[16px] flex-row items-center">
+                          Creator Pass
+                        </Text>
+                        <Text className="text-white text-[16px]">
+                          ₹{videoAmount}
+                        </Text>
+                      </>
                     ) : (
-                      <Text className="text-white text-[16px] flex-row items-center">
-                        Creator Pass
-                      </Text>
+                      <>
+                        <Text className="text-white text-[16px] flex-row items-center">
+                          Content access
+                        </Text>
+                        <Text className="text-white text-[16px]">
+                          ₹{series?.price}
+                        </Text>
+                      </>
                     )}
-                    <Text className="text-white text-[16px]">
-                      ₹{series?.price}
-                    </Text>
                   </View>
                 </Pressable>
               </TouchableOpacity>

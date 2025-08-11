@@ -6,7 +6,7 @@ import {
   TouchableOpacity,
   Alert,
   Image,
-  FlatList, // Removed Pressable as TouchableOpacity is used
+  FlatList,
   Dimensions,
   BackHandler,
 } from "react-native";
@@ -21,20 +21,20 @@ import { useRoute } from "@react-navigation/native";
 import VideoPlayer from "@/app/(dashboard)/long/_components/VideoPlayer";
 import BottomNavBar from "@/components/BottomNavBar";
 
-// Note: Trimmed down profileData to only include properties actually used as fallbacks.
 const profileData = {
   name: "Tech Entrepreneurs",
   description: "A community for tech entrepreneurs to share ideas and network",
   communityFee: 30,
-  isPrivate: false, // This is still used in the JSX
+  isPrivate: false,
 };
 
 export default function PublicCommunityPage() {
   const [activeTab, setActiveTab] = useState("long");
   const [communityData, setCommunityData] = useState<any>(null);
   const [videos, setVideos] = useState<any[]>([]);
-
   const [isLoading, setIsLoading] = useState(false);
+  const [isFollowingCommunity, setIsFollowingCommunity] = useState(false);
+  const [isFollowingLoading, setFollowingLoading] = useState(false);
   const [isLoadingVideos, setIsLoadingVideos] = useState(false);
 
   // Video player state
@@ -88,11 +88,9 @@ export default function PublicCommunityPage() {
         }
         console.log("✅ Videos fetched:", data.videos?.length || 0);
         setVideos(data.videos || []);
-        // FIX: Removed duplicate setVideos() call
       } catch (err) {
         console.error("❌ Error fetching community videos:", err);
         setVideos([]);
-        // FIX: Removed duplicate setVideos() call and console.error
       } finally {
         setIsLoadingVideos(false);
       }
@@ -101,16 +99,16 @@ export default function PublicCommunityPage() {
     if (token && id) {
       fetchUserVideos();
     }
-  }, [activeTab, token, id, BACKEND_API_URL]); // Added BACKEND_API_URL to dependency array
+  }, [activeTab, token, id, BACKEND_API_URL]);
 
   // Handle back button press
   useEffect(() => {
     const backAction = () => {
       if (isVideoPlayerActive) {
         closeVideoPlayer();
-        return true; // Prevent default back action
+        return true;
       }
-      return false; // Allow default back action
+      return false;
     };
 
     const backHandler = BackHandler.addEventListener('hardwareBackPress', backAction);
@@ -157,9 +155,40 @@ export default function PublicCommunityPage() {
     if (token && id) {
       fetchCommunityData();
     }
-  }, [id, token, BACKEND_API_URL]); // Added BACKEND_API_URL to dependency array
+  }, [id, token]);
 
-  // --- FIX: All functions below were defined twice. The duplicates have been removed. ---
+  const followCommunity = async () => {
+    try {
+      setFollowingLoading(true);
+      const response = await fetch(`${BACKEND_API_URL}/${isFollowingCommunity ? 'caution/community/unfollow' : 'community/follow'}`, {
+        method: !isFollowingCommunity ? "POST" : "PATCH",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({communityId: id})
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || "Failed to follow community profile");
+      }
+
+      console.log(data.message);
+      setIsFollowingCommunity(data.isFollowingCommunity);
+    } catch (error) {
+      console.log(error);
+      Alert.alert(
+        "Error",
+        error instanceof Error
+          ? error.message
+          : "An unknown error occurred while following community."
+      );
+    } finally {
+      setFollowingLoading(false);
+    }
+  };
 
   // Video player functions
   const navigateToVideoPlayer = (videoData: any, allVideos: any[]) => {
@@ -192,7 +221,7 @@ export default function PublicCommunityPage() {
       className="relative aspect-[9/16] flex-1 rounded-sm overflow-hidden mb-2 mx-1"
       onPress={() => navigateToVideoPlayer(item, videos)}
     >
-      {item.thumbnailUrl ? ( // Simplified conditional rendering
+      {item.thumbnailUrl ? (
         <Image
           source={{ uri: item.thumbnailUrl }}
           className="w-full h-full object-cover"
@@ -224,7 +253,7 @@ export default function PublicCommunityPage() {
       className="relative aspect-[9/16] flex-1 rounded-sm overflow-hidden m-1"
       onPress={() => navigateToVideoPlayer(item, videos)}
     >
-      {item.thumbnailUrl ? ( // Simplified conditional rendering
+      {item.thumbnailUrl ? (
         <Image
           source={{ uri: item.thumbnailUrl }}
           className="w-full h-full object-cover"
@@ -255,7 +284,7 @@ export default function PublicCommunityPage() {
           <ProfileTopbar
             isMore={false}
             hashtag={true}
-            name={communityData?.name || profileData.name}
+            name={communityData?.name}
           />
         </View>
       )}
@@ -265,133 +294,131 @@ export default function PublicCommunityPage() {
           <ActivityIndicator size="large" color="white" />
         </View>
       ) : (
-        <>
-          {/* FIX: Wrapped scrollable content in a FlatList header to avoid VirtualizedLists error */}
-          <FlatList
-            ListHeaderComponent={
-              <View className="max-w-4xl -mt-28 relative mx-6 mb-4">
-                <View className="flex flex-col items-center md:flex-row md:items-end space-y-4 md:space-y-0 md:space-x-4">
-                  <View className="relative flex flex-col items-center w-full">
-                    <View className="size-24 rounded-full border-2 border-white overflow-hidden bg-gray-800">
-                      <Image
-                        source={{
-                          uri: (communityData?.profile_photo && communityData.profile_photo.trim() !== '')
-                            ? communityData.profile_photo
-                            : `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(communityData?.name || 'community')}&backgroundColor=random`,
-                        }}
-                        className="w-full h-full object-cover"
-                      />
-                    </View>
-                    <View className="flex flex-row items-center justify-center w-full mt-2">
-                      <Text className="text-gray-400">
-                        {communityData?.founder &&
-                          `By @${communityData?.founder.username}`}
-                      </Text>
-                      {profileData.isPrivate && (
-                        <Text className="ml-2 px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                          Private
-                        </Text>
-                      )}
-                    </View>
+        <FlatList
+          ListHeaderComponent={
+            <View className="max-w-4xl -mt-28 relative mx-6 mb-4">
+              <View className="flex flex-col items-center md:flex-row md:items-end space-y-4 md:space-y-0 md:space-x-4">
+                <View className="relative flex flex-col items-center w-full">
+                  <View className="size-24 rounded-full border-2 border-white overflow-hidden bg-gray-800">
+                    <Image
+                      source={{
+                        uri: (communityData?.profile_photo && communityData.profile_photo.trim() !== '')
+                          ? communityData.profile_photo
+                          : `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(communityData?.name || 'community')}&backgroundColor=random`,
+                      }}
+                      className="w-full h-full object-cover"
+                    />
                   </View>
-                </View>
-
-                <View className="mt-6 flex flex-row justify-around items-center">
-                  <TouchableOpacity className="flex flex-col gap-1 items-center">
-                    <Text className="font-bold text-lg text-white">
-                      {communityData?.followers?.length || 0}
+                  <View className="flex flex-row items-center justify-center w-full mt-2">
+                    <Text className="text-gray-400">
+                      {communityData?.founder &&
+                        `By @${communityData?.founder.username}`}
                     </Text>
-                    <Text className="text-gray-400 text-md">Followers</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity className="flex flex-col gap-1 items-center">
-                    <Text className="font-bold text-lg text-white">
-                      {communityData?.creators?.length || 0}
-                    </Text>
-                    <Text className="text-gray-400 text-md">Creators</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity className="flex flex-col gap-1 items-center">
-                    <Text className="font-bold text-lg text-white">
-                      {communityData?.total_uploads || 0}
-                    </Text>
-                    <Text className="text-gray-400 text-md">Videos</Text>
-                  </TouchableOpacity>
-                </View>
-
-                <View className="flex flex-row w-full items-center justify-center gap-2 mt-5 md:mt-0">
-                  <TouchableOpacity className="flex-1 px-4 py-2 rounded-xl bg-transparent border border-gray-400">
-                    <Text className="text-white text-center">Follow</Text>
-                  </TouchableOpacity>
-
-                  {communityData?.community_fee_type !== "free" && (
-                    <TouchableOpacity className="rounded-xl overflow-hidden">
-                      <LinearGradient
-                        colors={["#4400FFA6", "#FFFFFF", "#FF00004D", "#FFFFFF"]}
-                        start={{ x: 0, y: 0 }}
-                        end={{ x: 1, y: 1 }}
-                        className="p-[1px] rounded-xl flex-1"
-                      >
-                        <View className="flex-1 px-4 py-2 rounded-xl bg-black items-center justify-center">
-                          <View className="flex-row items-center justify-center">
-                            <Text className="text-white">Join at </Text>
-                            <IndianRupee color={"white"} size={13} />
-                            <Text className="text-white text-center">
-                              {communityData?.community_fee_amount || profileData.communityFee}/month
-                            </Text>
-                          </View>
-                        </View>
-                      </LinearGradient>
-                    </TouchableOpacity>
-                  )}
-                </View>
-
-                <View className="mt-6 flex flex-col items-center justify-center px-4">
-                  <Text className="text-gray-400 text-xs text-center">
-                    {communityData?.bio || profileData.description}
-                  </Text>
-                </View>
-
-                <View className="mt-6 border-b border-gray-700">
-                  <View className="flex flex-row justify-around items-center">
-                    <TouchableOpacity
-                      className={`pb-4 flex-1 items-center justify-center border-b-2 ${activeTab === 'long' ? 'border-white' : 'border-transparent'}`}
-                      onPress={() => setActiveTab("long")}
-                    >
-                      <PaperclipIcon color={activeTab === "long" ? "white" : "gray"} />
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      className={`pb-4 flex-1 items-center justify-center border-b-2 ${activeTab === 'series' ? 'border-white' : 'border-transparent'}`}
-                      onPress={() => setActiveTab("series")}
-                    >
-                      <HeartIcon
-                        color={activeTab === "series" ? "white" : "gray"}
-                        fill={activeTab === "series" ? "white" : "transparent"} // Use transparent fill
-                      />
-                    </TouchableOpacity>
+                    {profileData.isPrivate && (
+                      <Text className="ml-2 px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                        Private
+                      </Text>
+                    )}
                   </View>
                 </View>
               </View>
-            }
-            // Video list rendering
-            data={isLoadingVideos ? [] : videos}
-            key={activeTab} // Use activeTab as key to force re-render on tab change
-            keyExtractor={(item) => item._id}
-            renderItem={activeTab === "long" ? renderVideoItem : renderGridItem}
-            numColumns={activeTab === "long" ? 1 : 3}
-            ListEmptyComponent={
-              isLoadingVideos ? (
-                <View className="flex-1 h-64 items-center justify-center">
-                  <ActivityIndicator size="large" color="white" />
+
+              <View className="mt-6 flex flex-row justify-around items-center">
+                <TouchableOpacity className="flex flex-col gap-1 items-center">
+                  <Text className="font-bold text-lg text-white">
+                    {communityData?.followers?.length || 0}
+                  </Text>
+                  <Text className="text-gray-400 text-md">Followers</Text>
+                </TouchableOpacity>
+                <TouchableOpacity className="flex flex-col gap-1 items-center">
+                  <Text className="font-bold text-lg text-white">
+                    {communityData?.creators?.length || 0}
+                  </Text>
+                  <Text className="text-gray-400 text-md">Creators</Text>
+                </TouchableOpacity>
+                <TouchableOpacity className="flex flex-col gap-1 items-center">
+                  <Text className="font-bold text-lg text-white">
+                    {communityData?.total_uploads || 0}
+                  </Text>
+                  <Text className="text-gray-400 text-md">Videos</Text>
+                </TouchableOpacity>
+              </View>
+
+              {/* Buttons */}
+              <View className="flex flex-row w-full items-center justify-center gap-2 mt-5 md:mt-0">
+                <TouchableOpacity onPress={followCommunity} className="flex-1 px-4 py-2 rounded-xl bg-transparent border border-gray-400">
+                  <Text className="text-white text-center">{!isFollowingCommunity ? 'Follow' : 'Following'}</Text>
+                </TouchableOpacity>
+
+                {communityData?.community_fee_type !== "free" && (
+                  <TouchableOpacity className="rounded-xl overflow-hidden">
+                    <LinearGradient
+                      colors={["#4400FFA6", "#FFFFFF", "#FF00004D", "#FFFFFF"]}
+                      start={{ x: 0, y: 0 }}
+                      end={{ x: 1, y: 1 }}
+                      className="p-[1px] rounded-xl flex-1"
+                    >
+                      <View className="flex-1 px-4 py-2 rounded-xl bg-black items-center justify-center">
+                        <View className="flex-row items-center justify-center">
+                          <Text className="text-white">Join at </Text>
+                          <IndianRupee color={"white"} size={13} />
+                          <Text className="text-white text-center">
+                            {communityData?.community_fee_amount || profileData.communityFee}/month
+                          </Text>
+                        </View>
+                      </View>
+                    </LinearGradient>
+                  </TouchableOpacity>
+                )}
+              </View>
+
+              {/* Bio */}
+              <View className="mt-6 flex flex-col items-center justify-center px-4">
+                <Text className="text-gray-400 text-xs text-center">
+                  {communityData?.bio || profileData.description}
+                </Text>
+              </View>
+
+              <View className="mt-6 border-b border-gray-700">
+                <View className="flex flex-row justify-around items-center">
+                  <TouchableOpacity
+                    className={`pb-4 flex-1 items-center justify-center border-b-2 ${activeTab === 'long' ? 'border-white' : 'border-transparent'}`}
+                    onPress={() => setActiveTab("long")}
+                  >
+                    <PaperclipIcon color={activeTab === "long" ? "white" : "gray"} />
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    className={`pb-4 flex-1 items-center justify-center border-b-2 ${activeTab === 'series' ? 'border-white' : 'border-transparent'}`}
+                    onPress={() => setActiveTab("series")}
+                  >
+                    <HeartIcon
+                      color={activeTab === "series" ? "white" : "gray"}
+                      fill={activeTab === "series" ? "white" : "transparent"}
+                    />
+                  </TouchableOpacity>
                 </View>
-              ) : (
-                <View className="flex-1 h-64 items-center justify-center">
-                  <Text className="text-gray-400">No {activeTab} videos yet.</Text>
-                </View>
-              )
-            }
-            contentContainerStyle={{ paddingBottom: 30, paddingHorizontal: 4 }}
-            showsVerticalScrollIndicator={false}
-          />
-        </>
+              </View>
+            </View>
+          }
+          data={isLoadingVideos ? [] : videos}
+          key={activeTab}
+          keyExtractor={(item) => item._id}
+          renderItem={activeTab === "long" ? renderVideoItem : renderGridItem}
+          numColumns={activeTab === "long" ? 1 : 3}
+          ListEmptyComponent={
+            isLoadingVideos ? (
+              <View className="flex-1 h-64 items-center justify-center">
+                <ActivityIndicator size="large" color="white" />
+              </View>
+            ) : (
+              <View className="flex-1 h-64 items-center justify-center">
+                <Text className="text-gray-400">No {activeTab} videos yet.</Text>
+              </View>
+            )
+          }
+          contentContainerStyle={{ paddingBottom: 30, paddingHorizontal: 4 }}
+          showsVerticalScrollIndicator={false}
+        />
       )}
 
       {/* Integrated Video Player Modal */}

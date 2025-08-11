@@ -39,6 +39,7 @@ export default function PublicProfilePageWithId() {
 
   const [videos, setVideos] = useState<any[]>([]);
 
+  const [hasCreatorPass, setHasCreatorPass] = useState(false);
   const [isFollowing, setIsFollowing] = useState(false);
 
   const [isLoading, setIsLoading] = useState(false);
@@ -88,7 +89,8 @@ export default function PublicProfilePageWithId() {
     if (!id) return;
 
     const fetchUserVideos = async (page = 1) => {
-      if (activeTab == 'repost') return;
+
+      if (activeTab == "repost") return;
 
       setIsLoadingVideos(true);
       try {
@@ -177,6 +179,8 @@ export default function PublicProfilePageWithId() {
         }
 
         setUserData(data.user);
+        setIsFollowing(data.user?.isBeingFollowed);
+        // console.log("Pubic User data", data.user);
         setIsFollowing(data.user?.isBeingFollowed)
         console.log("User data:", data.user);
         console.log("User details:", data.user?.userDetails);
@@ -213,7 +217,75 @@ export default function PublicProfilePageWithId() {
     if (token && id) {
       fetchUserData();
     }
-  }, [token, id]);
+  }, [token, id, router]);
+
+  const fetchUserReshareVideos = async () => {
+    if (!id && !token && activeTab !== "repost") return;
+
+    try {
+      const response = await fetch(`${BACKEND_API_URL}/user/reshares/${id}`, {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      });
+
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || "Failed to fetch user reshare videos");
+      }
+
+      setVideos(data.reshares);
+      // console.log("reshare videos", data);
+    } catch (error) {
+      console.log(error);
+      Alert.alert(
+        "Error",
+        error instanceof Error
+          ? error.message
+          : "An unknown error occurred while fetching user reshare videos."
+      );
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const fetchUserReshareVideos = async () => {
+    if (!id && !token && activeTab !== "repost") return;
+
+    try {
+      const response = await fetch(`${BACKEND_API_URL}/user/reshares/${id}`, {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      });
+
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || "Failed to fetch user reshare videos");
+      }
+
+      setVideos(data.reshares);
+      console.log("reshare videos", data);
+    } catch (error) {
+      console.log(error);
+      Alert.alert(
+        "Error",
+        error instanceof Error
+          ? error.message
+          : "An unknown error occurred while fetching user reshare videos."
+      );
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const followCreator = async () => {
     try {
@@ -241,7 +313,7 @@ export default function PublicProfilePageWithId() {
         throw new Error(data.message || "Failed to follow user profile");
       }
 
-      console.log(data);
+      // console.log(data);
       setIsFollowing(data.isFollowing);
       Alert.alert(
         isFollowing
@@ -261,6 +333,45 @@ export default function PublicProfilePageWithId() {
     }
   };
 
+  useEffect(() => {
+    const hasCreatorPass = async () => {
+      try {
+        const response = await fetch(
+          `${BACKEND_API_URL}/user/has-creator-pass/${id}`,
+          {
+            method: "GET",
+            headers: {
+              Authorization: `Bearer ${token}`,
+              "Content-Type": "application/json",
+            },
+          }
+        );
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.message || "Failed to fetch user creator pass");
+        }
+
+        // console.log("has Creator pass", data);
+        setHasCreatorPass(data.hasCreatorPass);
+      } catch (error) {
+        console.log(error);
+        Alert.alert(
+          "Error",
+          error instanceof Error
+            ? error.message
+            : "An unknown error occurred while following user."
+        );
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    if (id && token) {
+      hasCreatorPass();
+    }
+  }, []);
   // Use a derived state for profileData for cleaner access
   // const currentProfileData = {
   //   name: userData?.name || "User",
@@ -311,6 +422,26 @@ export default function PublicProfilePageWithId() {
   }, []);
 
   const renderGridItem = ({ item }: { item: any }) => (
+    <TouchableOpacity className="relative aspect-[9/16] flex-1 rounded-sm overflow-hidden">
+      {activeTab === "repost" ? (
+        item?.long_video?.thumbnailUrl !== "" ? (
+          <Image
+            source={{ uri: item?.long_video?.thumbnailUrl }}
+            alt="video thumbnail"
+            className="w-full h-full object-cover"
+          />
+        ) : thumbnails[item?.long_video._id] ? (
+          <Image
+            source={{ uri: thumbnails[item?.long_video?._id] }}
+            alt="video thumbnail"
+            className="w-full h-full object-cover"
+          />
+        ) : (
+          <View className="w-full h-full flex items-center justify-center">
+            <Text className="text-white text-xs">Loading...</Text>
+          </View>
+        )
+      ) : item.thumbnailUrl !== "" ? (
     <TouchableOpacity
       className="relative aspect-[9/16] flex-1 rounded-sm overflow-hidden"
       onPress={() => navigateToVideoPlayer(item, videos)}
@@ -378,7 +509,8 @@ export default function PublicProfilePageWithId() {
                     <Text className="text-gray-400">
                       @{userData?.userDetails?.username}
                     </Text>
-                    {userData?.creator_profile?.verification_status === 'verified' && (
+                    {userData?.creator_profile?.verification_status ===
+                      "verified" && (
                       <Text className="ml-2 px-2 py-1 rounded-full text-xs font-medium bg-blue-500 text-white">
                         Verified
                       </Text>
@@ -389,7 +521,7 @@ export default function PublicProfilePageWithId() {
 
               {/* Stats */}
               <View
-                className={`mt-6 flex-row justify-evenly items-center ${userData?.userDetails?.creator_profile?.creator_pass_price !== 0 && "gap-4"}`}
+                className={`mt-6 flex-row items-center ${userData?.userDetails?.creator_profile?.creator_pass_price !== 0 && !hasCreatorPass ? "justify-evenly gap-4" : "justify-center gap-5"}`}
               >
                 <TouchableOpacity
                   className="text-center items-center"
@@ -414,24 +546,27 @@ export default function PublicProfilePageWithId() {
                 </TouchableOpacity>
 
                 {/* Access Button with Gradient Border */}
-                <TouchableOpacity
-                  className={`${userData?.creatorPassPrice !== 0 && "flex-grow"} h-10 rounded-lg overflow-hidden`}
-                >
-                  <LinearGradient
-                    colors={["#4400FFA6", "#FFFFFF", "#FF00004D", "#FFFFFF"]}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 1 }}
-                    className="p-[1px] rounded-lg flex-1"
+                {userData?.userDetails?.creator_profile?.creator_pass_price !==
+                  0 && !hasCreatorPass ? (
+                  <TouchableOpacity
+                    onPress={() =>
+                      router.push(
+                        `/(demo)/PurchaseCreatorPass/${userData?.userDetails._id}`
+                      )
+                    }
+                    className={`h-10 rounded-lg overflow-hidden`}
                   >
-                    <View
-                      className={`flex-1 ${userData?.userDetails?.creator_profile?.creator_pass_price == 0 && "px-4"} rounded-lg bg-black items-center justify-center`}
+
+                    <LinearGradient
+                      colors={["#4400FFA6", "#FFFFFF", "#FF00004D", "#FFFFFF"]}
+                      start={{ x: 0, y: 0 }}
+                      end={{ x: 1, y: 1 }}
+                      className="p-[1px] rounded-lg flex-1"
                     >
-                      {userData?.userDetails?.creator_profile
-                        ?.creator_pass_price === 0 ? (
-                        <Text className="text-white text-center">
-                          Free Access
-                        </Text>
-                      ) : (
+                      <View
+                        className={`flex-1 px-2 rounded-lg bg-black items-center justify-center`}
+                      >
+
                         <View className="flex-row items-center justify-center">
                           <Text className="text-white text-center">
                             Access at
@@ -445,10 +580,31 @@ export default function PublicProfilePageWithId() {
                             /month
                           </Text>
                         </View>
-                      )}
-                    </View>
-                  </LinearGradient>
-                </TouchableOpacity>
+                      </View>
+                    </LinearGradient>
+                  </TouchableOpacity>
+                ) : (
+                  <TouchableOpacity
+                    className={`h-10 rounded-lg overflow-hidden`}
+                  >
+                    <LinearGradient
+                      colors={["#4400FFA6", "#FFFFFF", "#FF00004D", "#FFFFFF"]}
+                      start={{ x: 0, y: 0 }}
+                      end={{ x: 1, y: 1 }}
+                      className="p-[1px] rounded-lg flex-1"
+                    >
+                      <View
+                        className={`flex-1 px-4 rounded-lg bg-black items-center justify-center`}
+                      >
+                        <View className="flex-row items-center justify-center">
+                          <Text className="text-white text-center">
+                            Joined
+                          </Text>
+                        </View>
+                      </View>
+                    </LinearGradient>
+                  </TouchableOpacity>
+                )}
               </View>
 
               {/* Social Media Links - Moved here to replace hashtags */}
@@ -605,7 +761,6 @@ export default function PublicProfilePageWithId() {
             </View>
           </View>
 
-          {/* --- */}
           {isLoadingVideos ? (
             <View className="w-full h-96 flex-1 items-center justify-center mt-20">
               <ActivityIndicator size="large" color="white" />

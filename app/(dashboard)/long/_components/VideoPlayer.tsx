@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { View, StyleSheet, Dimensions, Pressable, Image } from "react-native";
 import { useVideoPlayer, VideoView } from "expo-video";
 import {
@@ -10,9 +10,9 @@ import VideoControls from "./VideoControls";
 import { VideoItemType } from "@/types/VideosType";
 import CommentsSection from "./CommentSection";
 import GiftingMessage from "./GiftingMessage";
-import VideoContentGifting from "@/app/(payments)/Video/Video-Gifting";
-import { router } from "expo-router";
+import { router, useFocusEffect } from "expo-router";
 import VideoProgressBar from "./VideoProgressBar";
+import { useGiftingStore } from "@/store/useGiftingStore";
 
 const { height: screenHeight } = Dimensions.get("screen");
 const VIDEO_HEIGHT = screenHeight;
@@ -50,6 +50,14 @@ const VideoPlayer = ({
     p.muted = isMutedFromStore;
   });
 
+  useEffect(() => {
+    if (isGifted) {
+      player.pause();
+    } else {
+      player.play();
+    }
+  }, [isGifted]);
+
   // This single, stable useEffect now manages the entire lifecycle
   useEffect(() => {
     const statusSubscription = player.addListener(
@@ -75,7 +83,10 @@ const VideoPlayer = ({
     if (isActive) {
       // This video is visible and playing
       setActivePlayer(player);
-      player.play();
+      // Use the smart play function to handle audio interaction logic
+      const { smartPlay } = usePlayerStore.getState();
+      smartPlay();
+
     } else {
       // This video is not visible, pause and reset
       player.pause();
@@ -102,30 +113,19 @@ const VideoPlayer = ({
     };
   }, [player]);
 
-  return !isWantToGift ? (
+  return (
     <View style={styles.container}>
-      {isGifted ? (
-        <GiftingMessage
-          isVisible={true}
-          onClose={setIsGifted}
-          creator={videoData.created_by}
-          amount={giftSuccessMessage}
-          giftMessage={setGiftSuccessMessage}
+      <>
+        <VideoView
+          player={player}
+          nativeControls={false}
+          style={styles.video}
+          contentFit="cover"
         />
-      ) : (
-        <>
-          <VideoView
-            player={player}
-            nativeControls={false}
-            style={styles.video}
-            contentFit="cover"
-          />
-          <VideoControls
-            player={player}
-            videoData={videoData}
-            setShowCommentsModal={setShowCommentsModal}
-            isWantToGift={setIsWantToGift}
-          />
+        <VideoControls
+          videoData={videoData}
+          setShowCommentsModal={setShowCommentsModal}
+        />
 
           <View className="absolute bottom-12 left-0 h-5 z-10 right-0">
             <VideoProgressBar player={player} isActive={isActive}/>
@@ -150,6 +150,33 @@ const VideoPlayer = ({
             </Pressable>
           </View>
         </>
+        {/* <View className="absolute bottom-[2.57rem] left-0 h-5 z-10 right-0">
+            <VideoProgressBar
+              videoId={videoData._id}
+              player={player}
+              isActive={isActive}
+              duration={videoData?.duration || videoData.access.freeRange.display_till_time}
+              access={videoData.access}
+            />
+          </View> */}
+
+        <View className="z-10 absolute top-16 left-5">
+          <Pressable onPress={() => router.push("/(dashboard)/wallet")}>
+            <Image
+              source={require("../../../../assets/images/Wallet.png")}
+              className="size-10"
+            />
+          </Pressable>
+        </View>
+      </>
+
+      {isGifted && (
+        <GiftingMessage
+          isVisible={true}
+          onClose={clearGiftingData}
+          creator={creator}
+          amount={giftSuccessMessage}
+        />
       )}
 
       {showCommentsModal && setShowCommentsModal && (
@@ -174,29 +201,30 @@ const VideoPlayer = ({
         />
       )}
     </View>
-  ) : (
-    <View style={styles.container}>
-      <VideoContentGifting
-        creator={videoData.created_by}
-        videoId={videoData._id}
-        setIsWantToGift={setIsWantToGift}
-        setIsGifted={setIsGifted}
-        giftMessage={setGiftSuccessMessage}
-      />
-    </View>
   );
+  //  (
+  //   <View style={styles.container}>
+  //     <VideoContentGifting
+  //       creator={videoData.created_by}
+  //       videoId={videoData._id}
+  //       setIsWantToGift={setIsWantToGift}
+  //       setIsGifted={setIsGifted}
+  //       giftMessage={setGiftSuccessMessage}
+  //     />
+  //   </View>
+  // );
 };
 
 const styles = StyleSheet.create({
   container: {
     height: VIDEO_HEIGHT,
     width: "100%",
-    backgroundColor: "black",
   },
   video: {
     width: "100%",
     height: "100%",
   },
 });
+
 
 export default React.memo(VideoPlayer);

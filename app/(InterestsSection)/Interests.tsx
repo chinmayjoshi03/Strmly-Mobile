@@ -63,7 +63,8 @@ const Interests = () => {
       }
 
       // Success - navigate to next screen or show success message
-      updateUser({isOnboarded: true});
+      updateUser({ isOnboarded: true });
+
       Alert.alert("Success", "Your interests have been updated successfully!");
       router.push("/(dashboard)/long/VideosFeed");
     } catch (error) {
@@ -249,7 +250,7 @@ const Interests = () => {
   };
 
   if (!fontsLoaded) return null;
-
+        
   if (Step === 1) {
     return (
       <ThemedView style={CreateProfileStyles.Container}>
@@ -322,23 +323,93 @@ const Interests = () => {
     const items = isCinema
       ? Type === "Netflix"
         ? [
-            "Netflix",
-            "Youtube",
-            "Amazon Prime",
-            "Hotstar",
-            "Jio Cinema",
-            "Sony Liv",
+            "Drama",
+            "Comedy",
+            "Action & Adventure",
+            "Thriller & Suspense",
+            "Horror",
+            "Romance",
+            "Sci-Fi & Fantasy",
+            "Crime & Mystery",
+            "Documentary",
+            "Biography & True Story",
+            "Family & Kids",
+            "Teen & Young Adult",
+            "Animation & Anime",
+            "Reality & Unscripted",
+            "Talk Shows & Stand-up Comedy",
+            "Historical & Period Pieces",
+            "Musical & Music-Based",
+            "International & World Cinema",
+            "Sports & Fitness",
+            "Short Films & Anthologies",
           ]
-        : ["Gaming", "Podcasts", "Cooking", "Fitness", "Tech Reviews", "Travel"]
-      : Type === "Netflix"
-        ? ["Gaming", "Podcasts", "Cooking", "Fitness", "Tech Reviews", "Travel"]
         : [
-            "Netflix",
-            "Youtube",
-            "Amazon Prime",
-            "Hotstar",
-            "Jio Cinema",
-            "Sony Liv",
+            "Entertainment",
+            "Education",
+            "Gaming",
+            "Commentary & Opinion",
+            "Music & Audio",
+            "Film & TV",
+            "Vlogs & Lifestyle",
+            "Health & Fitness",
+            "Food & Cooking",
+            "Beauty & Fashion",
+            "Science & Technology",
+            "Travel & Adventure",
+            "DIY & Crafts",
+            "Home & Family",
+            "Business & Finance",
+            "Motivation & Self-Improvement",
+            "Career & Skill Development",
+            "Spirituality & Philosophy",
+            "Reviews & Unboxings",
+            "Live Streams & Podcasts",
+          ]
+      : Type === "Youtube"
+        ? [
+            "Entertainment",
+            "Education",
+            "Gaming",
+            "Commentary & Opinion",
+            "Music & Audio",
+            "Film & TV",
+            "Vlogs & Lifestyle",
+            "Health & Fitness",
+            "Food & Cooking",
+            "Beauty & Fashion",
+            "Science & Technology",
+            "Travel & Adventure",
+            "DIY & Crafts",
+            "Home & Family",
+            "Business & Finance",
+            "Motivation & Self-Improvement",
+            "Career & Skill Development",
+            "Spirituality & Philosophy",
+            "Reviews & Unboxings",
+            "Live Streams & Podcasts",
+          ]
+        : [
+            "Drama",
+            "Comedy",
+            "Action & Adventure",
+            "Thriller & Suspense",
+            "Horror",
+            "Romance",
+            "Sci-Fi & Fantasy",
+            "Crime & Mystery",
+            "Documentary",
+            "Biography & True Story",
+            "Family & Kids",
+            "Teen & Young Adult",
+            "Animation & Anime",
+            "Reality & Unscripted",
+            "Talk Shows & Stand-up Comedy",
+            "Historical & Period Pieces",
+            "Musical & Music-Based",
+            "International & World Cinema",
+            "Sports & Fitness",
+            "Short Films & Anthologies",
           ];
     return (
       <ThemedView style={CreateProfileStyles.Container}>
@@ -361,31 +432,29 @@ const Interests = () => {
             Select only 3 of your interest from
             {isCinema ? " “Cinema content”" : " “Non-cinema content”"}
           </Text>
-          <View style={{ marginTop: 20 }}>{renderGrid(items)}</View>
 
-          <View className="relative h-[70%] justify-end">
-            <TouchableOpacity
-              disabled={
-                (Step === 2
-                  ? Interests.length !== 3
-                  : Interests2.length !== 3) ||
-                (Step === 3 &&
-                  (Interests.length !== 3 || Interests2.length !== 3)) ||
-                isSubmitting
-              }
-              onPress={() => HandleStep(true)}
-              className="rounded-3xl z-10 bg-white items-center justify-center h-[55px]"
-            >
-              {isSubmitting ? (
-                <ActivityIndicator color="black" />
-              ) : (
-                <Text className="text-black text-xl">
-                  {Step === 3 ? "Submit" : "Continue"}
-                </Text>
-              )}
-            </TouchableOpacity>
-          </View>
+          <View style={{ marginBottom: 30, marginTop: 10 }}>{renderGrid(items)}</View>
         </ScrollView>
+        <View className="absolute bottom-0 left-0 right-0 px-4 pb-20">
+          <TouchableOpacity
+            disabled={
+              (Step === 2 ? Interests.length !== 3 : Interests2.length !== 3) ||
+              (Step === 3 &&
+                (Interests.length !== 3 || Interests2.length !== 3)) ||
+              isSubmitting
+            }
+            onPress={() => HandleStep(true)}
+            className="rounded-3xl z-10 bg-white items-center justify-center h-[55px]"
+          >
+            {isSubmitting ? (
+              <ActivityIndicator color="black" />
+            ) : (
+              <Text className="text-black text-xl">
+                {Step === 3 ? "Submit" : "Continue"}
+              </Text>
+            )}
+          </TouchableOpacity>
+        </View>
       </ThemedView>
     );
   }

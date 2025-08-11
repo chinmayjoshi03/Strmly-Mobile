@@ -7,7 +7,6 @@ import Constants from "expo-constants";
 import { VideoItemType } from "@/types/VideosType";
 import VideoPlayer from "./_components/VideoPlayer";
 import { Link, router } from "expo-router";
-import { GestureHandlerRootView } from "react-native-gesture-handler";
 
 export type GiftType = {
   creator: {
@@ -37,10 +36,10 @@ const VideosFeed: React.FC = () => {
   const BACKEND_API_URL = Constants.expoConfig?.extra?.BACKEND_API_URL;
 
   const fetchTrendingVideos = async () => {
-    // This function is fine as is.
     setLoading(true);
     try {
-      const res = await fetch(`${BACKEND_API_URL}/videos/trending`, {
+      const res = await fetch(`${BACKEND_API_URL}/recommendations/videos`, { //recommendations/videos
+
         method: "GET",
         headers: {
           Authorization: `Bearer ${token}`,
@@ -49,7 +48,7 @@ const VideosFeed: React.FC = () => {
       });
       if (!res.ok) throw new Error("Failed to fetch videos");
       const json = await res.json();
-      setVideos(json.data);
+      setVideos(json.recommendations);
     } catch (err: any) {
       setError(err.message || "Something went wrong");
     } finally {
@@ -146,9 +145,10 @@ const VideosFeed: React.FC = () => {
   }
 
   return (
-    <SafeAreaProvider>
-      <SafeAreaView style={{ flex: 1 }} edges={["bottom"]}>
-        <ThemedView style={{ flex: 1, backgroundColor: "black" }}>
+    // <SafeAreaProvider>
+    //   <SafeAreaView style={{ flex: 1 }} edges={["bottom"]}>
+        <ThemedView>
+
           <FlatList
             data={videos}
             renderItem={renderItem}
@@ -172,8 +172,8 @@ const VideosFeed: React.FC = () => {
             }}
           />
         </ThemedView>
-      </SafeAreaView>
-    </SafeAreaProvider>
+    //   </SafeAreaView>
+    // </SafeAreaProvider>
   );
 };
 

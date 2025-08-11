@@ -3,17 +3,9 @@ import React, { useEffect, useState } from "react";
 import { FontAwesome } from "@expo/vector-icons";
 import { useAuthStore } from "@/store/useAuthStore";
 import { CONFIG } from "@/Constants/config";
-
-// Define props type for InteractOptions
-type GiftDataType = {
-  creator: {
-    _id: string;
-    profile_photo: string;
-    name: string;
-    username: string;
-  };
-  videoId: string;
-};
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { router } from "expo-router";
+import { useGiftingStore } from "@/store/useGiftingStore";
 
 type InteractOptionsProps = {
   onCommentPress?: () => void; // Callback function for comment button press - now optional
@@ -22,7 +14,7 @@ type InteractOptionsProps = {
   gifts: number;
   shares: number;
   comments?: number;
-  setIsWantToGift: (value: boolean)=> void;
+
   creator: {
     _id: string;
     username: string;
@@ -37,7 +29,6 @@ const InteractOptions = ({
   gifts,
   shares,
   comments,
-  setIsWantToGift,
   creator,
 }: InteractOptionsProps) => {
   // Destructure onCommentPress from props
@@ -46,9 +37,10 @@ const InteractOptions = ({
   const [gift, setGifts] = useState(0);
   const [isLikedVideo, setIsLikedVideo] = useState(false);
   const [isResharedVideo, setIsResharedVideo] = useState(false);
-  const [isGiftedVideo, setIsGiftedVideo] = useState(false);
 
-  const { token } = useAuthStore();
+  const { token, user } = useAuthStore();
+
+  const { initiateGifting } = useGiftingStore();
 
   const BACKEND_API_URL = CONFIG.API_BASE_URL;
 
@@ -100,7 +92,10 @@ const InteractOptions = ({
             body: JSON.stringify({ videoId: videoId }),
           }
         );
-        if (!response.ok) throw new Error("Failed while checking video like status");
+        
+        if (!response.ok)
+          throw new Error("Failed while checking video like status");
+
         const data = await response.json();
         console.log("check like", data);
         setLike(data.likes);
@@ -115,8 +110,41 @@ const InteractOptions = ({
     }
   }, [token, videoId, likes]);
 
+  // Check video gifting
+  useEffect(() => {
+    const checkVideoGifting = async () => {
+      if (!token || !videoId) {
+        return;
+      }
+
+      try {
+        const response = await fetch(
+          `${BACKEND_API_URL}/videos/${videoId}/total-gifting`,
+          {
+            method: "GET",
+            headers: {
+              Authorization: `Bearer ${token}`,
+              "Content-Type": "application/json",
+            },
+          }
+        );
+        if (!response.ok)
+          throw new Error("Failed while checking video like status");
+        const data = await response.json();
+        console.log("check like", data);
+        setGifts(data.data);
+      } catch (err) {
+        console.log(err);
+      }
+    };
+
+    if (token && videoId) {
+      checkVideoGifting();
+    }
+  }, [token, videoId]);
+
   // ------------- Reshare ------------
-  useEffect(()=> setReshares(shares), [shares]);
+  useEffect(() => setReshares(shares), [shares]);
 
   useEffect(() => {
     const checkIfReshare = async () => {
@@ -136,7 +164,8 @@ const InteractOptions = ({
             body: JSON.stringify({ videoId: videoId }),
           }
         );
-        if (!response.ok) throw new Error("Failed while checking reshare status");
+        if (!response.ok)
+          throw new Error("Failed while checking reshare status");
         const data = await response.json();
         console.log("reshared or not", data.isReshared);
         setIsResharedVideo(data.isReshared);
@@ -176,15 +205,25 @@ const InteractOptions = ({
     }
   };
 
-  // ---------------- Gifting API ----------------
-  useEffect(()=> setGifts(gifts), [gifts]);
-
-  const openGifting = () => {
-    setIsWantToGift(true);
+  const openGifting = async () => {
+    initiateGifting(creator, videoId);
+    router.push('/(payments)/Video/Video-Gifting');
   };
 
   return (
     <View className="p-1">
+      {isResharedVideo && (
+        <View className="absolute -left-[21.5rem] bottom-0">
+          <View className="flex-row gap-2 items-center bg-[#000000A8] w-40 py-0.5 justify-center rounded-xl">
+            <Image
+              source={require("../../../../assets/images/repost.png")}
+              className="size-5"
+            />
+            <Text className="text-white">by {user?.username}</Text>
+          </View>
+        </View>
+      )}
+
       <View className="gap-5">
         <View className="items-center gap-1">
           <Pressable onPress={() => LikeVideo()}>

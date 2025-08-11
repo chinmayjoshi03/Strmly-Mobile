@@ -180,30 +180,38 @@ export default function PersonalProfilePage() {
   }, [isLoggedIn, router, token]);
 
   const userReshareVideos = async () => {
-    setIsLoadingVideos(true);
+
+    if (!userData._id && !token && activeTab !== "repost") return;
+    console.log(userData._id)
+
     try {
-      const response = await fetch(`${BACKEND_API_URL}/user/reshares`, {
-        method: "GET",
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+      const response = await fetch(
+        `${BACKEND_API_URL}/user/reshares/${userData._id}`,
+        {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
 
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.message || "Failed to fetch user videos");
+        throw new Error(data.message || "Failed to fetch user reshare videos");
       }
 
       setVideos(data.reshares);
-      console.log(data);
-    } catch (err) {
-      console.error("Error fetching user videos:", err);
+      console.log("reshare videos", data);
+    } catch (error) {
+      console.log(error);
       Alert.alert(
         "Error",
-        err instanceof Error
-          ? err.message
-          : "An unknown error occurred while fetching videos."
+        error instanceof Error
+          ? error.message
+          : "An unknown error occurred while fetching user reshare videos."
       );
     } finally {
       setIsLoadingVideos(false);
@@ -289,14 +297,11 @@ export default function PersonalProfilePage() {
   );
 
   return (
-    <ThemedView className="flex-1">
+    <ThemedView className="flex-1 pt-6">
       <ScrollView className="flex-1">
         {!isLoading && (
           <View className="h-48 relative">
-            <ProfileTopbar
-              hashtag={false}
-              name={userData?.username}
-            />
+            <ProfileTopbar hashtag={false} name={userData?.username} />
           </View>
         )}
 
@@ -331,9 +336,7 @@ export default function PersonalProfilePage() {
                 />
 
                 <View className="flex flex-row gap-2 items-center justify-center mt-2">
-                  <Text className="text-gray-400">
-                    @{userData?.username}
-                  </Text>
+                  <Text className="text-gray-400">@{userData?.username}</Text>
                   {userData?.creator_profile?.verification_status ===
                     "verified" && (
                       <Text className="ml-2 px-2 py-1 rounded-full text-xs font-medium bg-blue-500 text-white">
@@ -476,10 +479,14 @@ export default function PersonalProfilePage() {
             <TouchableOpacity
               className={`pb-4 flex-1 items-center justify-center`}
               onPress={() => { userReshareVideos(); setActiveTab("repost"); }}
+              onPress={() => {
+                userReshareVideos();
+                setActiveTab("repost");
+              }}
             >
               <Image
                 source={require("../../../assets/images/repost.png")}
-                className={`size-7 ${activeTab === "repost" ? "text-white font-semibold" : "text-gray-800"}`}
+                className={`size-7 ${activeTab === "repost" ? "text-white font-semibold" : " opacity-55"}`}
               />
             </TouchableOpacity>
 
@@ -488,7 +495,7 @@ export default function PersonalProfilePage() {
               onPress={() => setActiveTab("liked")}
             >
               <HeartIcon
-                color={"white"}
+                color={activeTab === "liked" ? "white" : "gray"}
                 fill={activeTab === "liked" ? "white" : ""}
               />
             </TouchableOpacity>
