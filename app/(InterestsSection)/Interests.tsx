@@ -432,6 +432,7 @@ const Interests = () => {
             Select only 3 of your interest from
             {isCinema ? " “Cinema content”" : " “Non-cinema content”"}
           </Text>
+
           <View style={{ marginBottom: 30, marginTop: 10 }}>{renderGrid(items)}</View>
         </ScrollView>
         <View className="absolute bottom-0 left-0 right-0 px-4 pb-20">

@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { View, StyleSheet, Dimensions, Pressable, Image } from "react-native";
 import { useVideoPlayer, VideoView } from "expo-video";
 import {
@@ -10,7 +10,7 @@ import VideoControls from "./VideoControls";
 import { VideoItemType } from "@/types/VideosType";
 import CommentsSection from "./CommentSection";
 import GiftingMessage from "./GiftingMessage";
-import { router, useFocusEffect } from "expo-router";
+import { router } from "expo-router";
 import VideoProgressBar from "./VideoProgressBar";
 import { useGiftingStore } from "@/store/useGiftingStore";
 import SeriesPurchaseMessage from "./SeriesPurcchaseMessaage";
@@ -30,7 +30,6 @@ const VideoPlayer = ({ videoData, isActive }: Props) => {
   const {
     isGifted,
     giftSuccessMessage,
-    hasFetched,
     creator,
     series,
     isPurchasedPass,
@@ -209,5 +208,6 @@ const styles = StyleSheet.create({
     height: "100%",
   },
 });
+
 
 export default React.memo(VideoPlayer);

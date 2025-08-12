@@ -14,6 +14,7 @@ type InteractOptionsProps = {
   gifts: number;
   shares: number;
   comments?: number;
+
   creator: {
     _id: string;
     username: string;
@@ -38,6 +39,7 @@ const InteractOptions = ({
   const [isResharedVideo, setIsResharedVideo] = useState(false);
 
   const { token, user } = useAuthStore();
+
   const { initiateGifting } = useGiftingStore();
 
   const BACKEND_API_URL = CONFIG.API_BASE_URL;

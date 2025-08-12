@@ -2,26 +2,20 @@ import ThemedView from "@/components/ThemedView";
 import React, { useEffect, useRef, useState } from "react";
 import {
   View,
-  TextInput,
   Text,
   ActivityIndicator,
   Keyboard,
-  Platform,
   Pressable,
-  KeyboardAvoidingView,
-  TouchableWithoutFeedback,
   Animated,
-  EmitterSubscription,
-  KeyboardEvent,
   Alert,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { router, useLocalSearchParams } from "expo-router";
-import { ChevronLeft } from "lucide-react-native";
+import { router } from "expo-router";
 import { useAuthStore } from "@/store/useAuthStore";
 import Constants from "expo-constants";
 import CreatorInfo from "../Video/_components/CreatorInfo";
 import { useRoute } from "@react-navigation/native";
+
 import { useGiftingStore } from "@/store/useGiftingStore";
 
 const BACKEND_API_URL = Constants.expoConfig?.extra?.BACKEND_API_URL;
@@ -32,6 +26,7 @@ const CreatorPassBuy = () => {
   const [userData, setUserData] = useState<any>(null);
   const [walletInfo, setWalletInfo] = useState<{ balance?: number }>({});
   const [hasCreatorPass, setHasCreatorPass] = useState<boolean>(false);
+  
   const [loading, setLoading] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
