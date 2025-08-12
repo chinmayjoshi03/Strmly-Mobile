@@ -30,9 +30,8 @@ const VideoPlayer = ({
   videoData,
   isActive,
   showCommentsModal = false,
-  setShowCommentsModal
+  setShowCommentsModal,
 }: Props) => {
-
   const {
     isGifted,
     giftSuccessMessage,
@@ -65,15 +64,12 @@ const VideoPlayer = ({
     // Don't proceed if no video URL
     if (!videoData?.videoUrl) return;
 
-    const statusSubscription = player.addListener(
-      "statusChange",
-      (payload) => {
-        // Only the active video should update the global store
-        if (isActive) {
-          _updateStatus(payload.status, payload.error);
-        }
+    const statusSubscription = player.addListener("statusChange", (payload) => {
+      // Only the active video should update the global store
+      if (isActive) {
+        _updateStatus(payload.status, payload.error);
       }
-    );
+    });
 
     if (isActive) {
       // This video is visible and playing
@@ -119,40 +115,34 @@ const VideoPlayer = ({
         style={styles.video}
         contentFit="cover"
       />
-      
+
       <VideoControls
         videoData={videoData}
         setShowCommentsModal={setShowCommentsModal}
       />
 
-      <View className="absolute bottom-12 left-0 h-5 z-10 right-0">
+      <View className="absolute bottom-[2.56rem] left-0 h-5 z-10 right-0">
         <VideoProgressBar
           player={player}
           isActive={isActive}
           videoId={videoData._id}
-          duration={videoData.duration || 0}
-          access={videoData.access || {
-            isPlayable: true,
-            freeRange: { start_time: 0, display_till_time: 0 },
-            isPurchased: false,
-            accessType: 'free',
-            price: 0
-          }}
+          duration={
+            videoData.duration || videoData.access.freeRange.display_till_time
+          }
+          access={
+            videoData.access || {
+              isPlayable: true,
+              freeRange: { start_time: 0, display_till_time: 0 },
+              isPurchased: false,
+              accessType: "free",
+              price: 0,
+            }
+          }
         />
       </View>
 
-      <View className="z-10 absolute top-4 left-5">
-        <Pressable
-          onPress={() => {
-            console.log('💰 Wallet button pressed in VideoPlayer!');
-            try {
-              router.push("/(dashboard)/wallet");
-              console.log('✅ Navigation to wallet successful');
-            } catch (error) {
-              console.error('❌ Navigation error:', error);
-            }
-          }}
-        >
+      <View className="z-10 absolute top-16 left-5">
+        <Pressable onPress={() => router.push("/(dashboard)/wallet")}>
           <Image
             source={require("../../../../assets/images/Wallet.png")}
             className="size-10"
@@ -192,16 +182,16 @@ const VideoPlayer = ({
           videoId={videoData._id}
           onPressUsername={(userId) => {
             // Navigate to user profile
-            console.log('Navigate to user profile:', userId);
+            console.log("Navigate to user profile:", userId);
             try {
               router.push(`/(dashboard)/profile/public/${userId}`);
             } catch (error) {
-              console.error('Navigation error:', error);
+              console.error("Navigation error:", error);
             }
           }}
           onPressTip={(commentId) => {
             // Open tip modal for comment
-            console.log('Open tip modal for comment:', commentId);
+            console.log("Open tip modal for comment:", commentId);
             // You can implement tip modal logic here
           }}
         />

@@ -171,52 +171,90 @@ export default function PublicCommunityPage() {
     return () => backHandler.remove();
   }, [isVideoPlayerActive]);
 
-  useEffect(() => {
-    const fetchCommunityData = async () => {
-      try {
-        setIsLoading(true);
-        const response = await fetch(`${BACKEND_API_URL}/community/${id}`, {
-          method: "GET",
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-        });
+  useFocusEffect(
+    useCallback(() => {
+      const fetchCommunityData = async () => {
+        try {
+          setIsLoading(true);
+          const response = await fetch(`${BACKEND_API_URL}/community/${id}`, {
+            method: "GET",
+            headers: {
+              Authorization: `Bearer ${token}`,
+              "Content-Type": "application/json",
+            },
+          });
 
-        const data = await response.json();
+          const data = await response.json();
 
-        if (!response.ok) {
-          throw new Error(data.message || "Failed to fetch community profile");
+          if (!response.ok) {
+            throw new Error(
+              data.message || "Failed to fetch community profile"
+            );
+          }
+
+          console.log("🏘️ Community data received:", {
+            name: data.name,
+            profile_photo: data.profile_photo,
+            founder: data.founder,
+          });
+          setCommunityData(data);
+          setIsFollowingCommunity(
+            data.followers.some(
+              (follower: { _id: string }) => follower._id === user?.id
+            )
+          );
+        } catch (error) {
+          console.log(error);
+          Alert.alert(
+            "Error",
+            error instanceof Error
+              ? error.message
+              : "An unknown error occurred while fetching community data."
+          );
+        } finally {
+          setIsLoading(false);
+        }
+      };
+
+      if (token && id) {
+        fetchCommunityData();
+      }
+    }, [id, token])
+  );
+
+  useFocusEffect(
+    useCallback(() => {
+      const checkIfFollowCommunity = async () => {
+        if (!token || !id) {
+          return;
         }
 
-        console.log("🏘️ Community data received:", {
-          name: data.name,
-          profile_photo: data.profile_photo,
-          founder: data.founder,
-        });
-        setCommunityData(data);
-        setIsFollowingCommunity(
-          data.followers.some(
-            (follower: { _id: string }) => follower._id === user?.id
-          )
-        );
-      } catch (error) {
-        console.log(error);
-        Alert.alert(
-          "Error",
-          error instanceof Error
-            ? error.message
-            : "An unknown error occurred while fetching community data."
-        );
-      } finally {
-        setIsLoading(false);
-      }
-    };
+        try {
+          const response = await fetch(
+            `${BACKEND_API_URL}/community/${id}/following-status`,
+            {
+              method: "POST",
+              headers: {
+                Authorization: `Bearer ${token}`,
+                "Content-Type": "application/json",
+              },
+            }
+          );
+          if (!response.ok)
+            throw new Error("Failed while checking community follow status");
+          const data = await response.json();
+          // console.log("check follow community", data);
+          setIsFollowingCommunity(data.status);
+        } catch (err) {
+          console.log("Error in community check status", err);
+        }
+      };
 
-    if (token && id) {
-      fetchCommunityData();
-    }
-  }, [id, token]);
+      if (token && id) {
+        checkIfFollowCommunity();
+      }
+    }, [token, id])
+  );
 
   const followCommunity = async () => {
     try {
@@ -512,7 +550,7 @@ export default function PublicCommunityPage() {
     <ThemedView className="flex-1 pt-5">
       {/* Cover Image */}
       {!isLoading && (
-        <View className="h-48 relative">
+        <View className="relative">
           <ProfileTopbar
             isMore={false}
             hashtag={true}
@@ -528,37 +566,38 @@ export default function PublicCommunityPage() {
       ) : (
         <FlatList
           ListHeaderComponent={
-            <View className="max-w-4xl -mt-28 relative mx-6 mb-4">
-              <View className="flex flex-col items-center md:flex-row md:items-end space-y-4 md:space-y-0 md:space-x-4">
-                <View className="relative flex flex-col items-center w-full">
-                  <View className="size-24 rounded-full border-2 border-white overflow-hidden bg-gray-800">
-                    <Image
-                      source={{
-                        uri:
-                          communityData?.profile_photo &&
-                          communityData.profile_photo.trim() !== ""
-                            ? communityData.profile_photo
-                            : `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(communityData?.name || "community")}&backgroundColor=random`,
-                      }}
-                      className="w-full h-full object-cover"
-                    />
-                  </View>
-                  <View className="flex flex-row items-center justify-center w-full mt-2">
-                    <Text className="text-gray-400">
-                      {communityData?.founder &&
-                        `By @${communityData?.founder.username}`}
-                    </Text>
-                    {/* {profileData.isPrivate && (
+            <View className="max-w-4xl -mt-28 relative mx-6 mb-4 pt-28">
+              <View className="items-center justify-center gap-4 h-fit w-full mt-6">
+                <Image
+                  source={
+                    communityData?.profile_photo
+                      ? {
+                          uri: communityData.profile_photo,
+                        }
+                      : require("../../../../assets/images/user.png")
+                  }
+                  style={{
+                    width: 80,
+                    height: 80,
+                    borderRadius: 40,
+                    borderWidth: 2,
+                    borderColor: "white",
+                    resizeMode: "cover",
+                  }}
+                />
+                <Text className="text-white text-center text-sm">
+                  {communityData?.founder &&
+                    `By @${communityData?.founder.username}`}
+                </Text>
+                {/* {profileData.isPrivate && (
                       <Text className="ml-2 px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
                         Private
                       </Text>
                     )} */}
-                  </View>
-                </View>
               </View>
 
               {/* Section Navigation */}
-              <View className="mt-6 flex flex-row justify-around items-center border-b border-gray-800">
+              <View className="mt-6 flex-row justify-around items-center border-gray-800">
                 <TouchableOpacity
                   className={`flex flex-col gap-1 items-center pb-4 flex-1 ${activeTab === "followers" ? "border-b-2 border-white" : ""}`}
                   onPress={() => handleSectionChange("followers")}
@@ -668,7 +707,7 @@ export default function PublicCommunityPage() {
 
               {/* Video Type Tabs - Only show when videos section is active */}
               {activeTab === "videos" && (
-                <View className="mt-4 border-b border-gray-700">
+                <View className="mt-4 border-gray-700">
                   <View className="flex flex-row justify-around items-center">
                     <TouchableOpacity
                       className={`pb-4 flex-1 items-center justify-center border-b-2 ${videoType === "long" ? "border-white" : "border-transparent"}`}

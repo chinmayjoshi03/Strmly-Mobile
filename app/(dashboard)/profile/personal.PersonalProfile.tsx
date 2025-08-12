@@ -83,11 +83,8 @@ export default function PersonalProfilePage() {
       const fetchUserVideos = async () => {
         setIsLoadingVideos(true);
         try {
-          const params = new URLSearchParams();
-          params.append("type", activeTab);
-
           const response = await fetch(
-            `${CONFIG.API_BASE_URL}/user/videos?${params.toString()}`,
+            `${CONFIG.API_BASE_URL}/user/videos?type=${activeTab}`,
             {
               method: "GET",
               headers: {
@@ -139,81 +136,78 @@ export default function PersonalProfilePage() {
     return () => backHandler.remove();
   }, [isVideoPlayerActive]);
 
-  useEffect(() => {
-    if (!isLoggedIn) {
-      router.push("/(auth)/Sign-in");
-      return;
-    }
+  useFocusEffect(
+    useCallback(() => {
+      const fetchUserData = async () => {
+        setIsLoading(true);
+        try {
+          const timestamp = new Date().getTime();
+          const response = await fetch(
+            `${CONFIG.API_BASE_URL}/user/profile-details?_=${timestamp}`,
+            {
+              method: "GET",
+              headers: {
+                Authorization: `Bearer ${token}`,
+                "Content-Type": "application/json",
+                "Cache-Control": "no-cache, no-store, must-revalidate",
+                Pragma: "no-cache",
+                Expires: "0",
+              },
+            }
+          );
 
-    const fetchUserData = async () => {
-      setIsLoading(true);
-      try {
-        const timestamp = new Date().getTime();
-        const response = await fetch(
-          `${CONFIG.API_BASE_URL}/user/profile-details?_=${timestamp}`,
-          {
-            method: "GET",
-            headers: {
-              Authorization: `Bearer ${token}`,
-              "Content-Type": "application/json",
-              "Cache-Control": "no-cache, no-store, must-revalidate",
-              Pragma: "no-cache",
-              Expires: "0",
-            },
+          const data = await response.json();
+
+          if (!response.ok) {
+            throw new Error(data.message || "Failed to fetch user profile");
           }
-        );
 
-        const data = await response.json();
-
-        if (!response.ok) {
-          throw new Error(data.message || "Failed to fetch user profile");
+          console.log("Fetched fresh user data:", data.user);
+          console.log(
+            "Profile counts - Followers:",
+            data.user.totalFollowers,
+            "Following:",
+            data.user.totalFollowing,
+            "Communities:",
+            data.user.totalCommunities
+          );
+          setUserData(data.user);
+          setIsError(null);
+        } catch (error) {
+          console.log("error", error);
+          setIsError(
+            error instanceof Error
+              ? error.message
+              : "An unknown error occurred."
+          );
+          Alert.alert(
+            "Error",
+            error instanceof Error
+              ? error.message
+              : "An unknown error occurred."
+          );
+        } finally {
+          setIsLoading(false);
         }
+      };
 
-        console.log("Fetched fresh user data:", data.user);
-        console.log(
-          "Profile counts - Followers:",
-          data.user.totalFollowers,
-          "Following:",
-          data.user.totalFollowing,
-          "Communities:",
-          data.user.totalCommunities
-        );
-        setUserData(data.user);
-        setIsError(null);
-      } catch (error) {
-        console.log("error", error);
-        setIsError(
-          error instanceof Error ? error.message : "An unknown error occurred."
-        );
-        Alert.alert(
-          "Error",
-          error instanceof Error ? error.message : "An unknown error occurred."
-        );
-      } finally {
-        setIsLoading(false);
+      if (token) {
+        fetchUserData();
       }
-    };
-
-    if (token) {
-      fetchUserData();
-    }
-  }, [isLoggedIn, router, token]);
+    }, [router, token])
+  );
 
   const userReshareVideos = async () => {
-    if (!userData._id && !token && activeTab !== "repost") return;
-    console.log(userData._id);
+    if (!token && activeTab !== "repost") return;
 
     try {
-      const response = await fetch(
-        `${BACKEND_API_URL}/user/reshares/${userData?._id}`,
-        {
-          method: "GET",
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-        }
-      );
+      const response = await fetch(`${BACKEND_API_URL}/user/reshares`, {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      });
 
       const data = await response.json();
 
@@ -292,7 +286,7 @@ export default function PersonalProfilePage() {
   );
 
   return (
-    <ThemedView style={{ height }}>
+    <ThemedView style={{ height, paddingTop: 10 }}>
       <ScrollView className="flex-1">
         {!isLoading && (
           <View className="h-48 relative">
@@ -320,11 +314,18 @@ export default function PersonalProfilePage() {
                   source={
                     userData?.profile_photo
                       ? {
-                          uri: userData?.profile_photo,
+                          uri: userData.profile_photo,
                         }
                       : require("../../../assets/images/user.png")
                   }
-                  className="w-full h-full object-cover rounded-full"
+                  style={{
+                    width: 80,
+                    height: 80,
+                    borderRadius: 40,
+                    borderWidth: 2,
+                    borderColor: "white",
+                    resizeMode: "cover",
+                  }}
                 />
 
                 <View className="flex flex-row gap-2 items-center justify-center mt-2">
@@ -479,7 +480,7 @@ export default function PersonalProfilePage() {
             <TouchableOpacity
               className={`pb-4 flex-1 items-center justify-center`}
               onPress={() => {
-                setActiveTab("repost");
+                setActiveTab(() => "repost");
                 userReshareVideos();
               }}
             >

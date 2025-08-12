@@ -50,9 +50,9 @@ const ProfileTopbar = ({ hashtag, name, isMore=true }: ProfileTopbarProps) => {
         </TouchableOpacity>
 
         <View>
-          <Text className={`text-xl ${isMore ? 'pr-3' : 'pr-16'} capitalize font-semibold text-white`}>
+          <Text className={`text-xl ${isMore ? 'pr-3' : 'pr-12'} capitalize font-semibold text-white`}>
             {hashtag && <Text className="text-white font-bold">#</Text>}
-            <Text>{safeName}</Text> {/* Wrap safeName in a Text component */}
+            <Text className="text-center">{safeName}</Text> {/* Wrap safeName in a Text component */}
           </Text>
         </View>
 

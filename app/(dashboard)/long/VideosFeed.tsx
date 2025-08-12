@@ -32,11 +32,6 @@ const VideosFeed: React.FC = () => {
   const [showCommentsModal, setShowCommentsModal] = useState(false);
 
   const { token } = useAuthStore();
-
-  // Debug log for comments modal state changes
-  useEffect(() => {
-    console.log('🎬 VideosFeed: Comments modal state changed:', showCommentsModal);
-  }, [showCommentsModal]);
   const BACKEND_API_URL = Constants.expoConfig?.extra?.BACKEND_API_URL;
 
   const fetchTrendingVideos = async (nextPage = page) => {
@@ -192,11 +187,11 @@ const VideosFeed: React.FC = () => {
             contentInsetAdjustmentBehavior="automatic" // iOS
             contentContainerStyle={{ paddingBottom: 0 }}
             style={{ height: VIDEO_HEIGHT }}
-            onScrollBeginDrag={() => {
-              if (showCommentsModal) {
-                console.log('🚫 VideosFeed: Scroll blocked - comments modal is open');
-              }
-            }}
+            // onScrollBeginDrag={() => {
+            //   if (showCommentsModal) {
+            //     console.log('🚫 VideosFeed: Scroll blocked - comments modal is open');
+            //   }
+            // }}
           />
         </ThemedView>
     //   </SafeAreaView>
