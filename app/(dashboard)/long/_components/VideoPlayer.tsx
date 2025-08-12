@@ -44,16 +44,11 @@ const VideoPlayer = ({
   };
 
   const creator = videoData.created_by;
-
-  // FIX: Gracefully handle cases where videoUrl might be missing
-  if (!videoData?.videoUrl) {
-    return <View style={styles.container} />; // Render an empty container
-  }
-
   const { _updateStatus } = usePlayerStore.getState();
   const isMutedFromStore = usePlayerStore((state) => state.isMuted);
 
-  const player = useVideoPlayer(videoData.videoUrl, (p) => {
+  // FIX: Move the conditional check after hooks but handle gracefully
+  const player = useVideoPlayer(videoData?.videoUrl || "", (p) => {
     p.loop = true;
     p.muted = isMutedFromStore;
   });
@@ -68,6 +63,9 @@ const VideoPlayer = ({
 
   // This single, stable useEffect now manages the entire lifecycle
   useEffect(() => {
+    // Don't proceed if no video URL
+    if (!videoData?.videoUrl) return;
+
     const statusSubscription = player.addListener(
       "statusChange",
       (status, oldStatus, error) => {
@@ -94,7 +92,6 @@ const VideoPlayer = ({
       // Use the smart play function to handle audio interaction logic
       const { smartPlay } = usePlayerStore.getState();
       smartPlay();
-
     } else {
       // This video is not visible, pause and reset
       player.pause();
@@ -111,7 +108,7 @@ const VideoPlayer = ({
         clearActivePlayer();
       }
     };
-  }, [isActive, player, _updateStatus]);
+  }, [isActive, player, _updateStatus, videoData?.videoUrl]);
 
   // A final cleanup effect for when the component is removed from the FlatList entirely
   useEffect(() => {
@@ -121,6 +118,11 @@ const VideoPlayer = ({
     };
   }, [player]);
 
+  // Render empty container if no video URL
+  if (!videoData?.videoUrl) {
+    return <View style={styles.container} />;
+  }
+
   return (
     <View style={styles.container}>
       <VideoView
@@ -129,6 +131,7 @@ const VideoPlayer = ({
         style={styles.video}
         contentFit="cover"
       />
+      
       <VideoControls
         videoData={videoData}
         setShowCommentsModal={setShowCommentsModal}
@@ -183,23 +186,11 @@ const VideoPlayer = ({
             // Open tip modal for comment
             console.log('Open tip modal for comment:', commentId);
             // You can implement tip modal logic here
-            // For now, we'll show a simple alert or implement later
           }}
         />
       )}
     </View>
   );
-  //  (
-  //   <View style={styles.container}>
-  //     <VideoContentGifting
-  //       creator={videoData.created_by}
-  //       videoId={videoData._id}
-  //       setIsWantToGift={setIsWantToGift}
-  //       setIsGifted={setIsGifted}
-  //       giftMessage={setGiftSuccessMessage}
-  //     />
-  //   </View>
-  // );
 };
 
 const styles = StyleSheet.create({
@@ -212,6 +203,5 @@ const styles = StyleSheet.create({
     height: "100%",
   },
 });
-
 
 export default React.memo(VideoPlayer);
