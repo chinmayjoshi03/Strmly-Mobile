@@ -91,6 +91,7 @@ const CreateProfile = () => {
 
   const handleRegisterUser = async () => {
     setIsLoading(true);
+    console.log(email)
     try {
       const res = await fetch(`${BACKEND_API_URL}/auth/register`, {
         method: "POST",
@@ -172,7 +173,7 @@ const CreateProfile = () => {
 
     try {
       setIsLoading(true);
-
+      
       const res = await fetch(`${BACKEND_API_URL}/auth/resend-verification`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -325,10 +326,10 @@ const CreateProfile = () => {
         />
 
         {username.length > 3 && usernameExists === false && (
-          <Text className="text-green-500">Username available</Text>
+          <Text className="text-green-500 text-center">Username available</Text>
         )}
         {usernameExists && (
-          <Text className="text-red-500">Username already exists</Text>
+          <Text className="text-red-500 text-center">Username already exists</Text>
         )}
 
         <TouchableOpacity

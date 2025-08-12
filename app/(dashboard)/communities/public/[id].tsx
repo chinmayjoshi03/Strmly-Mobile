@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   View,
   Text,
@@ -17,6 +17,9 @@ import ProfileTopbar from "@/components/profileTopbar";
 import { LinearGradient } from "expo-linear-gradient";
 import Constants from "expo-constants";
 import { useRoute } from "@react-navigation/native";
+import { useGiftingStore } from "@/store/useGiftingStore";
+import { router, useFocusEffect } from "expo-router";
+import CommunityPassBuyMessage from "./CommPassBuyMessage";
 
 export default function PublicCommunityPage() {
   const [activeTab, setActiveTab] = useState("long");
@@ -26,9 +29,16 @@ export default function PublicCommunityPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [isFollowingCommunity, setIsFollowingCommunity] = useState(false);
   const [isFollowingLoading, setFollowingLoading] = useState(false);
+  const [hasCommunityPass, setHasCommunityPass] = useState<boolean>(false);
 
   const [isLoadingVideos, setIsLoadingVideos] = useState(false);
   const { token, user } = useAuthStore();
+  const {
+    isPurchasedCommunityPass,
+    clearCommunityPassData,
+    creator,
+    giftSuccessMessage,
+  } = useGiftingStore();
 
   const route = useRoute();
   const { id } = route.params as { id: string };
@@ -80,7 +90,7 @@ export default function PublicCommunityPage() {
       try {
         console.log("🔄 Fetching Like videos for tab:", activeTab);
         const response = await fetch(
-          `${BACKEND_API_URL}/user/liked-videos-community?communityId=${id}`,
+          `${BACKEND_API_URL}/user/liked-videos-community/${id}`,
           {
             method: "GET",
             headers: {
@@ -133,7 +143,11 @@ export default function PublicCommunityPage() {
 
         console.log(data);
         setCommunityData(data);
-        setIsFollowingCommunity(data.followers.some((follower:{_id: string}) => follower._id === user?.id))
+        setIsFollowingCommunity(
+          data.followers.some(
+            (follower: { _id: string }) => follower._id === user?.id
+          )
+        );
       } catch (error) {
         console.log(error);
         Alert.alert(
@@ -155,14 +169,17 @@ export default function PublicCommunityPage() {
   const followCommunity = async () => {
     try {
       setFollowingLoading(true);
-      const response = await fetch(`${BACKEND_API_URL}/${isFollowingCommunity ? 'caution/community/unfollow' : 'community/follow'}`, {
-        method: !isFollowingCommunity ? "POST" : "PATCH",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({communityId: id})
-      });
+      const response = await fetch(
+        `${BACKEND_API_URL}/${isFollowingCommunity ? "caution/community/unfollow" : "community/follow"}`,
+        {
+          method: !isFollowingCommunity ? "POST" : "PATCH",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ communityId: id }),
+        }
+      );
 
       const data = await response.json();
 
@@ -184,6 +201,51 @@ export default function PublicCommunityPage() {
       setFollowingLoading(false);
     }
   };
+
+  // Check if Community pass is already purchased
+  useFocusEffect(
+    useCallback(() => {
+      const HasCommunityPass = async () => {
+        try {
+          const response = await fetch(
+            `${BACKEND_API_URL}/user/has-community-access/${id}`,
+            {
+              method: "GET",
+              headers: {
+                Authorization: `Bearer ${token}`,
+                "Content-Type": "application/json",
+              },
+            }
+          );
+
+          const data = await response.json();
+
+          if (!response.ok) {
+            throw new Error(
+              data.message || "Failed to fetch user creator pass"
+            );
+          }
+
+          console.log("has Creator pass", data);
+          setHasCommunityPass(data.data.hasCommunityAccess);
+        } catch (error) {
+          console.log(error);
+          Alert.alert(
+            "Error",
+            error instanceof Error
+              ? error.message
+              : "An unknown error occurred while following user."
+          );
+        } finally {
+          setIsLoading(false);
+        }
+      };
+
+      if (id && token) {
+        HasCommunityPass();
+      }
+    }, [id, token])
+  );
 
   const renderVideoItem = ({ item }: { item: any }) => (
     <Pressable className="w-full h-[100vh] mb-4 relative rounded-lg overflow-hidden bg-black">
@@ -294,22 +356,28 @@ export default function PublicCommunityPage() {
 
           {/* Buttons */}
           <View className="flex flex-row w-full items-center justify-center gap-2 mt-5 md:mt-0">
-            <TouchableOpacity onPress={followCommunity} className="flex-1 px-4 py-2 rounded-xl bg-transparent border border-gray-400">
-              <Text className="text-white text-center">{!isFollowingCommunity ? 'Follow' : 'Following'}</Text>
+            <TouchableOpacity
+              onPress={followCommunity}
+              className="flex-1 px-4 py-2 rounded-xl bg-transparent border border-gray-400"
+            >
+              <Text className="text-white text-center">
+                {!isFollowingCommunity ? "Follow" : "Following"}
+              </Text>
             </TouchableOpacity>
 
-            {communityData?.community_fee_type !== "free" && (
-              <TouchableOpacity className="rounded-xl overflow-hidden">
-                <LinearGradient
-                  colors={["#4400FFA6", "#FFFFFF", "#FF00004D", "#FFFFFF"]}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 1 }}
-                  className="p-[1px] rounded-xl flex-1"
+            {communityData?.community_fee_type !== "free" &&
+              !hasCommunityPass && (
+                <TouchableOpacity
+                  onPress={() => router.push(`/(demo)/PurchaseCommPass/${id}`)}
+                  className="rounded-xl overflow-hidden"
                 >
-                  <View className="flex-1 px-4 py-2 rounded-xl bg-black items-center justify-center">
-                    {communityData?.community_fee_type === "free" ? (
-                      <Text className="text-white text-center">Free</Text>
-                    ) : (
+                  <LinearGradient
+                    colors={["#4400FFA6", "#FFFFFF", "#FF00004D", "#FFFFFF"]}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                    className="p-[1px] rounded-xl flex-1"
+                  >
+                    <View className="flex-1 px-4 py-2 rounded-xl bg-black items-center justify-center">
                       <View className="flex-row items-center justify-center">
                         <Text className="text-white">Join at</Text>
                         <Text>
@@ -320,7 +388,25 @@ export default function PublicCommunityPage() {
                           /month
                         </Text>
                       </View>
-                    )}
+                    </View>
+                  </LinearGradient>
+                </TouchableOpacity>
+              )}
+
+            {hasCommunityPass && (
+              <TouchableOpacity className="rounded-xl overflow-hidden">
+                <LinearGradient
+                  colors={["#4400FFA6", "#FFFFFF", "#FF00004D", "#FFFFFF"]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  className="p-[1px] rounded-xl flex-1"
+                >
+                  <View className="flex-1 px-4 rounded-xl bg-black items-center justify-center">
+                    <View className="items-center justify-center">
+                      <Text className="text-white text-lg text-center">
+                        Purchased
+                      </Text>
+                    </View>
                   </View>
                 </LinearGradient>
               </TouchableOpacity>
@@ -383,6 +469,15 @@ export default function PublicCommunityPage() {
             numColumns={3}
             contentContainerStyle={{ paddingBottom: 30, paddingHorizontal: 0 }}
             showsVerticalScrollIndicator={false}
+          />
+        )}
+
+        {isPurchasedCommunityPass && (
+          <CommunityPassBuyMessage
+            isVisible={true}
+            onClose={clearCommunityPassData}
+            creator={creator}
+            amount={giftSuccessMessage}
           />
         )}
       </>

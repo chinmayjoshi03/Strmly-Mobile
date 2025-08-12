@@ -26,12 +26,12 @@ import { useGiftingStore } from "@/store/useGiftingStore";
 
 const BACKEND_API_URL = Constants.expoConfig?.extra?.BACKEND_API_URL;
 
-const CreatorPassBuy = () => {
+const CommunityPassBuy = () => {
   const route = useRoute();
   const { id } = route.params as { id: string };
   const [userData, setUserData] = useState<any>(null);
   const [walletInfo, setWalletInfo] = useState<{ balance?: number }>({});
-  const [hasCreatorPass, setHasCreatorPass] = useState<boolean>(false);
+  const [hasCommunityPass, setHasCommunityPass] = useState<boolean>(false);
   const [loading, setLoading] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -42,12 +42,12 @@ const CreatorPassBuy = () => {
   const { token } = useAuthStore();
   const { completePass } = useGiftingStore();
 
-  // Check if Creator pass is already purchased
+  // Check if Community pass is already purchased
   useEffect(() => {
-    const hasCreatorPass = async () => {
+    const HasCommunityPass = async () => {
       try {
         const response = await fetch(
-          `${BACKEND_API_URL}/user/has-creator-pass/${id}`,
+          `${BACKEND_API_URL}/user/has-community-access/${id}`,
           {
             method: "GET",
             headers: {
@@ -64,7 +64,7 @@ const CreatorPassBuy = () => {
         }
 
         console.log("has Creator pass", data);
-        setHasCreatorPass(data.hasCreatorPass);
+        setHasCommunityPass(data.hasCreatorPass);
       } catch (error) {
         console.log(error);
         Alert.alert(
@@ -79,16 +79,15 @@ const CreatorPassBuy = () => {
     };
 
     if (id && token) {
-      hasCreatorPass();
+      HasCommunityPass();
     }
   }, []);
 
   useEffect(() => {
-    if (!id) return;
-
-    const fetchUserData = async () => {
+    const fetchCommunityData = async () => {
       try {
-        const response = await fetch(`${BACKEND_API_URL}/user/profile/${id}`, {
+        setIsLoading(true);
+        const response = await fetch(`${BACKEND_API_URL}/community/${id}`, {
           method: "GET",
           headers: {
             Authorization: `Bearer ${token}`,
@@ -99,18 +98,18 @@ const CreatorPassBuy = () => {
         const data = await response.json();
 
         if (!response.ok) {
-          throw new Error(data.message || "Failed to fetch user profile");
+          throw new Error(data.message || "Failed to fetch community profile");
         }
 
-        setUserData(data.user);
-        console.log("Pubic User data", data.user);
+        setUserData(data);
+        console.log('commuity data',data)
       } catch (error) {
         console.log(error);
         Alert.alert(
           "Error",
           error instanceof Error
             ? error.message
-            : "An unknown error occurred while fetching user data."
+            : "An unknown error occurred while fetching community data."
         );
       } finally {
         setIsLoading(false);
@@ -118,41 +117,44 @@ const CreatorPassBuy = () => {
     };
 
     if (token && id) {
-      fetchUserData();
+      fetchCommunityData();
     }
-  }, [token, id]);
+  }, [id, token]);
 
   // ------------ Transaction -------------------
 
   const purchasePass = async () => {
-    if (!token && !id && hasCreatorPass) {
-      console.log("hasCreatorPass", hasCreatorPass);
+    if (!token && !id && hasCommunityPass) {
+      console.log("hasCommunityPass", hasCommunityPass);
       return;
     }
 
-    if (hasCreatorPass) {
-      console.log("creator pass already purchased", hasCreatorPass);
-      Alert.alert("You already purchased creator pass");
+    if (hasCommunityPass) {
+      console.log("community pass already purchased", hasCommunityPass);
+      Alert.alert("You already purchased community pass");
       return;
     }
 
     try {
       const response = await fetch(
-        `${BACKEND_API_URL}/creator-pass/purchase-with-wallet`,
+        `${BACKEND_API_URL}/wallet/transfer/community-fee`,
         {
           method: "POST",
           headers: {
             Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({ creatorId: id }),
+          body: JSON.stringify({
+            communityId: id,
+            amount: userData?.community_fee_amount,
+          }),
         }
       );
 
-      if (!response.ok) throw new Error("Failed to provide creator pass");
+      if (!response.ok) throw new Error("Failed to provide community pass");
       const data = await response.json();
-      console.log("purchase creator pass data---------------", data);
-      completePass(userData?.userDetails?.creator_profile?.creator_pass_price);
+      console.log("purchase community pass data---------------", data);
+      completePass(userData?.community_fee_amount);
       router.back();
     } catch (err) {
       console.log(err);
@@ -186,7 +188,6 @@ const CreatorPassBuy = () => {
         const data = await response.json();
         console.log("dWallet data---------------", data.wallet);
         setWalletInfo(data.wallet);
-        // (data.isLiked);
       } catch (err) {
         console.log(err);
       }
@@ -203,9 +204,9 @@ const CreatorPassBuy = () => {
         {/* Top section */}
         <View className="mt-5">
           <CreatorInfo
-            profile={userData?.userDetails?.profile_photo}
-            name={userData?.userDetails?.name}
-            username={userData?.userDetails?.username}
+            profile={userData?.founder?.profile_photo}
+            name={userData?.founder?.name}
+            username={userData?.founder?.username}
           />
         </View>
 
@@ -213,7 +214,7 @@ const CreatorPassBuy = () => {
         <View className="items-center">
           <View className="flex-row items-center justify-center">
             <Text className="text-4xl text-white">
-              ₹ {userData?.userDetails?.creator_profile?.creator_pass_price}
+              ₹ {userData?.community_fee_amount}
             </Text>
           </View>
 
@@ -264,4 +265,4 @@ const CreatorPassBuy = () => {
   );
 };
 
-export default CreatorPassBuy;
+export default CommunityPassBuy;

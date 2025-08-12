@@ -66,7 +66,7 @@ const Interests = () => {
       updateUser({ isOnboarded: true });
 
       Alert.alert("Success", "Your interests have been updated successfully!");
-      router.push("/(dashboard)/long/VideosFeed");
+      router.replace("/(dashboard)/long/VideosFeed");
     } catch (error) {
       Alert.alert("Error", error.message || "Failed to update interests");
     } finally {
@@ -366,7 +366,7 @@ const Interests = () => {
             "Reviews & Unboxings",
             "Live Streams & Podcasts",
           ]
-      : Type === "Youtube"
+      : Type === "Netflix"
         ? [
             "Entertainment",
             "Education",
@@ -415,7 +415,7 @@ const Interests = () => {
       <ThemedView style={CreateProfileStyles.Container}>
         <View style={CreateProfileStyles.TopBar}>
           <TouchableOpacity
-            onPress={() => HandleStep(false)}
+            onPress={() => {HandleStep(false); Step === 2 ? setInterests([]) : setInterests2([])}}
             className="items-start w-full absolute top-20 z-10 left-5"
           >
             <Image

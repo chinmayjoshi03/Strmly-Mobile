@@ -29,6 +29,8 @@ const SignIn = () => {
   const [showAlert, setShowAlert] = useState(false);
   const [alert, setAlert] = useState("");
 
+  const {isOnboarded} = useAuthStore();
+
   const [fontsLoaded] = useFonts({
     "Poppins-Regular": require("../../assets/fonts/poppins/Poppins-Regular.ttf"),
     "Poppins-Bold": require("../../assets/fonts/poppins/Poppins-Bold.ttf"),
@@ -82,7 +84,11 @@ const SignIn = () => {
       setAlert("Login successful!");
       setShowAlert(() => true);
       setNeedButton(false);
-      setTimeout(() => router.replace("/(dashboard)/long/VideosFeed"), 1000);
+      if(isOnboarded){
+        setTimeout(() => router.replace("/(dashboard)/long/VideosFeed"), 1000);
+      } else{
+        setTimeout(() => router.replace("/(InterestsSection)/Interests"), 1000);
+      }
     } catch (error: any) {
       console.error("Login Error", error);
       setAlert(error.message || "Something went wrong");
@@ -143,7 +149,7 @@ const SignIn = () => {
           <View></View>
         </View>
       </TouchableOpacity>
-      <TouchableOpacity
+      {/* <TouchableOpacity
         onPress={() => {
           setAlert("Google Sign-in");
           setShowAlert(true);
@@ -158,7 +164,7 @@ const SignIn = () => {
           <Text className="text-white text-[16px]">Continue with Google</Text>
           <View></View>
         </View>
-      </TouchableOpacity>
+      </TouchableOpacity> */}
     </>
   );
 

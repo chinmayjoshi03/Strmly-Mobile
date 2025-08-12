@@ -10,20 +10,19 @@ import {
 } from "lucide-react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
-import ThemedView from "@/components/ThemedView";
 import { useRoute } from "@react-navigation/native";
-import Constants from "expo-constants";
 import { useAuthStore } from "@/store/useAuthStore";
+import Constants from "expo-constants";
 import { useGiftingStore } from "@/store/useGiftingStore";
 
-const CreatorPassDemo = () => {
-  const [userData, setUserData] = useState<any>(null);
+const SeriesAccess = () => {
+  const [seriesData, setSeriesData] = useState<any>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const router = useRouter();
   const route = useRoute();
   const { id } = route.params as { id: string };
   const { token } = useAuthStore();
-  const { initiateCreatorPass } = useGiftingStore();
+  const { initiateSeries } = useGiftingStore();
 
   const BACKEND_API_URL = Constants.expoConfig?.extra?.BACKEND_API_URL;
 
@@ -39,11 +38,11 @@ const CreatorPassDemo = () => {
   const validTo = formatDate(nextMonth);
 
   useEffect(() => {
-    if (!id) return;
+    if (!id && !token) return;
 
-    const fetchUserData = async () => {
+    const fetchSeriesData = async () => {
       try {
-        const response = await fetch(`${BACKEND_API_URL}/user/profile/${id}`, {
+        const response = await fetch(`${BACKEND_API_URL}/series/${id}`, {
           method: "GET",
           headers: {
             Authorization: `Bearer ${token}`,
@@ -54,19 +53,19 @@ const CreatorPassDemo = () => {
         const data = await response.json();
 
         if (!response.ok) {
-          throw new Error(data.message || "Failed to fetch user profile");
+          throw new Error(data.message || "Failed to fetch series data");
         }
 
-        setUserData(data.user);
-        initiateCreatorPass(data.user.userDetails)
-        console.log("Pubic User data", data.user);
+        setSeriesData(data.data);
+        initiateSeries(data.data);
+        console.log("Series data", data.data);
       } catch (error) {
         console.log(error);
         Alert.alert(
           "Error",
           error instanceof Error
             ? error.message
-            : "An unknown error occurred while fetching user data."
+            : "An unknown error occurred while fetching series data."
         );
       } finally {
         setIsLoading(false);
@@ -74,16 +73,16 @@ const CreatorPassDemo = () => {
     };
 
     if (token && id) {
-      fetchUserData();
+      fetchSeriesData();
     }
   }, [token, id]);
 
   return (
-    <ThemedView className="flex-1 pt-10">
+    <View className="flex-1 bg-black">
       <StatusBar barStyle="light-content" backgroundColor="#000" />
 
       {/* Header */}
-      <View className="flex-row items-center justify-between px-4">
+      <View className="flex-row items-center justify-between px-4 py-3 mt-12">
         <TouchableOpacity onPress={() => router.back()}>
           <X size={24} color="white" />
         </TouchableOpacity>
@@ -100,7 +99,9 @@ const CreatorPassDemo = () => {
         </View>
 
         {/* Title */}
-        <Text className="text-white text-2xl font-bold mb-2">Creator Pass</Text>
+        <Text className="text-white text-2xl font-bold mb-2">
+          Series Access
+        </Text>
 
         {/* Features Card */}
         <View className="w-full max-w-md rounded-2xl mb-8 overflow-hidden">
@@ -124,8 +125,7 @@ const CreatorPassDemo = () => {
                   <Unlock size={28} color="#10B981" />
                 </View>
                 <Text className="text-white text-sm flex-1 leading-6">
-                  Unlock all premium videos by @
-                  {userData?.userDetails.username}
+                  Unlock all episodes in this series by {seriesData?.created_by?.username}
                 </Text>
               </View>
 
@@ -145,7 +145,7 @@ const CreatorPassDemo = () => {
                   <Ban size={28} color="white" />
                 </View>
                 <Text className="text-white text-sm flex-1 leading-6">
-                  No extra pay for any content
+                  Access to all future episodes in this series
                 </Text>
               </View>
 
@@ -155,7 +155,7 @@ const CreatorPassDemo = () => {
                   <Heart size={28} color="#EF4444" fill="#EF4444" />
                 </View>
                 <Text className="text-white text-sm flex-1 leading-6">
-                  Directly support {userData?.userDetails?.username}'s work
+                  Support the creator's ongoing series
                 </Text>
               </View>
             </LinearGradient>
@@ -169,16 +169,15 @@ const CreatorPassDemo = () => {
           end={{ x: 1, y: 1 }}
           className="rounded-full"
         >
-          <TouchableOpacity onPress={()=> router.push(`/(payments)/CreatorPassBuy/${id}`)} className="px-8 py-4 rounded-full">
+          <TouchableOpacity onPress={()=> router.push(`/(payments)/SeriesPassBuy/${seriesData?.created_by?._id}`)} className="px-8 py-4 rounded-full">
             <Text className="text-white text-lg font-medium">
-              Join at ₹
-              {userData?.userDetails?.creator_profile?.creator_pass_price}/month
+              Join at ₹{seriesData?.price}/series
             </Text>
           </TouchableOpacity>
         </LinearGradient>
       </View>
-    </ThemedView>
+    </View>
   );
 };
 
-export default CreatorPassDemo;
+export default SeriesAccess;

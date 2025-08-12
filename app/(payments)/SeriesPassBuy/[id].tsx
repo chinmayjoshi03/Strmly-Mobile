@@ -26,7 +26,7 @@ import { useGiftingStore } from "@/store/useGiftingStore";
 
 const BACKEND_API_URL = Constants.expoConfig?.extra?.BACKEND_API_URL;
 
-const CreatorPassBuy = () => {
+const SeriesPassBuy = () => {
   const route = useRoute();
   const { id } = route.params as { id: string };
   const [userData, setUserData] = useState<any>(null);
@@ -40,7 +40,7 @@ const CreatorPassBuy = () => {
   const animatedBottom = useRef(new Animated.Value(insets.bottom)).current;
 
   const { token } = useAuthStore();
-  const { completePass } = useGiftingStore();
+  const { completeSeriesPurchasing } = useGiftingStore();
 
   // Check if Creator pass is already purchased
   useEffect(() => {
@@ -152,7 +152,7 @@ const CreatorPassBuy = () => {
       if (!response.ok) throw new Error("Failed to provide creator pass");
       const data = await response.json();
       console.log("purchase creator pass data---------------", data);
-      completePass(userData?.userDetails?.creator_profile?.creator_pass_price);
+      completeSeriesPurchasing();
       router.back();
     } catch (err) {
       console.log(err);
@@ -264,4 +264,4 @@ const CreatorPassBuy = () => {
   );
 };
 
-export default CreatorPassBuy;
+export default SeriesPassBuy;

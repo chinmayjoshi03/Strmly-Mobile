@@ -8,7 +8,8 @@ import {
   Alert,
   Linking,
   Image,
-  FlatList, // For opening external links
+  FlatList,
+  Dimensions, // For opening external links
 } from "react-native";
 import { CONFIG } from "@/Constants/config";
 import {
@@ -30,6 +31,7 @@ import ProfileTopbar from "@/components/profileTopbar"; // Assuming this is the 
 import { LinearGradient } from "expo-linear-gradient";
 import Constants from "expo-constants";
 
+const {height} = Dimensions.get('window');
 // Note: testVideos, api, toast, and format are not directly used in the final render
 // but if `api` or `toast` are custom internal modules, ensure they are RN compatible.
 // `format` (from date-fns) is compatible with React Native.
@@ -227,7 +229,7 @@ export default function PersonalProfilePage() {
   );
 
   return (
-    <ThemedView className="flex-1 pt-6">
+    <ThemedView style={{height}}>
       <ScrollView className="flex-1">
         {!isLoading && (
           <View className="h-48 relative">

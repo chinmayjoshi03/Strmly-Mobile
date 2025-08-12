@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
 import {
   View,
   Text,
@@ -10,7 +10,6 @@ import {
   Pressable,
   FlatList, // For opening external links
 } from "react-native";
-import { CONFIG } from "@/Constants/config";
 import {
   LinkIcon,
   HeartIcon,
@@ -24,7 +23,9 @@ import ProfileTopbar from "@/components/profileTopbar"; // Assuming this is the 
 import { LinearGradient } from "expo-linear-gradient"; // For the gradient border
 import Constants from "expo-constants";
 import { useRoute } from "@react-navigation/native";
-import { router } from "expo-router";
+import { router, useFocusEffect } from "expo-router";
+import CreatorPassBuyMessage from "../../long/_components/CreatorPassBuyMessage";
+import { useGiftingStore } from "@/store/useGiftingStore";
 
 export default function PublicProfilePageWithId() {
   const [activeTab, setActiveTab] = useState("long");
@@ -47,6 +48,9 @@ export default function PublicProfilePageWithId() {
   const route = useRoute();
   const { id } = route.params as { id: string };
 
+  const { giftSuccessMessage, creator, isPurchasedPass, clearGiftingData } =
+    useGiftingStore();
+
   const thumbnails = useThumbnailsGenerate(
     useMemo(
       () =>
@@ -62,13 +66,13 @@ export default function PublicProfilePageWithId() {
     if (!id) return;
 
     const fetchUserVideos = async (page = 1) => {
-
       if (activeTab == "repost") return;
 
       setIsLoadingVideos(true);
+      console.log(activeTab);
       try {
         const response = await fetch(
-          `${BACKEND_API_URL}/user/videos/${id}?type=${activeTab}&page=${page}`,
+          `${BACKEND_API_URL}/user/${activeTab === "long" ? `videos/${id}?type=${activeTab}&page=${page}` : `profile/${id}/liked-videos`}`,
           {
             method: "GET",
             headers: {
@@ -83,7 +87,7 @@ export default function PublicProfilePageWithId() {
           throw new Error(data.message || "Failed to fetch user videos");
         }
 
-        setVideos(data.videos);
+        setVideos(activeTab == "long" ? data.videos : data.data);
       } catch (err) {
         console.error("Error fetching user videos:", err);
         Alert.alert(
@@ -101,36 +105,6 @@ export default function PublicProfilePageWithId() {
       fetchUserVideos();
     }
   }, [token, activeTab, id]);
-
-  const userReshareVideos = async (page = 1) => {
-    setIsLoadingVideos(true);
-    try {
-      const response = await fetch(`${BACKEND_API_URL}/user/reshares`, {
-        method: "GET",
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.message || "Failed to fetch user videos");
-      }
-
-      setVideos(data.reshares);
-    } catch (err) {
-      console.error("Error fetching user videos:", err);
-      Alert.alert(
-        "Error",
-        err instanceof Error
-          ? err.message
-          : "An unknown error occurred while fetching videos."
-      );
-    } finally {
-      setIsLoadingVideos(false);
-    }
-  };
 
   useEffect(() => {
     if (!id) return;
@@ -190,7 +164,6 @@ export default function PublicProfilePageWithId() {
           "Content-Type": "application/json",
         },
       });
-
 
       const data = await response.json();
 
@@ -259,45 +232,49 @@ export default function PublicProfilePageWithId() {
     }
   };
 
-  useEffect(() => {
-    const hasCreatorPass = async () => {
-      try {
-        const response = await fetch(
-          `${BACKEND_API_URL}/user/has-creator-pass/${id}`,
-          {
-            method: "GET",
-            headers: {
-              Authorization: `Bearer ${token}`,
-              "Content-Type": "application/json",
-            },
+  useFocusEffect(
+    useCallback(() => {
+      const hasCreatorPass = async () => {
+        try {
+          const response = await fetch(
+            `${BACKEND_API_URL}/user/has-creator-pass/${id}`,
+            {
+              method: "GET",
+              headers: {
+                Authorization: `Bearer ${token}`,
+                "Content-Type": "application/json",
+              },
+            }
+          );
+
+          const data = await response.json();
+
+          if (!response.ok) {
+            throw new Error(
+              data.message || "Failed to fetch user creator pass"
+            );
           }
-        );
 
-        const data = await response.json();
-
-        if (!response.ok) {
-          throw new Error(data.message || "Failed to fetch user creator pass");
+          // console.log("has Creator pass", data);
+          setHasCreatorPass(data.hasCreatorPass);
+        } catch (error) {
+          console.log(error);
+          Alert.alert(
+            "Error",
+            error instanceof Error
+              ? error.message
+              : "An unknown error occurred while following user."
+          );
+        } finally {
+          setIsLoading(false);
         }
+      };
 
-        // console.log("has Creator pass", data);
-        setHasCreatorPass(data.hasCreatorPass);
-      } catch (error) {
-        console.log(error);
-        Alert.alert(
-          "Error",
-          error instanceof Error
-            ? error.message
-            : "An unknown error occurred while following user."
-        );
-      } finally {
-        setIsLoading(false);
+      if (id && token) {
+        hasCreatorPass();
       }
-    };
-
-    if (id && token) {
-      hasCreatorPass();
-    }
-  }, []);
+    }, [id, token])
+  );
 
   const renderGridItem = ({ item }: { item: any }) => (
     <TouchableOpacity className="relative aspect-[9/16] flex-1 rounded-sm overflow-hidden">
@@ -429,7 +406,6 @@ export default function PublicProfilePageWithId() {
                     }
                     className={`h-10 rounded-lg overflow-hidden`}
                   >
-
                     <LinearGradient
                       colors={["#4400FFA6", "#FFFFFF", "#FF00004D", "#FFFFFF"]}
                       start={{ x: 0, y: 0 }}
@@ -439,7 +415,6 @@ export default function PublicProfilePageWithId() {
                       <View
                         className={`flex-1 px-2 rounded-lg bg-black items-center justify-center`}
                       >
-
                         <View className="flex-row items-center justify-center">
                           <Text className="text-white text-center">
                             Access at
@@ -470,9 +445,7 @@ export default function PublicProfilePageWithId() {
                         className={`flex-1 px-4 rounded-lg bg-black items-center justify-center`}
                       >
                         <View className="flex-row items-center justify-center">
-                          <Text className="text-white text-center">
-                            Joined
-                          </Text>
+                          <Text className="text-white text-center">Joined</Text>
                         </View>
                       </View>
                     </LinearGradient>
@@ -604,6 +577,15 @@ export default function PublicProfilePageWithId() {
             />
           )}
         </View>
+      )}
+
+      {isPurchasedPass && (
+        <CreatorPassBuyMessage
+          isVisible={true}
+          onClose={clearGiftingData}
+          creator={creator}
+          amount={giftSuccessMessage}
+        />
       )}
     </ThemedView>
   );

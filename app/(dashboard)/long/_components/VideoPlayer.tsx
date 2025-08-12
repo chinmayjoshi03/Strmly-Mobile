@@ -13,6 +13,8 @@ import GiftingMessage from "./GiftingMessage";
 import { router, useFocusEffect } from "expo-router";
 import VideoProgressBar from "./VideoProgressBar";
 import { useGiftingStore } from "@/store/useGiftingStore";
+import SeriesPurchaseMessage from "./SeriesPurcchaseMessaage";
+import CreatorPassBuyMessage from "./CreatorPassBuyMessage";
 
 const { height: screenHeight } = Dimensions.get("screen");
 const VIDEO_HEIGHT = screenHeight;
@@ -25,12 +27,14 @@ type Props = {
 const VideoPlayer = ({ videoData, isActive }: Props) => {
   const [showCommentsModal, setShowCommentsModal] = useState(false);
 
-
   const {
     isGifted,
     giftSuccessMessage,
     hasFetched,
     creator,
+    series,
+    isPurchasedPass,
+    isPurchasedSeries,
     clearGiftingData,
   } = useGiftingStore();
 
@@ -83,7 +87,6 @@ const VideoPlayer = ({ videoData, isActive }: Props) => {
       // Use the smart play function to handle audio interaction logic
       const { smartPlay } = usePlayerStore.getState();
       smartPlay();
-
     } else {
       // This video is not visible, pause and reset
       player.pause();
@@ -124,15 +127,18 @@ const VideoPlayer = ({ videoData, isActive }: Props) => {
           setShowCommentsModal={setShowCommentsModal}
         />
 
-        {/* <View className="absolute bottom-[2.57rem] left-0 h-5 z-10 right-0">
-            <VideoProgressBar
-              videoId={videoData._id}
-              player={player}
-              isActive={isActive}
-              duration={videoData?.duration || videoData.access.freeRange.display_till_time}
-              access={videoData.access}
-            />
-          </View> */}
+        <View className="absolute bottom-[2.57rem] left-0 h-5 z-10 right-0">
+          <VideoProgressBar
+            videoId={videoData._id}
+            player={player}
+            isActive={isActive}
+            duration={
+              videoData?.duration ||
+              videoData.access.freeRange.display_till_time
+            }
+            access={videoData.access}
+          />
+        </View>
 
         <View className="z-10 absolute top-16 left-5">
           <Pressable onPress={() => router.push("/(dashboard)/wallet")}>
@@ -150,6 +156,23 @@ const VideoPlayer = ({ videoData, isActive }: Props) => {
           onClose={clearGiftingData}
           creator={creator}
           amount={giftSuccessMessage}
+        />
+      )}
+
+      {isPurchasedPass && (
+        <CreatorPassBuyMessage
+          isVisible={true}
+          onClose={clearGiftingData}
+          creator={creator}
+          amount={giftSuccessMessage}
+        />
+      )}
+
+      {isPurchasedSeries && series && (
+        <SeriesPurchaseMessage
+          isVisible={true}
+          onClose={clearGiftingData}
+          series={series}
         />
       )}
 

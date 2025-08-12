@@ -25,27 +25,41 @@ const VideosFeed: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [visibleIndex, setVisibleIndex] = useState(0);
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(8);
+  const [hasMore, setHasMore] = useState(true);
+  const [isFetchingMore, setIsFetchingMore] = useState(false);
 
   const { token } = useAuthStore();
   const BACKEND_API_URL = Constants.expoConfig?.extra?.BACKEND_API_URL;
 
-  const fetchTrendingVideos = async () => {
-    setLoading(true);
+  const fetchTrendingVideos = async (nextPage = page) => {
+    if (!hasMore || isFetchingMore) return;
+
+    setIsFetchingMore(true);
     try {
-      const res = await fetch(`${BACKEND_API_URL}/recommendations/videos`, { //recommendations/videos
-        method: "GET",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-      });
+      const res = await fetch(
+        `${BACKEND_API_URL}/videos/trending?page=${nextPage}&limit=${limit}`,
+        {
+          //recommendations/videos
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
       if (!res.ok) throw new Error("Failed to fetch videos");
       const json = await res.json();
-      setVideos(json.recommendations);
+      if (json.data.length < limit) setHasMore(false);
+      setVideos((prev) => [...prev, ...json.data]);
+      // setVideos(json.recommendations);
+      setPage(nextPage + 1);
     } catch (err: any) {
       setError(err.message || "Something went wrong");
     } finally {
       setLoading(false);
+      setIsFetchingMore(false);
     }
   };
 
@@ -55,11 +69,25 @@ const VideosFeed: React.FC = () => {
 
   // OPTIMIZATION 1: Stabilize the onViewableItemsChanged callback
   // This prevents FlatList from re-rendering just because the parent re-rendered.
-  const onViewableItemsChanged = useCallback(({ viewableItems }: any) => {
-    if (viewableItems.length > 0) {
-      setVisibleIndex(viewableItems[0].index);
-    }
-  }, []); // Empty dependency array means this function is created only once.
+  const onViewableItemsChanged = useCallback(
+    ({ viewableItems }: any) => {
+      if (viewableItems.length > 0) {
+        const currentIndex = viewableItems[0].index;
+        setVisibleIndex(currentIndex);
+
+        // Trigger next batch if user watched 6 videos
+        if (currentIndex === 6) {
+          fetchTrendingVideos(page);
+        }
+
+        // Trigger near-end fetch
+        if (currentIndex >= videos.length - 2) {
+          fetchTrendingVideos(page);
+        }
+      }
+    },
+    [videos.length, page, hasMore, isFetchingMore]
+  ); // Empty dependency array means this function is created only once.
 
   // OPTIMIZATION 2: Memoize the renderItem function
   // This prevents creating a new render function on every parent render.
@@ -135,25 +163,24 @@ const VideosFeed: React.FC = () => {
   return (
     // <SafeAreaProvider>
     //   <SafeAreaView style={{ flex: 1 }} edges={["bottom"]}>
-        <ThemedView>
-
-          <FlatList
-            data={videos}
-            renderItem={renderItem}
-            keyExtractor={(item) => item._id}
-            getItemLayout={getItemLayout}
-            pagingEnabled
-            onViewableItemsChanged={onViewableItemsChanged}
-            viewabilityConfig={{ itemVisiblePercentThreshold: 80 }}
-            initialNumToRender={2}
-            maxToRenderPerBatch={2}
-            windowSize={3}
-            showsVerticalScrollIndicator={false}
-            contentInsetAdjustmentBehavior="automatic" // iOS
-            contentContainerStyle={{ paddingBottom: 0 }}
-            style={{ height: VIDEO_HEIGHT }}
-          />
-        </ThemedView>
+    <ThemedView>
+      <FlatList
+        data={videos}
+        renderItem={renderItem}
+        keyExtractor={(item) => item._id}
+        getItemLayout={getItemLayout}
+        pagingEnabled
+        onViewableItemsChanged={onViewableItemsChanged}
+        viewabilityConfig={{ itemVisiblePercentThreshold: 80 }}
+        initialNumToRender={3}
+        maxToRenderPerBatch={3}
+        windowSize={3}
+        showsVerticalScrollIndicator={false}
+        contentInsetAdjustmentBehavior="automatic" // iOS
+        contentContainerStyle={{ paddingBottom: 0 }}
+        style={{ height: VIDEO_HEIGHT }}
+      />
+    </ThemedView>
     //   </SafeAreaView>
     // </SafeAreaProvider>
   );

@@ -8,7 +8,7 @@ import { VideoItemType } from "@/types/VideosType";
 import GiftingMessage from "./_components/GiftingMessage";
 import UnifiedVideoPlayer from "@/components/UnifiedVideoPlayer";
 import VideoItem from "./VideoItem";
-import { VideoContentGifting } from "@/app/(payments)/Video/Video-Gifting";
+import VideoContentGifting from "@/app/(payments)/Video/Video-Gifting";
 
 export type GiftType = {
   _id: string;

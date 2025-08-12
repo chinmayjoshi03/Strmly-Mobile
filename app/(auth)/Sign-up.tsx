@@ -117,7 +117,7 @@ const SignUp = () => {
           <View></View>
         </View>
       </TouchableOpacity>
-      <TouchableOpacity
+      {/* <TouchableOpacity
         onPress={registerWithGoogle}
         style={Signinstyles.button}
       >
@@ -129,9 +129,12 @@ const SignUp = () => {
           <Text className="text-white text-[16px]">Continue with Google</Text>
           <View></View>
         </View>
-      </TouchableOpacity>
+      </TouchableOpacity> */}
       <ThemedText style={Signinstyles.Text}>
-        By continuing, you agree to Strmly&apos;s Terms of Use.
+        By continuing, you agree to Strmly&apos;s
+        <Link className="text-blue-500" href={"https://strmly.com/legal/terms"}> Terms of Use </Link>
+        and
+        <Link className="text-blue-500" href={"https://strmly.com/legal/privacy"}> Privacy Policy.</Link>
       </ThemedText>
 
       <Link
