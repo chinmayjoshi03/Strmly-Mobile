@@ -1,5 +1,5 @@
-import React from 'react';
-import { View, Text, TouchableOpacity, ScrollView } from 'react-native';
+import React, { useState, useMemo } from 'react';
+import { View, Text, TouchableOpacity, ScrollView, TextInput, Modal, Dimensions } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { DropdownProps } from '../types';
 
@@ -26,6 +26,19 @@ const Dropdown: React.FC<DropdownProps> = ({
   onToggle,
   disabled = false
 }) => {
+  const [searchText, setSearchText] = useState('');
+
+  // Filter options based on search text
+  const filteredOptions = useMemo(() => {
+    if (!searchText.trim()) return options;
+    return options.filter(option => 
+      option.label.toLowerCase().includes(searchText.toLowerCase())
+    );
+  }, [options, searchText]);
+
+  // Show search bar only if there are more than 5 options
+  const showSearch = options.length > 5;
+
   return (
     <View>
       {/* Dropdown Trigger */}
@@ -49,43 +62,94 @@ const Dropdown: React.FC<DropdownProps> = ({
         />
       </TouchableOpacity>
 
-      {/* Dropdown Options Overlay */}
-      {isOpen && !disabled && (
-        <View 
-          className="absolute top-20 left-0 right-0 border border-gray-500 z-10 max-h-64"
-          style={{ 
-            backgroundColor: '#2b2b2b',
-            borderRadius: 16
-          }}
+      {/* Dropdown Options Modal */}
+      <Modal
+        visible={isOpen && !disabled}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={onToggle}
+      >
+        <TouchableOpacity 
+          style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)' }}
+          activeOpacity={1}
+          onPress={onToggle}
         >
-          <ScrollView showsVerticalScrollIndicator={false}>
-            {options.map((option, index) => (
-              <TouchableOpacity
-                key={option.value}
-                onPress={() => {
-                  onSelect(option.value);
-                  onToggle(); // Close dropdown after selection
-                }}
-                className={`px-6 py-4 ${
-                  index !== options.length - 1 ? 'border-b border-gray-500' : ''
-                }`}
+          <View style={{ flex: 1, justifyContent: 'center', paddingHorizontal: 20 }}>
+            <TouchableOpacity activeOpacity={1}>
+              <View 
                 style={{ 
-                  minHeight: 56,
-                  backgroundColor: option.isSelected || value === option.value ? '#404040' : '#2b2b2b',
-                  borderTopLeftRadius: index === 0 ? 16 : 0,
-                  borderTopRightRadius: index === 0 ? 16 : 0,
-                  borderBottomLeftRadius: index === options.length - 1 ? 16 : 0,
-                  borderBottomRightRadius: index === options.length - 1 ? 16 : 0,
+                  backgroundColor: '#2b2b2b',
+                  borderRadius: 16,
+                  maxHeight: Dimensions.get('window').height * 0.6,
+                  shadowColor: '#000',
+                  shadowOffset: { width: 0, height: 4 },
+                  shadowOpacity: 0.3,
+                  shadowRadius: 8,
+                  elevation: 8,
                 }}
               >
-                <Text className="text-white text-lg">
-                  {option.label}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </ScrollView>
-        </View>
-      )}
+                {/* Header */}
+                <View className="flex-row items-center justify-between px-4 py-3 border-b border-gray-500">
+                  <Text className="text-white text-lg font-medium">Select Community</Text>
+                  <TouchableOpacity onPress={onToggle}>
+                    <Ionicons name="close" size={24} color="white" />
+                  </TouchableOpacity>
+                </View>
+
+                {/* Search Input - Only show if there are many options */}
+                {showSearch && (
+                  <View className="px-4 py-3 border-b border-gray-500">
+                    <TextInput
+                      value={searchText}
+                      onChangeText={setSearchText}
+                      placeholder="Search communities..."
+                      placeholderTextColor="#9CA3AF"
+                      className="text-white text-base bg-gray-700 rounded-lg px-3 py-2"
+                      autoCapitalize="none"
+                      autoCorrect={false}
+                    />
+                  </View>
+                )}
+                
+                <ScrollView 
+                  showsVerticalScrollIndicator={true}
+                  style={{ maxHeight: showSearch ? 300 : 400 }}
+                  keyboardShouldPersistTaps="handled"
+                >
+                  {filteredOptions.length === 0 ? (
+                    <View className="px-6 py-8 items-center">
+                      <Text className="text-gray-400 text-base">No communities found</Text>
+                    </View>
+                  ) : (
+                    filteredOptions.map((option, index) => (
+                      <TouchableOpacity
+                        key={option.value}
+                        onPress={() => {
+                          onSelect(option.value);
+                          setSearchText(''); // Clear search when selecting
+                          onToggle(); // Close dropdown after selection
+                        }}
+                        className={`px-6 py-4 ${
+                          index !== filteredOptions.length - 1 ? 'border-b border-gray-500' : ''
+                        }`}
+                        style={{ 
+                          minHeight: 56,
+                          backgroundColor: option.isSelected || value === option.value ? '#404040' : '#2b2b2b',
+                        }}
+                        activeOpacity={0.7}
+                      >
+                        <Text className="text-white text-lg">
+                          {option.label}
+                        </Text>
+                      </TouchableOpacity>
+                    ))
+                  )}
+                </ScrollView>
+              </View>
+            </TouchableOpacity>
+          </View>
+        </TouchableOpacity>
+      </Modal>
     </View>
   );
 };

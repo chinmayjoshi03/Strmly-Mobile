@@ -83,7 +83,7 @@ const SignIn = () => {
       setAlert("Login successful!");
       setShowAlert(() => true);
       setNeedButton(false);
-      setTimeout(() => router.replace("/(dashboard)/long/VideosFeed"), 1000);
+      setTimeout(() => router.replace("/(tabs)/home"), 1000);
     } catch (error: any) {
       console.error("Login Error", error);
       setAlert(error.message || "Something went wrong");

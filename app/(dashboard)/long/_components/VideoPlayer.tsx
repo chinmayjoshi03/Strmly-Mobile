@@ -24,11 +24,11 @@ type Props = {
   setShowCommentsModal?: (show: boolean) => void;
 };
 
-const VideoPlayer = ({ 
-  videoData, 
-  isActive, 
-  showCommentsModal = false, 
-  setShowCommentsModal 
+const VideoPlayer = ({
+  videoData,
+  isActive,
+  showCommentsModal = false,
+  setShowCommentsModal
 }: Props) => {
 
   const [isWantToGift, setIsWantToGift] = useState(false);
@@ -37,15 +37,18 @@ const VideoPlayer = ({
     null
   );
 
-  // FIX: Gracefully handle cases where videoUrl might be missing
-  if (!videoData?.videoUrl) {
-    return <View style={styles.container} />; // Render an empty container
-  }
+  // Add missing functions and variables
+  const clearGiftingData = () => {
+    setIsGifted(false);
+    setGiftSuccessMessage(null);
+  };
 
+  const creator = videoData.created_by;
   const { _updateStatus } = usePlayerStore.getState();
   const isMutedFromStore = usePlayerStore((state) => state.isMuted);
 
-  const player = useVideoPlayer(videoData.videoUrl, (p) => {
+  // FIX: Move the conditional check after hooks but handle gracefully
+  const player = useVideoPlayer(videoData?.videoUrl || "", (p) => {
     p.loop = true;
     p.muted = isMutedFromStore;
   });
@@ -60,22 +63,15 @@ const VideoPlayer = ({
 
   // This single, stable useEffect now manages the entire lifecycle
   useEffect(() => {
+    // Don't proceed if no video URL
+    if (!videoData?.videoUrl) return;
+
     const statusSubscription = player.addListener(
       "statusChange",
-      (status, oldStatus, error) => {
+      (payload) => {
         // Only the active video should update the global store
         if (isActive) {
-          _updateStatus(status, error);
-        }
-      }
-    );
-
-    // Listen for playback status changes
-    const playbackStatusSubscription = player.addListener(
-      "playbackStatusUpdate",
-      (status) => {
-        if (isActive) {
-          _updateStatus(status);
+          _updateStatus(payload.status, payload.error);
         }
       }
     );
@@ -86,7 +82,6 @@ const VideoPlayer = ({
       // Use the smart play function to handle audio interaction logic
       const { smartPlay } = usePlayerStore.getState();
       smartPlay();
-
     } else {
       // This video is not visible, pause and reset
       player.pause();
@@ -95,15 +90,14 @@ const VideoPlayer = ({
 
     // This cleanup function is called when the component unmounts OR when `isActive` changes.
     return () => {
-      // Always remove the listeners
+      // Always remove the listener
       statusSubscription.remove();
-      playbackStatusSubscription.remove();
       // If this was the active player, clear the global reference
       if (isActive) {
         clearActivePlayer();
       }
     };
-  }, [isActive, player, _updateStatus]);
+  }, [isActive, player, _updateStatus, videoData?.videoUrl]);
 
   // A final cleanup effect for when the component is removed from the FlatList entirely
   useEffect(() => {
@@ -113,62 +107,59 @@ const VideoPlayer = ({
     };
   }, [player]);
 
+  // Render empty container if no video URL
+  if (!videoData?.videoUrl) {
+    return <View style={styles.container} />;
+  }
+
   return (
     <View style={styles.container}>
-      <>
-        <VideoView
+      <VideoView
+        player={player}
+        nativeControls={false}
+        style={styles.video}
+        contentFit="cover"
+      />
+      
+      <VideoControls
+        videoData={videoData}
+        setShowCommentsModal={setShowCommentsModal}
+      />
+
+      <View className="absolute bottom-12 left-0 h-5 z-10 right-0">
+        <VideoProgressBar
           player={player}
-          nativeControls={false}
-          style={styles.video}
-          contentFit="cover"
+          isActive={isActive}
+          videoId={videoData._id}
+          duration={videoData.duration || 0}
+          access={videoData.access || {
+            isPlayable: true,
+            freeRange: { start_time: 0, display_till_time: 0 },
+            isPurchased: false,
+            accessType: 'free',
+            price: 0
+          }}
         />
-        <VideoControls
-          videoData={videoData}
-          setShowCommentsModal={setShowCommentsModal}
-        />
+      </View>
 
-          <View className="absolute bottom-12 left-0 h-5 z-10 right-0">
-            <VideoProgressBar player={player} isActive={isActive}/>
-          </View>
-
-          <View className="z-10 absolute top-4 left-5">
-            <Pressable
-              onPress={() => {
-                console.log('💰 Wallet button pressed in VideoPlayer!');
-                try {
-                  router.push("/(dashboard)/wallet");
-                  console.log('✅ Navigation to wallet successful');
-                } catch (error) {
-                  console.error('❌ Navigation error:', error);
-                }
-              }}
-            >
-              <Image
-                source={require("../../../../assets/images/Wallet.png")}
-                className="size-10"
-              />
-            </Pressable>
-          </View>
-        </>
-        {/* <View className="absolute bottom-[2.57rem] left-0 h-5 z-10 right-0">
-            <VideoProgressBar
-              videoId={videoData._id}
-              player={player}
-              isActive={isActive}
-              duration={videoData?.duration || videoData.access.freeRange.display_till_time}
-              access={videoData.access}
-            />
-          </View> */}
-
-        <View className="z-10 absolute top-16 left-5">
-          <Pressable onPress={() => router.push("/(dashboard)/wallet")}>
-            <Image
-              source={require("../../../../assets/images/Wallet.png")}
-              className="size-10"
-            />
-          </Pressable>
-        </View>
-      </>
+      <View className="z-10 absolute top-4 left-5">
+        <Pressable
+          onPress={() => {
+            console.log('💰 Wallet button pressed in VideoPlayer!');
+            try {
+              router.push("/(dashboard)/wallet");
+              console.log('✅ Navigation to wallet successful');
+            } catch (error) {
+              console.error('❌ Navigation error:', error);
+            }
+          }}
+        >
+          <Image
+            source={require("../../../../assets/images/Wallet.png")}
+            className="size-10"
+          />
+        </Pressable>
+      </View>
 
       {isGifted && (
         <GiftingMessage
@@ -196,23 +187,11 @@ const VideoPlayer = ({
             // Open tip modal for comment
             console.log('Open tip modal for comment:', commentId);
             // You can implement tip modal logic here
-            // For now, we'll show a simple alert or implement later
           }}
         />
       )}
     </View>
   );
-  //  (
-  //   <View style={styles.container}>
-  //     <VideoContentGifting
-  //       creator={videoData.created_by}
-  //       videoId={videoData._id}
-  //       setIsWantToGift={setIsWantToGift}
-  //       setIsGifted={setIsGifted}
-  //       giftMessage={setGiftSuccessMessage}
-  //     />
-  //   </View>
-  // );
 };
 
 const styles = StyleSheet.create({
@@ -225,6 +204,5 @@ const styles = StyleSheet.create({
     height: "100%",
   },
 });
-
 
 export default React.memo(VideoPlayer);

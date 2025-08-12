@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState, useCallback } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   View,
   Text,
@@ -9,35 +9,30 @@ import {
   FlatList,
   Dimensions,
   BackHandler,
-  Modal,
 } from "react-native";
-import { IndianRupee, HeartIcon, PaperclipIcon, X, Users, Video } from "lucide-react-native";
+import {
+  IndianRupee,
+  HeartIcon,
+  PaperclipIcon,
+  Users,
+  Video,
+} from "lucide-react-native";
 import { useAuthStore } from "@/store/useAuthStore";
+import { useLocalSearchParams } from "expo-router";
+import { useRouter } from "expo-router";
 import { useThumbnailsGenerate } from "@/utils/useThumbnailGenerator";
 import ThemedView from "@/components/ThemedView";
 import ProfileTopbar from "@/components/profileTopbar";
-import { LinearGradient } from "expo-linear-gradient";
 import Constants from "expo-constants";
-import { useRoute } from "@react-navigation/native";
-import { useRouter } from "expo-router";
 import VideoPlayer from "@/app/(dashboard)/long/_components/VideoPlayer";
 import BottomNavBar from "@/components/BottomNavBar";
 import { communityActions } from "@/api/community/communityActions";
 
-const profileData = {
-  name: "Tech Entrepreneurs",
-  description: "A community for tech entrepreneurs to share ideas and network",
-  communityFee: 30,
-  isPrivate: false,
-};
-
-export default function PublicCommunityPage() {
+export default function PersonalCommunityPage() {
   const [activeTab, setActiveTab] = useState("videos");
   const [communityData, setCommunityData] = useState<any>(null);
   const [videos, setVideos] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [isFollowingCommunity, setIsFollowingCommunity] = useState(false);
-  const [isFollowingLoading, setFollowingLoading] = useState(false);
   const [isLoadingVideos, setIsLoadingVideos] = useState(false);
 
   // Video player state
@@ -55,10 +50,9 @@ export default function PublicCommunityPage() {
   const [videoType, setVideoType] = useState("long");
 
   const { token } = useAuthStore();
-  const validVideoTypes = ["long", "series"];
-  const route = useRoute();
   const router = useRouter();
-  const { id } = route.params as { id: string };
+  const params = useLocalSearchParams();
+  const id = params.id as string;
 
   const BACKEND_API_URL = Constants.expoConfig?.extra?.BACKEND_API_URL;
 
@@ -81,7 +75,6 @@ export default function PublicCommunityPage() {
 
       setIsLoadingVideos(true);
       try {
-        console.log('🔄 Fetching videos for type:', videoType);
         const response = await fetch(
           `${BACKEND_API_URL}/community/${id}/videos?videoType=${videoType}`,
           {
@@ -95,10 +88,10 @@ export default function PublicCommunityPage() {
         if (!response.ok) {
           throw new Error(data.message || "Failed to fetch community videos");
         }
-        console.log("✅ Videos fetched:", data.videos?.length || 0);
+
         setVideos(data.videos || []);
       } catch (err) {
-        console.error("❌ Error fetching community videos:", err);
+        console.error("Error fetching community videos:", err);
         setVideos([]);
       } finally {
         setIsLoadingVideos(false);
@@ -108,21 +101,7 @@ export default function PublicCommunityPage() {
     if (token && id) {
       fetchUserVideos();
     }
-  }, [activeTab, videoType, token, id, BACKEND_API_URL]);
-
-  // Handle back button press
-  useEffect(() => {
-    const backAction = () => {
-      if (isVideoPlayerActive) {
-        closeVideoPlayer();
-        return true;
-      }
-      return false;
-    };
-
-    const backHandler = BackHandler.addEventListener('hardwareBackPress', backAction);
-    return () => backHandler.remove();
-  }, [isVideoPlayerActive]);
+  }, [activeTab, videoType, token, id]);
 
   useEffect(() => {
     const fetchCommunityData = async () => {
@@ -142,11 +121,6 @@ export default function PublicCommunityPage() {
           throw new Error(data.message || "Failed to fetch community profile");
         }
 
-        console.log('🏘️ Community data received:', {
-          name: data.name,
-          profile_photo: data.profile_photo,
-          founder: data.founder
-        });
         setCommunityData(data);
       } catch (error) {
         console.log(error);
@@ -166,49 +140,19 @@ export default function PublicCommunityPage() {
     }
   }, [id, token]);
 
-  const followCommunity = async () => {
-    try {
-      setFollowingLoading(true);
-      const response = await fetch(`${BACKEND_API_URL}/${isFollowingCommunity ? 'caution/community/unfollow' : 'community/follow'}`, {
-        method: !isFollowingCommunity ? "POST" : "PATCH",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({communityId: id})
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.message || "Failed to follow community profile");
-      }
-
-      console.log(data.message);
-      setIsFollowingCommunity(data.isFollowingCommunity);
-    } catch (error) {
-      console.log(error);
-      Alert.alert(
-        "Error",
-        error instanceof Error
-          ? error.message
-          : "An unknown error occurred while following community."
-      );
-    } finally {
-      setFollowingLoading(false);
-    }
-  };
-
   // Fetch followers
   const fetchFollowers = async () => {
     if (!token || !id) return;
-    
+
+    console.log('📥 Personal Community - Fetching followers for community:', id);
     setIsLoadingFollowers(true);
     try {
       const result = await communityActions.getCommunityFollowers(token, id);
+      console.log('✅ Personal Community - Followers fetched:', result.followers?.length || 0);
+      console.log('👥 Personal Community - Followers data:', result.followers);
       setFollowers(result.followers || []);
     } catch (error) {
-      console.error('❌ Error fetching followers:', error);
+      console.error('❌ Personal Community - Error fetching followers:', error);
       Alert.alert('Error', 'Failed to fetch followers');
     } finally {
       setIsLoadingFollowers(false);
@@ -218,13 +162,16 @@ export default function PublicCommunityPage() {
   // Fetch creators
   const fetchCreators = async () => {
     if (!token || !id) return;
-    
+
+    console.log('📥 Personal Community - Fetching creators for community:', id);
     setIsLoadingCreators(true);
     try {
       const result = await communityActions.getCommunityCreators(token, id);
+      console.log('✅ Personal Community - Creators fetched:', result.creators?.length || 0);
+      console.log('👥 Personal Community - Creators data:', result.creators);
       setCreators(result.creators || []);
     } catch (error) {
-      console.error('❌ Error fetching creators:', error);
+      console.error('❌ Personal Community - Error fetching creators:', error);
       Alert.alert('Error', 'Failed to fetch creators');
     } finally {
       setIsLoadingCreators(false);
@@ -233,22 +180,35 @@ export default function PublicCommunityPage() {
 
   // Handle section changes
   const handleSectionChange = (section: string) => {
+    console.log('🔄 Personal Community - Section changed to:', section);
+    console.log('📊 Personal Community - Current data:', {
+      followers: followers.length,
+      creators: creators.length,
+      videos: videos.length
+    });
     setActiveTab(section);
-    
+
     if (section === "followers" && followers.length === 0) {
+      console.log('📥 Personal Community - Fetching followers...');
       fetchFollowers();
     } else if (section === "creators" && creators.length === 0) {
+      console.log('📥 Personal Community - Fetching creators...');
       fetchCreators();
     }
   };
 
   // Navigate to user profile
   const navigateToUserProfile = (userId: string) => {
-    console.log('🔄 Navigating to user profile:', userId);
+    console.log('🔄 Personal Community - Navigating to user profile:', userId);
+    console.log('🔄 Router object:', router);
     try {
-      router.push(`/(dashboard)/profile/public/${userId}` as any);
+      const path = `/(dashboard)/profile/public/${userId}`;
+      console.log('🔄 Navigation path:', path);
+      router.push(path as any);
+      console.log('✅ Navigation call completed');
     } catch (error) {
       console.error('❌ Navigation error:', error);
+      Alert.alert('Navigation Error', `Failed to navigate to user profile: ${error.message}`);
     }
   };
 
@@ -271,11 +231,19 @@ export default function PublicCommunityPage() {
     setShowCommentsModal(false);
   };
 
-  const onViewableItemsChanged = useCallback(({ viewableItems }: any) => {
-    if (viewableItems.length > 0) {
-      setCurrentVideoIndex(viewableItems[0].index);
-    }
-  }, []);
+  // Handle back button press
+  useEffect(() => {
+    const backAction = () => {
+      if (isVideoPlayerActive) {
+        closeVideoPlayer();
+        return true;
+      }
+      return false;
+    };
+
+    const backHandler = BackHandler.addEventListener('hardwareBackPress', backAction);
+    return () => backHandler.remove();
+  }, [isVideoPlayerActive]);
 
   // Render functions for videos - consistent thumbnail format
   const renderVideoItem = ({ item }: { item: any }) => (
@@ -299,14 +267,14 @@ export default function PublicCommunityPage() {
           <Text className="text-white text-xs mt-2">Loading...</Text>
         </View>
       )}
-      
+
       {/* Video overlay info */}
       <View className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-3">
         <Text className="text-white text-sm font-medium" numberOfLines={2}>
           {item.title || item.name || 'Untitled'}
         </Text>
         {item.created_by && (
-          <TouchableOpacity 
+          <TouchableOpacity
             onPress={(e) => {
               e.stopPropagation();
               navigateToUserProfile(item.created_by._id);
@@ -325,7 +293,7 @@ export default function PublicCommunityPage() {
           )}
         </View>
       </View>
-      
+
       {/* Play button overlay */}
       <View className="absolute inset-0 items-center justify-center">
         <View className="bg-black/50 rounded-full p-3">
@@ -355,14 +323,14 @@ export default function PublicCommunityPage() {
           <Video size={20} color="white" />
         </View>
       )}
-      
+
       {/* Compact overlay for grid */}
       <View className="absolute bottom-0 left-0 right-0 bg-black/60 p-2">
         <Text className="text-white text-xs font-medium" numberOfLines={1}>
           {item.title || item.name || 'Untitled'}
         </Text>
       </View>
-      
+
       {/* Small play button */}
       <View className="absolute top-2 right-2">
         <View className="bg-black/50 rounded-full p-1">
@@ -372,32 +340,37 @@ export default function PublicCommunityPage() {
     </TouchableOpacity>
   );
 
-  // Render user item for followers/creators modals
-  const renderUserItem = ({ item }: { item: any }) => (
-    <TouchableOpacity
-      className="flex-row items-center p-3 border-b border-gray-800"
-      onPress={() => {
-        console.log('🔄 User item pressed:', item.username, item._id);
-        navigateToUserProfile(item._id);
-      }}
-      activeOpacity={0.7}
-    >
-      <View className="w-12 h-12 rounded-full overflow-hidden bg-gray-700 mr-3">
-        <Image
-          source={{
-            uri: item.profile_photo || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(item.username || 'user')}&backgroundColor=random`,
-          }}
-          className="w-full h-full object-cover"
-        />
-      </View>
-      <View className="flex-1">
-        <Text className="text-white font-medium">{item.username}</Text>
-        {item.name && (
-          <Text className="text-gray-400 text-sm">{item.name}</Text>
-        )}
-      </View>
-    </TouchableOpacity>
-  );
+  // Render user item for followers/creators sections
+  const renderUserItem = ({ item }: { item: any }) => {
+    console.log('🎨 Rendering user item:', item.username, item._id);
+    return (
+      <TouchableOpacity
+        className="flex-row items-center p-3 border-b border-gray-800"
+        onPress={() => {
+          console.log('👆 User item pressed:', item.username, item._id);
+          console.log('👆 Touch event triggered for user:', item.username);
+          navigateToUserProfile(item._id);
+        }}
+        activeOpacity={0.7}
+        style={{ backgroundColor: 'rgba(255,255,255,0.05)' }} // Add slight background for debugging
+      >
+        <View className="w-12 h-12 rounded-full overflow-hidden bg-gray-700 mr-3">
+          <Image
+            source={{
+              uri: item.profile_photo || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(item.username || 'user')}&backgroundColor=random`,
+            }}
+            className="w-full h-full object-cover"
+          />
+        </View>
+        <View className="flex-1">
+          <Text className="text-white font-medium">{item.username}</Text>
+          {item.name && (
+            <Text className="text-gray-400 text-sm">{item.name}</Text>
+          )}
+        </View>
+      </TouchableOpacity>
+    );
+  };
 
   return (
     <ThemedView className="flex-1 pt-5">
@@ -405,7 +378,7 @@ export default function PublicCommunityPage() {
       {!isLoading && (
         <View className="h-48 relative">
           <ProfileTopbar
-            isMore={false}
+            isMore={true}
             hashtag={true}
             name={communityData?.name}
           />
@@ -437,18 +410,13 @@ export default function PublicCommunityPage() {
                       {communityData?.founder &&
                         `By @${communityData?.founder.username}`}
                     </Text>
-                    {profileData.isPrivate && (
-                      <Text className="ml-2 px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                        Private
-                      </Text>
-                    )}
                   </View>
                 </View>
               </View>
 
               {/* Section Navigation */}
               <View className="mt-6 flex flex-row justify-around items-center border-b border-gray-800">
-                <TouchableOpacity 
+                <TouchableOpacity
                   className={`flex flex-col gap-1 items-center pb-4 flex-1 ${activeTab === 'followers' ? 'border-b-2 border-white' : ''}`}
                   onPress={() => handleSectionChange('followers')}
                 >
@@ -457,7 +425,7 @@ export default function PublicCommunityPage() {
                   </Text>
                   <Text className={`text-md ${activeTab === 'followers' ? 'text-white' : 'text-gray-400'}`}>Followers</Text>
                 </TouchableOpacity>
-                <TouchableOpacity 
+                <TouchableOpacity
                   className={`flex flex-col gap-1 items-center pb-4 flex-1 ${activeTab === 'creators' ? 'border-b-2 border-white' : ''}`}
                   onPress={() => handleSectionChange('creators')}
                 >
@@ -466,7 +434,7 @@ export default function PublicCommunityPage() {
                   </Text>
                   <Text className={`text-md ${activeTab === 'creators' ? 'text-white' : 'text-gray-400'}`}>Creators</Text>
                 </TouchableOpacity>
-                <TouchableOpacity 
+                <TouchableOpacity
                   className={`flex flex-col gap-1 items-center pb-4 flex-1 ${activeTab === 'videos' ? 'border-b-2 border-white' : ''}`}
                   onPress={() => handleSectionChange('videos')}
                 >
@@ -479,36 +447,25 @@ export default function PublicCommunityPage() {
 
               {/* Buttons */}
               <View className="flex flex-row w-full items-center justify-center gap-2 mt-5 md:mt-0">
-                <TouchableOpacity onPress={followCommunity} className="flex-1 px-4 py-2 rounded-xl bg-transparent border border-gray-400">
-                  <Text className="text-white text-center">{!isFollowingCommunity ? 'Follow' : 'Following'}</Text>
+                <TouchableOpacity
+                  onPress={() => router.push("/(communities)/EditCommunity")}
+                  className="flex-1 px-4 py-2 rounded-xl bg-transparent border border-gray-400"
+                >
+                  <Text className="text-white text-center">Edit Community</Text>
                 </TouchableOpacity>
 
-                {communityData?.community_fee_type !== "free" && (
-                  <TouchableOpacity className="rounded-xl overflow-hidden">
-                    <LinearGradient
-                      colors={["#4400FFA6", "#FFFFFF", "#FF00004D", "#FFFFFF"]}
-                      start={{ x: 0, y: 0 }}
-                      end={{ x: 1, y: 1 }}
-                      className="p-[1px] rounded-xl flex-1"
-                    >
-                      <View className="flex-1 px-4 py-2 rounded-xl bg-black items-center justify-center">
-                        <View className="flex-row items-center justify-center">
-                          <Text className="text-white">Join at </Text>
-                          <IndianRupee color={"white"} size={13} />
-                          <Text className="text-white text-center">
-                            {communityData?.community_fee_amount || profileData.communityFee}/month
-                          </Text>
-                        </View>
-                      </View>
-                    </LinearGradient>
-                  </TouchableOpacity>
-                )}
+                <TouchableOpacity
+                  onPress={() => router.push("/(demo)/CommunityAnalyticsDemo")}
+                  className="flex-1 px-4 py-2 rounded-xl bg-transparent border border-gray-400"
+                >
+                  <Text className="text-white text-center">View Analytics</Text>
+                </TouchableOpacity>
               </View>
 
               {/* Bio */}
               <View className="mt-6 flex flex-col items-center justify-center px-4">
                 <Text className="text-gray-400 text-xs text-center">
-                  {communityData?.bio || profileData.description}
+                  {communityData?.bio}
                 </Text>
               </View>
 
@@ -545,23 +502,25 @@ export default function PublicCommunityPage() {
               )}
             </View>
           }
-          data={
-            activeTab === 'videos' ? (isLoadingVideos ? [] : videos) :
-            activeTab === 'followers' ? (isLoadingFollowers ? [] : followers) :
-            activeTab === 'creators' ? (isLoadingCreators ? [] : creators) : []
-          }
+          data={(() => {
+            const data = activeTab === 'videos' ? (isLoadingVideos ? [] : videos) :
+              activeTab === 'followers' ? (isLoadingFollowers ? [] : followers) :
+                activeTab === 'creators' ? (isLoadingCreators ? [] : creators) : [];
+            console.log(`📋 Personal Community - FlatList data for ${activeTab}:`, data.length, 'items');
+            return data;
+          })()}
           key={`${activeTab}-${videoType}`}
           keyExtractor={(item) => item._id}
           renderItem={
             activeTab === 'videos' ? (videoType === "long" ? renderVideoItem : renderGridItem) :
-            renderUserItem
+              renderUserItem
           }
           numColumns={activeTab === 'videos' && videoType === 'series' ? 3 : 1}
           columnWrapperStyle={activeTab === 'videos' && videoType === 'series' ? { justifyContent: 'space-between' } : undefined}
           ListEmptyComponent={
-            (activeTab === 'videos' && isLoadingVideos) || 
-            (activeTab === 'followers' && isLoadingFollowers) || 
-            (activeTab === 'creators' && isLoadingCreators) ? (
+            (activeTab === 'videos' && isLoadingVideos) ||
+              (activeTab === 'followers' && isLoadingFollowers) ||
+              (activeTab === 'creators' && isLoadingCreators) ? (
               <View className="flex-1 h-64 items-center justify-center">
                 <ActivityIndicator size="large" color="white" />
               </View>
@@ -572,8 +531,8 @@ export default function PublicCommunityPage() {
                 {activeTab === 'creators' && <Users size={48} color="gray" />}
                 <Text className="text-gray-400 text-center mt-4">
                   {activeTab === 'videos' ? `No ${videoType} videos yet` :
-                   activeTab === 'followers' ? 'No followers yet' :
-                   'No creators yet'}
+                    activeTab === 'followers' ? 'No followers yet' :
+                      'No creators yet'}
                 </Text>
               </View>
             )
@@ -613,7 +572,11 @@ export default function PublicCommunityPage() {
               index,
             })}
             pagingEnabled
-            onViewableItemsChanged={onViewableItemsChanged}
+            onViewableItemsChanged={({ viewableItems }) => {
+              if (viewableItems.length > 0) {
+                setCurrentVideoIndex(viewableItems[0].index);
+              }
+            }}
             viewabilityConfig={{ itemVisiblePercentThreshold: 80 }}
             decelerationRate="fast"
             showsVerticalScrollIndicator={false}
@@ -622,7 +585,7 @@ export default function PublicCommunityPage() {
           />
         </View>
       )}
-      
+
       {/* Bottom Navigation Bar */}
       {!isVideoPlayerActive && (
         <BottomNavBar />

@@ -8,7 +8,6 @@ import VideoDetails from "./VideoDetails";
 type Props = {
   videoData: any;
   setShowCommentsModal?: (visible: boolean) => void;
-  isWantToGift: (visible: boolean) => void;
 };
 
 const VideoControls = ({
@@ -60,7 +59,6 @@ const VideoControls = ({
           shares={videoData.shares}
           comments={videoData.comments?.length}
           onCommentPress={setShowCommentsModal ? () => setShowCommentsModal(true) : undefined}
-          setIsWantToGift={isWantToGift}
         />
       </View>
       <View style={styles.details}>

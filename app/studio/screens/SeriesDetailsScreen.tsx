@@ -15,15 +15,15 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { CONFIG } from '@/Constants/config';
 import { useAuthStore } from '@/store/useAuthStore';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import EpisodeList from '../components/EpisodeList';
 import VideoPlayer from '@/app/(dashboard)/long/_components/VideoPlayer';
 import Constants from 'expo-constants';
 
 interface SeriesDetailsScreenProps {
-  seriesId: string;
-  onBack: () => void;
-  onAddNewEpisode: () => void;
+  seriesId?: string;
+  onBack?: () => void;
+  onAddNewEpisode?: () => void;
 }
 
 interface SeriesData {
@@ -79,10 +79,40 @@ interface Episode {
 }
 
 const SeriesDetailsScreen: React.FC<SeriesDetailsScreenProps> = ({
-  seriesId,
+  seriesId: propSeriesId,
   onBack,
   onAddNewEpisode
 }) => {
+  // Get parameters from route if not provided as props
+  const params = useLocalSearchParams();
+  const seriesId = propSeriesId || (params.seriesId as string);
+  
+
+
+  // Helper function for back navigation
+  const handleBack = () => {
+    if (onBack) {
+      onBack();
+    } else {
+      router.back();
+    }
+  };
+
+  // Early return if no seriesId
+  if (!seriesId) {
+    return (
+      <View className="flex-1 bg-black justify-center items-center">
+        <StatusBar barStyle="light-content" backgroundColor="#000" />
+        <Text className="text-red-400 text-center mb-4">Series ID is required</Text>
+        <TouchableOpacity
+          onPress={handleBack}
+          className="bg-gray-600 px-4 py-2 rounded-lg"
+        >
+          <Text className="text-white">Go Back</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
   const [seriesData, setSeriesData] = useState<SeriesData | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -108,10 +138,8 @@ const SeriesDetailsScreen: React.FC<SeriesDetailsScreenProps> = ({
         return;
       }
 
-      console.log(`Fetching series details for ID: ${seriesId}`);
-
-      // Use the user series API to get series with episodes
-      const response = await fetch(`${CONFIG.API_BASE_URL}/series/user?t=${Date.now()}`, {
+      // Use the series by ID API to get specific series with episodes
+      const response = await fetch(`${CONFIG.API_BASE_URL}/series/${seriesId}`, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -120,25 +148,14 @@ const SeriesDetailsScreen: React.FC<SeriesDetailsScreenProps> = ({
       });
 
       const result = await response.json();
-      console.log('User series response:', result);
 
       if (response.ok && result.data) {
-        // Find the specific series by ID
-        const foundSeries = result.data.find((series: any) => series._id === seriesId);
-
-        if (foundSeries) {
-          console.log('Found series:', foundSeries);
-          console.log('Episodes data:', foundSeries.episodes);
-          console.log('Total episodes:', foundSeries.total_episodes);
-          setSeriesData(foundSeries);
-        } else {
-          setError('Series not found');
-        }
+        setSeriesData(result.data);
+        setError(null); // Clear any previous errors
       } else {
         setError(result.error || 'Failed to fetch series details');
       }
     } catch (error) {
-      console.error('Error fetching series details:', error);
       setError('Network error occurred');
     } finally {
       if (showLoadingIndicator) {
@@ -239,7 +256,7 @@ const SeriesDetailsScreen: React.FC<SeriesDetailsScreenProps> = ({
 
         {/* Header */}
         <View className="flex-row items-center justify-between px-4 py-3 mt-12">
-          <TouchableOpacity onPress={onBack}>
+          <TouchableOpacity onPress={handleBack}>
             <Ionicons name="chevron-back" size={24} color="white" />
           </TouchableOpacity>
           <Text className="text-white text-xl font-medium">Series Details</Text>
@@ -261,7 +278,7 @@ const SeriesDetailsScreen: React.FC<SeriesDetailsScreenProps> = ({
 
         {/* Header */}
         <View className="flex-row items-center justify-between px-4 py-3 mt-12">
-          <TouchableOpacity onPress={onBack}>
+          <TouchableOpacity onPress={handleBack}>
             <Ionicons name="chevron-back" size={24} color="white" />
           </TouchableOpacity>
           <Text className="text-white text-xl font-medium">Series Details</Text>
@@ -287,7 +304,7 @@ const SeriesDetailsScreen: React.FC<SeriesDetailsScreenProps> = ({
 
       {/* Header */}
       <View className="flex-row items-center justify-between px-4 py-3 mt-12">
-        <TouchableOpacity onPress={onBack}>
+        <TouchableOpacity onPress={handleBack}>
           <Ionicons name="chevron-back" size={24} color="white" />
         </TouchableOpacity>
         <Text className="text-white text-xl font-medium">{seriesData.title}</Text>

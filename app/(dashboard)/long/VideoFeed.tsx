@@ -9,6 +9,7 @@ import GiftingMessage from "./_components/GiftingMessage";
 import UnifiedVideoPlayer from "@/components/UnifiedVideoPlayer";
 import VideoContentGifting from "@/app/(payments)/Video/Video-Gifting";
 import CommentsSection from "./_components/CommentSection";
+import VideoFeedDebug from "@/components/VideoFeedDebug";
 
 export type GiftType = {
   _id: string;
@@ -54,41 +55,67 @@ const VideoFeed: React.FC = () => {
   }, [showCommentsModal]);
 
   const fetchTrendingVideos = async () => {
-    // This function is fine as is.
     setLoading(true);
     try {
+      console.log('🔧 VideoFeed Debug Info:');
+      console.log('📍 BACKEND_API_URL:', BACKEND_API_URL);
+      console.log('🔑 Token exists:', !!token);
+      console.log('🔑 Token length:', token?.length || 0);
+      console.log('🔑 Token preview:', token ? `${token.substring(0, 20)}...` : 'null');
+
       if (!BACKEND_API_URL) {
         throw new Error('Backend API URL is not configured');
       }
 
       if (!token) {
-        throw new Error('Authentication token is missing');
+        throw new Error('Authentication token is missing - user may not be logged in');
       }
 
-      console.log('Fetching videos from:', `${BACKEND_API_URL}/videos/trending?page=1&limit=10`);
+      const url = `${BACKEND_API_URL}/videos/trending?page=1&limit=10`;
+      console.log('📡 Fetching from:', url);
 
-      const res = await fetch(
-        `${BACKEND_API_URL}/videos/trending?page=1&limit=10`,
-        {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`,
-          },
-        }
-      );
+      const res = await fetch(url, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+
+      console.log('📡 Response status:', res.status);
+      console.log('📡 Response ok:', res.ok);
 
       if (!res.ok) {
-        console.error('Fetch failed with status:', res.status, res.statusText);
-        throw new Error(`Failed to fetch videos: ${res.status} ${res.statusText}`);
+        const errorText = await res.text();
+        console.error('❌ Fetch failed:');
+        console.error('   Status:', res.status, res.statusText);
+        console.error('   Response:', errorText);
+
+        if (res.status === 401) {
+          throw new Error('Authentication failed - please log in again');
+        } else if (res.status === 403) {
+          throw new Error('Access forbidden - invalid token');
+        } else {
+          throw new Error(`Server error: ${res.status} ${res.statusText}`);
+        }
       }
 
       const json = await res.json();
-      console.log('Videos fetched successfully:', json.data?.length, 'videos');
+      console.log('✅ Videos fetched successfully:', json.data?.length || 0, 'videos');
 
-      setVideos(json.data);
+      if (!json.data) {
+        console.warn('⚠️ No data field in response:', json);
+        setVideos([]);
+      } else {
+        setVideos(json.data);
+      }
     } catch (err: any) {
-      console.error('Error fetching videos:', err);
+      console.error('❌ Error fetching videos:', err);
+      console.error('❌ Error details:', {
+        message: err.message,
+        name: err.name,
+        stack: err.stack?.split('\n')[0]
+      });
       setError(err.message || "Something went wrong");
     } finally {
       setLoading(false);
@@ -96,8 +123,20 @@ const VideoFeed: React.FC = () => {
   };
 
   useEffect(() => {
+    console.log('🔧 VideoFeed useEffect triggered');
+    console.log('🔑 Token state:', {
+      exists: !!token,
+      length: token?.length || 0,
+      preview: token ? `${token.substring(0, 10)}...` : 'null'
+    });
+
     if (token) {
+      console.log('✅ Token found, fetching videos...');
       fetchTrendingVideos();
+    } else {
+      console.log('❌ No token found, user may not be logged in');
+      setError('Please log in to view videos');
+      setLoading(false);
     }
   }, [token]);
 
@@ -197,13 +236,13 @@ const VideoFeed: React.FC = () => {
       height: adjustedHeight,
       backgroundColor: 'black'
     }}>
+      <VideoFeedDebug />
       {isGifted && giftingData ? (
         <GiftingMessage
           isVisible={isGifted}
           creator={giftingData}
           amount={giftSuccessMessage}
-          onClose={setIsGifted}
-          giftMessage={setGiftSuccessMessage}
+          onClose={(value: boolean) => setIsGifted(value)}
         />
       ) : isWantToGift && giftingData ? (
         <VideoContentGifting
@@ -211,7 +250,6 @@ const VideoFeed: React.FC = () => {
           videoId={videos[visibleIndex]?._id || ''}
           setIsWantToGift={setIsWantToGift}
           setIsGifted={setIsGifted}
-          giftMessage={setGiftSuccessMessage}
         />
       ) : (
         <FlatList
