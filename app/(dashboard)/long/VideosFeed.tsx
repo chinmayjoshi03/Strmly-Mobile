@@ -5,8 +5,8 @@ import ThemedView from "@/components/ThemedView";
 import { useAuthStore } from "@/store/useAuthStore";
 import Constants from "expo-constants";
 import { VideoItemType } from "@/types/VideosType";
-import VideoPlayer from "./_components/VideoPlayer";
 import { Link, router } from "expo-router";
+import VideoPlayer from "./_components/VideoPlayer";
 
 export type GiftType = {
   creator: {
@@ -29,8 +29,14 @@ const VideosFeed: React.FC = () => {
   const [limit, setLimit] = useState(8);
   const [hasMore, setHasMore] = useState(true);
   const [isFetchingMore, setIsFetchingMore] = useState(false);
+  const [showCommentsModal, setShowCommentsModal] = useState(false);
 
   const { token } = useAuthStore();
+
+  // Debug log for comments modal state changes
+  useEffect(() => {
+    console.log('🎬 VideosFeed: Comments modal state changed:', showCommentsModal);
+  }, [showCommentsModal]);
   const BACKEND_API_URL = Constants.expoConfig?.extra?.BACKEND_API_URL;
 
   const fetchTrendingVideos = async (nextPage = page) => {
@@ -93,9 +99,14 @@ const VideosFeed: React.FC = () => {
   // This prevents creating a new render function on every parent render.
   const renderItem = useCallback(
     ({ item, index }: { item: VideoItemType; index: number }) => (
-      <VideoPlayer videoData={item} isActive={index === visibleIndex} />
+      <VideoPlayer
+        videoData={item} 
+        isActive={index === visibleIndex}
+        showCommentsModal={showCommentsModal}
+        setShowCommentsModal={setShowCommentsModal}
+      />
     ),
-    [visibleIndex]
+    [visibleIndex, showCommentsModal]
   );
 
   // OPTIMIZATION 3: Use consistent VIDEO_HEIGHT for layout calculations
@@ -163,24 +174,31 @@ const VideosFeed: React.FC = () => {
   return (
     // <SafeAreaProvider>
     //   <SafeAreaView style={{ flex: 1 }} edges={["bottom"]}>
-    <ThemedView>
-      <FlatList
-        data={videos}
-        renderItem={renderItem}
-        keyExtractor={(item) => item._id}
-        getItemLayout={getItemLayout}
-        pagingEnabled
-        onViewableItemsChanged={onViewableItemsChanged}
-        viewabilityConfig={{ itemVisiblePercentThreshold: 80 }}
-        initialNumToRender={3}
-        maxToRenderPerBatch={3}
-        windowSize={3}
-        showsVerticalScrollIndicator={false}
-        contentInsetAdjustmentBehavior="automatic" // iOS
-        contentContainerStyle={{ paddingBottom: 0 }}
-        style={{ height: VIDEO_HEIGHT }}
-      />
-    </ThemedView>
+        <ThemedView>
+
+          <FlatList
+            data={videos}
+            renderItem={renderItem}
+            keyExtractor={(item) => item._id}
+            getItemLayout={getItemLayout}
+            pagingEnabled
+            scrollEnabled={!showCommentsModal}
+            onViewableItemsChanged={onViewableItemsChanged}
+            viewabilityConfig={{ itemVisiblePercentThreshold: 80 }}
+            initialNumToRender={2}
+            maxToRenderPerBatch={2}
+            windowSize={3}
+            showsVerticalScrollIndicator={false}
+            contentInsetAdjustmentBehavior="automatic" // iOS
+            contentContainerStyle={{ paddingBottom: 0 }}
+            style={{ height: VIDEO_HEIGHT }}
+            onScrollBeginDrag={() => {
+              if (showCommentsModal) {
+                console.log('🚫 VideosFeed: Scroll blocked - comments modal is open');
+              }
+            }}
+          />
+        </ThemedView>
     //   </SafeAreaView>
     // </SafeAreaProvider>
   );

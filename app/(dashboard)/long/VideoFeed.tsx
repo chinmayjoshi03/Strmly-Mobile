@@ -1,14 +1,14 @@
 import React, { useRef, useState, useEffect, useCallback } from "react";
 import { FlatList, Dimensions, ActivityIndicator, Text, Pressable } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { router } from "expo-router";
 import ThemedView from "@/components/ThemedView";
 import { useAuthStore } from "@/store/useAuthStore";
 import { CONFIG } from "@/Constants/config";
 import { VideoItemType } from "@/types/VideosType";
 import GiftingMessage from "./_components/GiftingMessage";
 import UnifiedVideoPlayer from "@/components/UnifiedVideoPlayer";
-import VideoItem from "./VideoItem";
-import VideoContentGifting from "@/app/(payments)/Video/Video-Gifting";
+import CommentsSection from "./_components/CommentSection";
+import VideoFeedDebug from "@/components/VideoFeedDebug";
 
 export type GiftType = {
   _id: string;
@@ -26,8 +26,6 @@ const VideoFeed: React.FC = () => {
 
   const BACKEND_API_URL = CONFIG.API_BASE_URL;
   console.log('🔧 VideoFeed API URL:', BACKEND_API_URL);
-  const { height } = Dimensions.get("screen");
-  const insets = useSafeAreaInsets();
   const TAB_BAR_HEIGHT = 55; // Height of the bottom navigation bar (reduced from 70)
   const TAB_BAR_PADDING = 10; // paddingBottom from tab bar (reduced from 15)
   const BUFFER = 10; // Additional buffer to ensure no overlap
@@ -41,8 +39,7 @@ const VideoFeed: React.FC = () => {
   console.log('Adjusted height:', adjustedHeight);
 
   const [visibleIndex, setVisibleIndex] = useState(0);
-  const { token, user, isLoggedIn } = useAuthStore();
-  const [videosPage, setVideosPage] = useState(1);
+  const { token } = useAuthStore();
 
   // State for overlays
   const [isWantToGift, setIsWantToGift] = useState(false);
@@ -51,42 +48,73 @@ const VideoFeed: React.FC = () => {
   const [giftSuccessMessage, setGiftSuccessMessage] = useState<any>();
   const [showCommentsModal, setShowCommentsModal] = useState(false);
 
+  // Debug log for comments modal state changes
+  useEffect(() => {
+    console.log('🎬 VideoFeed: Comments modal state changed:', showCommentsModal);
+  }, [showCommentsModal]);
+
   const fetchTrendingVideos = async () => {
-    // This function is fine as is.
     setLoading(true);
     try {
+      console.log('🔧 VideoFeed Debug Info:');
+      console.log('📍 BACKEND_API_URL:', BACKEND_API_URL);
+      console.log('🔑 Token exists:', !!token);
+      console.log('🔑 Token length:', token?.length || 0);
+      console.log('🔑 Token preview:', token ? `${token.substring(0, 20)}...` : 'null');
+
       if (!BACKEND_API_URL) {
         throw new Error('Backend API URL is not configured');
       }
 
       if (!token) {
-        throw new Error('Authentication token is missing');
+        throw new Error('Authentication token is missing - user may not be logged in');
       }
 
-      console.log('Fetching videos from:', `${BACKEND_API_URL}/videos/trending?page=1&limit=10`);
+      const url = `${BACKEND_API_URL}/videos/trending?page=1&limit=10`;
+      console.log('📡 Fetching from:', url);
 
-      const res = await fetch(
-        `${BACKEND_API_URL}/videos/trending?page=1&limit=10`,
-        {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`,
-          },
-        }
-      );
+      const res = await fetch(url, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+
+      console.log('📡 Response status:', res.status);
+      console.log('📡 Response ok:', res.ok);
 
       if (!res.ok) {
-        console.error('Fetch failed with status:', res.status, res.statusText);
-        throw new Error(`Failed to fetch videos: ${res.status} ${res.statusText}`);
+        const errorText = await res.text();
+        console.error('❌ Fetch failed:');
+        console.error('   Status:', res.status, res.statusText);
+        console.error('   Response:', errorText);
+
+        if (res.status === 401) {
+          throw new Error('Authentication failed - please log in again');
+        } else if (res.status === 403) {
+          throw new Error('Access forbidden - invalid token');
+        } else {
+          throw new Error(`Server error: ${res.status} ${res.statusText}`);
+        }
       }
 
       const json = await res.json();
-      console.log('Videos fetched successfully:', json.data?.length, 'videos');
+      console.log('✅ Videos fetched successfully:', json.data?.length || 0, 'videos');
 
-      setVideos(json.data);
+      if (!json.data) {
+        console.warn('⚠️ No data field in response:', json);
+        setVideos([]);
+      } else {
+        setVideos(json.data);
+      }
     } catch (err: any) {
-      console.error('Error fetching videos:', err);
+      console.error('❌ Error fetching videos:', err);
+      console.error('❌ Error details:', {
+        message: err.message,
+        name: err.name,
+        stack: err.stack?.split('\n')[0]
+      });
       setError(err.message || "Something went wrong");
     } finally {
       setLoading(false);
@@ -94,46 +122,66 @@ const VideoFeed: React.FC = () => {
   };
 
   useEffect(() => {
+    console.log('🔧 VideoFeed useEffect triggered');
+    console.log('🔑 Token state:', {
+      exists: !!token,
+      length: token?.length || 0,
+      preview: token ? `${token.substring(0, 10)}...` : 'null'
+    });
+
     if (token) {
+      console.log('✅ Token found, fetching videos...');
       fetchTrendingVideos();
+    } else {
+      console.log('❌ No token found, user may not be logged in');
+      setError('Please log in to view videos');
+      setLoading(false);
     }
   }, [token]);
 
   // OPTIMIZATION 1: Stabilize the onViewableItemsChanged callback
   // This prevents FlatList from re-rendering just because the parent re-rendered.
-  const onViewableItemsChanged = useCallback(({ viewableItems }: any) => {
+  const onViewableItemsChanged = useRef(({ viewableItems }: any) => {
     if (viewableItems.length > 0) {
       setVisibleIndex(viewableItems[0].index);
     }
-  }, []); // Empty dependency array means this function is created only once.
+  });
 
   // OPTIMIZATION 2: Memoize the renderItem function
   // This prevents creating a new render function on every parent render.
   const renderItem = useCallback(
     ({ item, index }: { item: VideoItemType; index: number }) => (
-      <VideoItem
-        BACKEND_API_URL={BACKEND_API_URL}
+      <UnifiedVideoPlayer
+        key={`${item._id}-${visibleIndex === index}`}
+        uri={item.videoUrl}
+        videoData={item}
+        mode="feed"
+        isActive={index === visibleIndex}
+        autoPlay={index === visibleIndex}
+        loop={true}
+        showControls={true}
+        showInteractions={true}
+        showDetails={true}
+        showComments={true}
+        containerHeight={adjustedHeight}
         setGiftingData={setGiftingData}
+        setIsWantToGift={setIsWantToGift}
         showCommentsModal={showCommentsModal}
         setShowCommentsModal={setShowCommentsModal}
-        setIsWantToGift={setIsWantToGift}
-        uri={item.videoUrl}
-        isActive={index === visibleIndex}
-        videoData={item}
       />
     ),
-    [visibleIndex, showCommentsModal, BACKEND_API_URL]
-  ); // Dependencies that, when changed, should cause the item to update.
+    [visibleIndex, showCommentsModal, adjustedHeight]
+  );
 
   // OPTIMIZATION 3: If all your video items have the same height (full screen), use getItemLayout
   // This is a major performance boost as it avoids on-the-fly layout calculations.
   const getItemLayout = useCallback(
     (_data: any, index: number) => ({
-      length: height,
-      offset: height * index,
+      length: adjustedHeight,
+      offset: adjustedHeight * index,
       index,
     }),
-    [height]
+    [adjustedHeight]
   );
 
   if (loading) {
@@ -187,52 +235,28 @@ const VideoFeed: React.FC = () => {
       height: adjustedHeight,
       backgroundColor: 'black'
     }}>
+      <VideoFeedDebug />
       {isGifted && giftingData ? (
         <GiftingMessage
-          isVisible={modalVisible}
-          giftData={giftingData}
-          setGiftData={setGiftingData}
-          onClose={setModalVisible}
-          message={giftSuccessMessage}
-          giftMessage={setGiftSuccessMessage}
+          isVisible={isGifted}
+          creator={giftingData}
+          amount={giftSuccessMessage}
+          onClose={(value: boolean) => setIsGifted(value)}
         />
       ) : isWantToGift && giftingData ? (
         <VideoContentGifting
-          giftData={giftingData}
-          setIsGifted={setIsGifted}
+          creator={giftingData}
+          videoId={videos[visibleIndex]?._id || ''}
           setIsWantToGift={setIsWantToGift}
-          giftMessage={setGiftSuccessMessage}
+          setIsGifted={setIsGifted}
         />
       ) : (
         <FlatList
           data={videos}
           keyExtractor={(item) => item._id}
-          renderItem={({ item, index }) => (
-            <UnifiedVideoPlayer
-              key={`${item._id}-${visibleIndex === index}`}
-              uri={item.videoUrl}
-              videoData={item}
-              mode="feed"
-              isActive={index === visibleIndex}
-              autoPlay={index === visibleIndex}
-              loop={true}
-              showControls={true}
-              showInteractions={true}
-              showDetails={true}
-              showComments={true}
-              containerHeight={adjustedHeight}
-              setGiftingData={setGiftingData}
-              setIsWantToGift={setIsWantToGift}
-              showCommentsModal={showCommentsModal}
-              setShowCommentsModal={setShowCommentsModal}
-            />
-          )}
+          renderItem={renderItem}
           style={{ flex: 1 }}
-          getItemLayout={(_, index) => ({
-            length: adjustedHeight,
-            offset: adjustedHeight * index,
-            index,
-          })}
+          getItemLayout={getItemLayout}
           pagingEnabled
           scrollEnabled={!showCommentsModal}
           onViewableItemsChanged={onViewableItemsChanged.current}
@@ -241,6 +265,34 @@ const VideoFeed: React.FC = () => {
           showsVerticalScrollIndicator={false}
           snapToInterval={adjustedHeight}
           snapToAlignment="start"
+          onScrollBeginDrag={() => {
+            if (showCommentsModal) {
+              console.log('🚫 VideoFeed: Scroll blocked - comments modal is open');
+            }
+          }}
+        />
+      )}
+
+      {/* Comments modal - Rendered at VideoFeed level to cover entire screen */}
+      {showCommentsModal && (
+        <CommentsSection
+          onClose={() => {
+            console.log('🎬 VideoFeed: Closing comments modal');
+            setShowCommentsModal(false);
+          }}
+          videoId={videos[visibleIndex]?._id || null}
+          onPressUsername={(userId) => {
+            console.log('Navigate to user profile:', userId);
+            try {
+              router.push(`/(dashboard)/profile/public/${userId}` as any);
+            } catch (error) {
+              console.error('Navigation error:', error);
+            }
+          }}
+          onPressTip={(commentId) => {
+            console.log('Open tip modal for comment:', commentId);
+            // You can implement tip modal logic here
+          }}
         />
       )}
     </ThemedView>

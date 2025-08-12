@@ -20,6 +20,8 @@ import TotalWalletHistory from "./_components/TotalWalletHistory";
 import RevenueHistory from "./_components/RevenueHistory";
 import { useWallet } from "./_components/useWallet";
 import { useAuthStore } from "@/store/useAuthStore";
+import { useDashboard } from "../profile/_components/useDashboard";
+import BottomNavBar from "@/components/BottomNavBar";
 
 const { height } = Dimensions.get("screen");
 
@@ -39,6 +41,9 @@ const WalletPage = () => {
     clearError,
   } = useWallet(token || "");
 
+  // Get revenue data from dashboard to ensure consistency
+  const { revenueBreakdown, loading: dashboardLoading } = useDashboard(token || "", "revenue");
+
   const [isOpenTBalance, setIsOpenTotalBalance] = useState<boolean>(false);
   const [isOpenWBalance, setIsOpenWalletBalance] = useState<boolean>(false);
   const [isOpenRevenue, setIsOpenRevenue] = useState<boolean>(false);
@@ -47,7 +52,7 @@ const WalletPage = () => {
   // Handle withdrawal request
   const handleWithdrawalRequest = () => {
     console.log('💰 Navigating to withdrawal screen');
-    router.push('/(payments)/Video/VideoContentGifting?mode=withdraw');
+    router.push('/(payments)/Video/Video-Gifting?mode=withdraw');
   };
 
   // Show error alert when error occurs
@@ -69,7 +74,7 @@ const WalletPage = () => {
         <Modal transparent visible={showSuccessModal} animationType="fade">
           <TouchableWithoutFeedback onPress={() => setShowSuccessModal(false)}>
             <View className="flex-1 bg-transparent bg-opacity-80 bottom-60 items-center justify-end px-5 right-0">
-              <TouchableWithoutFeedback onPress={() => {}}>
+              <TouchableWithoutFeedback onPress={() => { }}>
                 <View className="bg-[#1E1E1E] p-6 rounded-xl">
                   <Text className="text-white text-base text-center mb-2 font-semibold">
                     Your withdrawal request of ₹500 has been successfully
@@ -90,9 +95,9 @@ const WalletPage = () => {
           {isOpenTBalance ? (
             <TotalBalanceHistory closeTBalance={setIsOpenTotalBalance} />
           ) : isOpenWBalance ? (
-            <TotalWalletHistory closeTBalance={setIsOpenWalletBalance}/>
+            <TotalWalletHistory closeTBalance={setIsOpenWalletBalance} />
           ) : (
-            <RevenueHistory closeTBalance={setIsOpenRevenue}/>
+            <RevenueHistory closeTBalance={setIsOpenRevenue} />
           )}
         </View>
       ) : (
@@ -136,16 +141,16 @@ const WalletPage = () => {
 
               {/* Card 3 */}
               <Pressable
-                onPress={() => setIsOpenRevenue(!isOpenRevenue)}
+                onPress={() => router.push("/(dashboard)/profile/Dashboard?tab=revenue")}
                 className="flex-1"
               >
                 <View className="bg-[#B0B0B033] flex-1 justify-center gap-2 items-center h-full rounded-xl p-4">
                   <Text className="text-[14px] text-white">Revenue</Text>
-                  {isLoading ? (
+                  {isLoading || dashboardLoading ? (
                     <ActivityIndicator size="small" color="#fff" />
                   ) : (
                     <Text className="text-[28px] text-white">
-                      ₹ {walletData?.totalReceived?.toFixed(2) || "0.00"}
+                      ₹ {revenueBreakdown?.estimateRevenue?.toFixed(2) || "0.00"}
                     </Text>
                   )}
                 </View>
@@ -208,6 +213,11 @@ const WalletPage = () => {
             />
           </View>
         </>
+      )}
+      
+      {/* Bottom Navigation Bar */}
+      {!isOpenTBalance && !isOpenWBalance && !isOpenRevenue && (
+        <BottomNavBar />
       )}
     </ThemedView>
   );

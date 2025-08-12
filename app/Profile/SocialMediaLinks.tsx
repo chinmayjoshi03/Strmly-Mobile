@@ -26,7 +26,7 @@ const SocialMediaLinks: React.FC = () => {
   // Auth store
   const { token, user } = useAuthStore();
 
-  // Form states
+  // Form states - All social media platforms
   const [socialLinks, setSocialLinks] = useState({
     facebook: "",
     twitter: "",
@@ -41,6 +41,20 @@ const SocialMediaLinks: React.FC = () => {
   // No need to load existing links since GET endpoint doesn't exist
 
   const handleInputChange = (platform: string, value: string) => {
+    // Count current filled fields
+    const currentFilledCount = Object.values(socialLinks).filter(link => link.trim() !== '').length;
+    const isCurrentFieldEmpty = socialLinks[platform as keyof typeof socialLinks].trim() === '';
+    
+    // If trying to fill a 4th field (current field is empty and we already have 3 filled)
+    if (isCurrentFieldEmpty && value.trim() !== '' && currentFilledCount >= 3) {
+      Alert.alert(
+        'Limit Reached',
+        'You can only add up to 3 social media links. Please remove one existing link before adding a new one.',
+        [{ text: 'OK' }]
+      );
+      return;
+    }
+
     setSocialLinks(prev => ({
       ...prev,
       [platform]: value
@@ -103,15 +117,15 @@ const SocialMediaLinks: React.FC = () => {
         <View style={EditProfile.InfoFrame}>
           <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
             <View style={{ 
-              width: 20, 
-              height: 20, 
-              borderRadius: 10, 
+              width: 24, 
+              height: 24, 
+              borderRadius: 12, 
               backgroundColor: '#1877F2', 
               marginRight: 8,
               justifyContent: 'center',
               alignItems: 'center'
             }}>
-              <ThemedText style={{ color: 'white', fontSize: 12, fontWeight: 'bold' }}>f</ThemedText>
+              <ThemedText style={{ color: 'white', fontSize: 14, fontWeight: 'bold' }}>f</ThemedText>
             </View>
             <ThemedText style={EditProfile.InfoLabel}>Facebook</ThemedText>
           </View>
@@ -131,15 +145,15 @@ const SocialMediaLinks: React.FC = () => {
         <View style={EditProfile.InfoFrame}>
           <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
             <View style={{ 
-              width: 20, 
-              height: 20, 
-              borderRadius: 10, 
+              width: 24, 
+              height: 24, 
+              borderRadius: 12, 
               backgroundColor: '#1DA1F2', 
               marginRight: 8,
               justifyContent: 'center',
               alignItems: 'center'
             }}>
-              <ThemedText style={{ color: 'white', fontSize: 12, fontWeight: 'bold' }}>𝕏</ThemedText>
+              <ThemedText style={{ color: 'white', fontSize: 14, fontWeight: 'bold' }}>𝕏</ThemedText>
             </View>
             <ThemedText style={EditProfile.InfoLabel}>Twitter / X</ThemedText>
           </View>
@@ -159,15 +173,15 @@ const SocialMediaLinks: React.FC = () => {
         <View style={EditProfile.InfoFrame}>
           <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
             <View style={{ 
-              width: 20, 
-              height: 20, 
-              borderRadius: 10, 
+              width: 24, 
+              height: 24, 
+              borderRadius: 12, 
               backgroundColor: '#E4405F', 
               marginRight: 8,
               justifyContent: 'center',
               alignItems: 'center'
             }}>
-              <ThemedText style={{ color: 'white', fontSize: 12, fontWeight: 'bold' }}>📷</ThemedText>
+              <ThemedText style={{ color: 'white', fontSize: 14, fontWeight: 'bold' }}>📷</ThemedText>
             </View>
             <ThemedText style={EditProfile.InfoLabel}>Instagram</ThemedText>
           </View>
@@ -187,15 +201,15 @@ const SocialMediaLinks: React.FC = () => {
         <View style={EditProfile.InfoFrame}>
           <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
             <View style={{ 
-              width: 20, 
-              height: 20, 
-              borderRadius: 10, 
+              width: 24, 
+              height: 24, 
+              borderRadius: 12, 
               backgroundColor: '#FFFC00', 
               marginRight: 8,
               justifyContent: 'center',
               alignItems: 'center'
             }}>
-              <ThemedText style={{ color: 'black', fontSize: 12, fontWeight: 'bold' }}>👻</ThemedText>
+              <ThemedText style={{ color: 'black', fontSize: 14, fontWeight: 'bold' }}>👻</ThemedText>
             </View>
             <ThemedText style={EditProfile.InfoLabel}>Snapchat</ThemedText>
           </View>
@@ -215,15 +229,15 @@ const SocialMediaLinks: React.FC = () => {
         <View style={EditProfile.InfoFrame}>
           <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
             <View style={{ 
-              width: 20, 
-              height: 20, 
-              borderRadius: 10, 
+              width: 24, 
+              height: 24, 
+              borderRadius: 12, 
               backgroundColor: '#FF0000', 
               marginRight: 8,
               justifyContent: 'center',
               alignItems: 'center'
             }}>
-              <ThemedText style={{ color: 'white', fontSize: 12, fontWeight: 'bold' }}>▶</ThemedText>
+              <ThemedText style={{ color: 'white', fontSize: 14, fontWeight: 'bold' }}>▶</ThemedText>
             </View>
             <ThemedText style={EditProfile.InfoLabel}>YouTube</ThemedText>
           </View>

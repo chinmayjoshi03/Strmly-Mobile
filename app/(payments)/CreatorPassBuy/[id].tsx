@@ -181,7 +181,6 @@ const CreatorPassBuy = () => {
         const data = await response.json();
         console.log("dWallet data---------------", data.wallet);
         setWalletInfo(data.wallet);
-        // (data.isLiked);
       } catch (err) {
         console.log(err);
       }

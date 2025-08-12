@@ -11,7 +11,7 @@ import {
   StatusBar,
 } from "react-native";
 import { useRouter, useLocalSearchParams } from "expo-router";
-import { ArrowLeft, PaperclipIcon, CameraIcon, SearchIcon, UserIcon, ChevronRight } from "lucide-react-native";
+import { ArrowLeft, ChevronRight } from "lucide-react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { CONFIG } from "@/Constants/config";
 import { useAuthStore } from "@/store/useAuthStore";
@@ -56,8 +56,8 @@ export default function ProfileSections() {
     <View key={user._id} className="flex-row items-center justify-between py-4 px-4">
       <View className="flex-row items-center flex-1">
         <Image
-          source={{ 
-            uri: user.profile_photo || 'https://api.dicebear.com/7.x/identicon/svg?seed=' + user.username 
+          source={{
+            uri: user.profile_photo || 'https://api.dicebear.com/7.x/identicon/svg?seed=' + user.username
           }}
           className="w-12 h-12 rounded-full mr-3"
         />
@@ -72,8 +72,8 @@ export default function ProfileSections() {
       </View>
       <View className="items-end">
         <Text className="text-white font-bold text-lg" style={{ fontFamily: 'Poppins' }}>
-          {user.total_followers 
-            ? user.total_followers >= 1000000 
+          {user.total_followers
+            ? user.total_followers >= 1000000
               ? `${(user.total_followers / 1000000).toFixed(1)}M`
               : user.total_followers >= 1000
                 ? `${(user.total_followers / 1000).toFixed(1)}K`
@@ -87,8 +87,8 @@ export default function ProfileSections() {
   );
 
   const renderCommunityItem = (community: Community) => (
-    <TouchableOpacity 
-      key={community._id} 
+    <TouchableOpacity
+      key={community._id}
       className="flex-row items-center justify-between py-4 px-4"
       onPress={() => router.push({
         pathname: "/(communities)/CommunityDetails",
@@ -97,8 +97,8 @@ export default function ProfileSections() {
     >
       <View className="flex-row items-center flex-1">
         <Image
-          source={{ 
-            uri: community.profile_photo || 'https://api.dicebear.com/7.x/identicon/svg?seed=' + community.name 
+          source={{
+            uri: community.profile_photo || 'https://api.dicebear.com/7.x/identicon/svg?seed=' + community.name
           }}
           className="w-12 h-12 rounded-full mr-3"
         />
@@ -118,8 +118,8 @@ export default function ProfileSections() {
           <View className="flex-row items-center space-x-4">
             <View className="items-center">
               <Text className="text-white font-bold text-sm" style={{ fontFamily: 'Poppins' }}>
-                {community.creators?.length 
-                  ? community.creators.length >= 1000 
+                {community.creators?.length
+                  ? community.creators.length >= 1000
                     ? `${(community.creators.length / 1000).toFixed(1)}K`
                     : community.creators.length.toString()
                   : '0'
@@ -129,8 +129,8 @@ export default function ProfileSections() {
             </View>
             <View className="items-center">
               <Text className="text-white font-bold text-sm" style={{ fontFamily: 'Poppins' }}>
-                {community.followers?.length 
-                  ? community.followers.length >= 1000000 
+                {community.followers?.length
+                  ? community.followers.length >= 1000000
                     ? `${(community.followers.length / 1000000).toFixed(1)}M`
                     : community.followers.length >= 1000
                       ? `${(community.followers.length / 1000).toFixed(1)}K`
@@ -152,9 +152,9 @@ export default function ProfileSections() {
   return (
     <ThemedView className="flex-1">
       <StatusBar barStyle="light-content" backgroundColor="black" />
-      
+
       {/* Header with proper spacing from status bar */}
-      <View 
+      <View
         className="flex-row items-center justify-between px-4 py-3"
         style={{ paddingTop: insets.top + 10 }}
       >
@@ -168,62 +168,58 @@ export default function ProfileSections() {
       </View>
 
       {/* Horizontally Scrollable Tabs */}
-      <ScrollView 
-        horizontal 
+      <ScrollView
+        horizontal
         showsHorizontalScrollIndicator={false}
         className="flex-grow-0"
         contentContainerStyle={{ paddingHorizontal: 16 }}
       >
         <View className="flex-row space-x-20 py-3">
           <TouchableOpacity
-            className={`py-2 px-2 ${
-              activeSection === "followers" ? "border-b-2 border-white" : ""
-            }`}
+            className={`py-2 px-2 ${activeSection === "followers" ? "border-b-2 border-white" : ""
+              }`}
             onPress={() => changeSection("followers")}
           >
-            <Text 
+            <Text
               className={`${activeSection === "followers" ? "text-white font-semibold" : "text-gray-400"} whitespace-nowrap text-lg`}
               style={{ fontFamily: 'Poppins' }}
             >
               {counts.followers} Followers
             </Text>
           </TouchableOpacity>
-          
+
           <TouchableOpacity
-            className={`py-2 px-2 ${
-              activeSection === "following" ? "border-b-2 border-white" : ""
-            }`}
+            className={`py-2 px-2 ${activeSection === "following" ? "border-b-2 border-white" : ""
+              }`}
             onPress={() => changeSection("following")}
           >
-            <Text 
+            <Text
               className={`${activeSection === "following" ? "text-white font-semibold" : "text-gray-400"} whitespace-nowrap text-lg`}
               style={{ fontFamily: 'Poppins' }}
             >
               {counts.following} Following
             </Text>
           </TouchableOpacity>
-          
+
           <TouchableOpacity
-            className={`py-2 px-2 ${
-              activeSection === "myCommunity" ? "border-b-2 border-white" : ""
-            }`}
+            className={`py-2 px-2 ${activeSection === "myCommunity" ? "border-b-2 border-white" : ""
+              }`}
             onPress={() => changeSection("myCommunity")}
           >
-            <Text 
+            <Text
               className={`${activeSection === "myCommunity" ? "text-white font-semibold" : "text-gray-400"} whitespace-nowrap text-lg`}
               style={{ fontFamily: 'Poppins' }}
             >
               {counts.myCommunity} My Community
             </Text>
           </TouchableOpacity>
-          
+
           <TouchableOpacity
-            className={`py-2 px-2 ${
-              activeSection === "community" ? "border-b-2 border-white" : ""
-            }`}
+            className={`py-2 px-2 ${activeSection === "community" ? "border-b-2 border-white" : ""
+              }`}
             onPress={() => changeSection("community")}
           >
-            <Text 
+            <Text
               className={`${activeSection === "community" ? "text-white font-semibold" : "text-gray-400"} whitespace-nowrap text-lg`}
               style={{ fontFamily: 'Poppins' }}
             >
@@ -248,7 +244,7 @@ export default function ProfileSections() {
       </View>
 
       {/* Content */}
-      <ScrollView className="flex-1" style={{ marginBottom: 80 }}>
+      <ScrollView className="flex-1">
         {loading ? (
           <View className="flex-1 items-center justify-center py-20">
             <ActivityIndicator size="large" color="#F1C40F" />
@@ -283,8 +279,8 @@ export default function ProfileSections() {
 
       {/* Create Community Button (only for My Community tab) */}
       {activeSection === "myCommunity" && (
-        <View className="px-4 py-3" style={{ marginBottom: 80 }}>
-          <TouchableOpacity 
+        <View className="px-4 py-3">
+          <TouchableOpacity
             className="bg-white rounded-full py-3"
             onPress={() => router.push("/(communities)/CreateCommunityPage")}
           >
@@ -295,26 +291,7 @@ export default function ProfileSections() {
         </View>
       )}
 
-      {/* Bottom Navigation Bar */}
-      <View className="absolute bottom-0 left-0 right-0 bg-black border-t border-gray-800">
-        <View 
-          className="flex-row justify-around items-center py-2"
-          style={{ paddingBottom: insets.bottom + 10 }}
-        >
-          <TouchableOpacity className="p-3">
-            <PaperclipIcon size={24} color="gray" />
-          </TouchableOpacity>
-          <TouchableOpacity className="p-3">
-            <CameraIcon size={24} color="gray" />
-          </TouchableOpacity>
-          <TouchableOpacity className="p-3">
-            <SearchIcon size={24} color="gray" />
-          </TouchableOpacity>
-          <TouchableOpacity className="p-3">
-            <UserIcon size={24} color="white" />
-          </TouchableOpacity>
-        </View>
-      </View>
+
     </ThemedView>
   );
 }

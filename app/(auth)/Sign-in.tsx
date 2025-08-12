@@ -19,6 +19,7 @@ import { useAuthStore } from "@/store/useAuthStore";
 import CONFIG from "@/Constants/config";
 import ModalMessage from "@/components/AuthModalMessage";
 
+
 const SignIn = () => {
   const [useEmail, setUseEmail] = useState(false);
   const [nameOrEmail, setNameOrEmail] = useState("");
@@ -84,11 +85,7 @@ const SignIn = () => {
       setAlert("Login successful!");
       setShowAlert(() => true);
       setNeedButton(false);
-      if(isOnboarded){
-        setTimeout(() => router.replace("/(dashboard)/long/VideosFeed"), 1000);
-      } else{
-        setTimeout(() => router.replace("/(InterestsSection)/Interests"), 1000);
-      }
+      setTimeout(() => router.replace("/(tabs)/home"), 1000);
     } catch (error: any) {
       console.error("Login Error", error);
       setAlert(error.message || "Something went wrong");

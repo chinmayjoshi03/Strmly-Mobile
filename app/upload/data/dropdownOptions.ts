@@ -1,4 +1,5 @@
 import { DropdownOption } from '../types';
+import { YOUTUBE_CATEGORIES, NETFLIX_CATEGORIES } from '@/Constants/contentCategories';
 
 /**
  * Dropdown Options Data
@@ -13,6 +14,8 @@ import { DropdownOption } from '../types';
 
 // Community options are now fetched dynamically via useCommunities hook
 // This static array is kept as fallback only
+// Community options are now fetched dynamically via useCommunities hook
+// This static array is kept as fallback only
 export const communityOptions: DropdownOption[] = [
   {
     label: 'No Community',
@@ -25,11 +28,11 @@ export const communityOptions: DropdownOption[] = [
 export const formatOptions: DropdownOption[] = [
   {
     label: 'Netflix',
-    value: 'netflix',
+    value: 'Netflix',
   },
   {
-    label: 'Youtube',
-    value: 'youtube',
+    label: 'YouTube',
+    value: 'YouTube',
   },
 ];
 
@@ -46,8 +49,24 @@ export const videoTypeOptions: DropdownOption[] = [
   },
 ];
 
-// Genre options for video classification - matching Draft model enum values
+// Genre options for video classification - dynamic based on format selection
 // Backend: GET /api/genres
+export const getGenreOptions = (format: 'Netflix' | 'YouTube' | null): DropdownOption[] => {
+  if (format === 'YouTube') {
+    return YOUTUBE_CATEGORIES.map(category => ({
+      label: category,
+      value: category,
+    }));
+  } else if (format === 'Netflix') {
+    return NETFLIX_CATEGORIES.map(category => ({
+      label: category,
+      value: category,
+    }));
+  }
+  return [];
+};
+
+// Legacy genre options for backward compatibility
 export const genreOptions: DropdownOption[] = [
   {
     label: 'Action',
@@ -95,15 +114,17 @@ export const genreOptions: DropdownOption[] = [
  * Helper function to get options by type
  * Useful for dynamic option loading
  * Note: Community options are now fetched dynamically via useCommunities hook
+ * Note: Genre options are now dynamic based on format - use getGenreOptions instead
  */
-export const getDropdownOptions = (type: 'community' | 'format' | 'genre' | 'videoType'): DropdownOption[] => {
+export const getDropdownOptions = (type: 'community' | 'format' | 'genre' | 'videoType', format?: 'Netflix' | 'YouTube' | null): DropdownOption[] => {
   switch (type) {
     case 'community':
+      return communityOptions; // Fallback only - use useCommunities hook instead
       return communityOptions; // Fallback only - use useCommunities hook instead
     case 'format':
       return formatOptions;
     case 'genre':
-      return genreOptions;
+      return format ? getGenreOptions(format) : genreOptions; // Use dynamic options if format provided
     case 'videoType':
       return videoTypeOptions;
     default:

@@ -1,11 +1,13 @@
-import React, { useState, useEffect } from "react";
-import { View, Text, TextInput, FlatList, Dimensions, TouchableOpacity, ActivityIndicator, Image, StyleSheet, ImageBackground, StatusBar, ScrollView } from "react-native";
+import React, { useState, useEffect, useCallback } from "react";
+import { View, Text, TextInput, FlatList, Dimensions, TouchableOpacity, ActivityIndicator, Image, StyleSheet, ImageBackground, StatusBar, ScrollView, BackHandler } from "react-native";
 import { useFonts } from "expo-font";
 import { useRouter } from "expo-router";
 import ThemedText from "@/components/ThemedText";
 import { useSearch } from "./hooks/useSearch";
 import { communityActions } from "@/api/community/communityActions";
 import { useAuthStore } from "@/store/useAuthStore";
+import { CONFIG } from "@/Constants/config";
+import VideoPlayer from "@/app/(dashboard)/long/_components/VideoPlayer";
 
 const { width } = Dimensions.get("window");
 const itemSize = width / 3;
@@ -17,8 +19,16 @@ const SearchScreen: React.FC = () => {
     const [trendingVideos, setTrendingVideos] = useState<any[]>([]);
     const [trendingLoading, setTrendingLoading] = useState<boolean>(false);
     const [trendingError, setTrendingError] = useState<string>('');
-    
+
+    // Video player state
+    const [isVideoPlayerActive, setIsVideoPlayerActive] = useState(false);
+    const [currentVideoData, setCurrentVideoData] = useState<any>(null);
+    const [currentVideoList, setCurrentVideoList] = useState<any[]>([]);
+    const [currentVideoIndex, setCurrentVideoIndex] = useState(0);
+    const [showCommentsModal, setShowCommentsModal] = useState(false);
+
     const tabs = ["Videos", "Accounts", "Communities"];
+
 
     const { token } = useAuthStore();
     const { searchResults, isLoading: searchLoading, error: searchError, performSearch, clearSearch } = useSearch();
@@ -40,6 +50,20 @@ const SearchScreen: React.FC = () => {
     useEffect(() => {
         loadTrendingVideos();
     }, []);
+
+    // Handle back button press
+    useEffect(() => {
+        const backAction = () => {
+            if (isVideoPlayerActive) {
+                closeVideoPlayer();
+                return true; // Prevent default back action
+            }
+            return false; // Allow default back action
+        };
+
+        const backHandler = BackHandler.addEventListener('hardwareBackPress', backAction);
+        return () => backHandler.remove();
+    }, [isVideoPlayerActive]);
 
     // Handle search with debouncing
     useEffect(() => {
@@ -63,33 +87,37 @@ const SearchScreen: React.FC = () => {
         setTrendingError('');
 
         try {
-            const response = await communityActions.getTrendingVideos(token, 20);
-            console.log('Trending videos response:', response);
-            setTrendingVideos(response.videos || []);
+            // Use the videos/trending endpoint instead of community/trending-videos
+            const response = await fetch(`${CONFIG.API_BASE_URL}/videos/trending?page=1&limit=20`, {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`,
+                },
+            });
+
+            if (!response.ok) {
+                throw new Error(`Failed to fetch trending videos: ${response.status}`);
+            }
+
+            const data = await response.json();
+            console.log('Trending videos response:', data);
+            
+            // The videos/trending endpoint returns data.data array
+            const videos = data.data || [];
+            console.log('📹 Loaded trending videos:', videos.length, 'videos');
+            console.log('📹 First video sample:', videos[0] ? {
+                id: videos[0]._id,
+                title: videos[0].title || videos[0].name,
+                hasVideoUrl: !!(videos[0].videoUrl || videos[0].video),
+                thumbnailUrl: videos[0].thumbnailUrl || videos[0].thumbnail
+            } : 'No videos');
+            setTrendingVideos(videos);
         } catch (error) {
             console.error('Error loading trending videos:', error);
             setTrendingError(error instanceof Error ? error.message : 'Failed to load trending videos');
-            // Fallback to sample data if API fails
-            setTrendingVideos([
-                {
-                    _id: '1',
-                    title: 'Trending Video 1',
-                    thumbnailUrl: 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=800&q=80',
-                    community: { name: 'Tech Community' }
-                },
-                {
-                    _id: '2',
-                    title: 'Trending Video 2',
-                    thumbnailUrl: 'https://images.unsplash.com/photo-1518709268805-4e9042af2176?auto=format&fit=crop&w=800&q=80',
-                    community: { name: 'Gaming Community' }
-                },
-                {
-                    _id: '3',
-                    title: 'Trending Video 3',
-                    thumbnailUrl: 'https://images.unsplash.com/photo-1542831371-29b0f74f9713?auto=format&fit=crop&w=800&q=80',
-                    community: { name: 'Music Community' }
-                }
-            ]);
+            // Set empty array instead of hardcoded data
+            setTrendingVideos([]);
         } finally {
             setTrendingLoading(false);
         }
@@ -125,18 +153,47 @@ const SearchScreen: React.FC = () => {
         }
     };
 
+    const navigateToVideoPlayer = (videoData: any, allVideos: any[]) => {
+        console.log('🎬 Opening video player for:', videoData.title || videoData.name);
+        // Find the index of the current video in the array
+        const currentIndex = allVideos.findIndex(video => video._id === videoData._id);
+        
+        // Set video player state to show the integrated player
+        setCurrentVideoData(videoData);
+        setCurrentVideoList(allVideos);
+        setCurrentVideoIndex(currentIndex >= 0 ? currentIndex : 0);
+        setIsVideoPlayerActive(true);
+    };
+
+    const closeVideoPlayer = () => {
+        setIsVideoPlayerActive(false);
+        setCurrentVideoData(null);
+        setCurrentVideoList([]);
+        setCurrentVideoIndex(0);
+        setShowCommentsModal(false);
+    };
+
+    // Define the viewable items changed callback at component level
+    const onViewableItemsChanged = useCallback(({ viewableItems }: any) => {
+        if (viewableItems.length > 0) {
+            setCurrentVideoIndex(viewableItems[0].index);
+        }
+    }, []);
+
     // Render video items with thumbnail styling
     const renderVideoItem = ({ item }: { item: any }) => {
-        const thumbnailUrl = item.thumbnail || item.posterUrl || 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=800&q=80';
+        const thumbnailUrl = item.thumbnail || item.thumbnailUrl || item.posterUrl || 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=800&q=80';
         const communityId = item.community?._id || item.community?.id || item.communityId;
 
         return (
             <TouchableOpacity
                 onPress={() => {
-                    if (communityId) {
-                        navigateToCommunity(communityId);
+                    // For search results, always try to play the video if it has videoUrl
+                    if (item.videoUrl || item.video) {
+                        const currentTabVideos = getCurrentTabData();
+                        navigateToVideoPlayer(item, currentTabVideos);
                     } else {
-                        console.log('⚠️ No community ID found for video:', item.title);
+                        console.log('⚠️ No video URL found for:', item.title || item.name);
                     }
                 }}
             >
@@ -146,7 +203,7 @@ const SearchScreen: React.FC = () => {
                     imageStyle={{ resizeMode: 'cover' }}
                 >
                     <View style={styles.trendingOverlay}>
-                        <Text style={styles.label}>{item.title || 'Untitled'}</Text>
+                        <Text style={styles.label}>{item.title || item.name || 'Untitled'}</Text>
                         {item.community && (
                             <Text style={styles.communityLabel}>{item.community.name}</Text>
                         )}
@@ -161,8 +218,20 @@ const SearchScreen: React.FC = () => {
 
     // Render account items like followers/following in profile
     const renderAccountItem = ({ item }: { item: any }) => {
-        const profilePhoto = item.profile_photo || item.profile_picture || `https://api.dicebear.com/7.x/identicon/svg?seed=${item.username}`;
+        const userName = item.username || item.name || 'user';
+        const profilePhoto = (item.profile_photo && item.profile_photo.trim() !== '')
+            ? item.profile_photo
+            : (item.profile_picture && item.profile_picture.trim() !== '')
+                ? item.profile_picture
+                : `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(userName)}&backgroundColor=random`;
         const userId = item._id || item.id;
+
+        console.log('�️ Account imcage data:', {
+            username: userName,
+            profile_photo: item.profile_photo,
+            profile_picture: item.profile_picture,
+            finalUrl: profilePhoto
+        });
 
         return (
             <TouchableOpacity
@@ -179,6 +248,9 @@ const SearchScreen: React.FC = () => {
                     <Image
                         source={{ uri: profilePhoto }}
                         style={styles.accountAvatar}
+                        onError={() => {
+                            console.log('Failed to load account profile photo:', item.username);
+                        }}
                     />
                     <View style={styles.accountInfo}>
                         <Text style={styles.accountName}>{item.username}</Text>
@@ -199,8 +271,17 @@ const SearchScreen: React.FC = () => {
 
     // Render community items like communities in profile
     const renderCommunityItem = ({ item }: { item: any }) => {
-        const profilePhoto = item.profile_photo || `https://api.dicebear.com/7.x/identicon/svg?seed=${item.name}`;
+        const communityName = item.name || 'community';
+        const profilePhoto = (item.profile_photo && item.profile_photo.trim() !== '')
+            ? item.profile_photo
+            : `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(communityName)}&backgroundColor=random`;
         const communityId = item._id || item.id;
+
+        console.log('🖼️ Community image data:', {
+            name: communityName,
+            profile_photo: item.profile_photo,
+            finalUrl: profilePhoto
+        });
 
         return (
             <TouchableOpacity
@@ -217,6 +298,9 @@ const SearchScreen: React.FC = () => {
                     <Image
                         source={{ uri: profilePhoto }}
                         style={styles.communityAvatar}
+                        onError={() => {
+                            console.log('Failed to load community profile photo:', item.name);
+                        }}
                     />
                     <View style={styles.communityInfo}>
                         <Text style={styles.communityName}>{item.name}</Text>
@@ -259,10 +343,11 @@ const SearchScreen: React.FC = () => {
         return (
             <TouchableOpacity
                 onPress={() => {
+                    // For trending videos, navigate to community public page
                     if (communityId) {
                         navigateToCommunity(communityId);
                     } else {
-                        console.log('⚠️ No community ID found for trending video:', item.title);
+                        console.log('⚠️ No community ID found for trending video:', item.title || item.name);
                     }
                 }}
             >
@@ -319,14 +404,14 @@ const SearchScreen: React.FC = () => {
                         <TouchableOpacity
                             style={[
                                 styles.selectionButton,
-                                selectedTab === index && styles.selectedButton
+                                selectedTab === index ? styles.selectedButton : {}
                             ]}
                             key={index}
                             onPress={() => setSelectedTab(index)}
                         >
                             <ThemedText style={[
                                 styles.tab,
-                                selectedTab === index && styles.selectedText
+                                selectedTab === index ? styles.selectedText : {}
                             ]}>
                                 {label}
                             </ThemedText>
@@ -354,15 +439,17 @@ const SearchScreen: React.FC = () => {
             {!(searchLoading || trendingLoading) && (
                 <FlatList
                     data={isSearchActive ? getCurrentTabData() : trendingVideos}
-                    numColumns={isSearchActive ? 1 : 3}
-                    key={isSearchActive ? 'search' : 'default'} // Force re-render when switching modes
+                    numColumns={isSearchActive && selectedTab !== 0 ? 1 : 3} // Show videos in grid (3 columns), others in list (1 column)
+                    key={isSearchActive ? `search-${selectedTab}` : 'default'} // Force re-render when switching modes or tabs
                     keyExtractor={(item, index) =>
-                        isSearchActive ? `search-${item.id || index}` : `default-${item._id || index}`
+                        isSearchActive ? `search-${item.id || item._id || index}` : `default-${item._id || index}`
                     }
                     renderItem={isSearchActive ? renderSearchResultItem : renderTrendingItem}
-                    contentContainerStyle={isSearchActive ? styles.searchResultsContainer : styles.grid}
+                    contentContainerStyle={[
+                        isSearchActive && selectedTab !== 0 ? styles.searchResultsContainer : styles.grid,
+                        { paddingBottom: 100 }
+                    ]}
                     showsVerticalScrollIndicator={false}
-                    style={{ marginBottom: 80 }}
                     ListEmptyComponent={
                         isSearchActive ? (
                             <View style={styles.emptyContainer}>
@@ -394,6 +481,41 @@ const SearchScreen: React.FC = () => {
                     }
                 />
             )}
+
+            {/* Integrated Video Player */}
+            {isVideoPlayerActive && currentVideoData && (
+                <View style={styles.videoPlayerOverlay}>
+                    <FlatList
+                        data={currentVideoList}
+                        keyExtractor={(item) => item._id}
+                        renderItem={({ item, index }) => (
+                            <VideoPlayer
+                                key={`${item._id}-${index === currentVideoIndex}`}
+                                videoData={item}
+                                isActive={index === currentVideoIndex}
+                                showCommentsModal={showCommentsModal}
+                                setShowCommentsModal={setShowCommentsModal}
+                            />
+                        )}
+                        style={{ flex: 1 }}
+                        getItemLayout={(_, index) => ({
+                            length: Dimensions.get('screen').height,
+                            offset: Dimensions.get('screen').height * index,
+                            index,
+                        })}
+                        initialScrollIndex={currentVideoIndex}
+                        pagingEnabled
+                        onViewableItemsChanged={onViewableItemsChanged}
+                        viewabilityConfig={{ itemVisiblePercentThreshold: 80 }}
+                        decelerationRate="fast"
+                        showsVerticalScrollIndicator={false}
+                        snapToInterval={Dimensions.get('screen').height}
+                        snapToAlignment="start"
+                    />
+                </View>
+            )}
+
+
         </View>
     );
 };
@@ -459,9 +581,11 @@ const styles = StyleSheet.create({
     label: {
         color: '#fff',
         fontSize: 12,
-        fontFamily: 'Poppins-SemiBold',
+        fontFamily: 'Poppins-Medium',
+        marginBottom: 2,
     },
 
+    // Loading and error states
     // Loading and error states
     loadingContainer: {
         flex: 1,
@@ -485,9 +609,13 @@ const styles = StyleSheet.create({
     },
 
     // Search results container
+
+    // Search results container
     searchResultsContainer: {
         padding: 10,
     },
+
+    // Overlay styles
 
     // Overlay styles
     trendingOverlay: {
@@ -501,6 +629,8 @@ const styles = StyleSheet.create({
         fontFamily: 'Poppins-Light',
         marginTop: 2,
     },
+
+    // Empty state styles
 
     // Empty state styles
     emptyContainer: {
@@ -591,6 +721,7 @@ const styles = StyleSheet.create({
         fontFamily: 'Poppins-Light',
     },
 
+
     // Community styling (similar to communities in profile)
     communityRow: {
         flexDirection: 'row',
@@ -645,6 +776,17 @@ const styles = StyleSheet.create({
         color: '#aaa',
         fontSize: 12,
         fontFamily: 'Poppins-Light',
+    },
+
+    // Video player overlay
+    videoPlayerOverlay: {
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        backgroundColor: 'black',
+        zIndex: 1000,
     },
 });
 

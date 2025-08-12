@@ -164,7 +164,6 @@ const VideoDetails = ({
     if (!token || !community?._id) {
       return;
     }
-
     setIsFollowCommunityLoading(true);
     try {
       const response = await fetch(

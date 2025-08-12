@@ -35,6 +35,11 @@ interface EpisodeVideoPlayerProps {
   seriesTitle?: string;
   episodeNumber?: number;
   seasonNumber?: number;
+  videoData?: VideoItemType;
+  setGiftingData?: (data: any) => void;
+  setIsWantToGift?: (value: boolean) => void;
+  showCommentsModal?: boolean;
+  setShowCommentsModal?: (value: boolean) => void;
   style?: any;
 }
 
@@ -45,14 +50,22 @@ export const EpisodeVideoPlayer: React.FC<EpisodeVideoPlayerProps> = (props) => 
     autoPlay={true}
     loop={false}
     showControls={true}
+    showInteractions={!!props.videoData}
+    showDetails={!!props.videoData}
+    showComments={!!props.setShowCommentsModal}
   />
 );
 
 interface StudioVideoPlayerProps {
   uri: string;
   title?: string;
+  videoData?: VideoItemType;
   onDelete?: () => void;
   showDeleteButton?: boolean;
+  setGiftingData?: (data: any) => void;
+  setIsWantToGift?: (value: boolean) => void;
+  showCommentsModal?: boolean;
+  setShowCommentsModal?: (value: boolean) => void;
   style?: any;
 }
 
@@ -63,6 +76,9 @@ export const StudioVideoPlayer: React.FC<StudioVideoPlayerProps> = (props) => (
     autoPlay={false}
     loop={false}
     showControls={true}
+    showInteractions={!!props.videoData}
+    showDetails={!!props.videoData}
+    showComments={!!props.setShowCommentsModal}
   />
 );
 
@@ -88,6 +104,10 @@ interface FullscreenVideoPlayerProps {
   videoData?: VideoItemType;
   title?: string;
   onClose?: () => void;
+  setGiftingData?: (data: any) => void;
+  setIsWantToGift?: (value: boolean) => void;
+  showCommentsModal?: boolean;
+  setShowCommentsModal?: (value: boolean) => void;
 }
 
 export const FullscreenVideoPlayer: React.FC<FullscreenVideoPlayerProps> = (props) => (
@@ -99,6 +119,7 @@ export const FullscreenVideoPlayer: React.FC<FullscreenVideoPlayerProps> = (prop
     showControls={true}
     showInteractions={!!props.videoData}
     showDetails={!!props.videoData}
+    showComments={!!props.setShowCommentsModal}
   />
 );
 

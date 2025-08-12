@@ -1,29 +1,66 @@
 import { View, Text, FlatList, Image, TouchableOpacity, ActivityIndicator } from "react-native";
 import React, { useEffect } from "react";
-import { ChevronLeft } from "lucide-react-native";
+import { ChevronLeft, Play, Users } from "lucide-react-native";
 import { useAuthStore } from "@/store/useAuthStore";
-import { useTransactionHistory } from "./useTransactionHistory";
+import { useDashboard } from "../../profile/_components/useDashboard";
 
 const RevenueHistory = ({ closeTBalance }: { closeTBalance: any }) => {
   const { token } = useAuthStore();
-  const { transactions, isLoading, error, fetchTransactionHistory } = useTransactionHistory(token || "");
+  const { revenueBreakdown, loading, error } = useDashboard(token || "", "revenue");
 
-  useEffect(() => {
-    if (token) {
-      fetchTransactionHistory();
-    }
-  }, [token]);
+  // Create revenue history items from dashboard data
+  const revenueItems = React.useMemo(() => {
+    console.log('🔍 RevenueHistory - revenueBreakdown:', revenueBreakdown);
+    
+    if (!revenueBreakdown) return [];
 
-  // Filter transactions to show only revenue-related ones (credits)
-  const revenueTransactions = transactions.filter(transaction => 
-    transaction.type === 'credit' && 
-    (transaction.description.toLowerCase().includes('revenue') ||
-     transaction.description.toLowerCase().includes('earning') ||
-     transaction.description.toLowerCase().includes('view') ||
-     transaction.description.toLowerCase().includes('engagement') ||
-     transaction.description.toLowerCase().includes('gift') ||
-     transaction.description.toLowerCase().includes('creator'))
-  );
+    const items = [];
+    const currentDate = new Date().toISOString();
+
+    // Show all revenue sources, including those with 0 values
+    items.push({
+      id: 'content',
+      description: 'Content Subscription',
+      amount: revenueBreakdown.contentSubscription || 0,
+      date: currentDate,
+      type: 'content'
+    });
+
+    items.push({
+      id: 'creator-pass',
+      description: 'Creator Pass',
+      amount: revenueBreakdown.creatorPass || 0,
+      date: currentDate,
+      type: 'creator-pass'
+    });
+
+    items.push({
+      id: 'gifting',
+      description: 'Gifting Earnings',
+      amount: revenueBreakdown.giftingEarning || 0,
+      date: currentDate,
+      type: 'gifting'
+    });
+
+    items.push({
+      id: 'community',
+      description: 'Community Fee',
+      amount: revenueBreakdown.communityFee || 0,
+      date: currentDate,
+      type: 'community'
+    });
+
+    items.push({
+      id: 'ads',
+      description: 'Strmly Ads',
+      amount: revenueBreakdown.strmlyAds || 0,
+      date: currentDate,
+      type: 'ads'
+    });
+
+    console.log('🔍 RevenueHistory - generated items:', items);
+    return items;
+  }, [revenueBreakdown]);
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
@@ -32,6 +69,45 @@ const RevenueHistory = ({ closeTBalance }: { closeTBalance: any }) => {
       month: 'short',
       year: 'numeric'
     });
+  };
+
+  const renderIcon = (type: string) => {
+    switch (type) {
+      case 'content':
+      case 'creator-pass':
+        return (
+          <View className="w-12 h-12 rounded-full bg-gray-500 justify-center items-center">
+            <Play size={24} color="white" />
+          </View>
+        );
+      case 'community':
+        return (
+          <View className="w-12 h-12 rounded-full bg-gray-500 justify-center items-center">
+            <Users size={24} color="white" />
+          </View>
+        );
+      case 'gifting':
+        return (
+          <Image
+            source={require("../../../../assets/images/rupee.png")}
+            className="w-12 h-12 rounded-full bg-gray-500"
+          />
+        );
+      case 'ads':
+        return (
+          <Image
+            source={require("../../../../assets/images/bank-icon.png")}
+            className="w-12 h-12 rounded-full bg-gray-500"
+          />
+        );
+      default:
+        return (
+          <Image
+            source={require("../../../../assets/images/rupee.png")}
+            className="w-12 h-12 rounded-full bg-gray-500"
+          />
+        );
+    }
   };
 
   return (
@@ -50,7 +126,7 @@ const RevenueHistory = ({ closeTBalance }: { closeTBalance: any }) => {
         <View></View>
       </View>
 
-      {isLoading ? (
+      {loading ? (
         <View className="flex-1 justify-center items-center">
           <ActivityIndicator size="large" color="#fff" />
           <Text className="text-white mt-2">Loading revenue...</Text>
@@ -58,48 +134,36 @@ const RevenueHistory = ({ closeTBalance }: { closeTBalance: any }) => {
       ) : error ? (
         <View className="flex-1 justify-center items-center">
           <Text className="text-red-400 text-center">{error}</Text>
-          <TouchableOpacity 
-            onPress={() => fetchTransactionHistory()}
-            className="mt-4 bg-blue-600 px-4 py-2 rounded"
-          >
-            <Text className="text-white">Retry</Text>
-          </TouchableOpacity>
         </View>
-      ) : revenueTransactions.length === 0 ? (
+      ) : revenueItems.length === 0 ? (
         <View className="flex-1 justify-center items-center">
-          <Text className="text-gray-400 text-center">No revenue transactions found</Text>
+          <Text className="text-gray-400 text-center">No revenue data found</Text>
+          <Text className="text-gray-500 text-xs mt-2">Debug: {JSON.stringify(revenueBreakdown)}</Text>
         </View>
       ) : (
         <FlatList
-          data={revenueTransactions}
+          data={revenueItems}
           keyExtractor={(item) => item.id}
           renderItem={({ item }) => (
             <View className="flex-row items-center my-2">
               <View className="flex-row items-center gap-3 flex-1">
                 {/* Icon */}
-                <Image
-                  source={require("../../../../assets/images/rupee.png")}
-                  className="w-12 h-12 rounded-full bg-gray-500"
-                />
+                {renderIcon(item.type)}
 
-                {/* Transaction Info */}
+                {/* Revenue Info */}
                 <View className="justify-center items-start">
                   <Text className="text-sm text-white">{item.description}</Text>
                   <Text className="text-xs text-gray-500">{formatDate(item.date)}</Text>
-                  {item.status && (
-                    <Text className="text-xs text-gray-400">Status: {item.status}</Text>
-                  )}
+                  <Text className="text-xs text-gray-400">Revenue Source</Text>
                 </View>
               </View>
 
               {/* Amount */}
               <Text className="text-green-500 text-[16px]">
-                +₹{item.amount}
+                +₹{item.amount.toFixed(2)}
               </Text>
             </View>
           )}
-          refreshing={isLoading}
-          onRefresh={() => fetchTransactionHistory()}
         />
       )}
     </View>

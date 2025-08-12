@@ -1,13 +1,5 @@
 import { useState, useEffect } from 'react';
-import {
-  getUserProfile,
-  getUserVideos,
-  getUserCommunities,
-  getUserFollowers,
-  getUserInteractions,
-  getUserEarnings
-} from '@/api/user/userActions';
-import { CONFIG } from '@/Constants/config';
+import { getUserDashboard } from '@/api/user/userActions';
 
 interface DashboardStats {
   totalViews: number;
@@ -22,12 +14,11 @@ interface DashboardStats {
 
 interface RevenueBreakdown {
   estimateRevenue: number;
-  contentSubscription: number;
+  contentSubscription: number; // video_purchase + series_purchase
   creatorPass: number;
-  commentEarning: number;
-  giftingEarning: number;
+  giftingEarning: number; // comment_gifting + video_gifting
   communityFee: number;
-  strmlyAds: number;
+  strmlyAds: number; // advertisement_earnings
 }
 
 export const useDashboard = (token: string, activeTab: 'non-revenue' | 'revenue') => {
@@ -42,7 +33,7 @@ export const useDashboard = (token: string, activeTab: 'non-revenue' | 'revenue'
       return;
     }
 
-    console.log(`=== SIMPLE DASHBOARD FETCH ===`);
+    console.log(`=== DASHBOARD FETCH ===`);
     console.log(`Tab: ${activeTab}`);
     console.log(`Token: ${token ? 'Present' : 'Missing'}`);
 
@@ -50,54 +41,28 @@ export const useDashboard = (token: string, activeTab: 'non-revenue' | 'revenue'
     setError(null);
 
     try {
+      console.log('Fetching dashboard data from unified endpoint...');
+
+      const dashboardData = await getUserDashboard(token);
+      console.log('✅ Dashboard data received:', dashboardData);
+
+      const data = dashboardData.data;
+
       if (activeTab === 'non-revenue') {
-        console.log('Fetching non-revenue data from all working endpoints...');
+        // Calculate non-revenue stats from dashboard data
+        const videos = data.videos?.videos || [];
+        const followers = data.followers?.data || [];
+        const interactions = data.interactions || {};
+        const communities = data.communities?.created || [];
 
-        // Call all the working endpoints in parallel
-        const [userProfile, userVideos, userCommunities, userFollowers, userInteractions] = await Promise.all([
-          getUserProfile(token),
-          getUserVideos(token, 'uploaded', 1, 100).catch(err => {
-            console.error('Failed to fetch user videos:', err);
-            return { videos: [] };
-          }),
-          getUserCommunities(token, 'all').catch(err => {
-            console.error('Failed to fetch user communities:', err);
-            return { communities: [] };
-          }),
-          getUserFollowers(token).catch(err => {
-            console.error('Failed to fetch user followers:', err);
-            return { followers: [], count: 0 };
-          }),
-          getUserInteractions(token, 'all').catch(err => {
-            console.error('Failed to fetch user interactions:', err);
-            return { interactions: [] };
-          })
-        ]);
-
-        // Calculate stats from all the data with safe fallbacks
-        const user = userProfile?.user;
-        const videos = Array.isArray(userVideos?.videos) ? userVideos.videos : [];
-        const communities = Array.isArray(userCommunities?.communities) ? userCommunities.communities : [];
-        const followers = Array.isArray(userFollowers?.followers) ? userFollowers.followers :
-          Array.isArray(user?.followers) ? user.followers : [];
-        const interactions = Array.isArray(userInteractions?.interactions) ? userInteractions.interactions : [];
-
-        console.log('Data validation:', {
-          videosCount: videos.length,
-          communitiesCount: communities.length,
-          followersCount: followers.length,
-          interactionsCount: interactions.length,
-          userSharedVideos: user?.shared_videos?.length || 0
-        });
-
-        // Calculate totals with safe operations
-        const totalFollowers = followers.length;
+        // Calculate totals
+        const totalFollowers = data.followers?.count || 0;
         const totalVideos = videos.length;
         const totalViews = videos.reduce((sum: number, video: any) => sum + (video.views || 0), 0);
         const totalLikes = videos.reduce((sum: number, video: any) => sum + (video.likes || 0), 0);
-        const totalComments = interactions.filter((i: any) => i?.type === 'comment').length;
-        const totalReposts = Array.isArray(user?.shared_videos) ? user.shared_videos.length : 0;
-        const totalWatchTime = videos.reduce((sum: number, video: any) => sum + (video.duration || 0), 0);
+        const totalComments = interactions.comments?.length || 0;
+        const totalReposts = interactions.reshares?.length || 0;
+        const totalWatchTime = data.watch_time || 0;
 
         console.log('✅ Non-revenue data calculated:', {
           totalFollowers,
@@ -120,32 +85,50 @@ export const useDashboard = (token: string, activeTab: 'non-revenue' | 'revenue'
         });
 
       } else {
-        console.log('Fetching revenue data...');
+        console.log('Processing revenue data...');
 
-        // Fetch revenue data from earnings endpoint
-        const earnings = await getUserEarnings(token);
+        const earnings = data.earnings || {};
+        const videos = data.videos?.videos || [];
 
-        console.log('✅ Revenue data received:', earnings);
+        // Calculate revenue stats
+        const totalViews = videos.reduce((sum: number, video: any) => sum + (video.views || 0), 0);
+        const totalLikes = videos.reduce((sum: number, video: any) => sum + (video.likes || 0), 0);
+        const totalVideos = videos.length;
+
+        // Calculate total revenue
+        const totalRevenue = Object.values(earnings).reduce((sum: number, value: any) => sum + (Number(value) || 0), 0);
+
+        // Combine earnings as requested
+        const contentSubscription = (earnings.video_purchase_earnings || 0) + (earnings.series_purchase_earnings || 0);
+        const giftingEarning = (earnings.comment_gifting_earnings || 0) + (earnings.video_gifting_earnings || 0);
+
+        console.log('✅ Revenue data calculated:', {
+          totalRevenue,
+          contentSubscription,
+          giftingEarning,
+          creatorPass: earnings.creator_pass || 0,
+          communityFee: earnings.community_fee_earnings || 0,
+          strmlyAds: earnings.advertisement_earnings || 0
+        });
 
         setStats({
-          totalViews: earnings.totalViews,
-          totalLikes: earnings.totalLikes,
+          totalViews,
+          totalLikes,
           totalComments: 0,
           totalReposts: 0,
           totalWatchTime: 0,
           totalFollowers: 0,
-          totalVideos: earnings.totalVideos,
-          revenue: earnings.totalEarnings
+          totalVideos,
+          revenue: totalRevenue
         });
 
         setRevenueBreakdown({
-          estimateRevenue: earnings.totalEarnings,
-          contentSubscription: earnings.viewsEarnings,
-          creatorPass: 0, // Not available in current API
-          commentEarning: 0, // Not available in current API
-          giftingEarning: 0, // Not available in current API
-          communityFee: 0, // Not available in current API
-          strmlyAds: earnings.engagementBonus
+          estimateRevenue: totalRevenue,
+          contentSubscription,
+          creatorPass: earnings.creator_pass || 0,
+          giftingEarning,
+          communityFee: earnings.community_fee_earnings || 0,
+          strmlyAds: earnings.advertisement_earnings || 0
         });
       }
 
@@ -170,7 +153,6 @@ export const useDashboard = (token: string, activeTab: 'non-revenue' | 'revenue'
           estimateRevenue: 0,
           contentSubscription: 0,
           creatorPass: 0,
-          commentEarning: 0,
           giftingEarning: 0,
           communityFee: 0,
           strmlyAds: 0

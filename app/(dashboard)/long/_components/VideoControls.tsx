@@ -7,7 +7,7 @@ import VideoDetails from "./VideoDetails";
 
 type Props = {
   videoData: any;
-  setShowCommentsModal: (visible: boolean) => void;
+  setShowCommentsModal?: (visible: boolean) => void;
 };
 
 const VideoControls = ({
@@ -58,7 +58,7 @@ const VideoControls = ({
           gifts={videoData.gifts}
           shares={videoData.shares}
           comments={videoData.comments?.length}
-          onCommentPress={() => setShowCommentsModal(true)}
+          onCommentPress={setShowCommentsModal ? () => setShowCommentsModal(true) : undefined}
         />
       </View>
       <View style={styles.details}>

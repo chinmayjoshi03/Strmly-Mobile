@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import {
   View,
   Text,
@@ -9,100 +9,18 @@ import {
   StatusBar,
   Alert,
 } from "react-native";
-import { ArrowLeft, MoreVertical } from "lucide-react-native";
+import { ArrowLeft, MoreVertical, Play, Film, User } from "lucide-react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
-import { useAuthStore } from "@/store/useAuthStore";
-import { CONFIG } from "@/Constants/config";
-
-interface AssetData {
-  _id: string;
-  title?: string;
-  name?: string;
-  description: string;
-  posterUrl?: string;
-  thumbnailUrl?: string;
-  total_episodes?: number;
-}
-
-interface Asset {
-  _id: string;
-  user_id: string;
-  content_id: string;
-  content_type: 'video' | 'series';
-  access_type: string;
-  payment_method: string;
-  payment_amount: number;
-  expires_at: string | null;
-  granted_at: string;
-  createdAt: string;
-  updatedAt: string;
-  asset_data: AssetData;
-}
-
-interface CreatorPass {
-  _id: string;
-  user_id: string;
-  creator_id: {
-    _id: string;
-    username: string;
-    profile_photo: string;
-  };
-  amount_paid: number;
-  end_date: string;
-  status: string;
-  start_date: string;
-  createdAt: string;
-}
-
-interface PurchasedAccessData {
-  assets: Asset[];
-  creator_passes: CreatorPass[];
-}
+import { usePurchasedAccess, type Asset, type CreatorPass } from "./_components/usePurchasedAccess";
 
 export default function AccessPage() {
   const [activeTab, setActiveTab] = useState<'content' | 'series' | 'creator'>('content');
-  const [purchasedData, setPurchasedData] = useState<PurchasedAccessData>({ assets: [], creator_passes: [] });
-  const [isLoading, setIsLoading] = useState(true);
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
   const [isRemoving, setIsRemoving] = useState<string | null>(null);
   const router = useRouter();
-  const { token, user } = useAuthStore();
-
-  console.log("User email:", user?.email);
-  console.log("Token:", token ? "Token exists" : "No token");
-
-  useEffect(() => {
-    fetchPurchasedAccess();
-  }, []);
-
-  const fetchPurchasedAccess = async () => {
-    setIsLoading(true);
-    try {
-      const response = await fetch(
-        `${CONFIG.API_BASE_URL}/api/v1/user/purchased-access`,
-        {
-          method: "GET",
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-        }
-      );
-
-      const result = await response.json();
-
-      if (response.ok) {
-        setPurchasedData(result.data || { assets: [], creator_passes: [] });
-      } else {
-        setPurchasedData({ assets: [], creator_passes: [] });
-      }
-    } catch (error) {
-      setPurchasedData({ assets: [], creator_passes: [] });
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  
+  const { data: purchasedData, isLoading, error, removeAsset } = usePurchasedAccess();
 
   const handleRemoveAccess = async (id: string, type: 'asset' | 'creator_pass') => {
     Alert.alert(
@@ -119,35 +37,8 @@ export default function AccessPage() {
           onPress: async () => {
             setIsRemoving(id);
             try {
-              const endpoint = type === 'asset'
-                ? `${CONFIG.API_BASE_URL}/api/v1/user/purchased-access/asset/${id}`
-                : `${CONFIG.API_BASE_URL}/api/v1/user/purchased-access/creator-pass/${id}`;
-
-              const response = await fetch(endpoint, {
-                method: "DELETE",
-                headers: {
-                  Authorization: `Bearer ${token}`,
-                  "Content-Type": "application/json",
-                },
-              });
-
-              if (response.ok) {
-                // Remove from local state
-                if (type === 'asset') {
-                  setPurchasedData(prev => ({
-                    ...prev,
-                    assets: prev.assets.filter(asset => asset._id !== id)
-                  }));
-                } else {
-                  setPurchasedData(prev => ({
-                    ...prev,
-                    creator_passes: prev.creator_passes.filter(pass => pass._id !== id)
-                  }));
-                }
-                Alert.alert("Success", "Access removed successfully");
-              } else {
-                Alert.alert("Error", "Failed to remove access. Please try again.");
-              }
+              await removeAsset(id, type);
+              Alert.alert("Success", "Access removed successfully");
             } catch (error) {
               Alert.alert("Error", "Failed to remove access. Please try again.");
             } finally {
@@ -200,37 +91,103 @@ export default function AccessPage() {
     </TouchableOpacity>
   );
 
+  const handleAssetClick = (asset: Asset) => {
+    if (asset.content_type === 'video') {
+      // Navigate to video feed with the specific video
+      try {
+        router.push({
+          pathname: "/(tabs)/home",
+          params: { 
+            videoId: asset.content_id,
+            startWithVideo: 'true'
+          }
+        });
+      } catch (error) {
+        Alert.alert('Error', 'Failed to open video player');
+      }
+    } else if (asset.content_type === 'series') {
+      // Navigate to series details screen
+      try {
+        router.push({
+          pathname: "/studio/screens/SeriesDetailsScreen",
+          params: { 
+            seriesId: asset.content_id,
+            title: asset.asset_data.title || asset.asset_data.name || 'Untitled'
+          }
+        });
+      } catch (error) {
+        Alert.alert('Error', 'Failed to open series details');
+      }
+    }
+  };
+
   const renderAssetItem = (asset: Asset) => (
     <View key={asset._id} className="relative">
-      <LinearGradient
-        colors={['#000000', '#0a0a0a', '#1a1a1a']}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        className="flex-row items-center p-4 rounded-lg mb-3"
+      <TouchableOpacity
+        onPress={() => handleAssetClick(asset)}
+        activeOpacity={0.7}
       >
-        <Image
-          source={{
-            uri: asset.asset_data.thumbnailUrl || asset.asset_data.posterUrl ||
-              'https://images.unsplash.com/photo-1489599735734-79b4169c2a78?w=100&h=100&fit=crop'
-          }}
-          className="w-12 h-12 rounded-lg"
-          resizeMode="cover"
-        />
-        <View className="flex-1 ml-3">
-          <Text className="text-white font-medium text-base">
-            {asset.asset_data.title || asset.asset_data.name || 'Untitled'}
-          </Text>
-          <Text className="text-gray-400 text-sm mt-1">
-            Purchase on {formatDate(asset.granted_at)}
-          </Text>
-        </View>
-        <TouchableOpacity
-          className="p-2"
-          onPress={() => setActiveDropdown(activeDropdown === asset._id ? null : asset._id)}
+        <LinearGradient
+          colors={['#000000', '#0a0a0a', '#1a1a1a']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          className="flex-row items-center p-4 rounded-lg mb-3"
         >
-          <MoreVertical size={20} color="#9CA3AF" />
-        </TouchableOpacity>
-      </LinearGradient>
+          <View className="relative">
+            <Image
+              source={{
+                uri: asset.asset_data.thumbnailUrl || 
+                     asset.asset_data.posterUrl || 
+                     asset.asset_data.bannerUrl ||
+                     (asset.asset_data.episodes && asset.asset_data.episodes[0]?.thumbnailUrl) ||
+                     'https://images.unsplash.com/photo-1489599735734-79b4169c2a78?w=100&h=100&fit=crop'
+              }}
+              className="w-16 h-16 rounded-lg"
+              resizeMode="cover"
+            />
+            {/* Content type indicator */}
+            <View className="absolute -top-1 -right-1 bg-blue-600 rounded-full p-1">
+              {asset.content_type === 'video' ? (
+                <Play size={12} color="white" fill="white" />
+              ) : (
+                <Film size={12} color="white" />
+              )}
+            </View>
+          </View>
+          <View className="flex-1 ml-3">
+            <Text className="text-white font-medium text-base">
+              {asset.asset_data.title || asset.asset_data.name || 'Untitled'}
+            </Text>
+            <Text className="text-gray-400 text-sm mt-1">
+              <Text className="text-blue-400 font-medium">
+                {asset.content_type === 'video' ? 'Video' : 'Series'}
+              </Text>
+              {asset.content_type === 'series' && (
+                asset.asset_data.total_episodes 
+                  ? ` • ${asset.asset_data.total_episodes} episodes`
+                  : asset.asset_data.episodes 
+                    ? ` • ${asset.asset_data.episodes.length} episodes`
+                    : ''
+              )}
+              {'\n'}Purchase on {formatDate(asset.granted_at)}
+              {asset.asset_data.created_by && (
+                <Text className="text-gray-500 text-xs">
+                  {'\n'}by @{asset.asset_data.created_by.username}
+                </Text>
+              )}
+            </Text>
+          </View>
+          <TouchableOpacity
+            className="p-2"
+            onPress={(e) => {
+              e.stopPropagation(); // Prevent triggering the asset click
+              setActiveDropdown(activeDropdown === asset._id ? null : asset._id);
+            }}
+          >
+            <MoreVertical size={20} color="#9CA3AF" />
+          </TouchableOpacity>
+        </LinearGradient>
+      </TouchableOpacity>
 
       {/* Dropdown Menu */}
       {activeDropdown === asset._id && (
@@ -252,45 +209,75 @@ export default function AccessPage() {
     </View>
   );
 
+  const handleCreatorClick = (creatorPass: CreatorPass) => {
+    try {
+      // Navigate to creator's public profile page
+      router.push({
+        pathname: "/(dashboard)/profile/public/[id]",
+        params: { 
+          id: creatorPass.creator_id._id,
+          username: creatorPass.creator_id.username
+        }
+      });
+    } catch (error) {
+      Alert.alert('Error', 'Failed to open creator profile');
+    }
+  };
+
   const renderCreatorPassItem = (creatorPass: CreatorPass) => (
-    <LinearGradient
+    <TouchableOpacity
       key={creatorPass._id}
-      colors={['#000000', '#0a0a0a', '#1a1a1a']}
-      start={{ x: 0, y: 0 }}
-      end={{ x: 1, y: 1 }}
-      className="flex-row items-center p-4 rounded-lg mb-3"
+      onPress={() => handleCreatorClick(creatorPass)}
+      activeOpacity={0.7}
     >
-      <Image
-        source={{
-          uri: creatorPass.creator_id.profile_photo ||
-            `https://api.dicebear.com/7.x/avataaars/svg?seed=${creatorPass.creator_id.username}`
-        }}
-        className="w-16 h-16 rounded-full"
-        resizeMode="cover"
-      />
-      <View className="flex-1 ml-4">
-        <Text className="text-white font-semibold text-lg">
-          {creatorPass.creator_id.username}
-        </Text>
-        <Text className="text-gray-400 text-sm mt-1">
-          Access till {formatDate(creatorPass.end_date)}
-        </Text>
-      </View>
-      <TouchableOpacity
-        onPress={() => handleRemoveAccess(creatorPass._id, 'creator_pass')}
-        disabled={isRemoving === creatorPass._id}
-        className="px-2 py-1 rounded-lg border border-white"
-        style={{
-          backgroundColor: 'transparent',
-          borderColor: '#FFFFFF',
-          borderWidth: 1
-        }}
+      <LinearGradient
+        colors={['#000000', '#0a0a0a', '#1a1a1a']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        className="flex-row items-center p-4 rounded-lg mb-3"
       >
-        <Text className="text-white font-medium text-sm">
-          {isRemoving === creatorPass._id ? 'Removing...' : 'Remove'}
-        </Text>
-      </TouchableOpacity>
-    </LinearGradient>
+        <View className="relative">
+          <Image
+            source={{
+              uri: creatorPass.creator_id.profile_photo ||
+                `https://api.dicebear.com/7.x/avataaars/svg?seed=${creatorPass.creator_id.username}`
+            }}
+            className="w-16 h-16 rounded-full"
+            resizeMode="cover"
+          />
+          {/* Creator indicator */}
+          <View className="absolute -top-1 -right-1 bg-green-600 rounded-full p-1">
+            <User size={12} color="white" />
+          </View>
+        </View>
+        <View className="flex-1 ml-4">
+          <Text className="text-white font-semibold text-lg">
+            {creatorPass.creator_id.username}
+          </Text>
+          <Text className="text-gray-400 text-sm mt-1">
+            <Text className="text-green-400 font-medium">Creator Pass</Text>
+            {'\n'}Access till {formatDate(creatorPass.end_date)}
+          </Text>
+        </View>
+        <TouchableOpacity
+          onPress={(e) => {
+            e.stopPropagation(); // Prevent triggering the creator click
+            handleRemoveAccess(creatorPass._id, 'creator_pass');
+          }}
+          disabled={isRemoving === creatorPass._id}
+          className="px-2 py-1 rounded-lg border border-white"
+          style={{
+            backgroundColor: 'transparent',
+            borderColor: '#FFFFFF',
+            borderWidth: 1
+          }}
+        >
+          <Text className="text-white font-medium text-sm">
+            {isRemoving === creatorPass._id ? 'Removing...' : 'Remove'}
+          </Text>
+        </TouchableOpacity>
+      </LinearGradient>
+    </TouchableOpacity>
   );
 
   return (
@@ -323,6 +310,22 @@ export default function AccessPage() {
           {isLoading ? (
             <View className="flex-1 items-center justify-center mt-20">
               <ActivityIndicator size="large" color="#F1C40F" />
+              <Text className="text-gray-400 mt-4">Loading your purchases...</Text>
+            </View>
+          ) : error ? (
+            <View className="flex-1 items-center justify-center mt-20 px-4">
+              <Text className="text-red-400 text-center mb-4">
+                Failed to load purchased access
+              </Text>
+              <Text className="text-gray-400 text-center text-sm mb-4">
+                {error}
+              </Text>
+              <TouchableOpacity
+                onPress={() => window.location.reload()}
+                className="bg-blue-600 px-4 py-2 rounded-lg"
+              >
+                <Text className="text-white">Retry</Text>
+              </TouchableOpacity>
             </View>
           ) : (() => {
             const filteredData = getFilteredData();
@@ -332,10 +335,20 @@ export default function AccessPage() {
                 activeTab === 'creator' ? renderCreatorPassItem(item) : renderAssetItem(item)
               )
             ) : (
-              <View className="flex-1 items-center justify-center mt-20">
-                <Text className="text-gray-400 text-center">
-                  No purchased {activeTab} found
-                </Text>
+              <View className="flex-1 items-center justify-center mt-20 px-4">
+                <View className="items-center">
+                  {activeTab === 'content' && <Play size={48} color="#6B7280" />}
+                  {activeTab === 'series' && <Film size={48} color="#6B7280" />}
+                  {activeTab === 'creator' && <User size={48} color="#6B7280" />}
+                  <Text className="text-gray-400 text-center mt-4 text-lg">
+                    No purchased {activeTab} found
+                  </Text>
+                  <Text className="text-gray-500 text-center mt-2 text-sm">
+                    {activeTab === 'content' && 'Purchase individual videos to see them here'}
+                    {activeTab === 'series' && 'Purchase series to see them here'}
+                    {activeTab === 'creator' && 'Purchase creator passes to see them here'}
+                  </Text>
+                </View>
               </View>
             );
           })()}

@@ -20,7 +20,7 @@ const AuthDebug = () => {
       
       // Test 1: Direct fetch
       console.log('\n--- Test 1: Direct API call ---');
-      const response = await fetch(`${CONFIG.API_BASE_URL}/api/v1/user/profile`, {
+      const response = await fetch(`${CONFIG.API_BASE_URL}/user/profile`, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`,

@@ -6,13 +6,37 @@ import { useAuthStore } from "@/store/useAuthStore";
 
 const TotalBalanceHistory = ({ closeTBalance }: { closeTBalance: any }) => {
   const { token } = useAuthStore();
-  const { transactions, isLoading, error, fetchTransactionHistory } = useTransactionHistory(token || "");
+  const { transactions, isLoading, error, fetchWalletTransactions } = useTransactionHistory(token || "");
 
   useEffect(() => {
     if (token) {
-      fetchTransactionHistory();
+      fetchWalletTransactions();
     }
   }, [token]);
+
+  // Filter transactions to show only wallet deposits and withdrawals
+  const walletTransactions = transactions.filter(transaction => {
+    // Check by category if available (backend provides this)
+    if (transaction.category) {
+      return transaction.category === 'wallet_load' || 
+             transaction.category === 'withdrawal_request';
+    }
+    
+    // Fallback to description-based filtering
+    const desc = transaction.description.toLowerCase();
+    return desc.includes('deposit') ||
+           desc.includes('withdrawal') ||
+           desc.includes('added to wallet') ||
+           desc.includes('withdraw from wallet') ||
+           desc.includes('wallet load') ||
+           desc.includes('wallet top-up') ||
+           desc.includes('money added') ||
+           desc.includes('money withdrawn');
+  });
+
+  console.log('🔍 Total transactions:', transactions.length);
+  console.log('🔍 Wallet transactions:', walletTransactions.length);
+  console.log('🔍 Sample transactions:', transactions.slice(0, 3));
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
@@ -22,6 +46,7 @@ const TotalBalanceHistory = ({ closeTBalance }: { closeTBalance: any }) => {
       year: 'numeric'
     });
   };
+
   return (
     <View className="absolute -top-2 gap-5 w-full">
       <View className="w-full flex-row items-center justify-between">
@@ -31,7 +56,7 @@ const TotalBalanceHistory = ({ closeTBalance }: { closeTBalance: any }) => {
 
         <View>
           <Text className={`text-lg capitalize font-semibold text-white`}>
-            Transaction History
+            Wallet History
           </Text>
         </View>
 
@@ -41,36 +66,36 @@ const TotalBalanceHistory = ({ closeTBalance }: { closeTBalance: any }) => {
       {isLoading ? (
         <View className="flex-1 justify-center items-center">
           <ActivityIndicator size="large" color="#fff" />
-          <Text className="text-white mt-2">Loading transactions...</Text>
+          <Text className="text-white mt-2">Loading wallet history...</Text>
         </View>
       ) : error ? (
         <View className="flex-1 justify-center items-center">
           <Text className="text-red-400 text-center">{error}</Text>
           <TouchableOpacity 
-            onPress={() => fetchTransactionHistory()}
+            onPress={() => fetchWalletTransactions()}
             className="mt-4 bg-blue-600 px-4 py-2 rounded"
           >
             <Text className="text-white">Retry</Text>
           </TouchableOpacity>
         </View>
-      ) : transactions.length === 0 ? (
+      ) : walletTransactions.length === 0 ? (
         <View className="flex-1 justify-center items-center">
-          <Text className="text-gray-400 text-center">No transactions found</Text>
+          <Text className="text-gray-400 text-center">No wallet transactions found</Text>
         </View>
       ) : (
         <FlatList
-          data={transactions}
+          data={walletTransactions}
           keyExtractor={(item) => item.id}
           renderItem={({ item }) => (
             <View className="flex-row items-center my-2">
               <View className="flex-row items-center gap-3 flex-1">
-                {/* Profile Picture */}
+                {/* Icon */}
                 <Image
                   source={require("../../../../assets/images/bank-icon.png")}
                   className="w-12 h-12 rounded-full bg-gray-500"
                 />
 
-                {/* User Info */}
+                {/* Transaction Info */}
                 <View className="justify-center items-start">
                   <Text className="text-sm text-white">{item.description}</Text>
                   <Text className="text-xs text-gray-500">{formatDate(item.date)}</Text>
@@ -89,7 +114,7 @@ const TotalBalanceHistory = ({ closeTBalance }: { closeTBalance: any }) => {
             </View>
           )}
           refreshing={isLoading}
-          onRefresh={() => fetchTransactionHistory()}
+          onRefresh={() => fetchWalletTransactions()}
         />
       )}
     </View>

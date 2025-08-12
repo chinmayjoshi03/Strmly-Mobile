@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { getTransactionHistory, getGiftHistory } from '@/api/wallet/walletActions';
+import { CONFIG } from '@/Constants/config';
 
 export interface Transaction {
   id: string;
@@ -10,6 +11,7 @@ export interface Transaction {
   status?: string;
   from?: string;
   to?: string;
+  category?: string;
 }
 
 export interface Gift {
@@ -59,6 +61,7 @@ export const useTransactionHistory = (token: string) => {
         status: tx.status,
         from: tx.from,
         to: tx.to,
+        category: tx.category,
       })) || [];
       
       setTransactions(transformedTransactions);
@@ -70,6 +73,75 @@ export const useTransactionHistory = (token: string) => {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  // Fetch wallet-specific transactions (deposits and withdrawals only)
+  const fetchWalletTransactions = async (page: number = 1, limit: number = 20) => {
+    if (!token) return;
+    
+    setIsLoading(true);
+    setError(null);
+    
+    try {
+      // Fetch wallet_load transactions (deposits)
+      const walletLoadResponse = await fetch(`${CONFIG.API_BASE_URL}/wallet/transactions?category=wallet_load&page=${page}&limit=${limit}`, {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json"
+        }
+      });
+
+      // Fetch withdrawal_request transactions (withdrawals)
+      const withdrawalResponse = await fetch(`${CONFIG.API_BASE_URL}/wallet/transactions?category=withdrawal_request&page=${page}&limit=${limit}`, {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json"
+        }
+      });
+
+      const walletLoadData = walletLoadResponse.ok ? await walletLoadResponse.json() : { transactions: [] };
+      const withdrawalData = withdrawalResponse.ok ? await withdrawalResponse.json() : { transactions: [] };
+
+      console.log('💰 Wallet load transactions:', walletLoadData);
+      console.log('💸 Withdrawal transactions:', withdrawalData);
+
+      // Combine both types of transactions
+      const allWalletTransactions = [
+        ...(walletLoadData.transactions || []),
+        ...(withdrawalData.transactions || [])
+      ];
+
+      // Transform and sort by date
+      const transformedTransactions = allWalletTransactions
+        .map((tx: any) => ({
+          id: tx._id || tx.id,
+          type: tx.type === 'credit' ? 'credit' : 'debit',
+          amount: tx.amount,
+          description: tx.description || tx.purpose || 'Transaction',
+          date: tx.createdAt || tx.date,
+          status: tx.status,
+          from: tx.from,
+          to: tx.to,
+          category: tx.category,
+        }))
+        .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
+      console.log('🔍 Final wallet transactions:', transformedTransactions);
+      setTransactions(transformedTransactions);
+    } catch (err) {
+      console.error('❌ Error fetching wallet transactions:', err);
+      setTransactions([]);
+      setError(null); // Don't show error, just show empty state
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Fetch spending history (all app purchases and spending)
+  const fetchSpendingHistory = async (page: number = 1, limit: number = 20) => {
+    await fetchTransactionHistory(page, limit);
   };
 
   const fetchGiftHistory = async (page: number = 1, limit: number = 20) => {
@@ -121,6 +193,8 @@ export const useTransactionHistory = (token: string) => {
     isLoading,
     error,
     fetchTransactionHistory,
+    fetchWalletTransactions,
+    fetchSpendingHistory,
     fetchGiftHistory,
     clearError: () => setError(null),
   };

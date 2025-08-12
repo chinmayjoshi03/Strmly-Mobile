@@ -65,7 +65,7 @@ const EpisodeDetailsScreen: React.FC = () => {
         throw new Error('Authentication required');
       }
 
-      const response = await fetch(`${CONFIG.API_BASE_URL}/api/v1/videos/${id}`, {
+      const response = await fetch(`${CONFIG.API_BASE_URL}/videos/${id}`, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -104,7 +104,7 @@ const EpisodeDetailsScreen: React.FC = () => {
                 throw new Error('Authentication required');
               }
 
-              const response = await fetch(`${CONFIG.API_BASE_URL}/api/v1/videos/${id}`, {
+              const response = await fetch(`${CONFIG.API_BASE_URL}/videos/${id}`, {
                 method: 'DELETE',
                 headers: {
                   'Authorization': `Bearer ${token}`,

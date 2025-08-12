@@ -118,7 +118,7 @@ const CreateProfile = () => {
 
       setAlert("OTP sent to your email.");
       setShowAlert(true);
-      setNeedButton(false);
+      setNeedButton(true);
       setTimeout(() => setStep(4), 1000);
     } catch (err: any) {
       console.error("Registration error:", err);

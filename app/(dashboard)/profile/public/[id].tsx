@@ -8,13 +8,16 @@ import {
   Image,
   Linking,
   Pressable,
-  FlatList, // For opening external links
+  FlatList,
+  Dimensions,
+  BackHandler,
 } from "react-native";
 import {
   LinkIcon,
   HeartIcon,
   IndianRupee,
-  PaperclipIcon, // Added for the gradient button
+  PaperclipIcon,
+  ExternalLink,
 } from "lucide-react-native";
 import { useAuthStore } from "@/store/useAuthStore";
 import { useThumbnailsGenerate } from "@/utils/useThumbnailGenerator"; // Ensure this path is correct
@@ -24,13 +27,14 @@ import { LinearGradient } from "expo-linear-gradient"; // For the gradient borde
 import Constants from "expo-constants";
 import { useRoute } from "@react-navigation/native";
 import { router, useFocusEffect } from "expo-router";
-import CreatorPassBuyMessage from "../../long/_components/CreatorPassBuyMessage";
-import { useGiftingStore } from "@/store/useGiftingStore";
+import VideoPlayer from "@/app/(dashboard)/long/_components/VideoPlayer";
+import BottomNavBar from "@/components/BottomNavBar";
 
 export default function PublicProfilePageWithId() {
   const [activeTab, setActiveTab] = useState("long");
   const [userData, setUserData] = useState<any>(null);
   const [userError, setUserError] = useState<string | null>(null);
+  const [communities, setCommunities] = useState<any[]>([]);
 
   const [videos, setVideos] = useState<any[]>([]);
 
@@ -43,13 +47,34 @@ export default function PublicProfilePageWithId() {
   const [isLoadingVideos, setIsLoadingVideos] = useState(false);
   const { token } = useAuthStore();
 
+  // Video player state
+  const [isVideoPlayerActive, setIsVideoPlayerActive] = useState(false);
+  const [currentVideoData, setCurrentVideoData] = useState<any>(null);
+  const [currentVideoList, setCurrentVideoList] = useState<any[]>([]);
+  const [currentVideoIndex, setCurrentVideoIndex] = useState(0);
+  const [showCommentsModal, setShowCommentsModal] = useState(false);
+
   const BACKEND_API_URL = Constants.expoConfig?.extra?.BACKEND_API_URL;
 
   const route = useRoute();
   const { id } = route.params as { id: string };
 
-  const { giftSuccessMessage, creator, isPurchasedPass, clearGiftingData } =
-    useGiftingStore();
+  // Handle back button press
+  useEffect(() => {
+    const backAction = () => {
+      if (isVideoPlayerActive) {
+        closeVideoPlayer();
+        return true; // Prevent default back action
+      }
+      return false; // Allow default back action
+    };
+
+    const backHandler = BackHandler.addEventListener(
+      "hardwareBackPress",
+      backAction
+    );
+    return () => backHandler.remove();
+  }, [isVideoPlayerActive]);
 
   const thumbnails = useThumbnailsGenerate(
     useMemo(
@@ -69,10 +94,9 @@ export default function PublicProfilePageWithId() {
       if (activeTab == "repost") return;
 
       setIsLoadingVideos(true);
-      console.log(activeTab);
       try {
         const response = await fetch(
-          `${BACKEND_API_URL}/user/${activeTab === "long" ? `videos/${id}?type=${activeTab}&page=${page}` : `profile/${id}/liked-videos`}`,
+          `${BACKEND_API_URL}/user/videos/${id}?type=${activeTab}&page=${page}`,
           {
             method: "GET",
             headers: {
@@ -87,7 +111,7 @@ export default function PublicProfilePageWithId() {
           throw new Error(data.message || "Failed to fetch user videos");
         }
 
-        setVideos(activeTab == "long" ? data.videos : data.data);
+        setVideos(data.videos);
       } catch (err) {
         console.error("Error fetching user videos:", err);
         Alert.alert(
@@ -130,6 +154,18 @@ export default function PublicProfilePageWithId() {
         // console.log("Pubic User data", data.user);
         setUserError(null);
         if (data.user?.tags && data.user.tags.length > 2) setShowMore(true);
+
+        // Set communities from user data
+        if (data.user?.userDetails?.my_communities) {
+          console.log(
+            "Setting communities:",
+            data.user.userDetails.my_communities
+          );
+          setCommunities(data.user.userDetails.my_communities);
+        } else {
+          console.log("No communities found in user data");
+          setCommunities([]);
+        }
       } catch (error) {
         console.log(error);
         setUserError(
@@ -172,7 +208,7 @@ export default function PublicProfilePageWithId() {
       }
 
       setVideos(data.reshares);
-      // console.log("reshare videos", data);
+      console.log("reshare videos", data);
     } catch (error) {
       console.log(error);
       Alert.alert(
@@ -276,8 +312,41 @@ export default function PublicProfilePageWithId() {
     }, [id, token])
   );
 
+  // Video player functions
+  const navigateToVideoPlayer = (videoData: any, allVideos: any[]) => {
+    console.log(
+      "🎬 Opening video player for:",
+      videoData.title || videoData.name
+    );
+    const currentIndex = allVideos.findIndex(
+      (video) => video._id === videoData._id
+    );
+
+    setCurrentVideoData(videoData);
+    setCurrentVideoList(allVideos);
+    setCurrentVideoIndex(currentIndex >= 0 ? currentIndex : 0);
+    setIsVideoPlayerActive(true);
+  };
+
+  const closeVideoPlayer = () => {
+    setIsVideoPlayerActive(false);
+    setCurrentVideoData(null);
+    setCurrentVideoList([]);
+    setCurrentVideoIndex(0);
+    setShowCommentsModal(false);
+  };
+
+  const onViewableItemsChanged = useCallback(({ viewableItems }: any) => {
+    if (viewableItems.length > 0) {
+      setCurrentVideoIndex(viewableItems[0].index);
+    }
+  }, []);
+
   const renderGridItem = ({ item }: { item: any }) => (
-    <TouchableOpacity className="relative aspect-[9/16] flex-1 rounded-sm overflow-hidden">
+    <TouchableOpacity
+      className="relative aspect-[9/16] flex-1 rounded-sm overflow-hidden"
+      onPress={() => navigateToVideoPlayer(item, videos)}
+    >
       {activeTab === "repost" ? (
         item?.long_video?.thumbnailUrl !== "" ? (
           <Image
@@ -453,47 +522,103 @@ export default function PublicProfilePageWithId() {
                 )}
               </View>
 
-              {/* Tags/Edit Buttons */}
-              {userData?.userDetails?.interests && (
-                <View className="flex flex-row flex-wrap w-full items-center justify-center gap-2 mt-5">
-                  {userData?.userDetails?.interests.map(
-                    (tag: string, index: number) => {
-                      if (index < 2) {
-                        return (
-                          <TouchableOpacity
-                            key={tag}
-                            className="px-4 py-2 border border-gray-400 rounded-[8px]"
-                          >
-                            <Text className="text-white">#{tag}</Text>
-                          </TouchableOpacity>
-                        );
-                      }
-                      if (!showMore && index > 2) {
-                        return (
-                          <TouchableOpacity
-                            key={tag}
-                            className="px-4 py-2 border border-gray-400 rounded-[8px]"
-                          >
-                            <Text className="text-white">#{tag}</Text>
-                          </TouchableOpacity>
-                        );
-                      }
-                    }
-                  )}
-
-                  {showMore && (
-                    <Pressable onPress={() => setShowMore(false)}>
-                      <TouchableOpacity className="px-4 py-2 border border-gray-400 rounded-[8px]">
-                        <Text className="text-white">More</Text>
+              {/* Social Media Links - Moved here to replace hashtags */}
+              {userData?.userDetails?.social_media_links &&
+                Object.values(userData.userDetails.social_media_links).some(
+                  (link) => link
+                ) && (
+                  <View className="mt-5 flex flex-row justify-center gap-3 flex-wrap">
+                    {userData.userDetails.social_media_links.snapchat && (
+                      <TouchableOpacity
+                        onPress={() =>
+                          Linking.openURL(
+                            userData.userDetails.social_media_links.snapchat
+                          )
+                        }
+                        className="w-12 h-12 rounded-lg overflow-hidden"
+                        style={{ backgroundColor: "#FFFC00" }}
+                      >
+                        <View className="w-full h-full items-center justify-center">
+                          <Text className="text-black text-lg font-bold">
+                            👻
+                          </Text>
+                        </View>
                       </TouchableOpacity>
-                    </Pressable>
-                  )}
-                </View>
-              )}
+                    )}
+                    {userData.userDetails.social_media_links.instagram && (
+                      <TouchableOpacity
+                        onPress={() =>
+                          Linking.openURL(
+                            userData.userDetails.social_media_links.instagram
+                          )
+                        }
+                        className="w-12 h-12 rounded-lg overflow-hidden"
+                        style={{ backgroundColor: "#E4405F" }}
+                      >
+                        <View className="w-full h-full items-center justify-center">
+                          <Text className="text-white text-lg font-bold">
+                            📷
+                          </Text>
+                        </View>
+                      </TouchableOpacity>
+                    )}
+                    {userData.userDetails.social_media_links.youtube && (
+                      <TouchableOpacity
+                        onPress={() =>
+                          Linking.openURL(
+                            userData.userDetails.social_media_links.youtube
+                          )
+                        }
+                        className="w-12 h-12 rounded-lg overflow-hidden"
+                        style={{ backgroundColor: "#FF0000" }}
+                      >
+                        <View className="w-full h-full items-center justify-center">
+                          <Text className="text-white text-lg font-bold">
+                            ▶
+                          </Text>
+                        </View>
+                      </TouchableOpacity>
+                    )}
+                    {userData.userDetails.social_media_links.facebook && (
+                      <TouchableOpacity
+                        onPress={() =>
+                          Linking.openURL(
+                            userData.userDetails.social_media_links.facebook
+                          )
+                        }
+                        className="w-12 h-12 rounded-lg overflow-hidden"
+                        style={{ backgroundColor: "#1877F2" }}
+                      >
+                        <View className="w-full h-full items-center justify-center">
+                          <Text className="text-white text-lg font-bold">
+                            f
+                          </Text>
+                        </View>
+                      </TouchableOpacity>
+                    )}
+                    {userData.userDetails.social_media_links.twitter && (
+                      <TouchableOpacity
+                        onPress={() =>
+                          Linking.openURL(
+                            userData.userDetails.social_media_links.twitter
+                          )
+                        }
+                        className="w-12 h-12 rounded-lg overflow-hidden"
+                        style={{ backgroundColor: "#000000" }}
+                      >
+                        <View className="w-full h-full items-center justify-center">
+                          <Text className="text-white text-lg font-bold">
+                            𝕏
+                          </Text>
+                        </View>
+                      </TouchableOpacity>
+                    )}
+                  </View>
+                )}
 
-              {/* Bio */}
-              <View className="mt-6 flex flex-col items-center justify-center px-4">
-                <Text className="text-gray-400 text-xs text-center">
+              {/* Bio - Moved below social media links with larger font */}
+              <View className="mt-4 flex flex-col items-center justify-center px-4">
+                <Text className="text-gray-400 text-sm text-center">
                   {userData?.userDetails?.bio}
                 </Text>
                 <View className="mt-2 flex flex-row flex-wrap gap-4 text-gray-400 justify-center">
@@ -508,16 +633,45 @@ export default function PublicProfilePageWithId() {
                       </Text>
                     </TouchableOpacity>
                   )}
-                  {/* {currentProfileData.joinedDate !== "N/A" && (
-                  <View className="items-center">
-                    <Calendar className="text-gray-400" />
-                    <Text className="text-gray-400">
-                      Joined {currentProfileData.joinedDate}
-                    </Text>
-                  </View>
-                )} */}
                 </View>
               </View>
+
+              {/* Communities as Hashtags */}
+              {communities.length > 0 && (
+                <View className="flex flex-row flex-wrap w-full items-center justify-center gap-2 mt-3">
+                  {communities.slice(0, 2).map((community) => (
+                    <TouchableOpacity
+                      key={community._id}
+                      onPress={() => {
+                        router.push({
+                          pathname: "/(dashboard)/communities/public/[id]",
+                          params: { id: community._id },
+                        });
+                      }}
+                      className="px-4 py-2 border border-gray-400 rounded-[8px]"
+                    >
+                      <Text className="text-white">#{community.name}</Text>
+                    </TouchableOpacity>
+                  ))}
+
+                  {communities.length > 2 && (
+                    <TouchableOpacity
+                      onPress={() => {
+                        router.push({
+                          pathname: "/(dashboard)/profile/ProfileSections",
+                          params: {
+                            section: "myCommunity",
+                            userName: userData?.username,
+                          },
+                        });
+                      }}
+                      className="px-4 py-2 border border-gray-400 rounded-[8px]"
+                    >
+                      <Text className="text-white">More</Text>
+                    </TouchableOpacity>
+                  )}
+                </View>
+              )}
             </View>
           )}
 
@@ -536,8 +690,8 @@ export default function PublicProfilePageWithId() {
               <TouchableOpacity
                 className={`pb-4 flex-1 items-center justify-center`}
                 onPress={() => {
+                  setActiveTab(()=> "repost");
                   fetchUserReshareVideos();
-                  setActiveTab("repost");
                 }}
               >
                 <Image
@@ -576,17 +730,53 @@ export default function PublicProfilePageWithId() {
               showsVerticalScrollIndicator={false}
             />
           )}
+
+          {/* Integrated Video Player */}
+          {isVideoPlayerActive && currentVideoData && (
+            <View
+              style={{
+                position: "absolute",
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                backgroundColor: "black",
+                zIndex: 1000,
+              }}
+            >
+              <FlatList
+                data={currentVideoList}
+                keyExtractor={(item) => item._id}
+                renderItem={({ item, index }) => (
+                  <VideoPlayer
+                    key={`${item._id}-${index === currentVideoIndex}`}
+                    videoData={item}
+                    isActive={index === currentVideoIndex}
+                    showCommentsModal={showCommentsModal}
+                    setShowCommentsModal={setShowCommentsModal}
+                  />
+                )}
+                initialScrollIndex={currentVideoIndex}
+                getItemLayout={(_, index) => ({
+                  length: Dimensions.get("window").height,
+                  offset: Dimensions.get("window").height * index,
+                  index,
+                })}
+                pagingEnabled
+                onViewableItemsChanged={onViewableItemsChanged}
+                viewabilityConfig={{ itemVisiblePercentThreshold: 80 }}
+                decelerationRate="fast"
+                showsVerticalScrollIndicator={false}
+                snapToInterval={Dimensions.get("window").height}
+                snapToAlignment="start"
+              />
+            </View>
+          )}
         </View>
       )}
 
-      {isPurchasedPass && (
-        <CreatorPassBuyMessage
-          isVisible={true}
-          onClose={clearGiftingData}
-          creator={creator}
-          amount={giftSuccessMessage}
-        />
-      )}
+      {/* Bottom Navigation Bar */}
+      {!isVideoPlayerActive && <BottomNavBar />}
     </ThemedView>
   );
 }

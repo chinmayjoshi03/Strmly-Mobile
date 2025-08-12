@@ -7,18 +7,23 @@ import {
   ScrollView,
   ActivityIndicator,
   Image,
-  RefreshControl
+  RefreshControl,
+  FlatList,
+  Dimensions,
+  BackHandler
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { CONFIG } from '@/Constants/config';
 import { useAuthStore } from '@/store/useAuthStore';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import EpisodeList from '../components/EpisodeList';
+import VideoPlayer from '@/app/(dashboard)/long/_components/VideoPlayer';
+import Constants from 'expo-constants';
 
 interface SeriesDetailsScreenProps {
-  seriesId: string;
-  onBack: () => void;
-  onAddNewEpisode: () => void;
+  seriesId?: string;
+  onBack?: () => void;
+  onAddNewEpisode?: () => void;
 }
 
 interface SeriesData {
@@ -74,14 +79,51 @@ interface Episode {
 }
 
 const SeriesDetailsScreen: React.FC<SeriesDetailsScreenProps> = ({
-  seriesId,
+  seriesId: propSeriesId,
   onBack,
   onAddNewEpisode
 }) => {
+  // Get parameters from route if not provided as props
+  const params = useLocalSearchParams();
+  const seriesId = propSeriesId || (params.seriesId as string);
+  
+
+
+  // Helper function for back navigation
+  const handleBack = () => {
+    if (onBack) {
+      onBack();
+    } else {
+      router.back();
+    }
+  };
+
+  // Early return if no seriesId
+  if (!seriesId) {
+    return (
+      <View className="flex-1 bg-black justify-center items-center">
+        <StatusBar barStyle="light-content" backgroundColor="#000" />
+        <Text className="text-red-400 text-center mb-4">Series ID is required</Text>
+        <TouchableOpacity
+          onPress={handleBack}
+          className="bg-gray-600 px-4 py-2 rounded-lg"
+        >
+          <Text className="text-white">Go Back</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
   const [seriesData, setSeriesData] = useState<SeriesData | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Video player state
+  const [isVideoPlayerActive, setIsVideoPlayerActive] = useState(false);
+  const [currentVideoData, setCurrentVideoData] = useState<any>(null);
+  const [currentVideoList, setCurrentVideoList] = useState<any[]>([]);
+  const [currentVideoIndex, setCurrentVideoIndex] = useState(0);
+  const [showCommentsModal, setShowCommentsModal] = useState(false);
 
   const fetchSeriesDetails = async (showLoadingIndicator = true) => {
     try {
@@ -96,10 +138,8 @@ const SeriesDetailsScreen: React.FC<SeriesDetailsScreenProps> = ({
         return;
       }
 
-      console.log(`Fetching series details for ID: ${seriesId}`);
-
-      // Use the user series API to get series with episodes
-      const response = await fetch(`${CONFIG.API_BASE_URL}/series/user?t=${Date.now()}`, {
+      // Use the series by ID API to get specific series with episodes
+      const response = await fetch(`${CONFIG.API_BASE_URL}/series/${seriesId}`, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -108,25 +148,14 @@ const SeriesDetailsScreen: React.FC<SeriesDetailsScreenProps> = ({
       });
 
       const result = await response.json();
-      console.log('User series response:', result);
 
       if (response.ok && result.data) {
-        // Find the specific series by ID
-        const foundSeries = result.data.find((series: any) => series._id === seriesId);
-        
-        if (foundSeries) {
-          console.log('Found series:', foundSeries);
-          console.log('Episodes data:', foundSeries.episodes);
-          console.log('Total episodes:', foundSeries.total_episodes);
-          setSeriesData(foundSeries);
-        } else {
-          setError('Series not found');
-        }
+        setSeriesData(result.data);
+        setError(null); // Clear any previous errors
       } else {
         setError(result.error || 'Failed to fetch series details');
       }
     } catch (error) {
-      console.error('Error fetching series details:', error);
       setError('Network error occurred');
     } finally {
       if (showLoadingIndicator) {
@@ -139,6 +168,20 @@ const SeriesDetailsScreen: React.FC<SeriesDetailsScreenProps> = ({
   useEffect(() => {
     fetchSeriesDetails();
   }, [seriesId]);
+
+  // Handle back button press
+  useEffect(() => {
+    const backAction = () => {
+      if (isVideoPlayerActive) {
+        closeVideoPlayer();
+        return true; // Prevent default back action
+      }
+      return false; // Allow default back action
+    };
+
+    const backHandler = BackHandler.addEventListener('hardwareBackPress', backAction);
+    return () => backHandler.remove();
+  }, [isVideoPlayerActive]);
 
   const onRefresh = useCallback(() => {
     setRefreshing(true);
@@ -163,6 +206,49 @@ const SeriesDetailsScreen: React.FC<SeriesDetailsScreenProps> = ({
     return num.toString();
   };
 
+  // Video player functions
+  const handleVideoPlayerOpen = (episode: Episode, allEpisodes: Episode[]) => {
+    console.log('🎬 Opening video player for episode:', episode.name);
+
+    // Convert episodes to video format
+    const videoList = allEpisodes.map(ep => ({
+      _id: ep._id,
+      name: ep.name,
+      title: ep.name,
+      videoUrl: ep.videoUrl,
+      thumbnailUrl: ep.thumbnailUrl,
+      description: ep.description,
+      episode_number: ep.episode_number,
+      season_number: ep.season_number,
+      created_by: ep.created_by,
+      views: ep.views || 0,
+      likes: ep.likes || 0,
+      type: 'episode',
+      comments: []
+    }));
+
+    const currentIndex = allEpisodes.findIndex(ep => ep._id === episode._id);
+
+    setCurrentVideoData(videoList[currentIndex]);
+    setCurrentVideoList(videoList);
+    setCurrentVideoIndex(currentIndex >= 0 ? currentIndex : 0);
+    setIsVideoPlayerActive(true);
+  };
+
+  const closeVideoPlayer = () => {
+    setIsVideoPlayerActive(false);
+    setCurrentVideoData(null);
+    setCurrentVideoList([]);
+    setCurrentVideoIndex(0);
+    setShowCommentsModal(false);
+  };
+
+  const onViewableItemsChanged = useCallback(({ viewableItems }: any) => {
+    if (viewableItems.length > 0) {
+      setCurrentVideoIndex(viewableItems[0].index);
+    }
+  }, []);
+
   if (loading) {
     return (
       <View className="flex-1 bg-black">
@@ -170,7 +256,7 @@ const SeriesDetailsScreen: React.FC<SeriesDetailsScreenProps> = ({
 
         {/* Header */}
         <View className="flex-row items-center justify-between px-4 py-3 mt-12">
-          <TouchableOpacity onPress={onBack}>
+          <TouchableOpacity onPress={handleBack}>
             <Ionicons name="chevron-back" size={24} color="white" />
           </TouchableOpacity>
           <Text className="text-white text-xl font-medium">Series Details</Text>
@@ -192,7 +278,7 @@ const SeriesDetailsScreen: React.FC<SeriesDetailsScreenProps> = ({
 
         {/* Header */}
         <View className="flex-row items-center justify-between px-4 py-3 mt-12">
-          <TouchableOpacity onPress={onBack}>
+          <TouchableOpacity onPress={handleBack}>
             <Ionicons name="chevron-back" size={24} color="white" />
           </TouchableOpacity>
           <Text className="text-white text-xl font-medium">Series Details</Text>
@@ -218,7 +304,7 @@ const SeriesDetailsScreen: React.FC<SeriesDetailsScreenProps> = ({
 
       {/* Header */}
       <View className="flex-row items-center justify-between px-4 py-3 mt-12">
-        <TouchableOpacity onPress={onBack}>
+        <TouchableOpacity onPress={handleBack}>
           <Ionicons name="chevron-back" size={24} color="white" />
         </TouchableOpacity>
         <Text className="text-white text-xl font-medium">{seriesData.title}</Text>
@@ -269,11 +355,12 @@ const SeriesDetailsScreen: React.FC<SeriesDetailsScreenProps> = ({
 
         {/* Episodes List */}
         <View className="px-4">
-          <EpisodeList 
+          <EpisodeList
             episodes={seriesData.episodes || []}
             seriesTitle={seriesData.title}
             seriesId={seriesData._id}
             onEpisodeDeleted={() => fetchSeriesDetails(false)}
+            onVideoPlayerOpen={handleVideoPlayerOpen}
           />
         </View>
 
@@ -290,6 +377,46 @@ const SeriesDetailsScreen: React.FC<SeriesDetailsScreenProps> = ({
           <Text className="text-black text-lg font-medium">Add new episode</Text>
         </TouchableOpacity>
       </View>
+
+      {/* Integrated Video Player */}
+      {isVideoPlayerActive && currentVideoData && (
+        <View style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'black',
+          zIndex: 1000,
+        }}>
+          <FlatList
+            data={currentVideoList}
+            keyExtractor={(item) => item._id}
+            renderItem={({ item, index }) => (
+              <VideoPlayer
+                key={`${item._id}-${index === currentVideoIndex}`}
+                videoData={item}
+                isActive={index === currentVideoIndex}
+                showCommentsModal={showCommentsModal}
+                setShowCommentsModal={setShowCommentsModal}
+              />
+            )}
+            initialScrollIndex={currentVideoIndex}
+            getItemLayout={(_, index) => ({
+              length: Dimensions.get('window').height,
+              offset: Dimensions.get('window').height * index,
+              index,
+            })}
+            pagingEnabled
+            onViewableItemsChanged={onViewableItemsChanged}
+            viewabilityConfig={{ itemVisiblePercentThreshold: 80 }}
+            decelerationRate="fast"
+            showsVerticalScrollIndicator={false}
+            snapToInterval={Dimensions.get('window').height}
+            snapToAlignment="start"
+          />
+        </View>
+      )}
     </View>
   );
 };
