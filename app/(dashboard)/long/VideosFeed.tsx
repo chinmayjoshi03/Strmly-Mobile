@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { FlatList, Dimensions, ActivityIndicator, Text } from "react-native";
+import { FlatList, Dimensions, ActivityIndicator, Text, Pressable } from "react-native";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 import ThemedView from "@/components/ThemedView";
 import { useAuthStore } from "@/store/useAuthStore";
-import Constants from "expo-constants";
+import { CONFIG } from "@/Constants/config";
 import { VideoItemType } from "@/types/VideosType";
 import VideoPlayer from "./_components/VideoPlayer";
 import { Link, router } from "expo-router";
@@ -27,28 +27,49 @@ const VideosFeed: React.FC = () => {
   const [visibleIndex, setVisibleIndex] = useState(0);
   const [showCommentsModal, setShowCommentsModal] = useState(false);
 
-  const { token } = useAuthStore();
+  const { token, isLoggedIn } = useAuthStore();
 
-  // Debug log for comments modal state changes
+  // If user is not logged in, redirect to sign-in
   useEffect(() => {
-    console.log('🎬 VideosFeed: Comments modal state changed:', showCommentsModal);
-  }, [showCommentsModal]);
-  const BACKEND_API_URL = Constants.expoConfig?.extra?.BACKEND_API_URL;
+    if (!token || !isLoggedIn) {
+      router.replace('/(auth)/Sign-in');
+      return;
+    }
+  }, [token, isLoggedIn]);
+
+  const BACKEND_API_URL = CONFIG.API_BASE_URL;
 
   const fetchTrendingVideos = async () => {
     setLoading(true);
     try {
-      const res = await fetch(`${BACKEND_API_URL}/recommendations/videos`, { //recommendations/videos
+      if (!BACKEND_API_URL) {
+        throw new Error('Backend API URL is not configured');
+      }
 
+      if (!token) {
+        throw new Error('Authentication token is missing - user may not be logged in');
+      }
+
+      const res = await fetch(`${BACKEND_API_URL}/recommendations/videos`, {
         method: "GET",
         headers: {
           Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
         },
       });
-      if (!res.ok) throw new Error("Failed to fetch videos");
+
+      if (!res.ok) {
+        if (res.status === 401) {
+          throw new Error('Authentication failed - please log in again');
+        } else if (res.status === 403) {
+          throw new Error('Access forbidden - invalid token');
+        } else {
+          throw new Error(`Server error: ${res.status} ${res.statusText}`);
+        }
+      }
+
       const json = await res.json();
-      setVideos(json.recommendations);
+      setVideos(json.recommendations || []);
     } catch (err: any) {
       setError(err.message || "Something went wrong");
     } finally {
@@ -57,8 +78,13 @@ const VideosFeed: React.FC = () => {
   };
 
   useEffect(() => {
-    fetchTrendingVideos();
-  }, []);
+    if (token) {
+      fetchTrendingVideos();
+    } else {
+      setError('Please log in to view videos');
+      setLoading(false);
+    }
+  }, [token]);
 
   // OPTIMIZATION 1: Stabilize the onViewableItemsChanged callback
   // This prevents FlatList from re-rendering just because the parent re-rendered.
@@ -93,7 +119,8 @@ const VideosFeed: React.FC = () => {
     [router]
   );
 
-  if (loading) {
+  // Show loading while checking authentication or fetching videos
+  if (loading || !token || !isLoggedIn) {
     return (
       <SafeAreaProvider>
         <SafeAreaView style={{ flex: 1 }} edges={["bottom"]}>
@@ -102,6 +129,9 @@ const VideosFeed: React.FC = () => {
             className="justify-center items-center"
           >
             <ActivityIndicator size="large" color="white" />
+            <Text className="text-white mt-4">
+              {!token || !isLoggedIn ? 'Checking authentication...' : 'Loading videos...'}
+            </Text>
           </ThemedView>
         </SafeAreaView>
       </SafeAreaProvider>
@@ -114,9 +144,19 @@ const VideosFeed: React.FC = () => {
         <SafeAreaView style={{ flex: 1 }} edges={["bottom"]}>
           <ThemedView
             style={{ height: VIDEO_HEIGHT }}
-            className="justify-center items-center"
+            className="justify-center items-center px-4"
           >
-            <Text className="text-white">{error}</Text>
+            <Text className="text-white text-center mb-4">Failed to fetch videos</Text>
+            <Text className="text-red-400 text-center text-sm mb-4">{error}</Text>
+            <Text className="text-gray-400 text-center text-xs mb-4">
+              API URL: {BACKEND_API_URL || 'Not configured'}
+            </Text>
+            <Pressable
+              onPress={fetchTrendingVideos}
+              className="bg-blue-600 px-4 py-2 rounded"
+            >
+              <Text className="text-white">Retry</Text>
+            </Pressable>
           </ThemedView>
         </SafeAreaView>
       </SafeAreaProvider>
@@ -148,7 +188,7 @@ const VideosFeed: React.FC = () => {
     // <SafeAreaProvider>
     //   <SafeAreaView style={{ flex: 1 }} edges={["bottom"]}>
         <ThemedView>
-
+         
           <FlatList
             data={videos}
             renderItem={renderItem}
