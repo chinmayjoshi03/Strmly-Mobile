@@ -37,6 +37,14 @@ const VideoPlayer = ({
     null
   );
 
+  // Add missing functions and variables
+  const clearGiftingData = () => {
+    setIsGifted(false);
+    setGiftSuccessMessage(null);
+  };
+
+  const creator = videoData.created_by;
+
   // FIX: Gracefully handle cases where videoUrl might be missing
   if (!videoData?.videoUrl) {
     return <View style={styles.container} />; // Render an empty container
@@ -115,60 +123,39 @@ const VideoPlayer = ({
 
   return (
     <View style={styles.container}>
-      <>
-        <VideoView
-          player={player}
-          nativeControls={false}
-          style={styles.video}
-          contentFit="cover"
-        />
-        <VideoControls
-          videoData={videoData}
-          setShowCommentsModal={setShowCommentsModal}
-        />
+      <VideoView
+        player={player}
+        nativeControls={false}
+        style={styles.video}
+        contentFit="cover"
+      />
+      <VideoControls
+        videoData={videoData}
+        setShowCommentsModal={setShowCommentsModal}
+      />
 
-          <View className="absolute bottom-12 left-0 h-5 z-10 right-0">
-            <VideoProgressBar player={player} isActive={isActive}/>
-          </View>
+      <View className="absolute bottom-12 left-0 h-5 z-10 right-0">
+        <VideoProgressBar player={player} isActive={isActive}/>
+      </View>
 
-          <View className="z-10 absolute top-4 left-5">
-            <Pressable
-              onPress={() => {
-                console.log('💰 Wallet button pressed in VideoPlayer!');
-                try {
-                  router.push("/(dashboard)/wallet");
-                  console.log('✅ Navigation to wallet successful');
-                } catch (error) {
-                  console.error('❌ Navigation error:', error);
-                }
-              }}
-            >
-              <Image
-                source={require("../../../../assets/images/Wallet.png")}
-                className="size-10"
-              />
-            </Pressable>
-          </View>
-        </>
-        {/* <View className="absolute bottom-[2.57rem] left-0 h-5 z-10 right-0">
-            <VideoProgressBar
-              videoId={videoData._id}
-              player={player}
-              isActive={isActive}
-              duration={videoData?.duration || videoData.access.freeRange.display_till_time}
-              access={videoData.access}
-            />
-          </View> */}
-
-        <View className="z-10 absolute top-16 left-5">
-          <Pressable onPress={() => router.push("/(dashboard)/wallet")}>
-            <Image
-              source={require("../../../../assets/images/Wallet.png")}
-              className="size-10"
-            />
-          </Pressable>
-        </View>
-      </>
+      <View className="z-10 absolute top-4 left-5">
+        <Pressable
+          onPress={() => {
+            console.log('💰 Wallet button pressed in VideoPlayer!');
+            try {
+              router.push("/(dashboard)/wallet");
+              console.log('✅ Navigation to wallet successful');
+            } catch (error) {
+              console.error('❌ Navigation error:', error);
+            }
+          }}
+        >
+          <Image
+            source={require("../../../../assets/images/Wallet.png")}
+            className="size-10"
+          />
+        </Pressable>
+      </View>
 
       {isGifted && (
         <GiftingMessage

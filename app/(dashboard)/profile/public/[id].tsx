@@ -390,7 +390,10 @@ export default function PublicProfilePageWithId() {
   }, []);
 
   const renderGridItem = ({ item }: { item: any }) => (
-    <TouchableOpacity className="relative aspect-[9/16] flex-1 rounded-sm overflow-hidden">
+    <TouchableOpacity 
+      className="relative aspect-[9/16] flex-1 rounded-sm overflow-hidden"
+      onPress={() => navigateToVideoPlayer(item, videos)}
+    >
       {activeTab === "repost" ? (
         item?.long_video?.thumbnailUrl !== "" ? (
           <Image
@@ -410,11 +413,6 @@ export default function PublicProfilePageWithId() {
           </View>
         )
       ) : item.thumbnailUrl !== "" ? (
-    <TouchableOpacity
-      className="relative aspect-[9/16] flex-1 rounded-sm overflow-hidden"
-      onPress={() => navigateToVideoPlayer(item, videos)}
-    >
-      {item.thumbnailUrl !== "" ? (
         <Image
           source={{ uri: item.thumbnailUrl }}
           alt="video thumbnail"
