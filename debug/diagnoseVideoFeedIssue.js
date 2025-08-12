@@ -42,8 +42,8 @@ async function diagnoseVideoFeedIssue() {
     try {
       // Try to create a test user
       const testUser = {
-        username: `testuser_${Date.now()}`,
-        email: `test_${Date.now()}@example.com`,
+        username: `test${Date.now().toString().slice(-8)}`, // Keep under 20 chars
+        email: `test${Date.now()}@example.com`,
         password: 'testpassword123'
       };
 

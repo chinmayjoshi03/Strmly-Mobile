@@ -104,13 +104,14 @@ const VideoDetailScreen: React.FC<VideoDetailProps> = ({
         <Text className="text-white text-xl font-medium">
           {isEditingDraft ? 'Edit Draft' : 'Video detail'}
         </Text>
-        <Text className="text-white text-xl font-medium">
-          {isEditingDraft ? 'Edit Draft' : 'Video detail'}
-        </Text>
         <View className="w-6" />
       </View>
 
-      <ScrollView className="flex-1 px-4 pt-6">
+      <ScrollView 
+        className="flex-1 px-4 pt-6"
+        keyboardShouldPersistTaps="handled"
+        nestedScrollEnabled={true}
+      >
         {/* Series Information - Hidden since series is already selected in previous step */}
 
         {/* Title Field */}
@@ -201,11 +202,11 @@ const VideoDetailScreen: React.FC<VideoDetailProps> = ({
         )}
 
         {/* Add some bottom padding for better scrolling */}
-        <View className="h-20" />
+        <View className="h-32" />
       </ScrollView>
 
       {/* Continue Button */}
-      <View style={{ marginBottom: 80 }}>
+      <View className="absolute bottom-0 left-0 right-0 bg-black pt-4 px-4" style={{ paddingBottom: 100 }}>
         <ContinueButton
           title={formData.videoType === 'paid' && (!formData.amount || formData.amount <= 0) ? 'Enter Price to Continue' : 'Continue'}
           onPress={onContinue}

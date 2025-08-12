@@ -66,7 +66,7 @@ const Interests = () => {
       updateUser({ isOnboarded: true });
 
       Alert.alert("Success", "Your interests have been updated successfully!");
-      router.push("/(dashboard)/long/VideosFeed");
+      router.push("/(tabs)/home");
     } catch (error) {
       Alert.alert("Error", error.message || "Failed to update interests");
     } finally {

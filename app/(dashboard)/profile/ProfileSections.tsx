@@ -11,7 +11,7 @@ import {
   StatusBar,
 } from "react-native";
 import { useRouter, useLocalSearchParams } from "expo-router";
-import { ArrowLeft, PaperclipIcon, CameraIcon, SearchIcon, UserIcon, ChevronRight } from "lucide-react-native";
+import { ArrowLeft, ChevronRight } from "lucide-react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { CONFIG } from "@/Constants/config";
 import { useAuthStore } from "@/store/useAuthStore";
@@ -244,7 +244,7 @@ export default function ProfileSections() {
       </View>
 
       {/* Content */}
-      <ScrollView className="flex-1" style={{ marginBottom: 80 }}>
+      <ScrollView className="flex-1">
         {loading ? (
           <View className="flex-1 items-center justify-center py-20">
             <ActivityIndicator size="large" color="#F1C40F" />
@@ -279,7 +279,7 @@ export default function ProfileSections() {
 
       {/* Create Community Button (only for My Community tab) */}
       {activeSection === "myCommunity" && (
-        <View className="px-4 py-3" style={{ marginBottom: 80 }}>
+        <View className="px-4 py-3">
           <TouchableOpacity
             className="bg-white rounded-full py-3"
             onPress={() => router.push("/(communities)/CreateCommunityPage")}
@@ -291,26 +291,7 @@ export default function ProfileSections() {
         </View>
       )}
 
-      {/* Bottom Navigation Bar */}
-      <View className="absolute bottom-0 left-0 right-0 bg-black border-t border-gray-800">
-        <View
-          className="flex-row justify-around items-center py-2"
-          style={{ paddingBottom: insets.bottom + 10 }}
-        >
-          <TouchableOpacity className="p-3">
-            <PaperclipIcon size={24} color="gray" />
-          </TouchableOpacity>
-          <TouchableOpacity className="p-3">
-            <CameraIcon size={24} color="gray" />
-          </TouchableOpacity>
-          <TouchableOpacity className="p-3">
-            <SearchIcon size={24} color="gray" />
-          </TouchableOpacity>
-          <TouchableOpacity className="p-3">
-            <UserIcon size={24} color="white" />
-          </TouchableOpacity>
-        </View>
-      </View>
+
     </ThemedView>
   );
 }

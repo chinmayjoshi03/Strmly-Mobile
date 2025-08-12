@@ -24,11 +24,11 @@ type Props = {
   setShowCommentsModal?: (show: boolean) => void;
 };
 
-const VideoPlayer = ({ 
-  videoData, 
-  isActive, 
-  showCommentsModal = false, 
-  setShowCommentsModal 
+const VideoPlayer = ({
+  videoData,
+  isActive,
+  showCommentsModal = false,
+  setShowCommentsModal
 }: Props) => {
 
   const [isWantToGift, setIsWantToGift] = useState(false);
@@ -70,20 +70,10 @@ const VideoPlayer = ({
   useEffect(() => {
     const statusSubscription = player.addListener(
       "statusChange",
-      (status, oldStatus, error) => {
+      (payload) => {
         // Only the active video should update the global store
         if (isActive) {
-          _updateStatus(status, error);
-        }
-      }
-    );
-
-    // Listen for playback status changes
-    const playbackStatusSubscription = player.addListener(
-      "playbackStatusUpdate",
-      (status) => {
-        if (isActive) {
-          _updateStatus(status);
+          _updateStatus(payload.status, payload.error);
         }
       }
     );
@@ -103,9 +93,8 @@ const VideoPlayer = ({
 
     // This cleanup function is called when the component unmounts OR when `isActive` changes.
     return () => {
-      // Always remove the listeners
+      // Always remove the listener
       statusSubscription.remove();
-      playbackStatusSubscription.remove();
       // If this was the active player, clear the global reference
       if (isActive) {
         clearActivePlayer();
@@ -135,7 +124,19 @@ const VideoPlayer = ({
       />
 
       <View className="absolute bottom-12 left-0 h-5 z-10 right-0">
-        <VideoProgressBar player={player} isActive={isActive}/>
+        <VideoProgressBar
+          player={player}
+          isActive={isActive}
+          videoId={videoData._id}
+          duration={videoData.duration || 0}
+          access={videoData.access || {
+            isPlayable: true,
+            freeRange: { start_time: 0, display_till_time: 0 },
+            isPurchased: false,
+            accessType: 'free',
+            price: 0
+          }}
+        />
       </View>
 
       <View className="z-10 absolute top-4 left-5">
