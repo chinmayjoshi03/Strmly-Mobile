@@ -219,7 +219,7 @@ export default function PublicProfilePageWithId() {
     }
   }, [token, id, router]);
 
-  
+
 
   const fetchUserReshareVideos = async () => {
     if (!id && !token && activeTab !== "repost") return;
@@ -390,7 +390,7 @@ export default function PublicProfilePageWithId() {
   }, []);
 
   const renderGridItem = ({ item }: { item: any }) => (
-    <TouchableOpacity 
+    <TouchableOpacity
       className="relative aspect-[9/16] flex-1 rounded-sm overflow-hidden"
       onPress={() => navigateToVideoPlayer(item, videos)}
     >
@@ -412,27 +412,24 @@ export default function PublicProfilePageWithId() {
             <Text className="text-white text-xs">Loading...</Text>
           </View>
         )
-      ) : item.thumbnailUrl !== "" ? (
-    <TouchableOpacity
-      className="relative aspect-[9/16] flex-1 rounded-sm overflow-hidden"
-      onPress={() => navigateToVideoPlayer(item, videos)}
-    >
-      {item.thumbnailUrl !== "" ? (
-        <Image
-          source={{ uri: item.thumbnailUrl }}
-          alt="video thumbnail"
-          className="w-full h-full object-cover"
-        />
-      ) : thumbnails[item._id] ? (
-        <Image
-          source={{ uri: thumbnails[item._id] }}
-          alt="video thumbnail"
-          className="w-full h-full object-cover"
-        />
       ) : (
-        <View className="w-full h-full flex items-center justify-center">
-          <Text className="text-white text-xs">Loading...</Text>
-        </View>
+        item.thumbnailUrl !== "" ? (
+          <Image
+            source={{ uri: item.thumbnailUrl }}
+            alt="video thumbnail"
+            className="w-full h-full object-cover"
+          />
+        ) : thumbnails[item._id] ? (
+          <Image
+            source={{ uri: thumbnails[item._id] }}
+            alt="video thumbnail"
+            className="w-full h-full object-cover"
+          />
+        ) : (
+          <View className="w-full h-full flex items-center justify-center">
+            <Text className="text-white text-xs">Loading...</Text>
+          </View>
+        )
       )}
     </TouchableOpacity>
   );
@@ -482,10 +479,10 @@ export default function PublicProfilePageWithId() {
                     </Text>
                     {userData?.creator_profile?.verification_status ===
                       "verified" && (
-                      <Text className="ml-2 px-2 py-1 rounded-full text-xs font-medium bg-blue-500 text-white">
-                        Verified
-                      </Text>
-                    )}
+                        <Text className="ml-2 px-2 py-1 rounded-full text-xs font-medium bg-blue-500 text-white">
+                          Verified
+                        </Text>
+                      )}
                   </View>
                 </View>
               </View>
@@ -791,7 +788,7 @@ export default function PublicProfilePageWithId() {
           )}
         </View>
       )}
-      
+
       {/* Bottom Navigation Bar */}
       {!isVideoPlayerActive && (
         <BottomNavBar />
