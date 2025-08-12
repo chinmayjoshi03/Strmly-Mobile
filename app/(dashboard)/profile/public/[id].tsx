@@ -413,6 +413,11 @@ export default function PublicProfilePageWithId() {
           </View>
         )
       ) : item.thumbnailUrl !== "" ? (
+    <TouchableOpacity
+      className="relative aspect-[9/16] flex-1 rounded-sm overflow-hidden"
+      onPress={() => navigateToVideoPlayer(item, videos)}
+    >
+      {item.thumbnailUrl !== "" ? (
         <Image
           source={{ uri: item.thumbnailUrl }}
           alt="video thumbnail"
