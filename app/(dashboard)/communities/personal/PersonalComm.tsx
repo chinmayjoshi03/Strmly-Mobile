@@ -291,7 +291,7 @@ export default function PersonalCommunityPage() {
             </TouchableOpacity>
 
             <TouchableOpacity
-              onPress={() => router.push("/(demo)/CommunityAnalyticsDemo")}
+              onPress={() => router.push("/(communities)/public/CommunityAnalytics")}
               className="flex-1 px-4 py-2 rounded-xl bg-transparent border border-gray-400"
             >
               <Text className="text-white text-center">View Analytics</Text>

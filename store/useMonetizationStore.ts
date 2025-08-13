@@ -10,6 +10,7 @@ interface MonetizationStore {
   // Actions
   fetchMonetizationStatus: (token: string, forceRefresh?: boolean) => Promise<void>;
   updateMonetizationStatus: (status: Partial<MonetizationStatus>) => void;
+  toggleCommentMonetization: () => void;
   clearError: () => void;
   reset: () => void;
 }
@@ -67,6 +68,19 @@ export const useMonetizationStore = create<MonetizationStore>((set, get) => ({
           ...updates,
         },
         lastFetched: Date.now(), // Update timestamp
+      });
+    }
+  },
+
+  toggleCommentMonetization: () => {
+    const state = get();
+    if (state.monetizationStatus) {
+      set({
+        monetizationStatus: {
+          ...state.monetizationStatus,
+          comment_monetization_status: !state.monetizationStatus.comment_monetization_status,
+        },
+        lastFetched: Date.now(),
       });
     }
   },

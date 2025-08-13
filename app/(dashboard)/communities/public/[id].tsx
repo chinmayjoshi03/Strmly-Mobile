@@ -9,6 +9,7 @@ import {
   FlatList,
   Dimensions,
   BackHandler,
+
   Modal,
 } from "react-native";
 import {
@@ -34,7 +35,7 @@ import CommunityPassBuyMessage from "./CommPassBuyMessage";
 import { useGiftingStore } from "@/store/useGiftingStore";
 
 export default function PublicCommunityPage() {
-  const [activeTab, setActiveTab] = useState("videos");
+  const [activeTab, setActiveTab] = useState<string>("videos");
   const [communityData, setCommunityData] = useState<any>(null);
   const [videos, setVideos] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -68,6 +69,7 @@ export default function PublicCommunityPage() {
 
   const route = useRoute();
   const router = useRouter();
+
   const { id } = route.params as { id: string };
   // const id = "6890586c8039a7684646c364";
 

@@ -1,6 +1,12 @@
 import React from "react";
 import { Modal, View, Text, Pressable, StyleSheet, Image } from "react-native";
-import { GiftType } from "../VideoFeed";
+// Define GiftType locally since VideoFeed was removed
+export type GiftType = {
+  _id: string;
+  name?: string;
+  username: string;
+  profile_photo: string;
+};
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useGiftingStore } from "@/store/useGiftingStore";
 
