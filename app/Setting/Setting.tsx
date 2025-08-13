@@ -87,7 +87,7 @@ const Setting = () => {
 
   const handleLogout = () => {
     logout();
-    router.replace("/(auth)/Sign-in");
+    router.replace("/(tabs)/home");
   };
 
   const handleDeleteAccount = async () => {

@@ -1,4 +1,4 @@
-import { Comment } from './Comments';
+import { Comment } from "./Comments";
 
 export type VideoItemType = {
   _id: string;
@@ -17,6 +17,7 @@ export type VideoItemType = {
   gifts: number;
   shares: number;
   views: number;
+  amount: number;
   access: {
     isPlayable: boolean;
     freeRange: {
@@ -26,8 +27,8 @@ export type VideoItemType = {
     isPurchased: boolean;
     accessType: string;
     price: number;
-  }
-  
+  };
+
   genre: string;
   type: string;
   is_monetized: boolean;
@@ -49,6 +50,13 @@ export type VideoItemType = {
     name: string;
   } | null;
 
+  creatorPassDetails: {
+    _id: string;
+    creator_profile: {
+      creator_pass_price: number;
+    };
+  } | null;
+  
   series: {
     _id: string;
     title: string;

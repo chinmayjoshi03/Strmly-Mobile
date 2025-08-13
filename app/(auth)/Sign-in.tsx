@@ -21,7 +21,7 @@ import ModalMessage from "@/components/AuthModalMessage";
 
 
 const SignIn = () => {
-  const [useEmail, setUseEmail] = useState(false);
+  const [useEmail, setUseEmail] = useState(true);
   const [nameOrEmail, setNameOrEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -101,14 +101,23 @@ const SignIn = () => {
   const renderTopbar = () => {
     return (
       <Pressable
-        onPress={() => setUseEmail(false)}
-        className="absolute left-10 top-20"
+        onPress={() => router.back()}
+        className="absolute left-5 top-20"
       >
         <Image
           source={require("../../assets/images/back.png")}
           className="size-5"
         />
       </Pressable>
+      // <Pressable
+      //   onPress={() => setUseEmail(false)}
+      //   className="absolute left-5 top-20"
+      // >
+      //   <Image
+      //     source={require("../../assets/images/back.png")}
+      //     className="size-5"
+      //   />
+      // </Pressable>
     );
   };
 

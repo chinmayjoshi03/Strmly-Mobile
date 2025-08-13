@@ -144,10 +144,6 @@ export default function PersonalCommunityPage() {
   const fetchFollowers = async () => {
     if (!token || !id) return;
 
-    console.log(
-      "📥 Personal Community - Fetching followers for community:",
-      id
-    );
     setIsLoadingFollowers(true);
     try {
       const result = await communityActions.getCommunityFollowers(token, id);

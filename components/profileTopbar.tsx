@@ -1,7 +1,7 @@
-import React from "react";
+import React, { useCallback } from "react";
 import { View, Text, TouchableOpacity, Alert } from "react-native";
 import { MoreHorizontal, ChevronLeft } from "lucide-react-native";
-import { useRouter } from "expo-router";
+import { useFocusEffect, useRouter } from "expo-router";
 import { useAuthStore } from "@/store/useAuthStore";
 import { CONFIG } from "@/Constants/config";
 
@@ -11,36 +11,24 @@ interface ProfileTopbarProps {
   isMore?: boolean;
 }
 
-const ProfileTopbar = ({ hashtag, name, isMore=true }: ProfileTopbarProps) => {
+const ProfileTopbar = ({
+  hashtag,
+  name,
+  isMore = true,
+}: ProfileTopbarProps) => {
   const safeName = String(name || "");
   const router = useRouter();
-  const logout = useAuthStore((state) => state.logout);
+  const {token, isLoggedIn} = useAuthStore();
 
-  const handleLogout = async () => {
-    try {
-      const response = await fetch(`${CONFIG.API_BASE_URL}/auth/logout`, {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error("Logout failed on server side.");
+  useFocusEffect(
+    useCallback(() => {
+      if (!token || !isLoggedIn) {
+        router.replace("/(auth)/Sign-up");
+        return;
       }
+    }, [token, isLoggedIn])
+  );
 
-      logout();
-      Alert.alert("Success", "Logged out successfully!");
-    } catch (error) {
-      console.error("Logout error:", error);
-      Alert.alert(
-        "Error",
-        error instanceof Error
-          ? error.message
-          : "Failed to logout. Please try again."
-      );
-    }
-  };
 
   return (
     <View className="top-6 z-20">
@@ -50,16 +38,19 @@ const ProfileTopbar = ({ hashtag, name, isMore=true }: ProfileTopbarProps) => {
         </TouchableOpacity>
 
         <View>
-          <Text className={`text-xl ${isMore ? 'pr-3' : 'pr-12'} capitalize font-semibold text-white`}>
+          <Text
+            className={`text-xl ${isMore ? "pr-3" : "pr-12"} capitalize font-semibold text-white`}
+          >
             {hashtag && <Text className="text-white font-bold">#</Text>}
-            <Text className="text-center">{safeName}</Text> {/* Wrap safeName in a Text component */}
+            <Text className="text-center">{safeName}</Text>{" "}
+            {/* Wrap safeName in a Text component */}
           </Text>
         </View>
 
         {isMore ? (
           <View className="flex-row items-center gap-2 relative">
             <TouchableOpacity
-              onPress={()=> router.push('/Setting/Setting')}
+              onPress={() => router.push("/Setting/Setting")}
               className="p-2"
             >
               <MoreHorizontal size={14} color={"white"} />

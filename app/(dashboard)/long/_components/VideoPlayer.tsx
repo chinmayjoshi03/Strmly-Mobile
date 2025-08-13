@@ -15,6 +15,7 @@ import VideoProgressBar from "./VideoProgressBar";
 import { useGiftingStore } from "@/store/useGiftingStore";
 import SeriesPurchaseMessage from "./SeriesPurcchaseMessaage";
 import CreatorPassBuyMessage from "./CreatorPassBuyMessage";
+import VideoBuyMessage from "./VideoBuyMessage";
 
 const { height: screenHeight } = Dimensions.get("screen");
 const VIDEO_HEIGHT = screenHeight;
@@ -34,12 +35,17 @@ const VideoPlayer = ({
 }: Props) => {
   const {
     isGifted,
+    isVideoPurchased,
     giftSuccessMessage,
     creator,
+    videoName,
     series,
     isPurchasedPass,
     isPurchasedSeries,
     clearGiftingData,
+    clearSeriesData,
+    clearVideoAccessData,
+    clearPassData
   } = useGiftingStore();
 
   const { _updateStatus } = usePlayerStore.getState();
@@ -189,10 +195,20 @@ const VideoPlayer = ({
         />
       )}
 
+      {isVideoPurchased && (
+        <VideoBuyMessage
+          isVisible={true}
+          onClose={clearVideoAccessData}
+          creator={creator}
+          name={videoName}
+          amount={giftSuccessMessage}
+        />
+      )}
+
       {isPurchasedPass && (
         <CreatorPassBuyMessage
           isVisible={true}
-          onClose={clearGiftingData}
+          onClose={clearPassData}
           creator={creator}
           amount={giftSuccessMessage}
         />
@@ -201,7 +217,7 @@ const VideoPlayer = ({
       {isPurchasedSeries && series && (
         <SeriesPurchaseMessage
           isVisible={true}
-          onClose={clearGiftingData}
+          onClose={clearSeriesData}
           series={series}
         />
       )}
@@ -228,6 +244,17 @@ const VideoPlayer = ({
       )}
     </View>
   );
+  //  (
+  //   <View style={styles.container}>
+  //     <VideoContentGifting
+  //       creator={videoData.created_by}
+  //       videoId={videoData._id}
+  //       setIsWantToGift={setIsWantToGift}
+  //       setIsGifted={setIsGifted}
+  //       giftMessage={setGiftSuccessMessage}
+  //     />
+  //   </View>
+  // );
 };
 
 const styles = StyleSheet.create({
