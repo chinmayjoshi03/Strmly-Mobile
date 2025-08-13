@@ -30,21 +30,19 @@ type GiftingState = {
   hasFetched: boolean;
   creator: creator | null;
   videoName: string | null;
-  series: {} | null;
   series: series;
   videoId: string | null;
-  initiateGifting: (creator: creator, videoId: string) => Promise<void>;
-  initiateVideoAccess: (creator: creator, videoName: string , videoId: string) => Promise<void>;
-  initiateCreatorPass: (creator: creator) => Promise<void>;
-  initiateCommunityPass: (creator: creator) => Promise<void>;
-  initiateSeries: (series: series) => Promise<void>;
-  initiateSeries: (series: series) => Promise<void>;
+  initiateGifting: (creator: creator, videoId: string) => void;
+  initiateVideoAccess: (creator: creator, videoName: string, videoId: string) => void;
+  initiateCreatorPass: (creator: creator) => void;
+  initiateCommunityPass: (creator: creator) => void;
+  initiateSeries: (series: series) => void;
   loadGiftingContext: () => Promise<void>;
   fetchGiftingData: () => Promise<void>;
-  completeGifting: (amount: number) => Promise<void>;
-  completeVideoAccess: (amount: number) => Promise<void>;
-  completePass: (amount: number) => Promise<void>;
-  completeCommunityPass: (amount: number) => Promise<void>;
+  completeGifting: (amount: number) => void;
+  completeVideoAccess: (amount: number) => void;
+  completePass: (amount: number) => void;
+  completeCommunityPass: (amount: number) => void;
   completeSeriesPurchasing: () => void;
   clearGiftingData: () => void;
   clearVideoAccessData: () => void;
@@ -55,12 +53,14 @@ type GiftingState = {
 
 export const useGiftingStore = create<GiftingState>((set) => ({
   isGifted: false,
+  isVideoPurchased: false,
   isPurchasedPass: false,
   isPurchasedSeries: false,
   isPurchasedCommunityPass: false,
   giftSuccessMessage: null,
   hasFetched: false,
   creator: null,
+  videoName: null,
   series: null,
   videoId: null,
 
@@ -109,6 +109,14 @@ export const useGiftingStore = create<GiftingState>((set) => ({
       hasFetched: false,
       isPurchasedSeries: false,
     });
+  },
+
+  loadGiftingContext: async () => {
+    // TODO: Implement loading gifting context if needed
+  },
+
+  fetchGiftingData: async () => {
+    // TODO: Implement fetching gifting data if needed
   },
 
   completeGifting: (amount) => {
@@ -162,7 +170,7 @@ export const useGiftingStore = create<GiftingState>((set) => ({
 
   clearVideoAccessData: () => {
     set({
-      isGifted: false,
+      isVideoPurchased: false,
       giftSuccessMessage: null,
       hasFetched: false,
       creator: null,
