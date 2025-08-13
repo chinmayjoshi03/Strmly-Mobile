@@ -99,7 +99,8 @@ const SignUp = () => {
         source={require("../../assets/images/logo2.png")}
         className="size-20 text-white"
       ></Image>
-      <ThemedText style={Signinstyles.Title}> Sign up for Strmly </ThemedText>
+      {/* <ThemedText style={Signinstyles.Title}> Sign up for Strmly </ThemedText> */}
+      <ThemedText style={Signinstyles.Title}> Welcome to Strmly </ThemedText>
       <Text className="text-center text-[#B0B0B0] text-sm justify-center w-60">
         Create a profile in India&apos;s first decrentralized social media
         platform.
@@ -108,15 +109,33 @@ const SignUp = () => {
         onPress={() => router.push("/Profile/CreateProfile")}
         style={Signinstyles.button}
       >
-        <View className="flex-row items-center justify-between w-full px-4">
-          <Image
+        <View className="items-center justify-between w-full px-4">
+          {/* <Image
             source={require("../../assets/images/user.png")}
             className="size-7"
-          />
-          <Text className="text-white text-[16px]">Use Email</Text>
-          <View></View>
+          /> */}
+          <Text className="text-white text-center text-[20px]">Sign up</Text>
+          {/* <View></View> */}
         </View>
       </TouchableOpacity>
+
+            {/* OR */}
+            <View className="h-[0.5px] relative text-white w-full items-center justify-center bg-white">
+              <Text className="absolute text-white text-lg bg-black p-2">OR</Text>
+            </View>
+
+      {/* Sign in button */}
+      <TouchableOpacity
+        onPress={() => router.push("/(auth)/Sign-in")}
+        style={Signinstyles.button}
+      >
+        <View className="items-center justify-between w-full px-4">
+          <Text className="text-white w-full text-center text-[20px]">Sign in</Text>
+        </View>
+      </TouchableOpacity>
+
+      {/* Google button */}
+
       {/* <TouchableOpacity
         onPress={registerWithGoogle}
         style={Signinstyles.button}

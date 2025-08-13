@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import {
   View,
   Pressable,
@@ -45,85 +45,71 @@ const VideoProgressBar = ({
   const [dragTime, setDragTime] = useState<number | null>(null);
   const progressBarContainerWidth = useRef<number>(0);
 
-  const { seekTo } = usePlayerStore.getState();
+  const { seekTo } = usePlayerStore();
   const { token } = useAuthStore();
   const BACKEND_API_URL = CONFIG.API_BASE_URL;
 
   const initialStartTime = access?.freeRange?.start_time ?? 0;
   const hasSeekedInitially = useRef(false);
-  const isMounted = useRef(false);
   const hasTriggeredMilestone = useRef(false);
   const milestoneTime = duration * 0.02;
+  const seekInProgress = useRef(false);
+  const wasPlayingBeforeSeek = useRef(false);
 
-  // Reset seek flag on unmount
+  const lastTimeRef = useRef(0);
+
   useEffect(() => {
-    isMounted.current = true;
-    return () => {
-      isMounted.current = false;
-      hasSeekedInitially.current = false;
-    };
-  }, []);
-
-  // Initial seek logic
-  useEffect(() => {
-    if (isActive && !hasSeekedInitially.current && initialStartTime >= 0) {
-      hasSeekedInitially.current = true;
-
-      player.currentTime = initialStartTime;
-      setCurrentTime(initialStartTime);
-      seekTo(initialStartTime);
-      console.log("Initial seek triggered:", initialStartTime);
-      console.log("Player currentTime after seek:", player.currentTime);
+    if (isActive && lastTimeRef.current > 0) {
+      player.seekTo?.(lastTimeRef.current);
     }
-  }, [isActive, initialStartTime, player, seekTo]);
+  }, [isActive, player]);
 
   // History API
-  const saveVideoToHistory = async () => {
-    if (!token || !videoId) {
-      return;
-    }
+  const saveVideoToHistory = useCallback(async () => {
+    if (!token || !videoId) return;
     try {
-      const response = await fetch(`${BACKEND_API_URL}/user/history`, {
+      await fetch(`${BACKEND_API_URL}/user/history`, {
         method: "POST",
         headers: {
           Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ videoId: videoId }),
+        body: JSON.stringify({ videoId }),
       });
-      if (!response.ok) throw new Error("Failed to save video to history");
-      const data = await response.json();
-      console.log("Video Saved to history ---------------", data);
     } catch (err) {
-      console.error("Failed to save video to history:", err);
+      console.error("Failed to save history:", err);
     }
-  };
+  }, [token, videoId, BACKEND_API_URL]);
 
   // View API
-  const incrementVideoViews = async () => {
-    if (!token || !videoId) {
-      return;
-    }
+  const incrementVideoViews = useCallback(async () => {
+    if (!token || !videoId) return;
     try {
-      const response = await fetch(
-        `${BACKEND_API_URL}/videos/${videoId}/view`,
-        {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-        }
-      );
-      if (!response.ok) throw new Error("Failed to save video to history");
-      const data = await response.json();
-      console.log(data.message);
+      await fetch(`${BACKEND_API_URL}/videos/${videoId}/view`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      });
     } catch (err) {
-      console.error("Failed to update the video count:", err);
+      console.error("Failed to increment views:", err);
     }
-  };
+  }, [token, videoId, BACKEND_API_URL]);
 
-  // Poll current time only when active
+  // Initial seek logic
+  useEffect(() => {
+    if (isActive && !hasSeekedInitially.current && initialStartTime >= 0) {
+      (async () => {
+        hasSeekedInitially.current = true;
+        await seekTo(initialStartTime);
+        setCurrentTime(initialStartTime);
+        player.play();
+      })();
+    }
+  }, [isActive, initialStartTime, player, seekTo]);
+
+  // Time sync and milestone tracking
   useEffect(() => {
     if (!isActive) {
       setCurrentTime(0);
@@ -131,26 +117,30 @@ const VideoProgressBar = ({
     }
 
     const interval = setInterval(() => {
-      if (!isDragging) {
-        const time = player.currentTime;
+      if (!isDragging && !seekInProgress.current) {
+        const time =
+          typeof player.currentTime === "number"
+            ? player.currentTime
+            : currentTime;
         setCurrentTime(time);
-
-        if (!hasTriggeredMilestone.current && time >= milestoneTime) {
-          hasTriggeredMilestone.current = true;
-          saveVideoToHistory();
-          incrementVideoViews();
-        }
       }
-    }, 250);
+      console.log(
+        "Interval update: player.currentTime =",
+        player.currentTime,
+        "currentTime state =",
+        currentTime
+      );
+    }, 500);
 
     return () => clearInterval(interval);
-  }, [isActive, player, isDragging, milestoneTime]);
+  }, [isActive, player, isDragging, currentTime]);
 
   const handleProgressBarLayout = (event: LayoutChangeEvent) => {
     progressBarContainerWidth.current = event.nativeEvent.layout.width;
   };
 
   const handleDragStart = () => {
+    wasPlayingBeforeSeek.current = player.playing;
     setIsDragging(true);
   };
 
@@ -158,22 +148,48 @@ const VideoProgressBar = ({
     const containerWidth = progressBarContainerWidth.current;
     const touchX = event.nativeEvent.locationX;
     const seekPercentage = Math.max(0, Math.min(1, touchX / containerWidth));
-    const newTimeSeconds = seekPercentage * duration;
-    setDragTime(newTimeSeconds);
+    setDragTime(seekPercentage * duration);
   };
 
-  const handleDragEnd = (event: GestureResponderEvent) => {
-    setIsDragging(false);
-    const containerWidth = progressBarContainerWidth.current;
-    const touchX = event.nativeEvent.locationX;
-    const seekPercentage = Math.max(0, Math.min(1, touchX / containerWidth));
-    const newTimeSeconds = seekPercentage * duration;
+  const handleSeek = async (newTimeSeconds: number) => {
+    if (seekInProgress.current) return;
+    seekInProgress.current = true;
+    try {
+      if (newTimeSeconds < 0.5 || newTimeSeconds > duration - 0.1) {
+        console.warn("Blocked seek: out of bounds");
+        return;
+      }
 
-    player.currentTime = newTimeSeconds;
-    setCurrentTime(newTimeSeconds);
-    seekTo(newTimeSeconds);
-    console.log("Seeking to:", newTimeSeconds);
-    player.play();
+      await seekTo(newTimeSeconds); // Guaranteed to finish seeking
+
+      // After seek, always read actual player time
+      const current =
+        typeof player.currentTime === "number"
+          ? player.currentTime
+          : newTimeSeconds;
+      setCurrentTime(current);
+    } catch (error) {
+      console.error("Seek failed:", error);
+      setCurrentTime(player.currentTime);
+    } finally {
+      seekInProgress.current = false;
+    }
+  };
+
+  const handleDragEnd = async (event: GestureResponderEvent) => {
+    if (!progressBarContainerWidth.current) return;
+
+    const touchX = event.nativeEvent.locationX;
+    const seekPercentage = Math.max(
+      0,
+      Math.min(1, touchX / progressBarContainerWidth.current)
+    );
+    const newTimeSeconds = Math.min(seekPercentage * duration, duration - 0.1);
+
+    setIsDragging(false);
+    setDragTime(null);
+
+    await handleSeek(newTimeSeconds);
   };
 
   const progress = duration > 0 ? (currentTime / duration) * 100 : 0;
@@ -185,10 +201,9 @@ const VideoProgressBar = ({
     <Pressable
       style={styles.progressBarContainer}
       onLayout={handleProgressBarLayout}
-      onPress={handleDragEnd}
-      onTouchStart={handleDragStart}
+      onPressIn={handleDragStart}
+      onPressOut={handleDragEnd}
       onTouchMove={handleDragMove}
-      onTouchEnd={handleDragEnd}
     >
       <View style={[styles.progressBar, { width: `${progress}%` }]} />
       <View style={[styles.knob, { left: `${progress}%` }]} />

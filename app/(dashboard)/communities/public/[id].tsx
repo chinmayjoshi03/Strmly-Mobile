@@ -37,7 +37,7 @@ export default function PublicCommunityPage() {
   const [activeTab, setActiveTab] = useState("videos");
   const [communityData, setCommunityData] = useState<any>(null);
   const [videos, setVideos] = useState<any[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const [isFollowingCommunity, setIsFollowingCommunity] = useState(false);
   const [isFollowingLoading, setFollowingLoading] = useState(false);
   const [isLoadingVideos, setIsLoadingVideos] = useState(false);
@@ -175,7 +175,6 @@ export default function PublicCommunityPage() {
     useCallback(() => {
       const fetchCommunityData = async () => {
         try {
-          setIsLoading(true);
           const response = await fetch(`${BACKEND_API_URL}/community/${id}`, {
             method: "GET",
             headers: {
@@ -205,12 +204,13 @@ export default function PublicCommunityPage() {
           );
         } catch (error) {
           console.log(error);
-          Alert.alert(
-            "Error",
-            error instanceof Error
-              ? error.message
-              : "An unknown error occurred while fetching community data."
-          );
+          Alert.alert("An unknown error occurred.");
+          // Alert.alert(
+          //   "Error",
+          //   error instanceof Error
+          //     ? error.message
+          //     : "An unknown error occurred while fetching community data."
+          // );
         } finally {
           setIsLoading(false);
         }
@@ -219,7 +219,7 @@ export default function PublicCommunityPage() {
       if (token && id) {
         fetchCommunityData();
       }
-    }, [id, token])
+    }, [id, token, isFollowingCommunity])
   );
 
   useFocusEffect(
@@ -277,16 +277,17 @@ export default function PublicCommunityPage() {
         throw new Error(data.message || "Failed to follow community profile");
       }
 
-      console.log(data.message);
+      console.log('Follow comm data', data);
       setIsFollowingCommunity(data.isFollowingCommunity);
     } catch (error) {
       console.log(error);
-      Alert.alert(
-        "Error",
-        error instanceof Error
-          ? error.message
-          : "An unknown error occurred while following community."
-      );
+      Alert.alert("An unknown error occurred.");
+      // Alert.alert(
+      //   "Error",
+      //   error instanceof Error
+      //     ? error.message
+      //     : "An unknown error occurred while following community."
+      // );
     } finally {
       setFollowingLoading(false);
     }
@@ -320,12 +321,13 @@ export default function PublicCommunityPage() {
           setHasCommunityPass(data.data.hasCommunityAccess);
         } catch (error) {
           console.log(error);
-          Alert.alert(
-            "Error",
-            error instanceof Error
-              ? error.message
-              : "An unknown error occurred while following user."
-          );
+          Alert.alert("An unknown error occurred.");
+          // Alert.alert(
+          //   "Error",
+          //   error instanceof Error
+          //     ? error.message
+          //     : "An unknown error occurred while following user."
+          // );
         } finally {
           setIsLoading(false);
         }
@@ -566,7 +568,7 @@ export default function PublicCommunityPage() {
       ) : (
         <FlatList
           ListHeaderComponent={
-            <View className="max-w-4xl -mt-28 relative mx-6 mb-4 pt-28">
+            <View className="max-w-4xl -mt-28 relative mx-6 pt-28">
               <View className="items-center justify-center gap-4 h-fit w-full mt-6">
                 <Image
                   source={
@@ -699,11 +701,12 @@ export default function PublicCommunityPage() {
               </View>
 
               {/* Bio */}
+              {communityData?.bio &&
               <View className="mt-6 flex flex-col items-center justify-center px-4">
                 <Text className="text-gray-400 text-xs text-center">
                   {communityData?.bio}
                 </Text>
-              </View>
+              </View>}
 
               {/* Video Type Tabs - Only show when videos section is active */}
               {activeTab === "videos" && (
@@ -718,7 +721,7 @@ export default function PublicCommunityPage() {
                       />
                     </TouchableOpacity>
                     <TouchableOpacity
-                      className={`pb-4 flex-1 items-center justify-center border-b-2 ${videoType === "series" ? "border-white" : "border-transparent"}`}
+                      className={`pb-4 flex-1 items-center justify-center border-b-2 ${videoType === "liked" ? "border-white" : "border-transparent"}`}
                       onPress={() => setVideoType("liked")}
                     >
                       <HeartIcon
