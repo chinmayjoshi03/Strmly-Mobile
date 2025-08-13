@@ -144,16 +144,22 @@ export default function PersonalCommunityPage() {
   const fetchFollowers = async () => {
     if (!token || !id) return;
 
-    console.log('📥 Personal Community - Fetching followers for community:', id);
+    console.log(
+      "📥 Personal Community - Fetching followers for community:",
+      id
+    );
     setIsLoadingFollowers(true);
     try {
       const result = await communityActions.getCommunityFollowers(token, id);
-      console.log('✅ Personal Community - Followers fetched:', result.followers?.length || 0);
-      console.log('👥 Personal Community - Followers data:', result.followers);
+      console.log(
+        "✅ Personal Community - Followers fetched:",
+        result.followers?.length || 0
+      );
+      console.log("👥 Personal Community - Followers data:", result.followers);
       setFollowers(result.followers || []);
     } catch (error) {
-      console.error('❌ Personal Community - Error fetching followers:', error);
-      Alert.alert('Error', 'Failed to fetch followers');
+      console.error("❌ Personal Community - Error fetching followers:", error);
+      Alert.alert("Error", "Failed to fetch followers");
     } finally {
       setIsLoadingFollowers(false);
     }
@@ -163,16 +169,19 @@ export default function PersonalCommunityPage() {
   const fetchCreators = async () => {
     if (!token || !id) return;
 
-    console.log('📥 Personal Community - Fetching creators for community:', id);
+    console.log("📥 Personal Community - Fetching creators for community:", id);
     setIsLoadingCreators(true);
     try {
       const result = await communityActions.getCommunityCreators(token, id);
-      console.log('✅ Personal Community - Creators fetched:', result.creators?.length || 0);
-      console.log('👥 Personal Community - Creators data:', result.creators);
+      console.log(
+        "✅ Personal Community - Creators fetched:",
+        result.creators?.length || 0
+      );
+      console.log("👥 Personal Community - Creators data:", result.creators);
       setCreators(result.creators || []);
     } catch (error) {
-      console.error('❌ Personal Community - Error fetching creators:', error);
-      Alert.alert('Error', 'Failed to fetch creators');
+      console.error("❌ Personal Community - Error fetching creators:", error);
+      Alert.alert("Error", "Failed to fetch creators");
     } finally {
       setIsLoadingCreators(false);
     }
@@ -180,42 +189,50 @@ export default function PersonalCommunityPage() {
 
   // Handle section changes
   const handleSectionChange = (section: string) => {
-    console.log('🔄 Personal Community - Section changed to:', section);
-    console.log('📊 Personal Community - Current data:', {
+    console.log("🔄 Personal Community - Section changed to:", section);
+    console.log("📊 Personal Community - Current data:", {
       followers: followers.length,
       creators: creators.length,
-      videos: videos.length
+      videos: videos.length,
     });
     setActiveTab(section);
 
     if (section === "followers" && followers.length === 0) {
-      console.log('📥 Personal Community - Fetching followers...');
+      console.log("📥 Personal Community - Fetching followers...");
       fetchFollowers();
     } else if (section === "creators" && creators.length === 0) {
-      console.log('📥 Personal Community - Fetching creators...');
+      console.log("📥 Personal Community - Fetching creators...");
       fetchCreators();
     }
   };
 
   // Navigate to user profile
   const navigateToUserProfile = (userId: string) => {
-    console.log('🔄 Personal Community - Navigating to user profile:', userId);
-    console.log('🔄 Router object:', router);
+    console.log("🔄 Personal Community - Navigating to user profile:", userId);
+    console.log("🔄 Router object:", router);
     try {
       const path = `/(dashboard)/profile/public/${userId}`;
-      console.log('🔄 Navigation path:', path);
+      console.log("🔄 Navigation path:", path);
       router.push(path as any);
-      console.log('✅ Navigation call completed');
+      console.log("✅ Navigation call completed");
     } catch (error) {
-      console.error('❌ Navigation error:', error);
-      Alert.alert('Navigation Error', `Failed to navigate to user profile: ${error.message}`);
+      console.error("❌ Navigation error:", error);
+      Alert.alert(
+        "Navigation Error",
+        `Failed to navigate to user profile: ${error.message}`
+      );
     }
   };
 
   // Video player functions
   const navigateToVideoPlayer = (videoData: any, allVideos: any[]) => {
-    console.log('🎬 Opening video player for:', videoData.title || videoData.name);
-    const currentIndex = allVideos.findIndex(video => video._id === videoData._id);
+    console.log(
+      "🎬 Opening video player for:",
+      videoData.title || videoData.name
+    );
+    const currentIndex = allVideos.findIndex(
+      (video) => video._id === videoData._id
+    );
 
     setCurrentVideoData(videoData);
     setCurrentVideoList(allVideos);
@@ -241,7 +258,10 @@ export default function PersonalCommunityPage() {
       return false;
     };
 
-    const backHandler = BackHandler.addEventListener('hardwareBackPress', backAction);
+    const backHandler = BackHandler.addEventListener(
+      "hardwareBackPress",
+      backAction
+    );
     return () => backHandler.remove();
   }, [isVideoPlayerActive]);
 
@@ -271,7 +291,7 @@ export default function PersonalCommunityPage() {
       {/* Video overlay info */}
       <View className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-3">
         <Text className="text-white text-sm font-medium" numberOfLines={2}>
-          {item.title || item.name || 'Untitled'}
+          {item.title || item.name || "Untitled"}
         </Text>
         {item.created_by && (
           <TouchableOpacity
@@ -281,7 +301,9 @@ export default function PersonalCommunityPage() {
             }}
             className="mt-1"
           >
-            <Text className="text-gray-300 text-xs">@{item.created_by.username}</Text>
+            <Text className="text-gray-300 text-xs">
+              @{item.created_by.username}
+            </Text>
           </TouchableOpacity>
         )}
         <View className="flex-row items-center mt-1 space-x-3">
@@ -327,7 +349,7 @@ export default function PersonalCommunityPage() {
       {/* Compact overlay for grid */}
       <View className="absolute bottom-0 left-0 right-0 bg-black/60 p-2">
         <Text className="text-white text-xs font-medium" numberOfLines={1}>
-          {item.title || item.name || 'Untitled'}
+          {item.title || item.name || "Untitled"}
         </Text>
       </View>
 
@@ -342,24 +364,32 @@ export default function PersonalCommunityPage() {
 
   // Render user item for followers/creators sections
   const renderUserItem = ({ item }: { item: any }) => {
-    console.log('🎨 Rendering user item:', item.username, item._id);
     return (
       <TouchableOpacity
         className="flex-row items-center p-3 border-b border-gray-800"
         onPress={() => {
-          console.log('👆 User item pressed:', item.username, item._id);
-          console.log('👆 Touch event triggered for user:', item.username);
           navigateToUserProfile(item._id);
         }}
         activeOpacity={0.7}
-        style={{ backgroundColor: 'rgba(255,255,255,0.05)' }} // Add slight background for debugging
+        style={{ backgroundColor: "rgba(255,255,255,0.05)" }} // Add slight background for debugging
       >
         <View className="w-12 h-12 rounded-full overflow-hidden bg-gray-700 mr-3">
           <Image
-            source={{
-              uri: item.profile_photo || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(item.username || 'user')}&backgroundColor=random`,
+            source={
+              item?.profile_photo
+                ? {
+                    uri: item.profile_photo,
+                  }
+                : require("../../../../assets/images/user.png")
+            }
+            style={{
+              width: 80,
+              height: 80,
+              borderRadius: 40,
+              borderWidth: 2,
+              borderColor: "white",
+              resizeMode: "cover",
             }}
-            className="w-full h-full object-cover"
           />
         </View>
         <View className="flex-1">
@@ -394,17 +424,24 @@ export default function PersonalCommunityPage() {
           ListHeaderComponent={
             <View className="max-w-4xl -mt-28 relative mx-6 mb-4">
               <View className="flex flex-col items-center md:flex-row md:items-end space-y-4 md:space-y-0 md:space-x-4">
-                <View className="relative flex flex-col items-center w-full">
-                  <View className="size-24 rounded-full border-2 border-white overflow-hidden bg-gray-800">
-                    <Image
-                      source={{
-                        uri: (communityData?.profile_photo && communityData.profile_photo.trim() !== '')
-                          ? communityData.profile_photo
-                          : `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(communityData?.name || 'community')}&backgroundColor=random`,
-                      }}
-                      className="w-full h-full object-cover"
-                    />
-                  </View>
+                <View className="relative flex-col items-center w-full">
+                  <Image
+                    source={
+                      communityData?.profile_photo
+                        ? {
+                            uri: communityData.profile_photo,
+                          }
+                        : require("../../../../assets/images/user.png")
+                    }
+                    style={{
+                      width: 80,
+                      height: 80,
+                      borderRadius: 40,
+                      borderWidth: 2,
+                      borderColor: "white",
+                      resizeMode: "cover",
+                    }}
+                  />
                   <View className="flex flex-row items-center justify-center w-full mt-2">
                     <Text className="text-gray-400">
                       {communityData?.founder &&
@@ -417,31 +454,43 @@ export default function PersonalCommunityPage() {
               {/* Section Navigation */}
               <View className="mt-6 flex flex-row justify-around items-center border-b border-gray-800">
                 <TouchableOpacity
-                  className={`flex flex-col gap-1 items-center pb-4 flex-1 ${activeTab === 'followers' ? 'border-b-2 border-white' : ''}`}
-                  onPress={() => handleSectionChange('followers')}
+                  className={`flex flex-col gap-1 items-center pb-4 flex-1 ${activeTab === "followers" ? "border-b-2 border-white" : ""}`}
+                  onPress={() => handleSectionChange("followers")}
                 >
                   <Text className="font-bold text-lg text-white">
                     {communityData?.followers?.length || 0}
                   </Text>
-                  <Text className={`text-md ${activeTab === 'followers' ? 'text-white' : 'text-gray-400'}`}>Followers</Text>
+                  <Text
+                    className={`text-md ${activeTab === "followers" ? "text-white" : "text-gray-400"}`}
+                  >
+                    Followers
+                  </Text>
                 </TouchableOpacity>
                 <TouchableOpacity
-                  className={`flex flex-col gap-1 items-center pb-4 flex-1 ${activeTab === 'creators' ? 'border-b-2 border-white' : ''}`}
-                  onPress={() => handleSectionChange('creators')}
+                  className={`flex flex-col gap-1 items-center pb-4 flex-1 ${activeTab === "creators" ? "border-b-2 border-white" : ""}`}
+                  onPress={() => handleSectionChange("creators")}
                 >
                   <Text className="font-bold text-lg text-white">
                     {communityData?.creators?.length || 0}
                   </Text>
-                  <Text className={`text-md ${activeTab === 'creators' ? 'text-white' : 'text-gray-400'}`}>Creators</Text>
+                  <Text
+                    className={`text-md ${activeTab === "creators" ? "text-white" : "text-gray-400"}`}
+                  >
+                    Creators
+                  </Text>
                 </TouchableOpacity>
                 <TouchableOpacity
-                  className={`flex flex-col gap-1 items-center pb-4 flex-1 ${activeTab === 'videos' ? 'border-b-2 border-white' : ''}`}
-                  onPress={() => handleSectionChange('videos')}
+                  className={`flex flex-col gap-1 items-center pb-4 flex-1 ${activeTab === "videos" ? "border-b-2 border-white" : ""}`}
+                  onPress={() => handleSectionChange("videos")}
                 >
                   <Text className="font-bold text-lg text-white">
                     {videos.length || 0}
                   </Text>
-                  <Text className={`text-md ${activeTab === 'videos' ? 'text-white' : 'text-gray-400'}`}>Videos</Text>
+                  <Text
+                    className={`text-md ${activeTab === "videos" ? "text-white" : "text-gray-400"}`}
+                  >
+                    Videos
+                  </Text>
                 </TouchableOpacity>
               </View>
 
@@ -455,7 +504,7 @@ export default function PersonalCommunityPage() {
                 </TouchableOpacity>
 
                 <TouchableOpacity
-                  onPress={() => router.push("/(communities)/public/CommunityAnalytics")}
+                  onPress={() => router.push("/(demo)/CommunityAnalyticsDemo")}
                   className="flex-1 px-4 py-2 rounded-xl bg-transparent border border-gray-400"
                 >
                   <Text className="text-white text-center">View Analytics</Text>
@@ -470,17 +519,19 @@ export default function PersonalCommunityPage() {
               </View>
 
               {/* Video Type Tabs - Only show when videos section is active */}
-              {activeTab === 'videos' && (
+              {activeTab === "videos" && (
                 <View className="mt-4 border-b border-gray-700">
                   <View className="flex flex-row justify-around items-center">
                     <TouchableOpacity
-                      className={`pb-4 flex-1 items-center justify-center border-b-2 ${videoType === 'long' ? 'border-white' : 'border-transparent'}`}
+                      className={`pb-4 flex-1 items-center justify-center border-b-2 ${videoType === "long" ? "border-white" : "border-transparent"}`}
                       onPress={() => setVideoType("long")}
                     >
-                      <PaperclipIcon color={videoType === "long" ? "white" : "gray"} />
+                      <PaperclipIcon
+                        color={videoType === "long" ? "white" : "gray"}
+                      />
                     </TouchableOpacity>
                     <TouchableOpacity
-                      className={`pb-4 flex-1 items-center justify-center border-b-2 ${videoType === 'series' ? 'border-white' : 'border-transparent'}`}
+                      className={`pb-4 flex-1 items-center justify-center border-b-2 ${videoType === "series" ? "border-white" : "border-transparent"}`}
                       onPress={() => setVideoType("series")}
                     >
                       <HeartIcon
@@ -493,7 +544,7 @@ export default function PersonalCommunityPage() {
               )}
 
               {/* Search Bar - Only show for followers and creators */}
-              {(activeTab === 'followers' || activeTab === 'creators') && (
+              {(activeTab === "followers" || activeTab === "creators") && (
                 <View className="mt-4 px-4">
                   <View className="bg-gray-800 rounded-lg px-4 py-3 flex-row items-center">
                     <Text className="text-gray-400 flex-1">Search...</Text>
@@ -503,36 +554,60 @@ export default function PersonalCommunityPage() {
             </View>
           }
           data={(() => {
-            const data = activeTab === 'videos' ? (isLoadingVideos ? [] : videos) :
-              activeTab === 'followers' ? (isLoadingFollowers ? [] : followers) :
-                activeTab === 'creators' ? (isLoadingCreators ? [] : creators) : [];
-            console.log(`📋 Personal Community - FlatList data for ${activeTab}:`, data.length, 'items');
+            const data =
+              activeTab === "videos"
+                ? isLoadingVideos
+                  ? []
+                  : videos
+                : activeTab === "followers"
+                  ? isLoadingFollowers
+                    ? []
+                    : followers
+                  : activeTab === "creators"
+                    ? isLoadingCreators
+                      ? []
+                      : creators
+                    : [];
+            console.log(
+              `📋 Personal Community - FlatList data for ${activeTab}:`,
+              data.length,
+              "items"
+            );
             return data;
           })()}
           key={`${activeTab}-${videoType}`}
           keyExtractor={(item) => item._id}
           renderItem={
-            activeTab === 'videos' ? (videoType === "long" ? renderVideoItem : renderGridItem) :
-              renderUserItem
+            activeTab === "videos"
+              ? videoType === "long"
+                ? renderVideoItem
+                : renderGridItem
+              : renderUserItem
           }
-          numColumns={activeTab === 'videos' && videoType === 'series' ? 3 : 1}
-          columnWrapperStyle={activeTab === 'videos' && videoType === 'series' ? { justifyContent: 'space-between' } : undefined}
+          numColumns={activeTab === "videos" && videoType === "series" ? 3 : 1}
+          columnWrapperStyle={
+            activeTab === "videos" && videoType === "series"
+              ? { justifyContent: "space-between" }
+              : undefined
+          }
           ListEmptyComponent={
-            (activeTab === 'videos' && isLoadingVideos) ||
-              (activeTab === 'followers' && isLoadingFollowers) ||
-              (activeTab === 'creators' && isLoadingCreators) ? (
+            (activeTab === "videos" && isLoadingVideos) ||
+            (activeTab === "followers" && isLoadingFollowers) ||
+            (activeTab === "creators" && isLoadingCreators) ? (
               <View className="flex-1 h-64 items-center justify-center">
                 <ActivityIndicator size="large" color="white" />
               </View>
             ) : (
               <View className="flex-1 h-64 items-center justify-center">
-                {activeTab === 'videos' && <Video size={48} color="gray" />}
-                {activeTab === 'followers' && <Users size={48} color="gray" />}
-                {activeTab === 'creators' && <Users size={48} color="gray" />}
+                {activeTab === "videos" && <Video size={48} color="gray" />}
+                {activeTab === "followers" && <Users size={48} color="gray" />}
+                {activeTab === "creators" && <Users size={48} color="gray" />}
                 <Text className="text-gray-400 text-center mt-4">
-                  {activeTab === 'videos' ? `No ${videoType} videos yet` :
-                    activeTab === 'followers' ? 'No followers yet' :
-                      'No creators yet'}
+                  {activeTab === "videos"
+                    ? `No ${videoType} videos yet`
+                    : activeTab === "followers"
+                      ? "No followers yet"
+                      : "No creators yet"}
                 </Text>
               </View>
             )
@@ -544,15 +619,17 @@ export default function PersonalCommunityPage() {
 
       {/* Integrated Video Player Modal */}
       {isVideoPlayerActive && currentVideoData && (
-        <View style={{
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          backgroundColor: 'black',
-          zIndex: 1000,
-        }}>
+        <View
+          style={{
+            position: "absolute",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: "black",
+            zIndex: 1000,
+          }}
+        >
           <FlatList
             data={currentVideoList}
             keyExtractor={(item) => item._id}
@@ -567,8 +644,8 @@ export default function PersonalCommunityPage() {
             )}
             initialScrollIndex={currentVideoIndex}
             getItemLayout={(_, index) => ({
-              length: Dimensions.get('window').height,
-              offset: Dimensions.get('window').height * index,
+              length: Dimensions.get("window").height,
+              offset: Dimensions.get("window").height * index,
               index,
             })}
             pagingEnabled
@@ -580,16 +657,14 @@ export default function PersonalCommunityPage() {
             viewabilityConfig={{ itemVisiblePercentThreshold: 80 }}
             decelerationRate="fast"
             showsVerticalScrollIndicator={false}
-            snapToInterval={Dimensions.get('window').height}
+            snapToInterval={Dimensions.get("window").height}
             snapToAlignment="start"
           />
         </View>
       )}
 
       {/* Bottom Navigation Bar */}
-      {!isVideoPlayerActive && (
-        <BottomNavBar />
-      )}
+      {!isVideoPlayerActive && <BottomNavBar />}
     </ThemedView>
   );
 }

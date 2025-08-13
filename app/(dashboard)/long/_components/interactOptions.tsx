@@ -1,10 +1,10 @@
 import { Image, Pressable, Text, View } from "react-native";
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { FontAwesome } from "@expo/vector-icons";
 import { useAuthStore } from "@/store/useAuthStore";
 import { CONFIG } from "@/Constants/config";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { router } from "expo-router";
+import { router, useFocusEffect } from "expo-router";
 import { useGiftingStore } from "@/store/useGiftingStore";
 
 type InteractOptionsProps = {
@@ -92,7 +92,7 @@ const InteractOptions = ({
             body: JSON.stringify({ videoId: videoId }),
           }
         );
-        
+
         if (!response.ok)
           throw new Error("Failed while checking video like status");
 
@@ -111,37 +111,39 @@ const InteractOptions = ({
   }, [token, videoId, likes]);
 
   // Check video gifting
-  useEffect(() => {
-    const checkVideoGifting = async () => {
-      if (!token || !videoId) {
-        return;
-      }
+  useFocusEffect(
+    useCallback(() => {
+      const checkVideoGifting = async () => {
+        if (!token || !videoId) {
+          return;
+        }
 
-      try {
-        const response = await fetch(
-          `${BACKEND_API_URL}/videos/${videoId}/total-gifting`,
-          {
-            method: "GET",
-            headers: {
-              Authorization: `Bearer ${token}`,
-              "Content-Type": "application/json",
-            },
-          }
-        );
-        if (!response.ok)
-          throw new Error("Failed while checking video like status");
-        const data = await response.json();
-        console.log("check like", data);
-        setGifts(data.data);
-      } catch (err) {
-        console.log(err);
-      }
-    };
+        try {
+          const response = await fetch(
+            `${BACKEND_API_URL}/videos/${videoId}/total-gifting`,
+            {
+              method: "GET",
+              headers: {
+                Authorization: `Bearer ${token}`,
+                "Content-Type": "application/json",
+              },
+            }
+          );
+          if (!response.ok)
+            throw new Error("Failed while checking video like status");
+          const data = await response.json();
+          console.log("check gifting", data);
+          setGifts(data.data);
+        } catch (err) {
+          console.log(err);
+        }
+      };
 
-    if (token && videoId) {
-      checkVideoGifting();
-    }
-  }, [token, videoId]);
+      if (token && videoId) {
+        checkVideoGifting();
+      }
+    }, [token, videoId])
+  );
 
   // ------------- Reshare ------------
   useEffect(() => setReshares(shares), [shares]);
@@ -207,23 +209,11 @@ const InteractOptions = ({
 
   const openGifting = async () => {
     initiateGifting(creator, videoId);
-    router.push('/(payments)/Video/Video-Gifting');
+    router.push("/(payments)/Video/Video-Gifting");
   };
 
   return (
     <View className="p-1">
-      {isResharedVideo && (
-        <View className="absolute -left-[21.5rem] bottom-0">
-          <View className="flex-row gap-2 items-center bg-[#000000A8] w-40 py-0.5 justify-center rounded-xl">
-            <Image
-              source={require("../../../../assets/images/repost.png")}
-              className="size-5"
-            />
-            <Text className="text-white">by {user?.username}</Text>
-          </View>
-        </View>
-      )}
-
       <View className="gap-5">
         <View className="items-center gap-1">
           <Pressable onPress={() => LikeVideo()}>

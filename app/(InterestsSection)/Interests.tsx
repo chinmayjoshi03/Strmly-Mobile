@@ -66,9 +66,11 @@ const Interests = () => {
       updateUser({ isOnboarded: true });
 
       Alert.alert("Success", "Your interests have been updated successfully!");
-      router.push("/(tabs)/home");
-    } catch (error) {
-      Alert.alert("Error", error.message || "Failed to update interests");
+      router.replace("/(tabs)/home");
+    } catch (error: unknown) {
+      const message =
+        error instanceof Error ? error.message : "Failed to update interests";
+      Alert.alert("Error", message);
     } finally {
       setIsSubmitting(false);
     }
@@ -250,7 +252,7 @@ const Interests = () => {
   };
 
   if (!fontsLoaded) return null;
-        
+
   if (Step === 1) {
     return (
       <ThemedView style={CreateProfileStyles.Container}>
@@ -366,7 +368,7 @@ const Interests = () => {
             "Reviews & Unboxings",
             "Live Streams & Podcasts",
           ]
-      : Type === "Youtube"
+      : Type === "Netflix"
         ? [
             "Entertainment",
             "Education",
@@ -415,7 +417,10 @@ const Interests = () => {
       <ThemedView style={CreateProfileStyles.Container}>
         <View style={CreateProfileStyles.TopBar}>
           <TouchableOpacity
-            onPress={() => HandleStep(false)}
+            onPress={() => {
+              HandleStep(false);
+              Step === 2 ? setInterests([]) : setInterests2([]);
+            }}
             className="items-start w-full absolute top-20 z-10 left-5"
           >
             <Image
@@ -433,7 +438,9 @@ const Interests = () => {
             {isCinema ? " “Cinema content”" : " “Non-cinema content”"}
           </Text>
 
-          <View style={{ marginBottom: 30, marginTop: 10 }}>{renderGrid(items)}</View>
+          <View style={{ marginBottom: 30, marginTop: 10 }}>
+            {renderGrid(items)}
+          </View>
         </ScrollView>
         <View className="absolute bottom-0 left-0 right-0 px-4 pb-20">
           <TouchableOpacity

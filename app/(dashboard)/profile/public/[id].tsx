@@ -12,7 +12,6 @@ import {
   Dimensions,
   BackHandler,
 } from "react-native";
-import { CONFIG } from "@/Constants/config";
 import {
   LinkIcon,
   HeartIcon,
@@ -27,7 +26,7 @@ import ProfileTopbar from "@/components/profileTopbar"; // Assuming this is the 
 import { LinearGradient } from "expo-linear-gradient"; // For the gradient border
 import Constants from "expo-constants";
 import { useRoute } from "@react-navigation/native";
-import { router } from "expo-router";
+import { router, useFocusEffect } from "expo-router";
 import VideoPlayer from "@/app/(dashboard)/long/_components/VideoPlayer";
 import BottomNavBar from "@/components/BottomNavBar";
 
@@ -70,7 +69,10 @@ export default function PublicProfilePageWithId() {
       return false; // Allow default back action
     };
 
-    const backHandler = BackHandler.addEventListener('hardwareBackPress', backAction);
+    const backHandler = BackHandler.addEventListener(
+      "hardwareBackPress",
+      backAction
+    );
     return () => backHandler.remove();
   }, [isVideoPlayerActive]);
 
@@ -89,7 +91,6 @@ export default function PublicProfilePageWithId() {
     if (!id) return;
 
     const fetchUserVideos = async (page = 1) => {
-
       if (activeTab == "repost") return;
 
       setIsLoadingVideos(true);
@@ -129,36 +130,6 @@ export default function PublicProfilePageWithId() {
     }
   }, [token, activeTab, id]);
 
-  const userReshareVideos = async (page = 1) => {
-    setIsLoadingVideos(true);
-    try {
-      const response = await fetch(`${BACKEND_API_URL}/user/reshares`, {
-        method: "GET",
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.message || "Failed to fetch user videos");
-      }
-
-      setVideos(data.reshares);
-    } catch (err) {
-      console.error("Error fetching user videos:", err);
-      Alert.alert(
-        "Error",
-        err instanceof Error
-          ? err.message
-          : "An unknown error occurred while fetching videos."
-      );
-    } finally {
-      setIsLoadingVideos(false);
-    }
-  };
-
   useEffect(() => {
     if (!id) return;
 
@@ -181,16 +152,15 @@ export default function PublicProfilePageWithId() {
         setUserData(data.user);
         setIsFollowing(data.user?.isBeingFollowed);
         // console.log("Pubic User data", data.user);
-        setIsFollowing(data.user?.isBeingFollowed)
-        console.log("User data:", data.user);
-        console.log("User details:", data.user?.userDetails);
-        console.log("My communities:", data.user?.userDetails?.my_communities);
         setUserError(null);
         if (data.user?.tags && data.user.tags.length > 2) setShowMore(true);
 
         // Set communities from user data
         if (data.user?.userDetails?.my_communities) {
-          console.log("Setting communities:", data.user.userDetails.my_communities);
+          console.log(
+            "Setting communities:",
+            data.user.userDetails.my_communities
+          );
           setCommunities(data.user.userDetails.my_communities);
         } else {
           console.log("No communities found in user data");
@@ -219,8 +189,6 @@ export default function PublicProfilePageWithId() {
     }
   }, [token, id, router]);
 
-
-
   const fetchUserReshareVideos = async () => {
     if (!id && !token && activeTab !== "repost") return;
 
@@ -232,7 +200,6 @@ export default function PublicProfilePageWithId() {
           "Content-Type": "application/json",
         },
       });
-
 
       const data = await response.json();
 
@@ -268,8 +235,8 @@ export default function PublicProfilePageWithId() {
           body: JSON.stringify(
             !isFollowing
               ? {
-                followUserId: id,
-              }
+                  followUserId: id,
+                }
               : { unfollowUserId: id }
           ),
         }
@@ -301,73 +268,59 @@ export default function PublicProfilePageWithId() {
     }
   };
 
-  useEffect(() => {
-    const hasCreatorPass = async () => {
-      try {
-        const response = await fetch(
-          `${BACKEND_API_URL}/user/has-creator-pass/${id}`,
-          {
-            method: "GET",
-            headers: {
-              Authorization: `Bearer ${token}`,
-              "Content-Type": "application/json",
-            },
+  useFocusEffect(
+    useCallback(() => {
+      const hasCreatorPass = async () => {
+        try {
+          const response = await fetch(
+            `${BACKEND_API_URL}/user/has-creator-pass/${id}`,
+            {
+              method: "GET",
+              headers: {
+                Authorization: `Bearer ${token}`,
+                "Content-Type": "application/json",
+              },
+            }
+          );
+
+          const data = await response.json();
+
+          if (!response.ok) {
+            throw new Error(
+              data.message || "Failed to fetch user creator pass"
+            );
           }
-        );
 
-        const data = await response.json();
-
-        if (!response.ok) {
-          throw new Error(data.message || "Failed to fetch user creator pass");
+          // console.log("has Creator pass", data);
+          setHasCreatorPass(data.hasCreatorPass);
+        } catch (error) {
+          console.log(error);
+          Alert.alert(
+            "Error",
+            error instanceof Error
+              ? error.message
+              : "An unknown error occurred while following user."
+          );
+        } finally {
+          setIsLoading(false);
         }
+      };
 
-        // console.log("has Creator pass", data);
-        setHasCreatorPass(data.hasCreatorPass);
-      } catch (error) {
-        console.log(error);
-        Alert.alert(
-          "Error",
-          error instanceof Error
-            ? error.message
-            : "An unknown error occurred while following user."
-        );
-      } finally {
-        setIsLoading(false);
+      if (id && token) {
+        hasCreatorPass();
       }
-    };
-
-    if (id && token) {
-      hasCreatorPass();
-    }
-  }, []);
-  // Use a derived state for profileData for cleaner access
-  // const currentProfileData = {
-  //   name: userData?.name || "User",
-  //   email: userData?.email || "",
-  //   image: userData?.avatar || userData?.image,
-  //   username: userData?.username || userData?.email?.split("@")[0] || "user",
-  //   bio: userData?.bio || "Welcome to my profile! 👋",
-  //   location: userData?.location || "Not specified",
-  //   website: userData?.website || "",
-  //   joinedDate: userData?.createdAt
-  //     ? new Date(userData?.createdAt).toLocaleDateString("en-US", {
-  //         month: "long",
-  //         year: "numeric",
-  //       })
-  //     : "N/A",
-  //   coverImage:
-  //     "https://images.unsplash.com/photo-1579546929518-9e396f3cc809?w=800&h=200&fit=crop", // Placeholder, consider dynamic cover image
-  //   followers: userData?.stats?.followersCount || 0,
-  //   following: userData?.stats?.followingCount || 0,
-  //   posts: userData?.stats?.videosCount || 0,
-  //   isVerified: userData?.isVerified || false,
-  //   creatorPassPrice: userData?.creator_profile?.creator_pass_price || 0,
-  // };
+    }, [id, token])
+  );
 
   // Video player functions
   const navigateToVideoPlayer = (videoData: any, allVideos: any[]) => {
-    console.log('🎬 Opening video player for:', videoData.title || videoData.name);
-    const currentIndex = allVideos.findIndex(video => video._id === videoData._id);
+    console.log(
+      "🎬 Opening video player for:",
+      videoData.title || videoData.name
+    );
+    const currentIndex = allVideos.findIndex(
+      (video) => video._id === videoData._id
+    );
 
     setCurrentVideoData(videoData);
     setCurrentVideoList(allVideos);
@@ -412,24 +365,22 @@ export default function PublicProfilePageWithId() {
             <Text className="text-white text-xs">Loading...</Text>
           </View>
         )
+      ) : item.thumbnailUrl !== "" ? (
+        <Image
+          source={{ uri: item.thumbnailUrl }}
+          alt="video thumbnail"
+          className="w-full h-full object-cover"
+        />
+      ) : thumbnails[item._id] ? (
+        <Image
+          source={{ uri: thumbnails[item._id] }}
+          alt="video thumbnail"
+          className="w-full h-full object-cover"
+        />
       ) : (
-        item.thumbnailUrl !== "" ? (
-          <Image
-            source={{ uri: item.thumbnailUrl }}
-            alt="video thumbnail"
-            className="w-full h-full object-cover"
-          />
-        ) : thumbnails[item._id] ? (
-          <Image
-            source={{ uri: thumbnails[item._id] }}
-            alt="video thumbnail"
-            className="w-full h-full object-cover"
-          />
-        ) : (
-          <View className="w-full h-full flex items-center justify-center">
-            <Text className="text-white text-xs">Loading...</Text>
-          </View>
-        )
+        <View className="w-full h-full flex items-center justify-center">
+          <Text className="text-white text-xs">Loading...</Text>
+        </View>
       )}
     </TouchableOpacity>
   );
@@ -465,8 +416,8 @@ export default function PublicProfilePageWithId() {
                       source={
                         userData?.userDetails?.profile_photo
                           ? {
-                            uri: userData.userDetails.profile_photo,
-                          }
+                              uri: userData.userDetails.profile_photo,
+                            }
                           : require("../../../../assets/images/user.png")
                       }
                       className="w-full h-full object-cover rounded-full"
@@ -493,7 +444,7 @@ export default function PublicProfilePageWithId() {
               >
                 <TouchableOpacity
                   className="text-center items-center"
-                // onPress={() => router.push("/communities?type=followers")}
+                  // onPress={() => router.push("/communities?type=followers")}
                 >
                   <Text className="font-semibold text-lg text-white">
                     {userData?.totalFollowers}
@@ -524,7 +475,6 @@ export default function PublicProfilePageWithId() {
                     }
                     className={`h-10 rounded-lg overflow-hidden`}
                   >
-
                     <LinearGradient
                       colors={["#4400FFA6", "#FFFFFF", "#FF00004D", "#FFFFFF"]}
                       start={{ x: 0, y: 0 }}
@@ -534,7 +484,6 @@ export default function PublicProfilePageWithId() {
                       <View
                         className={`flex-1 px-2 rounded-lg bg-black items-center justify-center`}
                       >
-
                         <View className="flex-row items-center justify-center">
                           <Text className="text-white text-center">
                             Access at
@@ -565,9 +514,7 @@ export default function PublicProfilePageWithId() {
                         className={`flex-1 px-4 rounded-lg bg-black items-center justify-center`}
                       >
                         <View className="flex-row items-center justify-center">
-                          <Text className="text-white text-center">
-                            Joined
-                          </Text>
+                          <Text className="text-white text-center">Joined</Text>
                         </View>
                       </View>
                     </LinearGradient>
@@ -576,65 +523,98 @@ export default function PublicProfilePageWithId() {
               </View>
 
               {/* Social Media Links - Moved here to replace hashtags */}
-              {userData?.userDetails?.social_media_links && Object.values(userData.userDetails.social_media_links).some(link => link) && (
-                <View className="mt-5 flex flex-row justify-center gap-3 flex-wrap">
-                  {userData.userDetails.social_media_links.snapchat && (
-                    <TouchableOpacity
-                      onPress={() => Linking.openURL(userData.userDetails.social_media_links.snapchat)}
-                      className="w-12 h-12 rounded-lg overflow-hidden"
-                      style={{ backgroundColor: '#FFFC00' }}
-                    >
-                      <View className="w-full h-full items-center justify-center">
-                        <Text className="text-black text-lg font-bold">👻</Text>
-                      </View>
-                    </TouchableOpacity>
-                  )}
-                  {userData.userDetails.social_media_links.instagram && (
-                    <TouchableOpacity
-                      onPress={() => Linking.openURL(userData.userDetails.social_media_links.instagram)}
-                      className="w-12 h-12 rounded-lg overflow-hidden"
-                      style={{ backgroundColor: '#E4405F' }}
-                    >
-                      <View className="w-full h-full items-center justify-center">
-                        <Text className="text-white text-lg font-bold">📷</Text>
-                      </View>
-                    </TouchableOpacity>
-                  )}
-                  {userData.userDetails.social_media_links.youtube && (
-                    <TouchableOpacity
-                      onPress={() => Linking.openURL(userData.userDetails.social_media_links.youtube)}
-                      className="w-12 h-12 rounded-lg overflow-hidden"
-                      style={{ backgroundColor: '#FF0000' }}
-                    >
-                      <View className="w-full h-full items-center justify-center">
-                        <Text className="text-white text-lg font-bold">▶</Text>
-                      </View>
-                    </TouchableOpacity>
-                  )}
-                  {userData.userDetails.social_media_links.facebook && (
-                    <TouchableOpacity
-                      onPress={() => Linking.openURL(userData.userDetails.social_media_links.facebook)}
-                      className="w-12 h-12 rounded-lg overflow-hidden"
-                      style={{ backgroundColor: '#1877F2' }}
-                    >
-                      <View className="w-full h-full items-center justify-center">
-                        <Text className="text-white text-lg font-bold">f</Text>
-                      </View>
-                    </TouchableOpacity>
-                  )}
-                  {userData.userDetails.social_media_links.twitter && (
-                    <TouchableOpacity
-                      onPress={() => Linking.openURL(userData.userDetails.social_media_links.twitter)}
-                      className="w-12 h-12 rounded-lg overflow-hidden"
-                      style={{ backgroundColor: '#000000' }}
-                    >
-                      <View className="w-full h-full items-center justify-center">
-                        <Text className="text-white text-lg font-bold">𝕏</Text>
-                      </View>
-                    </TouchableOpacity>
-                  )}
-                </View>
-              )}
+              {userData?.userDetails?.social_media_links &&
+                Object.values(userData.userDetails.social_media_links).some(
+                  (link) => link
+                ) && (
+                  <View className="mt-5 flex flex-row justify-center gap-3 flex-wrap">
+                    {userData.userDetails.social_media_links.snapchat && (
+                      <TouchableOpacity
+                        onPress={() =>
+                          Linking.openURL(
+                            userData.userDetails.social_media_links.snapchat
+                          )
+                        }
+                        className="w-12 h-12 rounded-lg overflow-hidden"
+                        style={{ backgroundColor: "#FFFC00" }}
+                      >
+                        <View className="w-full h-full items-center justify-center">
+                          <Text className="text-black text-lg font-bold">
+                            👻
+                          </Text>
+                        </View>
+                      </TouchableOpacity>
+                    )}
+                    {userData.userDetails.social_media_links.instagram && (
+                      <TouchableOpacity
+                        onPress={() =>
+                          Linking.openURL(
+                            userData.userDetails.social_media_links.instagram
+                          )
+                        }
+                        className="w-12 h-12 rounded-lg overflow-hidden"
+                        style={{ backgroundColor: "#E4405F" }}
+                      >
+                        <View className="w-full h-full items-center justify-center">
+                          <Text className="text-white text-lg font-bold">
+                            📷
+                          </Text>
+                        </View>
+                      </TouchableOpacity>
+                    )}
+                    {userData.userDetails.social_media_links.youtube && (
+                      <TouchableOpacity
+                        onPress={() =>
+                          Linking.openURL(
+                            userData.userDetails.social_media_links.youtube
+                          )
+                        }
+                        className="w-12 h-12 rounded-lg overflow-hidden"
+                        style={{ backgroundColor: "#FF0000" }}
+                      >
+                        <View className="w-full h-full items-center justify-center">
+                          <Text className="text-white text-lg font-bold">
+                            ▶
+                          </Text>
+                        </View>
+                      </TouchableOpacity>
+                    )}
+                    {userData.userDetails.social_media_links.facebook && (
+                      <TouchableOpacity
+                        onPress={() =>
+                          Linking.openURL(
+                            userData.userDetails.social_media_links.facebook
+                          )
+                        }
+                        className="w-12 h-12 rounded-lg overflow-hidden"
+                        style={{ backgroundColor: "#1877F2" }}
+                      >
+                        <View className="w-full h-full items-center justify-center">
+                          <Text className="text-white text-lg font-bold">
+                            f
+                          </Text>
+                        </View>
+                      </TouchableOpacity>
+                    )}
+                    {userData.userDetails.social_media_links.twitter && (
+                      <TouchableOpacity
+                        onPress={() =>
+                          Linking.openURL(
+                            userData.userDetails.social_media_links.twitter
+                          )
+                        }
+                        className="w-12 h-12 rounded-lg overflow-hidden"
+                        style={{ backgroundColor: "#000000" }}
+                      >
+                        <View className="w-full h-full items-center justify-center">
+                          <Text className="text-white text-lg font-bold">
+                            𝕏
+                          </Text>
+                        </View>
+                      </TouchableOpacity>
+                    )}
+                  </View>
+                )}
 
               {/* Bio - Moved below social media links with larger font */}
               <View className="mt-4 flex flex-col items-center justify-center px-4">
@@ -656,8 +636,6 @@ export default function PublicProfilePageWithId() {
                 </View>
               </View>
 
-
-
               {/* Communities as Hashtags */}
               {communities.length > 0 && (
                 <View className="flex flex-row flex-wrap w-full items-center justify-center gap-2 mt-3">
@@ -667,7 +645,7 @@ export default function PublicProfilePageWithId() {
                       onPress={() => {
                         router.push({
                           pathname: "/(dashboard)/communities/public/[id]",
-                          params: { id: community._id }
+                          params: { id: community._id },
                         });
                       }}
                       className="px-4 py-2 border border-gray-400 rounded-[8px]"
@@ -681,7 +659,10 @@ export default function PublicProfilePageWithId() {
                       onPress={() => {
                         router.push({
                           pathname: "/(dashboard)/profile/ProfileSections",
-                          params: { section: "myCommunity", userName: userData?.username }
+                          params: {
+                            section: "myCommunity",
+                            userName: userData?.username,
+                          },
                         });
                       }}
                       className="px-4 py-2 border border-gray-400 rounded-[8px]"
@@ -708,7 +689,10 @@ export default function PublicProfilePageWithId() {
 
               <TouchableOpacity
                 className={`pb-4 flex-1 items-center justify-center`}
-                onPress={() => { userReshareVideos(); setActiveTab("repost"); }}
+                onPress={() => {
+                  setActiveTab(()=> "repost");
+                  fetchUserReshareVideos();
+                }}
               >
                 <Image
                   source={require("../../../../assets/images/repost.png")}
@@ -749,15 +733,17 @@ export default function PublicProfilePageWithId() {
 
           {/* Integrated Video Player */}
           {isVideoPlayerActive && currentVideoData && (
-            <View style={{
-              position: 'absolute',
-              top: 0,
-              left: 0,
-              right: 0,
-              bottom: 0,
-              backgroundColor: 'black',
-              zIndex: 1000,
-            }}>
+            <View
+              style={{
+                position: "absolute",
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                backgroundColor: "black",
+                zIndex: 1000,
+              }}
+            >
               <FlatList
                 data={currentVideoList}
                 keyExtractor={(item) => item._id}
@@ -772,8 +758,8 @@ export default function PublicProfilePageWithId() {
                 )}
                 initialScrollIndex={currentVideoIndex}
                 getItemLayout={(_, index) => ({
-                  length: Dimensions.get('window').height,
-                  offset: Dimensions.get('window').height * index,
+                  length: Dimensions.get("window").height,
+                  offset: Dimensions.get("window").height * index,
                   index,
                 })}
                 pagingEnabled
@@ -781,7 +767,7 @@ export default function PublicProfilePageWithId() {
                 viewabilityConfig={{ itemVisiblePercentThreshold: 80 }}
                 decelerationRate="fast"
                 showsVerticalScrollIndicator={false}
-                snapToInterval={Dimensions.get('window').height}
+                snapToInterval={Dimensions.get("window").height}
                 snapToAlignment="start"
               />
             </View>
@@ -790,9 +776,7 @@ export default function PublicProfilePageWithId() {
       )}
 
       {/* Bottom Navigation Bar */}
-      {!isVideoPlayerActive && (
-        <BottomNavBar />
-      )}
+      {!isVideoPlayerActive && <BottomNavBar />}
     </ThemedView>
   );
 }

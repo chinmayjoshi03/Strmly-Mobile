@@ -1,5 +1,5 @@
-import React, { useCallback, useEffect, useState, useRef } from "react";
-import { View, StyleSheet, Dimensions, Pressable, Image } from "react-native";
+import React, { useEffect } from "react";
+import { View, Dimensions, Pressable, Image, StyleSheet } from "react-native";
 import { useVideoPlayer, VideoView } from "expo-video";
 import {
   usePlayerStore,
@@ -12,6 +12,9 @@ import CommentsSection from "./CommentSection";
 import GiftingMessage from "./GiftingMessage";
 import { router } from "expo-router";
 import VideoProgressBar from "./VideoProgressBar";
+import { useGiftingStore } from "@/store/useGiftingStore";
+import SeriesPurchaseMessage from "./SeriesPurcchaseMessaage";
+import CreatorPassBuyMessage from "./CreatorPassBuyMessage";
 
 const { height: screenHeight } = Dimensions.get("screen");
 const VIDEO_HEIGHT = screenHeight;
@@ -23,29 +26,26 @@ type Props = {
   setShowCommentsModal?: (show: boolean) => void;
 };
 
-const VideoPlayer: React.FC<Props> = ({
+const VideoPlayer = ({
   videoData,
   isActive,
   showCommentsModal = false,
-  setShowCommentsModal
-}) => {
-  const [isGifted, setIsGifted] = useState(false);
-  const [giftSuccessMessage, setGiftSuccessMessage] = useState<number | null>(null);
-  
-  const mountedRef = useRef(true);
-  const statusListenerRef = useRef<any>(null);
+  setShowCommentsModal,
+}: Props) => {
+  const {
+    isGifted,
+    giftSuccessMessage,
+    creator,
+    series,
+    isPurchasedPass,
+    isPurchasedSeries,
+    clearGiftingData,
+  } = useGiftingStore();
 
-  // Add missing functions and variables
-  const clearGiftingData = useCallback(() => {
-    setIsGifted(false);
-    setGiftSuccessMessage(null);
-  }, []);
-
-  const creator = videoData.created_by;
   const { _updateStatus } = usePlayerStore.getState();
   const isMutedFromStore = usePlayerStore((state) => state.isMuted);
 
-  // Only create player if we have a valid video URL
+  // FIX: Move the conditional check after hooks but handle gracefully
   const player = useVideoPlayer(videoData?.videoUrl || "", (p) => {
     p.loop = true;
     p.muted = isMutedFromStore;
@@ -69,19 +69,10 @@ const VideoPlayer: React.FC<Props> = ({
 
   // Optimized lifecycle management
   useEffect(() => {
-    // Don't proceed if no video URL or component unmounted
-    if (!videoData?.videoUrl || !mountedRef.current) return;
+    // Don't proceed if no video URL
+    if (!videoData?.videoUrl) return;
 
-    // Clean up previous status listener
-    if (statusListenerRef.current) {
-      statusListenerRef.current.remove();
-      statusListenerRef.current = null;
-    }
-
-    // Add new status listener
-    statusListenerRef.current = player.addListener("statusChange", (payload) => {
-      if (!mountedRef.current) return;
-      
+    const statusSubscription = player.addListener("statusChange", (payload) => {
       // Only the active video should update the global store
       if (isActive) {
         _updateStatus(payload.status, payload.error);
@@ -91,14 +82,9 @@ const VideoPlayer: React.FC<Props> = ({
     if (isActive) {
       // This video is visible and should play
       setActivePlayer(player);
-      
-      // Use requestAnimationFrame for smoother transitions
-      requestAnimationFrame(() => {
-        if (mountedRef.current) {
-          const { smartPlay } = usePlayerStore.getState();
-          smartPlay();
-        }
-      });
+      // Use the smart play function to handle audio interaction logic
+      const { smartPlay } = usePlayerStore.getState();
+      smartPlay();
     } else {
       // This video is not visible, pause and reset
       player.pause();
@@ -113,11 +99,9 @@ const VideoPlayer: React.FC<Props> = ({
 
     // Cleanup function
     return () => {
-      if (statusListenerRef.current) {
-        statusListenerRef.current.remove();
-        statusListenerRef.current = null;
-      }
-      
+      // Always remove the listener
+      statusSubscription.remove();
+      // If this was the active player, clear the global reference
       if (isActive) {
         clearActivePlayer();
       }
@@ -157,40 +141,34 @@ const VideoPlayer: React.FC<Props> = ({
         style={styles.video}
         contentFit="cover"
       />
-      
+
       <VideoControls
         videoData={videoData}
         setShowCommentsModal={setShowCommentsModal}
       />
 
-      <View className="absolute bottom-12 left-0 h-5 z-10 right-0">
+      <View className="absolute bottom-[2.56rem] left-0 h-5 z-10 right-0">
         <VideoProgressBar
           player={player}
           isActive={isActive}
           videoId={videoData._id}
-          duration={videoData.duration || videoData.access.freeRange.display_till_time}
-          access={videoData.access || {
-            isPlayable: true,
-            freeRange: { start_time: 0, display_till_time: 0 },
-            isPurchased: false,
-            accessType: 'free',
-            price: 0
-          }}
+          duration={
+            videoData.duration || videoData.access.freeRange.display_till_time
+          }
+          access={
+            videoData.access || {
+              isPlayable: true,
+              freeRange: { start_time: 0, display_till_time: 0 },
+              isPurchased: false,
+              accessType: "free",
+              price: 0,
+            }
+          }
         />
       </View>
 
-      <View className="z-10 absolute top-4 left-5">
-        <Pressable
-          onPress={() => {
-            console.log('💰 Wallet button pressed in VideoPlayer!');
-            try {
-              router.push("/(dashboard)/wallet");
-              console.log('✅ Navigation to wallet successful');
-            } catch (error) {
-              console.error('❌ Navigation error:', error);
-            }
-          }}
-        >
+      <View className="z-10 absolute top-16 left-5">
+        <Pressable onPress={() => router.push("/(dashboard)/wallet")}>
           <Image
             source={require("../../../../assets/images/Wallet.png")}
             className="size-10"
@@ -207,22 +185,39 @@ const VideoPlayer: React.FC<Props> = ({
         />
       )}
 
+      {isPurchasedPass && (
+        <CreatorPassBuyMessage
+          isVisible={true}
+          onClose={clearGiftingData}
+          creator={creator}
+          amount={giftSuccessMessage}
+        />
+      )}
+
+      {isPurchasedSeries && series && (
+        <SeriesPurchaseMessage
+          isVisible={true}
+          onClose={clearGiftingData}
+          series={series}
+        />
+      )}
+
       {showCommentsModal && setShowCommentsModal && (
         <CommentsSection
           onClose={() => setShowCommentsModal(false)}
           videoId={videoData._id}
           onPressUsername={(userId) => {
             // Navigate to user profile
-            console.log('Navigate to user profile:', userId);
+            console.log("Navigate to user profile:", userId);
             try {
               router.push(`/(dashboard)/profile/public/${userId}`);
             } catch (error) {
-              console.error('Navigation error:', error);
+              console.error("Navigation error:", error);
             }
           }}
           onPressTip={(commentId) => {
             // Open tip modal for comment
-            console.log('Open tip modal for comment:', commentId);
+            console.log("Open tip modal for comment:", commentId);
             // You can implement tip modal logic here
           }}
         />

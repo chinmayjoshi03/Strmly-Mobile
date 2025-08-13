@@ -8,7 +8,7 @@ import {
   Alert,
   ActivityIndicator,
 } from "react-native";
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import {
   ChevronDownIcon,
   Hash,
@@ -17,7 +17,7 @@ import {
 } from "lucide-react-native";
 import { useAuthStore } from "@/store/useAuthStore";
 import Constants from "expo-constants";
-import { router } from "expo-router";
+import { router, useFocusEffect } from "expo-router";
 import { useGiftingStore } from "@/store/useGiftingStore";
 
 type VideoDetailsProps = {
@@ -71,6 +71,7 @@ const VideoDetails = ({
   const [selectedEpisodeIndex, setSelectedEpisodeIndex] = useState(0);
   const [showPriceDropdown, setShowPriceDropdown] = useState(false);
   const [isFollowCreator, setIsFollowCreator] = useState<boolean>(false);
+  const [hasCreatorPass, setHasCreatorPass] = useState<boolean>(false);
   const [isFollowCreatorLoading, setIsFollowCreatorLoading] =
     useState<boolean>(false);
   const [isFollowCommunity, setIsFollowCommunity] = useState<boolean>(false);
@@ -78,7 +79,7 @@ const VideoDetails = ({
     useState<boolean>(false);
 
   const { token } = useAuthStore();
-  const {initiateGifting} = useGiftingStore();
+  const { initiateGifting } = useGiftingStore();
 
   const BACKEND_API_URL = Constants.expoConfig?.extra?.BACKEND_API_URL;
 
@@ -163,7 +164,6 @@ const VideoDetails = ({
     if (!token || !community?._id) {
       return;
     }
-    
     setIsFollowCommunityLoading(true);
     try {
       const response = await fetch(
@@ -188,6 +188,47 @@ const VideoDetails = ({
     }
   };
 
+  useFocusEffect(
+    useCallback(() => {
+      const hasCreatorPass = async () => {
+        try {
+          const response = await fetch(
+            `${BACKEND_API_URL}/user/has-creator-pass/${createdBy._id}`,
+            {
+              method: "GET",
+              headers: {
+                Authorization: `Bearer ${token}`,
+                "Content-Type": "application/json",
+              },
+            }
+          );
+
+          const data = await response.json();
+
+          if (!response.ok) {
+            throw new Error(
+              data.message || "Failed to fetch user creator pass"
+            );
+          }
+
+          setHasCreatorPass(data.hasCreatorPass);
+        } catch (error) {
+          console.log(error);
+          Alert.alert(
+            "Error",
+            error instanceof Error
+              ? error.message
+              : "An unknown error occurred while following user."
+          );
+        }
+      };
+
+      if (createdBy._id && token) {
+        hasCreatorPass();
+      }
+    }, [createdBy._id, token])
+  );
+
   return (
     <View className="w-full gap-3.5">
       {/* Top tags */}
@@ -210,7 +251,7 @@ const VideoDetails = ({
               {isFollowCommunityLoading ? (
                 <ActivityIndicator className="size-5" color="white" />
               ) : isFollowCommunity ? (
-                <SquareCheck size={14} color={'white'} />
+                <SquareCheck size={14} color={"white"} />
               ) : (
                 <Image
                   source={require("../../../../assets/images/plus.png")}
@@ -315,7 +356,10 @@ const VideoDetails = ({
                 }}
               >
                 <Pressable
-                  onPress={() => {initiateGifting(createdBy, videoId); router.push(`/(dashboard)/profile/public/${createdBy._id}`);}}
+                  onPress={() => {
+                    initiateGifting(createdBy, videoId);
+                    !hasCreatorPass && router.push(`/(demo)/PurchaseCreatorPass/${createdBy._id}`);
+                  }}
                 >
                   <View
                     className={`bg-black h-11 px-2 py-1 flex-row items-center justify-between rounded-t-xl`}
@@ -324,13 +368,21 @@ const VideoDetails = ({
                       Creator Pass
                     </Text>
                     <Text className="text-white text-[16px]">
-                      ₹{series?.price}
+                      {!hasCreatorPass ? (
+                        `₹${videoAmount}`
+                      ) : (
+                        <Text className="text-[16px] text-green-600">
+                          Activate
+                        </Text>
+                      )}
                     </Text>
                   </View>
                 </Pressable>
 
                 <Pressable
-                  onPress={() => router.push("/(dashboard)/profile/access")}
+                  onPress={() =>
+                    router.push(`/(demo)/PurchaseSeries/${series?._id}`)
+                  }
                 >
                   <View
                     className={`bg-black h-11 px-2 py-1 flex-row items-center justify-between rounded-b-xl`}
@@ -339,7 +391,7 @@ const VideoDetails = ({
                       Content access
                     </Text>
                     <Text className="text-white text-[16px]">
-                      ₹{videoAmount}
+                      ₹{series?.price}
                     </Text>
                   </View>
                 </Pressable>
@@ -353,13 +405,14 @@ const VideoDetails = ({
                 }}
               >
                 <Pressable
-                  onPress={() =>
-                    router.push(
-                      series === null || series?.type === "Free"
-                        ? `/(dashboard)/profile/public/${createdBy._id}`
-                        : "/(dashboard)/profile/access"
-                    )
-                  }
+                  onPress={() =>{(series === null || series?.type === "Free") && !hasCreatorPass ?
+                    router.push(`/(demo)/PurchaseCreatorPass/${createdBy?._id}`)
+                    :
+                    series && series?.type !== "Free" ?
+                    router.push(`/(demo)/PurchaseSeries/${series?._id}`)
+                    :
+                    console.log('')
+                  }}
                 >
                   <View
                     className={`bg-black h-11 px-2 py-1 flex-row items-center justify-between rounded-t-xl`}
@@ -370,7 +423,13 @@ const VideoDetails = ({
                           Creator Pass
                         </Text>
                         <Text className="text-white text-[16px]">
-                          ₹{videoAmount}
+                          {!hasCreatorPass ? (
+                            `₹${videoAmount}`
+                          ) : (
+                            <Text className="text-[16px] text-green-600">
+                              Activate
+                            </Text>
+                          )}
                         </Text>
                       </>
                     ) : (

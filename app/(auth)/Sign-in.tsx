@@ -30,6 +30,8 @@ const SignIn = () => {
   const [showAlert, setShowAlert] = useState(false);
   const [alert, setAlert] = useState("");
 
+  const {isOnboarded} = useAuthStore();
+
   const [fontsLoaded] = useFonts({
     "Poppins-Regular": require("../../assets/fonts/poppins/Poppins-Regular.ttf"),
     "Poppins-Bold": require("../../assets/fonts/poppins/Poppins-Bold.ttf"),
@@ -144,7 +146,7 @@ const SignIn = () => {
           <View></View>
         </View>
       </TouchableOpacity>
-      <TouchableOpacity
+      {/* <TouchableOpacity
         onPress={() => {
           setAlert("Google Sign-in");
           setShowAlert(true);
@@ -159,7 +161,7 @@ const SignIn = () => {
           <Text className="text-white text-[16px]">Continue with Google</Text>
           <View></View>
         </View>
-      </TouchableOpacity>
+      </TouchableOpacity> */}
     </>
   );
 

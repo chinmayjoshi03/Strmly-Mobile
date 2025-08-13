@@ -5,8 +5,8 @@ import ThemedView from "@/components/ThemedView";
 import { useAuthStore } from "@/store/useAuthStore";
 import { CONFIG } from "@/Constants/config";
 import { VideoItemType } from "@/types/VideosType";
-import VideoPlayer from "./_components/VideoPlayer";
 import { Link, router } from "expo-router";
+import VideoPlayer from "./_components/VideoPlayer";
 
 export type GiftType = {
   creator: {
@@ -25,6 +25,10 @@ const VideosFeed: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [visibleIndex, setVisibleIndex] = useState(0);
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(8);
+  const [hasMore, setHasMore] = useState(true);
+  const [isFetchingMore, setIsFetchingMore] = useState(false);
   const [showCommentsModal, setShowCommentsModal] = useState(false);
 
   const { token, isLoggedIn } = useAuthStore();
@@ -38,42 +42,36 @@ const VideosFeed: React.FC = () => {
   }, [token, isLoggedIn]);
 
   const BACKEND_API_URL = CONFIG.API_BASE_URL;
+  const { token } = useAuthStore();
+  const BACKEND_API_URL = Constants.expoConfig?.extra?.BACKEND_API_URL;
 
-  const fetchTrendingVideos = async () => {
-    setLoading(true);
+  const fetchTrendingVideos = async (nextPage = page) => {
+    if (!hasMore || isFetchingMore) return;
+
+    setIsFetchingMore(true);
     try {
-      if (!BACKEND_API_URL) {
-        throw new Error('Backend API URL is not configured');
-      }
-
-      if (!token) {
-        throw new Error('Authentication token is missing - user may not be logged in');
-      }
-
-      const res = await fetch(`${BACKEND_API_URL}/videos/trending`, {
-        method: "GET",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-      });
-
-      if (!res.ok) {
-        if (res.status === 401) {
-          throw new Error('Authentication failed - please log in again');
-        } else if (res.status === 403) {
-          throw new Error('Access forbidden - invalid token');
-        } else {
-          throw new Error(`Server error: ${res.status} ${res.statusText}`);
+      const res = await fetch(
+        `${BACKEND_API_URL}/videos/trending?page=${nextPage}&limit=${limit}`,
+        {
+          //recommendations/videos
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
         }
-      }
-
+      );
+      if (!res.ok) throw new Error("Failed to fetch videos");
       const json = await res.json();
-      setVideos(json.data || []);
+      if (json.data.length < limit) setHasMore(false);
+      setVideos((prev) => [...prev, ...json.data]);
+      // setVideos(json.recommendations);
+      setPage(nextPage + 1);
     } catch (err: any) {
       setError(err.message || "Something went wrong");
     } finally {
       setLoading(false);
+      setIsFetchingMore(false);
     }
   };
 
@@ -88,18 +86,32 @@ const VideosFeed: React.FC = () => {
 
   // OPTIMIZATION 1: Stabilize the onViewableItemsChanged callback
   // This prevents FlatList from re-rendering just because the parent re-rendered.
-  const onViewableItemsChanged = useCallback(({ viewableItems }: any) => {
-    if (viewableItems.length > 0) {
-      setVisibleIndex(viewableItems[0].index);
-    }
-  }, []); // Empty dependency array means this function is created only once.
+  const onViewableItemsChanged = useCallback(
+    ({ viewableItems }: any) => {
+      if (viewableItems.length > 0) {
+        const currentIndex = viewableItems[0].index;
+        setVisibleIndex(currentIndex);
+
+        // Trigger next batch if user watched 6 videos
+        if (currentIndex === 6) {
+          fetchTrendingVideos(page);
+        }
+
+        // Trigger near-end fetch
+        if (currentIndex >= videos.length - 2) {
+          fetchTrendingVideos(page);
+        }
+      }
+    },
+    [videos.length, page, hasMore, isFetchingMore]
+  ); // Empty dependency array means this function is created only once.
 
   // OPTIMIZATION 2: Memoize the renderItem function
   // This prevents creating a new render function on every parent render.
   const renderItem = useCallback(
     ({ item, index }: { item: VideoItemType; index: number }) => (
       <VideoPlayer
-        videoData={item}
+        videoData={item} 
         isActive={index === visibleIndex}
         showCommentsModal={showCommentsModal}
         setShowCommentsModal={setShowCommentsModal}
@@ -226,6 +238,29 @@ const VideosFeed: React.FC = () => {
         }}
       />
     </ThemedView>
+          <FlatList
+            data={videos}
+            renderItem={renderItem}
+            keyExtractor={(item) => item._id}
+            getItemLayout={getItemLayout}
+            pagingEnabled
+            scrollEnabled={!showCommentsModal}
+            onViewableItemsChanged={onViewableItemsChanged}
+            viewabilityConfig={{ itemVisiblePercentThreshold: 80 }}
+            initialNumToRender={2}
+            maxToRenderPerBatch={2}
+            windowSize={3}
+            showsVerticalScrollIndicator={false}
+            contentInsetAdjustmentBehavior="automatic" // iOS
+            contentContainerStyle={{ paddingBottom: 0 }}
+            style={{ height: VIDEO_HEIGHT }}
+            // onScrollBeginDrag={() => {
+            //   if (showCommentsModal) {
+            //     console.log('🚫 VideosFeed: Scroll blocked - comments modal is open');
+            //   }
+            // }}
+          />
+        </ThemedView>
     //   </SafeAreaView>
     // </SafeAreaProvider>
   );

@@ -5,6 +5,7 @@ import throttle from "lodash.throttle";
 import { useFonts } from "expo-font";
 import { CreateProfileStyles } from "@/styles/createprofile";
 import {
+  ActivityIndicator,
   Alert,
   Image,
   Text,
@@ -25,6 +26,7 @@ const ForgotPassword = () => {
 
   const [cooldown, setCooldown] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
+  const [emailResend, setEmailResend] = useState(false);
 
   const [needButton, setNeedButton] = useState(false);
   const [showAlert, setShowAlert] = useState(false);
@@ -48,7 +50,7 @@ const ForgotPassword = () => {
     setAlert("Please enter your email");
     setShowAlert(() => true);
     setNeedButton(true);
-  }
+  };
 
   const handleRequestResetEmail = async () => {
     setIsLoading(true);
@@ -73,12 +75,42 @@ const ForgotPassword = () => {
       setStep(2); // go to verification step
     } catch (error) {
       setAlert(`Error
-        ${error instanceof Error ? error.message : "Unknown error."}`
-      );
+        ${error instanceof Error ? error.message : "Unknown error."}`);
       setShowAlert(() => true);
-      setNeedButton(true);
+      setNeedButton(false);
     } finally {
       setIsLoading(false);
+      setEmailResend(false);
+    }
+  };
+
+  const resendVerificationEmail = async () => {
+    try {
+      const response = await fetch(
+        `${BACKEND_API_URL}/auth/resend-verification`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ email }), // make sure `email` is defined
+        }
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || "Failed to resend verification email");
+      }
+
+      setAlert(`Success, ${data.message}`);
+      setShowAlert(() => true);
+      setNeedButton(true);
+    } catch (error) {
+      Alert.alert(
+        "Error",
+        error instanceof Error ? error.message : "Unknown error occurred"
+      );
     }
   };
 
@@ -110,8 +142,7 @@ const ForgotPassword = () => {
     } catch (error) {
       setAlert(`
         Error
-        ${error instanceof Error ? error.message : "Unknown error."}`
-      );
+        ${error instanceof Error ? error.message : "Unknown error."}`);
       setShowAlert(() => true);
       setNeedButton(true);
     } finally {
@@ -121,6 +152,7 @@ const ForgotPassword = () => {
 
   const handleResetPassword = async () => {
     setIsLoading(true);
+    console.log(otp);
     try {
       const response = await fetch(`${BACKEND_API_URL}/auth/reset-password`, {
         method: "POST",
@@ -142,7 +174,7 @@ const ForgotPassword = () => {
 
       setAlert("Password reset successful. Please log in.");
       setShowAlert(() => true);
-      setNeedButton(true);
+      setNeedButton(false);
       router.replace("/(auth)/Sign-in");
     } catch (error) {
       setAlert(`${error instanceof Error ? error.message : "Unknown error."}`);
@@ -216,14 +248,17 @@ const ForgotPassword = () => {
           keyboardType="email-address"
         />
         <TouchableOpacity
+          disabled={isLoading}
           onPress={() =>
-            email.length == 0
-              ? handleWarning()
-              : handleRequestResetEmail()
+            email.length == 0 ? handleWarning() : handleRequestResetEmail()
           }
           style={CreateProfileStyles.button}
         >
-          <Text className="font-semibold text-lg">Continue</Text>
+          {isLoading ? (
+            <ActivityIndicator size={"small"} color={"#374151"} />
+          ) : (
+            <Text className="font-semibold text-lg">Continue</Text>
+          )}
         </TouchableOpacity>
       </ThemedView>
     );
@@ -232,7 +267,7 @@ const ForgotPassword = () => {
   if (Step === 2) {
     return (
       <ThemedView style={CreateProfileStyles.Container}>
-        <View className="items-center justify-between flex-row w-full pt-20 px-4 mb-10">
+        <View className="items-center justify-between flex-row bg-gra w-full pt-20 px-4 mb-10">
           <TouchableOpacity onPress={() => HandleStep(false)}>
             <Image
               className="w-5 h-5 mt-1"
@@ -256,16 +291,29 @@ const ForgotPassword = () => {
         />
 
         <TouchableOpacity
+          disabled={isLoading}
           onPress={handleVerifyOTP}
           style={CreateProfileStyles.button}
         >
-          <Text className="font-semibold text-lg">Verify</Text>
+          {isLoading ? (
+            <ActivityIndicator size="small" color="#374151" />
+          ) : (
+            <Text className="font-semibold text-lg">Verify</Text>
+          )}
         </TouchableOpacity>
 
-        <TouchableOpacity onPress={handleRequestResetEmail} className="mt-2">
-          <ThemedText style={CreateProfileStyles.ExtraBold}>
-            Resend Code
-          </ThemedText>
+        <TouchableOpacity
+          disabled={emailResend}
+          onPress={()=> {handleRequestResetEmail(); setEmailResend(true)}}
+          className="mt-2"
+        >
+          {emailResend ? (
+            <ActivityIndicator size="small" color="#374151" />
+          ) : (
+            <ThemedText style={CreateProfileStyles.ExtraBold}>
+              Resend Code
+            </ThemedText>
+          )}
         </TouchableOpacity>
       </ThemedView>
     );
@@ -294,10 +342,15 @@ const ForgotPassword = () => {
           secureTextEntry
         />
         <TouchableOpacity
+          disabled={isLoading}
           onPress={handleResetPassword}
           style={CreateProfileStyles.button}
         >
-          <Text className="font-semibold text-lg">Create Password</Text>
+          {isLoading ? (
+            <ActivityIndicator size="small" color="#374151" />
+          ) : (
+            <Text className="font-semibold text-lg">Create Password</Text>
+          )}
         </TouchableOpacity>
       </ThemedView>
     );
