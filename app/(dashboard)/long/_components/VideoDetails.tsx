@@ -39,6 +39,13 @@ type VideoDetailsProps = {
     name: string;
   } | null;
 
+  creatorPass: {
+    _id: string;
+    creator_profile: {
+      creator_pass_price: number;
+    };
+  } | null;
+
   series: {
     _id: string;
     title: string;
@@ -63,10 +70,10 @@ const VideoDetails = ({
   episode_number,
   createdBy,
   community,
+  creatorPass,
   onToggleFullScreen,
   isFullScreen,
 }: VideoDetailsProps) => {
-  const [screenIconEffect, setScreenIconEffect] = useState(false);
   const [showDropdown, setShowDropdown] = useState(false);
   const [selectedEpisodeIndex, setSelectedEpisodeIndex] = useState(0);
   const [showPriceDropdown, setShowPriceDropdown] = useState(false);
@@ -299,7 +306,7 @@ const VideoDetails = ({
           </TouchableOpacity>
         </View>
 
-        {type !== "Free" && (
+        {type !== "Free" || series?.type != 'Free' || creatorPass?.creator_profile.creator_pass_price != 0 && (
           <View>
             <TouchableOpacity
               onPress={() => {
@@ -347,7 +354,7 @@ const VideoDetails = ({
         {/* Paid Dropdown */}
         {showPriceDropdown && (
           <View className="absolute bottom-14 -right-2 rounded-xl p-2 w-80">
-            {series != null ? (
+            {series != null && series.type != "Free" && creatorPass ? (
               <TouchableOpacity
                 className="mb-0.5"
                 onPress={() => {
@@ -358,7 +365,10 @@ const VideoDetails = ({
                 <Pressable
                   onPress={() => {
                     initiateGifting(createdBy, videoId);
-                    !hasCreatorPass && router.push(`/(demo)/PurchaseCreatorPass/${createdBy._id}`);
+                    !hasCreatorPass &&
+                      router.push(
+                        `/(demo)/PurchaseCreatorPass/${createdBy._id}`
+                      );
                   }}
                 >
                   <View
@@ -369,7 +379,7 @@ const VideoDetails = ({
                     </Text>
                     <Text className="text-white text-[16px]">
                       {!hasCreatorPass ? (
-                        `₹${videoAmount}`
+                        `₹${creatorPass?.creator_profile?.creator_pass_price}`
                       ) : (
                         <Text className="text-[16px] text-green-600">
                           Activate
@@ -380,9 +390,17 @@ const VideoDetails = ({
                 </Pressable>
 
                 <Pressable
-                  onPress={() =>
-                    router.push(`/(demo)/PurchaseSeries/${series?._id}`)
-                  }
+                  onPress={() => {
+                    series && series?.type !== "Free"
+                      ? router.push({
+                          pathname: "/(demo)/PurchaseSeries/[id]",
+                          params: { id: series?._id },
+                        })
+                      : router.push({
+                          pathname: "/(demo)/PurchaseVideo/[id]",
+                          params: { id: videoId },
+                        });
+                  }}
                 >
                   <View
                     className={`bg-black h-11 px-2 py-1 flex-row items-center justify-between rounded-b-xl`}
@@ -391,7 +409,10 @@ const VideoDetails = ({
                       Content access
                     </Text>
                     <Text className="text-white text-[16px]">
-                      ₹{series?.price}
+                      ₹
+                      {series && series?.type !== "Free"
+                        ? series?.price
+                        : videoAmount}
                     </Text>
                   </View>
                 </Pressable>
@@ -405,26 +426,36 @@ const VideoDetails = ({
                 }}
               >
                 <Pressable
-                  onPress={() =>{(series === null || series?.type === "Free") && !hasCreatorPass ?
-                    router.push(`/(demo)/PurchaseCreatorPass/${createdBy?._id}`)
-                    :
-                    series && series?.type !== "Free" ?
-                    router.push(`/(demo)/PurchaseSeries/${series?._id}`)
-                    :
-                    console.log('')
+                  onPress={() => {
+                    (series === null || series?.type === "Free") &&
+                    !hasCreatorPass &&
+                    creatorPass
+                      ? router.push(
+                          `/(demo)/PurchaseCreatorPass/${createdBy?._id}`
+                        )
+                      : series && series?.type !== "Free"
+                        ? router.push({
+                            pathname: "/(demo)/PurchaseSeries/[id]",
+                            params: { id: series?._id },
+                          })
+                        : router.push({
+                            pathname: "/(demo)/PurchaseVideo/[id]",
+                            params: { id: videoId },
+                          });
                   }}
                 >
                   <View
                     className={`bg-black h-11 px-2 py-1 flex-row items-center justify-between rounded-t-xl`}
                   >
-                    {series === null || series?.type === "Free" ? (
+                    {(series === null || series?.type === "Free") &&
+                    creatorPass ? (
                       <>
                         <Text className="text-white text-[16px] flex-row items-center">
                           Creator Pass
                         </Text>
                         <Text className="text-white text-[16px]">
                           {!hasCreatorPass ? (
-                            `₹${videoAmount}`
+                            `₹${creatorPass?.creator_profile?.creator_pass_price}`
                           ) : (
                             <Text className="text-[16px] text-green-600">
                               Activate
@@ -438,7 +469,10 @@ const VideoDetails = ({
                           Content access
                         </Text>
                         <Text className="text-white text-[16px]">
-                          ₹{series?.price}
+                          ₹
+                          {series && series?.type !== "Free"
+                            ? series?.price
+                            : videoAmount}
                         </Text>
                       </>
                     )}

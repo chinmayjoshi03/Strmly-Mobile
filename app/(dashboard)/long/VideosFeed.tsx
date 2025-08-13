@@ -1,11 +1,17 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { FlatList, Dimensions, ActivityIndicator, Text, Pressable } from "react-native";
+import {
+  FlatList,
+  Dimensions,
+  ActivityIndicator,
+  Text,
+  Pressable,
+} from "react-native";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 import ThemedView from "@/components/ThemedView";
 import { useAuthStore } from "@/store/useAuthStore";
 import { CONFIG } from "@/Constants/config";
 import { VideoItemType } from "@/types/VideosType";
-import { Link, router } from "expo-router";
+import { Link, router, useFocusEffect } from "expo-router";
 import VideoPlayer from "./_components/VideoPlayer";
 
 export type GiftType = {
@@ -34,12 +40,14 @@ const VideosFeed: React.FC = () => {
   const { token, isLoggedIn } = useAuthStore();
 
   // If user is not logged in, redirect to sign-in
-  useEffect(() => {
-    if (!token || !isLoggedIn) {
-      router.replace('/(auth)/Sign-in');
-      return;
-    }
-  }, [token, isLoggedIn]);
+  useFocusEffect(
+    useCallback(() => {
+      if (!token || !isLoggedIn) {
+        router.replace("/(auth)/Sign-up");
+        return;
+      }
+    }, [token, isLoggedIn])
+  );
 
   const BACKEND_API_URL = CONFIG.API_BASE_URL;
 
@@ -77,7 +85,7 @@ const VideosFeed: React.FC = () => {
     if (token) {
       fetchTrendingVideos();
     } else {
-      setError('Please log in to view videos');
+      setError("Please log in to view videos");
       setLoading(false);
     }
   }, [token]);
@@ -149,7 +157,9 @@ const VideosFeed: React.FC = () => {
           >
             <ActivityIndicator size="large" color="white" />
             <Text className="text-white mt-4">
-              {!token || !isLoggedIn ? 'Checking authentication...' : 'Loading videos...'}
+              {!token || !isLoggedIn
+                ? "Checking authentication..."
+                : "Loading videos..."}
             </Text>
           </ThemedView>
         </SafeAreaView>
@@ -165,10 +175,14 @@ const VideosFeed: React.FC = () => {
             style={{ height: VIDEO_HEIGHT }}
             className="justify-center items-center px-4"
           >
-            <Text className="text-white text-center mb-4">Failed to fetch videos</Text>
-            <Text className="text-red-400 text-center text-sm mb-4">{error}</Text>
+            <Text className="text-white text-center mb-4">
+              Failed to fetch videos
+            </Text>
+            <Text className="text-red-400 text-center text-sm mb-4">
+              {error}
+            </Text>
             <Text className="text-gray-400 text-center text-xs mb-4">
-              API URL: {BACKEND_API_URL || 'Not configured'}
+              API URL: {BACKEND_API_URL || "Not configured"}
             </Text>
             <Pressable
               onPress={() => fetchTrendingVideos()}
@@ -207,36 +221,29 @@ const VideosFeed: React.FC = () => {
     // <SafeAreaProvider>
     //   <SafeAreaView style={{ flex: 1 }} edges={["bottom"]}>
     <ThemedView>
-
       <FlatList
         data={videos}
         renderItem={renderItem}
-        keyExtractor={keyExtractor}
+        keyExtractor={(item) => item._id}
         getItemLayout={getItemLayout}
         pagingEnabled
         scrollEnabled={!showCommentsModal}
         onViewableItemsChanged={onViewableItemsChanged}
-        viewabilityConfig={viewabilityConfig}
-        initialNumToRender={1}
-        maxToRenderPerBatch={1}
+        viewabilityConfig={{ itemVisiblePercentThreshold: 80 }}
+        initialNumToRender={2}
+        maxToRenderPerBatch={2}
         windowSize={3}
-        removeClippedSubviews={true}
         showsVerticalScrollIndicator={false}
-        contentInsetAdjustmentBehavior="automatic"
+        contentInsetAdjustmentBehavior="automatic" // iOS
+        contentContainerStyle={{ paddingBottom: 0 }}
         style={{ height: VIDEO_HEIGHT }}
-        decelerationRate="fast"
-        snapToInterval={VIDEO_HEIGHT}
-        snapToAlignment="start"
-        scrollEventThrottle={16}
-        disableIntervalMomentum={true}
-        onScrollBeginDrag={() => {
-          if (showCommentsModal) {
-            console.log('🚫 VideosFeed: Scroll blocked - comments modal is open');
-          }
-        }}
+        // onScrollBeginDrag={() => {
+        //   if (showCommentsModal) {
+        //     console.log('🚫 VideosFeed: Scroll blocked - comments modal is open');
+        //   }
+        // }}
       />
     </ThemedView>
-
     //   </SafeAreaView>
     // </SafeAreaProvider>
   );

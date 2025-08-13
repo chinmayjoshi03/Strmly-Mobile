@@ -4,9 +4,10 @@ import { PlayIcon, PauseIcon } from "lucide-react-native";
 import { usePlayerStore } from "@/store/usePlayerStore";
 import InteractOptions from "./interactOptions";
 import VideoDetails from "./VideoDetails";
+import { VideoItemType } from "@/types/VideosType";
 
 type Props = {
-  videoData: any;
+  videoData: VideoItemType;
   setShowCommentsModal?: (visible: boolean) => void;
 };
 
@@ -69,6 +70,7 @@ const VideoControls = ({
           is_monetized={videoData.is_monetized}
           name={videoData.name}
           series={videoData?.series}
+          creatorPass={videoData?.creatorPassDetails}
           episode_number={videoData?.episode_number}
           createdBy={videoData?.created_by}
           community={videoData?.community}

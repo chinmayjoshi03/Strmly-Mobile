@@ -22,25 +22,32 @@ type series = {
 
 type GiftingState = {
   isGifted: boolean;
+  isVideoPurchased: boolean;
   isPurchasedPass: boolean;
   isPurchasedSeries: boolean;
   isPurchasedCommunityPass: boolean;
   giftSuccessMessage: number | null;
   hasFetched: boolean;
   creator: creator | null;
+  videoName: string | null;
+  series: {} | null;
   series: series;
   videoId: string | null;
   initiateGifting: (creator: creator, videoId: string) => Promise<void>;
+  initiateVideoAccess: (creator: creator, videoName: string , videoId: string) => Promise<void>;
   initiateCreatorPass: (creator: creator) => Promise<void>;
   initiateCommunityPass: (creator: creator) => Promise<void>;
+  initiateSeries: (series: series) => Promise<void>;
   initiateSeries: (series: series) => Promise<void>;
   loadGiftingContext: () => Promise<void>;
   fetchGiftingData: () => Promise<void>;
   completeGifting: (amount: number) => Promise<void>;
+  completeVideoAccess: (amount: number) => Promise<void>;
   completePass: (amount: number) => Promise<void>;
   completeCommunityPass: (amount: number) => Promise<void>;
-  completeSeriesPurchasing: ()=> void;
+  completeSeriesPurchasing: () => void;
   clearGiftingData: () => void;
+  clearVideoAccessData: () => void;
   clearPassData: () => void;
   clearSeriesData: () => void;
   clearCommunityPassData: () => void;
@@ -63,6 +70,17 @@ export const useGiftingStore = create<GiftingState>((set) => ({
       videoId,
       hasFetched: false,
       isGifted: false,
+      giftSuccessMessage: null,
+    });
+  },
+
+  initiateVideoAccess: (creator, videoName, videoId) => {
+    set({
+      creator,
+      videoName,
+      videoId,
+      hasFetched: false,
+      isVideoPurchased: false,
       giftSuccessMessage: null,
     });
   },
@@ -101,6 +119,14 @@ export const useGiftingStore = create<GiftingState>((set) => ({
     });
   },
 
+  completeVideoAccess: (amount) => {
+    set({
+      giftSuccessMessage: amount,
+      isVideoPurchased: true,
+      hasFetched: true,
+    });
+  },
+
   completePass: (amount) => {
     set({
       giftSuccessMessage: amount,
@@ -134,12 +160,23 @@ export const useGiftingStore = create<GiftingState>((set) => ({
     });
   },
 
+  clearVideoAccessData: () => {
+    set({
+      isGifted: false,
+      giftSuccessMessage: null,
+      hasFetched: false,
+      creator: null,
+      videoId: null,
+      videoName: null
+    });
+  },
+
   clearPassData: () => {
     set({
       isPurchasedPass: false,
       giftSuccessMessage: null,
       hasFetched: false,
-      creator: null
+      creator: null,
     });
   },
 
@@ -148,7 +185,7 @@ export const useGiftingStore = create<GiftingState>((set) => ({
       isPurchasedCommunityPass: false,
       giftSuccessMessage: null,
       hasFetched: false,
-      creator: null
+      creator: null,
     });
   },
 

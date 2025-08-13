@@ -94,6 +94,6 @@ export default function Index() {
     return <Redirect href="/(tabs)/home" />;
   } else {
     console.log("❌ User not authenticated, redirecting to sign-in");
-    return <Redirect href="/(auth)/Sign-in" />;
+    return <Redirect href="/(auth)/Sign-up" />;
   }
 }

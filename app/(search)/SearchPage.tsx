@@ -9,7 +9,7 @@ import { useAuthStore } from "@/store/useAuthStore";
 import { CONFIG } from "@/Constants/config";
 import VideoPlayer from "@/app/(dashboard)/long/_components/VideoPlayer";
 
-const { width } = Dimensions.get("window");
+const { width, height: page_height } = Dimensions.get("screen");
 const itemSize = width / 3;
 
 const SearchScreen: React.FC = () => {
@@ -379,7 +379,7 @@ const SearchScreen: React.FC = () => {
     }
 
     return (
-        <View style={styles.container}>
+        <View style={{...styles.container, height: page_height}}>
             <StatusBar barStyle="light-content" backgroundColor="#000" />
 
             <TextInput
@@ -525,7 +525,7 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
         backgroundColor: '#000',
-        paddingTop: 50,
+        paddingTop: 20,
     },
     searchInput: {
         backgroundColor: 'rgba(255,255,255,0.1)',

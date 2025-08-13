@@ -51,6 +51,12 @@ const InteractOptions = ({
       return;
     }
 
+    const prevLiked = isLikedVideo;
+    const prevLikeCount = like;
+
+    setLike(() => (prevLiked ? prevLikeCount - 1 : prevLikeCount + 1));
+    setIsLikedVideo(() => !prevLiked);
+
     try {
       const response = await fetch(
         `${BACKEND_API_URL}/interactions/${isLikedVideo ? "unlike" : "like"}`,
@@ -63,13 +69,19 @@ const InteractOptions = ({
           body: JSON.stringify({ videoId: videoId }),
         }
       );
-      if (!response.ok) throw new Error("Failed while like video");
+      if (!response.ok) {
+        setLike(() => prevLikeCount);
+        setIsLikedVideo(() => prevLiked);
+        throw new Error("Failed while like video");
+      }
       const data = await response.json();
-      setLike(data.likes);
-      setIsLikedVideo(data.isLiked);
+      // setLike(data.likes);
+      // setIsLikedVideo(data.isLiked);
       console.log("Like video", data);
     } catch (err) {
       console.log(err);
+      setLike(() => prevLikeCount);
+      setIsLikedVideo(() => prevLiked);
     }
   };
 
@@ -187,6 +199,12 @@ const InteractOptions = ({
       return;
     }
 
+    const prevReshareCount = reshares;
+    const prevIsReshared = isResharedVideo;
+
+    setReshares(() => prevIsReshared ? prevReshareCount - 1 : prevReshareCount + 1);
+    setIsResharedVideo(() => !prevIsReshared);
+
     try {
       const response = await fetch(`${BACKEND_API_URL}/interactions/reshare`, {
         method: "POST",
@@ -197,12 +215,16 @@ const InteractOptions = ({
         body: JSON.stringify({ videoId: videoId }),
       });
       if (!response.ok) {
+        setReshares(() => prevReshareCount);
+        setIsResharedVideo(() => prevIsReshared);
         throw new Error("Failed to reshare video");
       }
       const data = await response.json();
-      setIsResharedVideo(!isResharedVideo);
-      setReshares(data.totalReshares);
+      // setIsResharedVideo(!isResharedVideo);
+      // setReshares(data.totalReshares);
     } catch (err) {
+      setReshares(() => prevReshareCount);
+      setIsResharedVideo(() => prevIsReshared);
       console.log(err);
     }
   };
@@ -229,7 +251,13 @@ const InteractOptions = ({
 
         <View className="items-center gap-1">
           {/* Add Pressable around the comment icon */}
-          <Pressable onPress={onCommentPress ? onCommentPress : () => console.log('Comments not available')}>
+          <Pressable
+            onPress={
+              onCommentPress
+                ? onCommentPress
+                : () => console.log("Comments not available")
+            }
+          >
             <Image
               className="size-7"
               source={require("../../../../assets/images/comments.png")}

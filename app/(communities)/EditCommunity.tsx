@@ -9,6 +9,7 @@ import {
   Image,
   Alert,
   StatusBar,
+  ScrollViewBase,
 } from "react-native";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { ArrowLeft, ChevronDown } from "lucide-react-native";
@@ -24,7 +25,7 @@ interface CommunityDetails {
   name: string;
   bio: string;
   profilePhoto: string;
-  community_fee_type?: 'free' | 'paid';
+  community_fee_type?: "free" | "paid";
   community_fee_amount?: number;
   community_fee_description?: string;
   creator_limit?: number;
@@ -42,7 +43,7 @@ export default function EditCommunity() {
   const [name, setName] = useState("");
   const [bio, setBio] = useState("");
   const [imageUri, setImageUri] = useState<string | null>(null);
-  const [accessType, setAccessType] = useState<'free' | 'paid'>('free');
+  const [accessType, setAccessType] = useState<"free" | "paid">("free");
   const [showAccessDropdown, setShowAccessDropdown] = useState(false);
   const [creatorStrength, setCreatorStrength] = useState("");
   const [communityFee, setCommunityFee] = useState("");
@@ -57,37 +58,40 @@ export default function EditCommunity() {
 
   const fetchCommunityDetails = async () => {
     if (!communityId) {
-      Alert.alert('Error', 'Community ID is required');
+      Alert.alert("Error", "Community ID is required");
       router.back();
       return;
     }
 
     if (!token) {
-      Alert.alert('Error', 'Authentication required');
+      Alert.alert("Error", "Authentication required");
       router.back();
       return;
     }
 
     setLoading(true);
     try {
-      const result = await communityActions.getCommunityDetails(token, communityId);
+      const result = await communityActions.getCommunityDetails(
+        token,
+        communityId
+      );
       setCommunity(result);
       setName(result.name);
       setBio(result.bio || "");
       setImageUri(result.profilePhoto);
       // Set access type based on community data if available
-      setAccessType(result.community_fee_type || 'free');
+      setAccessType(result.community_fee_type || "free");
       setCreatorStrength(result.creator_limit?.toString() || "");
       setCommunityFee(result.community_fee_amount?.toString() || "");
-      console.log('✅ Community details fetched for editing:', {
+      console.log("✅ Community details fetched for editing:", {
         name: result.name,
         community_fee_type: result.community_fee_type,
         creator_limit: result.creator_limit,
-        community_fee_amount: result.community_fee_amount
+        community_fee_amount: result.community_fee_amount,
       });
     } catch (error) {
-      console.error('❌ Error fetching community details:', error);
-      Alert.alert('Error', 'Failed to load community details');
+      console.error("❌ Error fetching community details:", error);
+      Alert.alert("Error", "Failed to load community details");
       router.back();
     } finally {
       setLoading(false);
@@ -97,15 +101,19 @@ export default function EditCommunity() {
   const pickImage = async () => {
     try {
       // Request permissions first
-      const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
-      
+      const permissionResult =
+        await ImagePicker.requestMediaLibraryPermissionsAsync();
+
       if (permissionResult.granted === false) {
-        Alert.alert("Permission Required", "Permission to access camera roll is required!");
+        Alert.alert(
+          "Permission Required",
+          "Permission to access camera roll is required!"
+        );
         return;
       }
 
       const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ['images'],
+        mediaTypes: ["images"],
         allowsEditing: true,
         aspect: [1, 1],
         quality: 0.7,
@@ -113,10 +121,10 @@ export default function EditCommunity() {
 
       if (!result.canceled) {
         setImageUri(result.assets[0].uri);
-        console.log('📷 Image selected:', result.assets[0].uri);
+        console.log("📷 Image selected:", result.assets[0].uri);
       }
     } catch (error) {
-      console.error('❌ Error picking image:', error);
+      console.error("❌ Error picking image:", error);
       Alert.alert("Error", "Failed to pick image. Please try again.");
     }
   };
@@ -152,7 +160,7 @@ export default function EditCommunity() {
       // Update profile photo if changed
       if (imageUri && imageUri !== community?.profilePhoto) {
         let imageFile = null;
-        if (imageUri.startsWith('file://')) {
+        if (imageUri.startsWith("file://")) {
           const fileName = imageUri.split("/").pop()!;
           const fileType = fileName.split(".").pop();
           imageFile = {
@@ -163,7 +171,11 @@ export default function EditCommunity() {
         }
 
         if (imageFile) {
-          await communityActions.updateCommunityPhoto(token, communityId, imageFile);
+          await communityActions.updateCommunityPhoto(
+            token,
+            communityId,
+            imageFile
+          );
         }
       }
 
@@ -172,7 +184,10 @@ export default function EditCommunity() {
       let hasSettingsChanges = false;
 
       // Check creator strength
-      if (creatorStrength && creatorStrength !== (community?.creator_limit?.toString() || "")) {
+      if (
+        creatorStrength &&
+        creatorStrength !== (community?.creator_limit?.toString() || "")
+      ) {
         const limit = parseInt(creatorStrength);
         if (!isNaN(limit)) {
           settingsToUpdate.creator_limit = limit;
@@ -181,17 +196,21 @@ export default function EditCommunity() {
       }
 
       // Check access type and fee
-      if (accessType !== (community?.community_fee_type || 'free')) {
+      if (accessType !== (community?.community_fee_type || "free")) {
         settingsToUpdate.community_fee_type = accessType;
         hasSettingsChanges = true;
 
-        if (accessType === 'paid' && communityFee) {
+        if (accessType === "paid" && communityFee) {
           const amount = parseInt(communityFee);
           if (!isNaN(amount)) {
             settingsToUpdate.community_fee_amount = amount;
           }
         }
-      } else if (accessType === 'paid' && communityFee && communityFee !== (community?.community_fee_amount?.toString() || "")) {
+      } else if (
+        accessType === "paid" &&
+        communityFee &&
+        communityFee !== (community?.community_fee_amount?.toString() || "")
+      ) {
         const amount = parseInt(communityFee);
         if (!isNaN(amount)) {
           settingsToUpdate.community_fee_amount = amount;
@@ -200,23 +219,22 @@ export default function EditCommunity() {
       }
 
       if (hasSettingsChanges) {
-        console.log('📝 Updating community settings:', settingsToUpdate);
-        await communityActions.updateCommunitySettings(token, communityId, settingsToUpdate);
+        console.log("📝 Updating community settings:", settingsToUpdate);
+        await communityActions.updateCommunitySettings(
+          token,
+          communityId,
+          settingsToUpdate
+        );
       }
 
-      Alert.alert(
-        "Success",
-        "Community updated successfully!",
-        [
-          {
-            text: "OK",
-            onPress: () => router.back()
-          }
-        ]
-      );
-
+      Alert.alert("Success", "Community updated successfully!", [
+        {
+          text: "OK",
+          onPress: () => router.back(),
+        },
+      ]);
     } catch (error) {
-      console.error('❌ Error updating community:', error);
+      console.error("❌ Error updating community:", error);
       Alert.alert(
         "Error",
         error instanceof Error ? error.message : "Failed to update community"
@@ -230,7 +248,7 @@ export default function EditCommunity() {
     return (
       <ThemedView className="flex-1 items-center justify-center">
         <ActivityIndicator size="large" color="#F1C40F" />
-        <Text className="text-white mt-2" style={{ fontFamily: 'Poppins' }}>
+        <Text className="text-white mt-2" style={{ fontFamily: "Poppins" }}>
           Loading community...
         </Text>
       </ThemedView>
@@ -238,175 +256,223 @@ export default function EditCommunity() {
   }
 
   return (
-    <ThemedView className="flex-1">
-      <StatusBar barStyle="light-content" backgroundColor="black" />
+    <ScrollViewBase className="flex-1 bg-black">
+      <ThemedView className="flex-1">
+        <StatusBar barStyle="light-content" backgroundColor="black" />
 
-      {/* Header */}
-      <View
-        className="flex-row items-center justify-between px-4 py-3"
-        style={{ paddingTop: insets.top + 10 }}
-      >
-        <TouchableOpacity onPress={() => router.back()}>
-          <ArrowLeft size={24} color="white" />
-        </TouchableOpacity>
-        <Text className="text-white text-lg font-semibold" style={{ fontFamily: 'Poppins' }}>
-          Edit Community
-        </Text>
-        <TouchableOpacity onPress={handleSave} disabled={saving}>
-          {saving ? (
-            <ActivityIndicator size="small" color="#fff" />
-          ) : (
-            <Text className="text-white font-semibold" style={{ fontFamily: 'Poppins' }}>
-              Save
-            </Text>
-          )}
-        </TouchableOpacity>
-      </View>
-
-
-      <ScrollView className="flex-1 px-6">
-        {/* Profile Photo */}
-        <View className="items-center py-8">
-          <TouchableOpacity onPress={pickImage} className="items-center">
-            <View className="w-32 h-32 rounded-full bg-gray-600 items-center justify-center mb-4 overflow-hidden">
-              {imageUri ? (
-                <Image
-                  source={{ uri: imageUri }}
-                  className="w-full h-full"
-                  resizeMode="cover"
-                />
-              ) : (
-                <View className="w-16 h-16 bg-gray-400 rounded-full items-center justify-center">
-                  <View className="w-8 h-8 bg-white rounded-full mb-1" />
-                  <View className="w-12 h-6 bg-white rounded-t-full" />
-                </View>
-              )}
-            </View>
-            <Text className="text-blue-400 text-center" style={{ fontFamily: 'Poppins' }}>
-              Edit community picture
-            </Text>
+        {/* Header */}
+        <View
+          className="flex-row items-center justify-between px-4 py-3"
+          style={{ paddingTop: insets.top + 10 }}
+        >
+          <TouchableOpacity onPress={() => router.back()}>
+            <ArrowLeft size={24} color="white" />
           </TouchableOpacity>
-        </View>
-
-        {/* Community Name */}
-        <View className="mb-8">
-          <Text className="text-white text-base mb-2" style={{ fontFamily: 'Poppins' }}>
-            Community name
-          </Text>
-          <TextInput
-            className="text-gray-400 text-base"
-            placeholder="Add name"
-            placeholderTextColor="#666"
-            value={name}
-            onChangeText={setName}
-            style={{ fontFamily: 'Poppins' }}
-          />
-          <View className="h-px bg-gray-600 mt-2" />
-        </View>
-
-        {/* Bio */}
-        <View className="mb-8">
-          <Text className="text-white text-base mb-2" style={{ fontFamily: 'Poppins' }}>
-            Bio
-          </Text>
-          <TextInput
-            className="text-gray-400 text-base"
-            placeholder="Add bio"
-            placeholderTextColor="#666"
-            value={bio}
-            onChangeText={setBio}
-            style={{ fontFamily: 'Poppins' }}
-          />
-          <View className="h-px bg-gray-600 mt-2" />
-        </View>
-
-        {/* Access */}
-        <View className="mb-8 relative">
-          <Text className="text-white text-base mb-2" style={{ fontFamily: 'Poppins' }}>
-            Access
-          </Text>
-          <TouchableOpacity
-            onPress={() => setShowAccessDropdown(!showAccessDropdown)}
-            className="flex-row items-center justify-between"
+          <Text
+            className="text-white text-lg font-semibold"
+            style={{ fontFamily: "Poppins" }}
           >
-            <Text className="text-gray-400 text-base" style={{ fontFamily: 'Poppins' }}>
-              {accessType === 'free' ? 'Free' : 'Paid'}
-            </Text>
-            <ChevronDown size={20} color="#666" />
-          </TouchableOpacity>
-          <View className="h-px bg-gray-600 mt-2" />
-
-          {/* Access Dropdown */}
-          {showAccessDropdown && (
-            <View className="absolute top-16 left-0 right-0 bg-gray-800 rounded-lg border border-gray-600 z-10">
-              <TouchableOpacity
-                onPress={() => {
-                  setAccessType('free');
-                  setShowAccessDropdown(false);
-                }}
-                className="px-4 py-3 border-b border-gray-700"
-              >
-                <Text className="text-white text-base" style={{ fontFamily: 'Poppins' }}>Free</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                onPress={() => {
-                  setAccessType('paid');
-                  setShowAccessDropdown(false);
-                }}
-                className="px-4 py-3"
-              >
-                <Text className="text-white text-base" style={{ fontFamily: 'Poppins' }}>Paid</Text>
-              </TouchableOpacity>
-            </View>
-          )}
-        </View>
-
-        {/* Creator Strength and Community Fee */}
-        <View className="flex-row justify-between mb-8">
-          <View className="flex-1 mr-4">
-            <Text className="text-white text-base" style={{ fontFamily: 'Poppins' }}>
-              Creator
-            </Text>
-            <Text className="text-white text-base mb-2" style={{ fontFamily: 'Poppins' }}>
-              strength
-            </Text>
-            <TextInput
-              className="text-gray-400 text-2xl"
-              placeholder="500"
-              placeholderTextColor="#666"
-              keyboardType="numeric"
-              value={creatorStrength}
-              onChangeText={setCreatorStrength}
-              style={{ fontFamily: 'Poppins' }}
-            />
-            <View className="h-px bg-gray-600 mt-2" />
-          </View>
-          <View className="flex-1 ml-4">
-            <Text className="text-white text-base" style={{ fontFamily: 'Poppins' }}>
-              Community
-            </Text>
-            <Text className="text-white text-base mb-2" style={{ fontFamily: 'Poppins' }}>
-              fee
-            </Text>
-            <TextInput
-              className="text-gray-400 text-2xl"
-              placeholder="₹29/m"
-              placeholderTextColor="#666"
-              value={communityFee}
-              onChangeText={setCommunityFee}
-              style={{ fontFamily: 'Poppins' }}
-            />
-            <View className="h-px bg-gray-600 mt-2" />
-          </View>
-        </View>
-
-        {/* Description */}
-        <View className="mb-8">
-          <Text className="text-gray-400 text-sm text-center leading-5" style={{ fontFamily: 'Poppins' }}>
-            As the community owner, you can set a limit on how many creators can join, while users can follow the community without any limit.
+            Edit Community
           </Text>
+          <TouchableOpacity onPress={handleSave} disabled={saving}>
+            {saving ? (
+              <ActivityIndicator size="small" color="#fff" />
+            ) : (
+              <Text
+                className="text-white font-semibold"
+                style={{ fontFamily: "Poppins" }}
+              >
+                Save
+              </Text>
+            )}
+          </TouchableOpacity>
         </View>
-      </ScrollView>
-    </ThemedView>
+
+        <ScrollView className="flex-1 px-6">
+          {/* Profile Photo */}
+          <View className="items-center py-8">
+            <TouchableOpacity onPress={pickImage} className="items-center">
+              <View className="w-32 h-32 rounded-full bg-gray-600 items-center justify-center mb-4 overflow-hidden">
+                {imageUri ? (
+                  <Image
+                    source={{ uri: imageUri }}
+                    className="w-full h-full"
+                    resizeMode="cover"
+                  />
+                ) : (
+                  <View className="w-16 h-16 bg-gray-400 rounded-full items-center justify-center">
+                    <View className="w-8 h-8 bg-white rounded-full mb-1" />
+                    <View className="w-12 h-6 bg-white rounded-t-full" />
+                  </View>
+                )}
+              </View>
+              <Text
+                className="text-blue-400 text-center"
+                style={{ fontFamily: "Poppins" }}
+              >
+                Edit community picture
+              </Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* Community Name */}
+          <View className="mb-8">
+            <Text
+              className="text-white text-base mb-2"
+              style={{ fontFamily: "Poppins" }}
+            >
+              Community name
+            </Text>
+            <TextInput
+              className="text-gray-400 text-base"
+              placeholder="Add name"
+              placeholderTextColor="#666"
+              value={name}
+              onChangeText={setName}
+              style={{ fontFamily: "Poppins" }}
+            />
+            <View className="h-px bg-gray-600 mt-2" />
+          </View>
+
+          {/* Bio */}
+          <View className="mb-8">
+            <Text
+              className="text-white text-base mb-2"
+              style={{ fontFamily: "Poppins" }}
+            >
+              Bio
+            </Text>
+            <TextInput
+              className="text-gray-400 text-base"
+              placeholder="Add bio"
+              placeholderTextColor="#666"
+              value={bio}
+              onChangeText={setBio}
+              style={{ fontFamily: "Poppins" }}
+            />
+            <View className="h-px bg-gray-600 mt-2" />
+          </View>
+
+          {/* Access */}
+          <View className="mb-8 relative">
+            <Text
+              className="text-white text-base mb-2"
+              style={{ fontFamily: "Poppins" }}
+            >
+              Access
+            </Text>
+            <TouchableOpacity
+              onPress={() => setShowAccessDropdown(!showAccessDropdown)}
+              className="flex-row items-center justify-between"
+            >
+              <Text
+                className="text-gray-400 text-base"
+                style={{ fontFamily: "Poppins" }}
+              >
+                {accessType === "free" ? "Free" : "Paid"}
+              </Text>
+              <ChevronDown size={20} color="#666" />
+            </TouchableOpacity>
+            <View className="h-px bg-gray-600 mt-2" />
+
+            {/* Access Dropdown */}
+            {showAccessDropdown && (
+              <View className="absolute top-16 left-0 right-0 bg-gray-800 rounded-lg border border-gray-600 z-10">
+                <TouchableOpacity
+                  onPress={() => {
+                    setAccessType("free");
+                    setShowAccessDropdown(false);
+                  }}
+                  className="px-4 py-3 border-b border-gray-700"
+                >
+                  <Text
+                    className="text-white text-base"
+                    style={{ fontFamily: "Poppins" }}
+                  >
+                    Free
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={() => {
+                    setAccessType("paid");
+                    setShowAccessDropdown(false);
+                  }}
+                  className="px-4 py-3"
+                >
+                  <Text
+                    className="text-white text-base"
+                    style={{ fontFamily: "Poppins" }}
+                  >
+                    Paid
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            )}
+          </View>
+
+          {/* Creator Strength and Community Fee */}
+          <View className="flex-row justify-between mb-8">
+            <View className="flex-1 mr-4">
+              <Text
+                className="text-white text-base"
+                style={{ fontFamily: "Poppins" }}
+              >
+                Creator
+              </Text>
+              <Text
+                className="text-white text-base mb-2"
+                style={{ fontFamily: "Poppins" }}
+              >
+                strength
+              </Text>
+              <TextInput
+                className="text-gray-400 text-2xl"
+                placeholder="500"
+                placeholderTextColor="#666"
+                keyboardType="numeric"
+                value={creatorStrength}
+                onChangeText={setCreatorStrength}
+                style={{ fontFamily: "Poppins" }}
+              />
+              <View className="h-px bg-gray-600 mt-2" />
+            </View>
+            <View className="flex-1 ml-4">
+              <Text
+                className="text-white text-base"
+                style={{ fontFamily: "Poppins" }}
+              >
+                Community
+              </Text>
+              <Text
+                className="text-white text-base mb-2"
+                style={{ fontFamily: "Poppins" }}
+              >
+                fee
+              </Text>
+              <TextInput
+                className="text-gray-400 text-2xl"
+                placeholder="₹29/m"
+                placeholderTextColor="#666"
+                value={communityFee}
+                onChangeText={setCommunityFee}
+                style={{ fontFamily: "Poppins" }}
+              />
+              <View className="h-px bg-gray-600 mt-2" />
+            </View>
+          </View>
+
+          {/* Description */}
+          <View className="mb-8">
+            <Text
+              className="text-gray-400 text-sm text-center leading-5"
+              style={{ fontFamily: "Poppins" }}
+            >
+              As the community owner, you can set a limit on how many creators
+              can join, while users can follow the community without any limit.
+            </Text>
+          </View>
+        </ScrollView>
+      </ThemedView>
+    </ScrollViewBase>
   );
 }
