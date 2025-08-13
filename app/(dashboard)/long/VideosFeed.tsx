@@ -5,8 +5,8 @@ import ThemedView from "@/components/ThemedView";
 import { useAuthStore } from "@/store/useAuthStore";
 import Constants from "expo-constants";
 import { VideoItemType } from "@/types/VideosType";
-import VideoPlayer from "./_components/VideoPlayer";
 import { Link, router } from "expo-router";
+import VideoPlayer from "./_components/VideoPlayer";
 
 export type GiftType = {
   creator: {
@@ -25,34 +25,42 @@ const VideosFeed: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [visibleIndex, setVisibleIndex] = useState(0);
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(8);
+  const [hasMore, setHasMore] = useState(true);
+  const [isFetchingMore, setIsFetchingMore] = useState(false);
   const [showCommentsModal, setShowCommentsModal] = useState(false);
 
   const { token } = useAuthStore();
-
-  // Debug log for comments modal state changes
-  useEffect(() => {
-    console.log('🎬 VideosFeed: Comments modal state changed:', showCommentsModal);
-  }, [showCommentsModal]);
   const BACKEND_API_URL = Constants.expoConfig?.extra?.BACKEND_API_URL;
 
-  const fetchTrendingVideos = async () => {
-    setLoading(true);
-    try {
-      const res = await fetch(`${BACKEND_API_URL}/recommendations/videos`, { //recommendations/videos
+  const fetchTrendingVideos = async (nextPage = page) => {
+    if (!hasMore || isFetchingMore) return;
 
-        method: "GET",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-      });
+    setIsFetchingMore(true);
+    try {
+      const res = await fetch(
+        `${BACKEND_API_URL}/videos/trending?page=${nextPage}&limit=${limit}`,
+        {
+          //recommendations/videos
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
       if (!res.ok) throw new Error("Failed to fetch videos");
       const json = await res.json();
-      setVideos(json.recommendations);
+      if (json.data.length < limit) setHasMore(false);
+      setVideos((prev) => [...prev, ...json.data]);
+      // setVideos(json.recommendations);
+      setPage(nextPage + 1);
     } catch (err: any) {
       setError(err.message || "Something went wrong");
     } finally {
       setLoading(false);
+      setIsFetchingMore(false);
     }
   };
 
@@ -62,17 +70,31 @@ const VideosFeed: React.FC = () => {
 
   // OPTIMIZATION 1: Stabilize the onViewableItemsChanged callback
   // This prevents FlatList from re-rendering just because the parent re-rendered.
-  const onViewableItemsChanged = useCallback(({ viewableItems }: any) => {
-    if (viewableItems.length > 0) {
-      setVisibleIndex(viewableItems[0].index);
-    }
-  }, []); // Empty dependency array means this function is created only once.
+  const onViewableItemsChanged = useCallback(
+    ({ viewableItems }: any) => {
+      if (viewableItems.length > 0) {
+        const currentIndex = viewableItems[0].index;
+        setVisibleIndex(currentIndex);
+
+        // Trigger next batch if user watched 6 videos
+        if (currentIndex === 6) {
+          fetchTrendingVideos(page);
+        }
+
+        // Trigger near-end fetch
+        if (currentIndex >= videos.length - 2) {
+          fetchTrendingVideos(page);
+        }
+      }
+    },
+    [videos.length, page, hasMore, isFetchingMore]
+  ); // Empty dependency array means this function is created only once.
 
   // OPTIMIZATION 2: Memoize the renderItem function
   // This prevents creating a new render function on every parent render.
   const renderItem = useCallback(
     ({ item, index }: { item: VideoItemType; index: number }) => (
-      <VideoPlayer 
+      <VideoPlayer
         videoData={item} 
         isActive={index === visibleIndex}
         showCommentsModal={showCommentsModal}
@@ -165,11 +187,11 @@ const VideosFeed: React.FC = () => {
             contentInsetAdjustmentBehavior="automatic" // iOS
             contentContainerStyle={{ paddingBottom: 0 }}
             style={{ height: VIDEO_HEIGHT }}
-            onScrollBeginDrag={() => {
-              if (showCommentsModal) {
-                console.log('🚫 VideosFeed: Scroll blocked - comments modal is open');
-              }
-            }}
+            // onScrollBeginDrag={() => {
+            //   if (showCommentsModal) {
+            //     console.log('🚫 VideosFeed: Scroll blocked - comments modal is open');
+            //   }
+            // }}
           />
         </ThemedView>
     //   </SafeAreaView>

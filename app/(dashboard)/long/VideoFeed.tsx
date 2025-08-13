@@ -7,7 +7,6 @@ import { CONFIG } from "@/Constants/config";
 import { VideoItemType } from "@/types/VideosType";
 import GiftingMessage from "./_components/GiftingMessage";
 import UnifiedVideoPlayer from "@/components/UnifiedVideoPlayer";
-import VideoContentGifting from "@/app/(payments)/Video/Video-Gifting";
 import CommentsSection from "./_components/CommentSection";
 import VideoFeedDebug from "@/components/VideoFeedDebug";
 
