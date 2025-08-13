@@ -15,7 +15,13 @@ import CommentsSection from "./_components/CommentSection";
 import { VideoItemType } from "@/types/VideosType";
 import { router } from "expo-router";
 import { useAuthStore } from "@/store/useAuthStore";
-import { GiftType } from "./VideoFeed";
+// Define GiftType locally since VideoFeed was removed
+export type GiftType = {
+  _id: string;
+  name?: string;
+  username: string;
+  profile_photo: string;
+};
 // ADDED: Import the new self-contained progress bar component
 import VideoProgressBar from "./_components/VideoProgressBar";
 

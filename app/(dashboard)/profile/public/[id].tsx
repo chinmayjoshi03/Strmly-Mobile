@@ -430,10 +430,10 @@ export default function PublicProfilePageWithId() {
                     </Text>
                     {userData?.creator_profile?.verification_status ===
                       "verified" && (
-                      <Text className="ml-2 px-2 py-1 rounded-full text-xs font-medium bg-blue-500 text-white">
-                        Verified
-                      </Text>
-                    )}
+                        <Text className="ml-2 px-2 py-1 rounded-full text-xs font-medium bg-blue-500 text-white">
+                          Verified
+                        </Text>
+                      )}
                   </View>
                 </View>
               </View>
@@ -470,7 +470,7 @@ export default function PublicProfilePageWithId() {
                   <TouchableOpacity
                     onPress={() =>
                       router.push(
-                        `/(demo)/PurchaseCreatorPass/${userData?.userDetails._id}`
+                        `/(dashboard)/profile/public/${userData?.userDetails._id}`
                       )
                     }
                     className={`h-10 rounded-lg overflow-hidden`}

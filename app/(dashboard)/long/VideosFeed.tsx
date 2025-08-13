@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { FlatList, Dimensions, ActivityIndicator, Text } from "react-native";
+import { FlatList, Dimensions, ActivityIndicator, Text, Pressable } from "react-native";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 import ThemedView from "@/components/ThemedView";
 import { useAuthStore } from "@/store/useAuthStore";
-import Constants from "expo-constants";
+import { CONFIG } from "@/Constants/config";
 import { VideoItemType } from "@/types/VideosType";
 import { Link, router } from "expo-router";
 import VideoPlayer from "./_components/VideoPlayer";
@@ -31,8 +31,17 @@ const VideosFeed: React.FC = () => {
   const [isFetchingMore, setIsFetchingMore] = useState(false);
   const [showCommentsModal, setShowCommentsModal] = useState(false);
 
-  const { token } = useAuthStore();
-  const BACKEND_API_URL = Constants.expoConfig?.extra?.BACKEND_API_URL;
+  const { token, isLoggedIn } = useAuthStore();
+
+  // If user is not logged in, redirect to sign-in
+  useEffect(() => {
+    if (!token || !isLoggedIn) {
+      router.replace('/(auth)/Sign-in');
+      return;
+    }
+  }, [token, isLoggedIn]);
+
+  const BACKEND_API_URL = CONFIG.API_BASE_URL;
 
   const fetchTrendingVideos = async (nextPage = page) => {
     if (!hasMore || isFetchingMore) return;
@@ -65,8 +74,13 @@ const VideosFeed: React.FC = () => {
   };
 
   useEffect(() => {
-    fetchTrendingVideos();
-  }, []);
+    if (token) {
+      fetchTrendingVideos();
+    } else {
+      setError('Please log in to view videos');
+      setLoading(false);
+    }
+  }, [token]);
 
   // OPTIMIZATION 1: Stabilize the onViewableItemsChanged callback
   // This prevents FlatList from re-rendering just because the parent re-rendered.
@@ -95,7 +109,7 @@ const VideosFeed: React.FC = () => {
   const renderItem = useCallback(
     ({ item, index }: { item: VideoItemType; index: number }) => (
       <VideoPlayer
-        videoData={item} 
+        videoData={item}
         isActive={index === visibleIndex}
         showCommentsModal={showCommentsModal}
         setShowCommentsModal={setShowCommentsModal}
@@ -112,10 +126,20 @@ const VideosFeed: React.FC = () => {
       offset: VIDEO_HEIGHT * index,
       index,
     }),
-    [router]
+    []
   );
 
-  if (loading) {
+  // Key extractor for better performance
+  const keyExtractor = useCallback((item: VideoItemType) => item._id, []);
+
+  // Viewability config for better performance
+  const viewabilityConfig = {
+    itemVisiblePercentThreshold: 80,
+    minimumViewTime: 100,
+  };
+
+  // Show loading while checking authentication or fetching videos
+  if (loading || !token || !isLoggedIn) {
     return (
       <SafeAreaProvider>
         <SafeAreaView style={{ flex: 1 }} edges={["bottom"]}>
@@ -124,6 +148,9 @@ const VideosFeed: React.FC = () => {
             className="justify-center items-center"
           >
             <ActivityIndicator size="large" color="white" />
+            <Text className="text-white mt-4">
+              {!token || !isLoggedIn ? 'Checking authentication...' : 'Loading videos...'}
+            </Text>
           </ThemedView>
         </SafeAreaView>
       </SafeAreaProvider>
@@ -136,9 +163,19 @@ const VideosFeed: React.FC = () => {
         <SafeAreaView style={{ flex: 1 }} edges={["bottom"]}>
           <ThemedView
             style={{ height: VIDEO_HEIGHT }}
-            className="justify-center items-center"
+            className="justify-center items-center px-4"
           >
-            <Text className="text-white">{error}</Text>
+            <Text className="text-white text-center mb-4">Failed to fetch videos</Text>
+            <Text className="text-red-400 text-center text-sm mb-4">{error}</Text>
+            <Text className="text-gray-400 text-center text-xs mb-4">
+              API URL: {BACKEND_API_URL || 'Not configured'}
+            </Text>
+            <Pressable
+              onPress={() => fetchTrendingVideos()}
+              className="bg-blue-600 px-4 py-2 rounded"
+            >
+              <Text className="text-white">Retry</Text>
+            </Pressable>
           </ThemedView>
         </SafeAreaView>
       </SafeAreaProvider>
@@ -169,31 +206,37 @@ const VideosFeed: React.FC = () => {
   return (
     // <SafeAreaProvider>
     //   <SafeAreaView style={{ flex: 1 }} edges={["bottom"]}>
-        <ThemedView>
+    <ThemedView>
 
-          <FlatList
-            data={videos}
-            renderItem={renderItem}
-            keyExtractor={(item) => item._id}
-            getItemLayout={getItemLayout}
-            pagingEnabled
-            scrollEnabled={!showCommentsModal}
-            onViewableItemsChanged={onViewableItemsChanged}
-            viewabilityConfig={{ itemVisiblePercentThreshold: 80 }}
-            initialNumToRender={2}
-            maxToRenderPerBatch={2}
-            windowSize={3}
-            showsVerticalScrollIndicator={false}
-            contentInsetAdjustmentBehavior="automatic" // iOS
-            contentContainerStyle={{ paddingBottom: 0 }}
-            style={{ height: VIDEO_HEIGHT }}
-            // onScrollBeginDrag={() => {
-            //   if (showCommentsModal) {
-            //     console.log('🚫 VideosFeed: Scroll blocked - comments modal is open');
-            //   }
-            // }}
-          />
-        </ThemedView>
+      <FlatList
+        data={videos}
+        renderItem={renderItem}
+        keyExtractor={keyExtractor}
+        getItemLayout={getItemLayout}
+        pagingEnabled
+        scrollEnabled={!showCommentsModal}
+        onViewableItemsChanged={onViewableItemsChanged}
+        viewabilityConfig={viewabilityConfig}
+        initialNumToRender={1}
+        maxToRenderPerBatch={1}
+        windowSize={3}
+        removeClippedSubviews={true}
+        showsVerticalScrollIndicator={false}
+        contentInsetAdjustmentBehavior="automatic"
+        style={{ height: VIDEO_HEIGHT }}
+        decelerationRate="fast"
+        snapToInterval={VIDEO_HEIGHT}
+        snapToAlignment="start"
+        scrollEventThrottle={16}
+        disableIntervalMomentum={true}
+        onScrollBeginDrag={() => {
+          if (showCommentsModal) {
+            console.log('🚫 VideosFeed: Scroll blocked - comments modal is open');
+          }
+        }}
+      />
+    </ThemedView>
+
     //   </SafeAreaView>
     // </SafeAreaProvider>
   );

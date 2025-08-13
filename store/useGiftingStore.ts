@@ -12,6 +12,12 @@ type series = {
   title: string;
   type: string;
   price: number;
+  created_by: {
+    _id: string;
+    username: string;
+    name?: string;
+    profile_photo?: string;
+  };
 } | null;
 
 type GiftingState = {
@@ -22,12 +28,12 @@ type GiftingState = {
   giftSuccessMessage: number | null;
   hasFetched: boolean;
   creator: creator | null;
-  series: {} | null;
+  series: series;
   videoId: string | null;
   initiateGifting: (creator: creator, videoId: string) => Promise<void>;
   initiateCreatorPass: (creator: creator) => Promise<void>;
   initiateCommunityPass: (creator: creator) => Promise<void>;
-  initiateSeries: (series: {} | null) => Promise<void>;
+  initiateSeries: (series: series) => Promise<void>;
   loadGiftingContext: () => Promise<void>;
   fetchGiftingData: () => Promise<void>;
   completeGifting: (amount: number) => Promise<void>;

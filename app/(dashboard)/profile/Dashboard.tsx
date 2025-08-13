@@ -13,8 +13,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useAuthStore } from '@/store/useAuthStore';
 import { useDashboard } from './_components/useDashboard';
-import { testApiConnection } from '@/utils/apiTest';
-import { testUserEndpoints } from '@/utils/endpointTester';
+
 import { useTransactionHistory } from '../wallet/_components/useTransactionHistory';
 
 interface DashboardStats {
@@ -78,11 +77,7 @@ const Dashboard = () => {
         console.log('============================');
 
         if (token) {
-            console.log('✅ Token available, testing API connection...');
-            testApiConnection(token);
-
-            // Test which endpoints actually exist
-            testUserEndpoints(token);
+            console.log('✅ Token available');
         } else {
             console.log('❌ No token available - user needs to sign in');
         }
