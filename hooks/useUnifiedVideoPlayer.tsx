@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from 'react';
+import React, { useState, useCallback, useRef, createContext, useContext } from 'react';
 import { VideoItemType } from '@/types/VideosType';
 
 export interface VideoPlayerState {
@@ -120,7 +120,7 @@ export const useUnifiedVideoPlayer = (): UseUnifiedVideoPlayerReturn => {
 };
 
 // Context for global video player state (optional)
-import React, { createContext, useContext } from 'react';
+// React imports already included above
 
 const VideoPlayerContext = createContext<UseUnifiedVideoPlayerReturn | null>(null);
 

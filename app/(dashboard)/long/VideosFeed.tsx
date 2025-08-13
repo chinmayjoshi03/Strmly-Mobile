@@ -98,8 +98,8 @@ const VideosFeed: React.FC = () => {
   // This prevents creating a new render function on every parent render.
   const renderItem = useCallback(
     ({ item, index }: { item: VideoItemType; index: number }) => (
-      <VideoPlayer 
-        videoData={item} 
+      <VideoPlayer
+        videoData={item}
         isActive={index === visibleIndex}
         showCommentsModal={showCommentsModal}
         setShowCommentsModal={setShowCommentsModal}
@@ -116,8 +116,17 @@ const VideosFeed: React.FC = () => {
       offset: VIDEO_HEIGHT * index,
       index,
     }),
-    [router]
+    []
   );
+
+  // Key extractor for better performance
+  const keyExtractor = useCallback((item: VideoItemType) => item._id, []);
+
+  // Viewability config for better performance
+  const viewabilityConfig = {
+    itemVisiblePercentThreshold: 80,
+    minimumViewTime: 100,
+  };
 
   // Show loading while checking authentication or fetching videos
   if (loading || !token || !isLoggedIn) {
@@ -187,31 +196,36 @@ const VideosFeed: React.FC = () => {
   return (
     // <SafeAreaProvider>
     //   <SafeAreaView style={{ flex: 1 }} edges={["bottom"]}>
-        <ThemedView>
-         
-          <FlatList
-            data={videos}
-            renderItem={renderItem}
-            keyExtractor={(item) => item._id}
-            getItemLayout={getItemLayout}
-            pagingEnabled
-            scrollEnabled={!showCommentsModal}
-            onViewableItemsChanged={onViewableItemsChanged}
-            viewabilityConfig={{ itemVisiblePercentThreshold: 80 }}
-            initialNumToRender={2}
-            maxToRenderPerBatch={2}
-            windowSize={3}
-            showsVerticalScrollIndicator={false}
-            contentInsetAdjustmentBehavior="automatic" // iOS
-            contentContainerStyle={{ paddingBottom: 0 }}
-            style={{ height: VIDEO_HEIGHT }}
-            onScrollBeginDrag={() => {
-              if (showCommentsModal) {
-                console.log('🚫 VideosFeed: Scroll blocked - comments modal is open');
-              }
-            }}
-          />
-        </ThemedView>
+    <ThemedView>
+
+      <FlatList
+        data={videos}
+        renderItem={renderItem}
+        keyExtractor={keyExtractor}
+        getItemLayout={getItemLayout}
+        pagingEnabled
+        scrollEnabled={!showCommentsModal}
+        onViewableItemsChanged={onViewableItemsChanged}
+        viewabilityConfig={viewabilityConfig}
+        initialNumToRender={1}
+        maxToRenderPerBatch={1}
+        windowSize={3}
+        removeClippedSubviews={true}
+        showsVerticalScrollIndicator={false}
+        contentInsetAdjustmentBehavior="automatic"
+        style={{ height: VIDEO_HEIGHT }}
+        decelerationRate="fast"
+        snapToInterval={VIDEO_HEIGHT}
+        snapToAlignment="start"
+        scrollEventThrottle={16}
+        disableIntervalMomentum={true}
+        onScrollBeginDrag={() => {
+          if (showCommentsModal) {
+            console.log('🚫 VideosFeed: Scroll blocked - comments modal is open');
+          }
+        }}
+      />
+    </ThemedView>
     //   </SafeAreaView>
     // </SafeAreaProvider>
   );

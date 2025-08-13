@@ -11,7 +11,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
-import UniversalVideoPlayer from '../../../components/UniversalVideoPlayer';
+import UnifiedVideoPlayer from '../../../components/UnifiedVideoPlayer';
 import { CONFIG } from '../../../Constants/config';
 import { useAuthStore } from '../../../store/useAuthStore';
 

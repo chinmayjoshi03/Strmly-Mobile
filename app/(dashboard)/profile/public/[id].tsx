@@ -519,7 +519,7 @@ export default function PublicProfilePageWithId() {
                   <TouchableOpacity
                     onPress={() =>
                       router.push(
-                        `/(demo)/PurchaseCreatorPass/${userData?.userDetails._id}`
+                        `/(dashboard)/profile/public/${userData?.userDetails._id}`
                       )
                     }
                     className={`h-10 rounded-lg overflow-hidden`}

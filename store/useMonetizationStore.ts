@@ -17,67 +17,80 @@ interface MonetizationStore {
 
 const CACHE_DURATION = 30000; // 30 seconds cache
 
-// export const useMonetizationStore = create<MonetizationStore>((set, get) => ({
-//   monetizationStatus: null,
-//   loading: false,
-//   error: null,
-//   lastFetched: null,
+export const useMonetizationStore = create<MonetizationStore>((set, get) => ({
+  monetizationStatus: null,
+  loading: false,
+  error: null,
+  lastFetched: null,
 
-//   fetchMonetizationStatus: async (token: string, forceRefresh = false) => {
-//     const state = get();
-//     const now = Date.now();
+  fetchMonetizationStatus: async (token: string, forceRefresh = false) => {
+    const state = get();
+    const now = Date.now();
     
-//     // Check if we have recent data (within cache duration) and not forcing refresh
-//     if (!forceRefresh && state.monetizationStatus && state.lastFetched && (now - state.lastFetched) < CACHE_DURATION) {
-//       return;
-//     }
+    // Check if we have recent data (within cache duration) and not forcing refresh
+    if (!forceRefresh && state.monetizationStatus && state.lastFetched && (now - state.lastFetched) < CACHE_DURATION) {
+      return;
+    }
 
-//     set({ loading: true, error: null });
+    set({ loading: true, error: null });
 
-//     try {
-//       const status = await getUserMonetizationStatus(token);
+    try {
+      const status = await getUserMonetizationStatus(token);
       
-//       set({
-//         monetizationStatus: status,
-//         loading: false,
-//         error: null,
-//         lastFetched: now,
-//       });
-//     } catch (err: any) {
-//       console.error('❌ Failed to fetch monetization status:', err);
+      set({
+        monetizationStatus: status,
+        loading: false,
+        error: null,
+        lastFetched: now,
+      });
+    } catch (err: any) {
+      console.error('❌ Failed to fetch monetization status:', err);
       
-//       set({
-//         loading: false,
-//         error: err.message || 'Failed to fetch monetization status',
-//         // Keep existing status if available, otherwise set defaults
-//         monetizationStatus: state.monetizationStatus || {
-//           message: 'Error fetching status',
-//           comment_monetization_status: false,
-//           video_monetization_status: false,
-//         },
-//       });
-//     }
-//   },
+      set({
+        loading: false,
+        error: err.message || 'Failed to fetch monetization status',
+        // Keep existing status if available, otherwise set defaults
+        monetizationStatus: state.monetizationStatus || {
+          message: 'Error fetching status',
+          comment_monetization_status: false,
+          video_monetization_status: false,
+        },
+      });
+    }
+  },
 
-//   updateMonetizationStatus: (updates: Partial<MonetizationStatus>) => {
-//     const state = get();
-//     if (state.monetizationStatus) {
-//       set({
-//         monetizationStatus: {
-//           ...state.monetizationStatus,
-//           ...updates,
-//         },
-//         lastFetched: Date.now(), // Update timestamp
-//       });
-//     }
-//   },
+  updateMonetizationStatus: (updates: Partial<MonetizationStatus>) => {
+    const state = get();
+    if (state.monetizationStatus) {
+      set({
+        monetizationStatus: {
+          ...state.monetizationStatus,
+          ...updates,
+        },
+        lastFetched: Date.now(), // Update timestamp
+      });
+    }
+  },
 
-//   clearError: () => set({ error: null }),
+  toggleCommentMonetization: () => {
+    const state = get();
+    if (state.monetizationStatus) {
+      set({
+        monetizationStatus: {
+          ...state.monetizationStatus,
+          comment_monetization_status: !state.monetizationStatus.comment_monetization_status,
+        },
+        lastFetched: Date.now(),
+      });
+    }
+  },
 
-//   reset: () => set({
-//     monetizationStatus: null,
-//     loading: false,
-//     error: null,
-//     lastFetched: null,
-//   }),
-// }));
+  clearError: () => set({ error: null }),
+
+  reset: () => set({
+    monetizationStatus: null,
+    loading: false,
+    error: null,
+    lastFetched: null,
+  }),
+}));

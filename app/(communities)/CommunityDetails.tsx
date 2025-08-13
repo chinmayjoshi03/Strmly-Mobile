@@ -288,7 +288,7 @@ export default function CommunityDetails() {
           <TouchableOpacity
             className="flex-1 py-3 border border-white rounded-lg"
             onPress={() => router.push({
-              pathname: "/(demo)/CommunityAnalyticsDemo",
+              pathname: "/(communities)/public/CommunityAnalytics",
               params: { communityId: community.communityId }
             })}
           >

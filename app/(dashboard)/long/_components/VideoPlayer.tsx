@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState, useRef } from "react";
 import { View, StyleSheet, Dimensions, Pressable, Image } from "react-native";
 import { useVideoPlayer, VideoView } from "expo-video";
 import {
@@ -10,9 +10,8 @@ import VideoControls from "./VideoControls";
 import { VideoItemType } from "@/types/VideosType";
 import CommentsSection from "./CommentSection";
 import GiftingMessage from "./GiftingMessage";
-import { router, useFocusEffect } from "expo-router";
+import { router } from "expo-router";
 import VideoProgressBar from "./VideoProgressBar";
-import { useGiftingStore } from "@/store/useGiftingStore";
 
 const { height: screenHeight } = Dimensions.get("screen");
 const VIDEO_HEIGHT = screenHeight;
@@ -24,34 +23,41 @@ type Props = {
   setShowCommentsModal?: (show: boolean) => void;
 };
 
-const VideoPlayer = ({
+const VideoPlayer: React.FC<Props> = ({
   videoData,
   isActive,
   showCommentsModal = false,
   setShowCommentsModal
-}: Props) => {
-
-  const [isWantToGift, setIsWantToGift] = useState(false);
+}) => {
   const [isGifted, setIsGifted] = useState(false);
-  const [giftSuccessMessage, setGiftSuccessMessage] = useState<number | null>(
-    null
-  );
+  const [giftSuccessMessage, setGiftSuccessMessage] = useState<number | null>(null);
+  
+  const mountedRef = useRef(true);
+  const statusListenerRef = useRef<any>(null);
 
   // Add missing functions and variables
-  const clearGiftingData = () => {
+  const clearGiftingData = useCallback(() => {
     setIsGifted(false);
     setGiftSuccessMessage(null);
-  };
+  }, []);
 
   const creator = videoData.created_by;
   const { _updateStatus } = usePlayerStore.getState();
   const isMutedFromStore = usePlayerStore((state) => state.isMuted);
 
-  // FIX: Move the conditional check after hooks but handle gracefully
+  // Only create player if we have a valid video URL
   const player = useVideoPlayer(videoData?.videoUrl || "", (p) => {
     p.loop = true;
     p.muted = isMutedFromStore;
   });
+
+  // Track component mount state
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
 
   useEffect(() => {
     if (isGifted) {
@@ -61,49 +67,80 @@ const VideoPlayer = ({
     }
   }, [isGifted]);
 
-  // This single, stable useEffect now manages the entire lifecycle
+  // Optimized lifecycle management
   useEffect(() => {
-    // Don't proceed if no video URL
-    if (!videoData?.videoUrl) return;
+    // Don't proceed if no video URL or component unmounted
+    if (!videoData?.videoUrl || !mountedRef.current) return;
 
-    const statusSubscription = player.addListener(
-      "statusChange",
-      (payload) => {
-        // Only the active video should update the global store
-        if (isActive) {
-          _updateStatus(payload.status, payload.error);
-        }
+    // Clean up previous status listener
+    if (statusListenerRef.current) {
+      statusListenerRef.current.remove();
+      statusListenerRef.current = null;
+    }
+
+    // Add new status listener
+    statusListenerRef.current = player.addListener("statusChange", (payload) => {
+      if (!mountedRef.current) return;
+      
+      // Only the active video should update the global store
+      if (isActive) {
+        _updateStatus(payload.status, payload.error);
       }
-    );
+    });
 
     if (isActive) {
-      // This video is visible and playing
+      // This video is visible and should play
       setActivePlayer(player);
-      // Use the smart play function to handle audio interaction logic
-      const { smartPlay } = usePlayerStore.getState();
-      smartPlay();
+      
+      // Use requestAnimationFrame for smoother transitions
+      requestAnimationFrame(() => {
+        if (mountedRef.current) {
+          const { smartPlay } = usePlayerStore.getState();
+          smartPlay();
+        }
+      });
     } else {
       // This video is not visible, pause and reset
       player.pause();
-      player.currentTime = 0;
+      
+      // Reset to beginning for better UX, but don't block UI
+      setTimeout(() => {
+        if (mountedRef.current) {
+          player.currentTime = 0;
+        }
+      }, 100);
     }
 
-    // This cleanup function is called when the component unmounts OR when `isActive` changes.
+    // Cleanup function
     return () => {
-      // Always remove the listener
-      statusSubscription.remove();
-      // If this was the active player, clear the global reference
+      if (statusListenerRef.current) {
+        statusListenerRef.current.remove();
+        statusListenerRef.current = null;
+      }
+      
       if (isActive) {
         clearActivePlayer();
       }
     };
   }, [isActive, player, _updateStatus, videoData?.videoUrl]);
 
-  // A final cleanup effect for when the component is removed from the FlatList entirely
+  // Final cleanup on unmount
   useEffect(() => {
     return () => {
-      // FIX: Use replaceAsync to avoid blocking the UI thread
-      player.replaceAsync(null);
+      mountedRef.current = false;
+      
+      if (statusListenerRef.current) {
+        statusListenerRef.current.remove();
+      }
+      
+      // Use setTimeout to avoid blocking the UI thread during cleanup
+      setTimeout(() => {
+        try {
+          player.replaceAsync(null);
+        } catch (error) {
+          // Ignore cleanup errors
+        }
+      }, 0);
     };
   }, [player]);
 

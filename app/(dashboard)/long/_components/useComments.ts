@@ -1,7 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useAuthStore } from '@/store/useAuthStore';
 import { Comment, reply } from '@/types/Comments';
-import { mockComments } from '@/utils/CommentGenerator';
+// Simple mock comments for fallback
+const mockComments: Comment[] = [];
 // import { useCommentWebSocket } from '@/services/commentWebSocket'; // Temporarily disabled
 import { commentActions } from '@/api/comments/commentActions';
 import { CONFIG } from '@/Constants/config';

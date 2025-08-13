@@ -12,19 +12,36 @@ import ThemedView from "@/components/ThemedView";
 import ProfileTopbar from "@/components/profileTopbar";
 import ActionModal from "./_component/customModal";
 import { useAuthStore } from "@/store/useAuthStore";
+// Make sure this import matches your store export
 import { useMonetizationStore } from "@/store/useMonetizationStore";
 import { router } from "expo-router";
 import Constants from "expo-constants";
 
 const Setting = () => {
-
   const { logout, token } = useAuthStore();
+  
+  // Add error boundary for store usage
+  let monetizationHook;
+  try {
+    monetizationHook = useMonetizationStore();
+  } catch (error) {
+    console.error("Error accessing monetization store:", error);
+    // Provide fallback values
+    monetizationHook = {
+      monetizationStatus: null,
+      toggleCommentMonetization: async () => {},
+      fetchMonetizationStatus: async () => {},
+      loading: false,
+    };
+  }
+
   const {
     monetizationStatus,
     toggleCommentMonetization,
     fetchMonetizationStatus,
-    loading: isMonetizationLoading, // Use loading state from the store
-  } = useMonetizationStore();
+    loading: isMonetizationLoading,
+  } = monetizationHook;
+
   const BACKEND_API_URL = Constants.expoConfig?.extra?.BACKEND_API_URL;
 
   const [modalConfig, setModalConfig] = useState({
@@ -63,7 +80,7 @@ const Setting = () => {
   };
 
   useEffect(() => {
-    if (token) {
+    if (token && fetchMonetizationStatus) {
       fetchMonetizationStatus(token);
     }
   }, [token, fetchMonetizationStatus]);
@@ -82,32 +99,27 @@ const Setting = () => {
         },
       });
 
-      // Try to parse JSON response for an error message, if any
       const data = await response.json();
 
       if (!response.ok) {
-        // If the server returns an error, display it
         throw new Error(data.message || "Failed to submit deletion request.");
       }
 
-      // On success, show the confirmation alert and log the user out
       Alert.alert(
         "Account Deletion Initiated",
         "Your account deletion request has been submitted successfully.",
         [{ text: "OK" }]
-        // [{ text: "OK", onPress: handleLogout }]
       );
     } catch (error) {
-      // On failure, show an error alert
       Alert.alert(
         "Deletion Error",
         error.message || "An unexpected error occurred."
       );
-      // Close the modal only on error, as success will log out
       closeModal();
     }
   };
-  const openURL = async (url: string) => {
+
+  const openURL = async (url:any) => {
     const supported = await Linking.canOpenURL(url);
     if (supported) {
       await Linking.openURL(url);
@@ -147,7 +159,7 @@ Once approved, the "Delete Account" button will be activated in your settings. A
 
 By submitting this request, you confirm that you understand and agree to our`,
       confirmRequest:
-        "Are you sure you want to send request to activate “Delete Account” ? This action is irreversible and cannot be undone.",
+        "Are you sure you want to send request to activate  ? This action is irreversible and cannot be undone.",
       useButtons: true,
       specialText: true,
       primaryButtonText: "Agree",

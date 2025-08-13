@@ -227,10 +227,10 @@ const EditProfilePage: React.FC = () => {
       };
 
       const response = await updateUserProfile(token, profileData);
-     
+
 
       // Update the auth store with new data (use the URL from server response if available)
-     
+
       // Update the auth store with new data (use the URL from server response if available)
       const updatedProfilePhoto = response.user?.profile_photo || imageUri;
       updateUser({
@@ -264,7 +264,7 @@ const EditProfilePage: React.FC = () => {
     }
   };
 
-  
+
 
   const renderDropdownField = (label: string, value: string, placeholder: string, dropdownKey: 'gender' | 'interest1' | 'interest2' | 'contentInterest') => (
     <TouchableOpacity
@@ -358,14 +358,13 @@ const EditProfilePage: React.FC = () => {
           <View style={EditProfile.HalfField}>
             <ThemedText style={EditProfile.InfoLabel}>Gender</ThemedText>
             {renderDropdownField("Gender", gender, "Select", 'gender')}
-            {renderDropdownField("Gender", gender, "Select", 'gender')}
+
           </View>
 
           <View style={EditProfile.HalfField}>
             <ThemedText style={EditProfile.InfoLabel}>Content interest</ThemedText>
             {renderDropdownField("Content interest", contentInterest, "Select", 'contentInterest')}
-            <ThemedText style={EditProfile.InfoLabel}>Content interest</ThemedText>
-            {renderDropdownField("Content interest", contentInterest, "Select", 'contentInterest')}
+
           </View>
         </View>
 
