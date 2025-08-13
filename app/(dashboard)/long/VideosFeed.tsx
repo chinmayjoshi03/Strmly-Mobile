@@ -11,7 +11,7 @@ import ThemedView from "@/components/ThemedView";
 import { useAuthStore } from "@/store/useAuthStore";
 import { CONFIG } from "@/Constants/config";
 import { VideoItemType } from "@/types/VideosType";
-import { Link, router } from "expo-router";
+import { Link, router, useFocusEffect } from "expo-router";
 import VideoPlayer from "./_components/VideoPlayer";
 
 export type GiftType = {
@@ -40,12 +40,14 @@ const VideosFeed: React.FC = () => {
   const { token, isLoggedIn } = useAuthStore();
 
   // If user is not logged in, redirect to sign-in
-  useEffect(() => {
-    if (!token || !isLoggedIn) {
-      router.replace("/(auth)/Sign-in");
-      return;
-    }
-  }, [token, isLoggedIn]);
+  useFocusEffect(
+    useCallback(() => {
+      if (!token || !isLoggedIn) {
+        router.replace("/(auth)/Sign-up");
+        return;
+      }
+    }, [token, isLoggedIn])
+  );
 
   const BACKEND_API_URL = CONFIG.API_BASE_URL;
 

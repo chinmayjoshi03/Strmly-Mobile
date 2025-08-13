@@ -61,6 +61,15 @@ export default function PersonalProfilePage() {
     }))
   );
 
+  useFocusEffect(
+    useCallback(() => {
+      if (!token || !isLoggedIn) {
+        router.replace("/(auth)/Sign-up");
+        return;
+      }
+    }, [token, isLoggedIn])
+  );
+
   // Refresh profile data when auth store user changes (e.g., after profile update)
   useEffect(() => {
     if (
