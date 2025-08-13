@@ -163,7 +163,7 @@ const VideoPlayer = ({
           isActive={isActive}
           videoId={videoData._id}
           duration={
-            videoData.duration || videoData.access.freeRange.display_till_time
+            videoData.duration || videoData.access?.freeRange?.display_till_time || 0
           }
           access={
             videoData.access || {
@@ -244,17 +244,6 @@ const VideoPlayer = ({
       )}
     </View>
   );
-  //  (
-  //   <View style={styles.container}>
-  //     <VideoContentGifting
-  //       creator={videoData.created_by}
-  //       videoId={videoData._id}
-  //       setIsWantToGift={setIsWantToGift}
-  //       setIsGifted={setIsGifted}
-  //       giftMessage={setGiftSuccessMessage}
-  //     />
-  //   </View>
-  // );
 };
 
 const styles = StyleSheet.create({

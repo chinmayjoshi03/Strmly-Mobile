@@ -12,14 +12,8 @@ import {
 
   Modal,
 } from "react-native";
-import {
-  IndianRupee,
-  HeartIcon,
-  PaperclipIcon,
-  X,
-  Users,
-  Video,
-} from "lucide-react-native";
+import { IndianRupee, HeartIcon, PaperclipIcon, X, Users, Video } from "lucide-react-native";
+
 import { useAuthStore } from "@/store/useAuthStore";
 import { useThumbnailsGenerate } from "@/utils/useThumbnailGenerator";
 import ThemedView from "@/components/ThemedView";
@@ -576,8 +570,8 @@ export default function PublicCommunityPage() {
                   source={
                     communityData?.profile_photo
                       ? {
-                          uri: communityData.profile_photo,
-                        }
+                        uri: communityData.profile_photo,
+                      }
                       : require("../../../../assets/images/user.png")
                   }
                   style={{
@@ -777,8 +771,8 @@ export default function PublicCommunityPage() {
           }
           ListEmptyComponent={
             (activeTab === "videos" && isLoadingVideos) ||
-            (activeTab === "followers" && isLoadingFollowers) ||
-            (activeTab === "creators" && isLoadingCreators) ? (
+              (activeTab === "followers" && isLoadingFollowers) ||
+              (activeTab === "creators" && isLoadingCreators) ? (
               <View className="flex-1 h-64 items-center justify-center">
                 <ActivityIndicator size="large" color="white" />
               </View>

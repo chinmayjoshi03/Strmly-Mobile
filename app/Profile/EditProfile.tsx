@@ -263,7 +263,9 @@ const EditProfilePage: React.FC = () => {
 
       const response = await updateUserProfile(token, profileData);
 
+
       // Update the auth store with new data (use the URL from server response if available)
+
 
       // Update the auth store with new data (use the URL from server response if available)
       const updatedProfilePhoto = response.user?.profile_photo || imageUri;
@@ -302,12 +304,9 @@ const EditProfilePage: React.FC = () => {
     }
   };
 
-  const renderDropdownField = (
-    label: string,
-    value: string,
-    placeholder: string,
-    dropdownKey: "gender" | "interest1" | "interest2" | "contentInterest"
-  ) => (
+
+
+  const renderDropdownField = (label: string, value: string, placeholder: string, dropdownKey: 'gender' | 'interest1' | 'interest2' | 'contentInterest') => (
     <TouchableOpacity
       onPress={() => openDropdown(dropdownKey)}
       style={EditProfile.dropdownTrigger}
@@ -397,35 +396,20 @@ const EditProfilePage: React.FC = () => {
             />
           </View>
 
-          {/* Gender & Content Interest */}
-          <View style={EditProfile.TwoFieldRow}>
-            <View style={EditProfile.HalfField}>
-              <ThemedText style={EditProfile.InfoLabel}>Gender</ThemedText>
-              {renderDropdownField("Gender", gender, "Select", "gender")}
-              {renderDropdownField("Gender", gender, "Select", "gender")}
-            </View>
+        {/* Gender & Content Interest */}
+        <View style={EditProfile.TwoFieldRow}>
+          <View style={EditProfile.HalfField}>
+            <ThemedText style={EditProfile.InfoLabel}>Gender</ThemedText>
+            {renderDropdownField("Gender", gender, "Select", 'gender')}
 
-            <View style={EditProfile.HalfField}>
-              <ThemedText style={EditProfile.InfoLabel}>
-                Content interest
-              </ThemedText>
-              {renderDropdownField(
-                "Content interest",
-                contentInterest,
-                "Select",
-                "contentInterest"
-              )}
-              <ThemedText style={EditProfile.InfoLabel}>
-                Content interest
-              </ThemedText>
-              {renderDropdownField(
-                "Content interest",
-                contentInterest,
-                "Select",
-                "contentInterest"
-              )}
-            </View>
           </View>
+
+          <View style={EditProfile.HalfField}>
+            <ThemedText style={EditProfile.InfoLabel}>Content interest</ThemedText>
+            {renderDropdownField("Content interest", contentInterest, "Select", 'contentInterest')}
+
+          </View>
+        </View>
 
           {/* Interest 1 (YouTube) & Interest 2 (Netflix) */}
           <View style={EditProfile.InfoFrame}>
