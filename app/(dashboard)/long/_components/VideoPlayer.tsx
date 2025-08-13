@@ -168,7 +168,7 @@ const VideoPlayer: React.FC<Props> = ({
           player={player}
           isActive={isActive}
           videoId={videoData._id}
-          duration={videoData.duration || 0}
+          duration={videoData.duration || videoData.access.freeRange.display_till_time}
           access={videoData.access || {
             isPlayable: true,
             freeRange: { start_time: 0, display_till_time: 0 },

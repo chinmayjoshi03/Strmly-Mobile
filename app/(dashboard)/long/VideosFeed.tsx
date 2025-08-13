@@ -50,7 +50,7 @@ const VideosFeed: React.FC = () => {
         throw new Error('Authentication token is missing - user may not be logged in');
       }
 
-      const res = await fetch(`${BACKEND_API_URL}/recommendations/videos`, {
+      const res = await fetch(`${BACKEND_API_URL}/videos/trending`, {
         method: "GET",
         headers: {
           Authorization: `Bearer ${token}`,
@@ -69,7 +69,7 @@ const VideosFeed: React.FC = () => {
       }
 
       const json = await res.json();
-      setVideos(json.recommendations || []);
+      setVideos(json.data || []);
     } catch (err: any) {
       setError(err.message || "Something went wrong");
     } finally {
