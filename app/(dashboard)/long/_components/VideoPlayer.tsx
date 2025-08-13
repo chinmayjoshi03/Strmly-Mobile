@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useRef } from "react";
 import { View, Dimensions, Pressable, Image, StyleSheet } from "react-native";
 import { useVideoPlayer, VideoView } from "expo-video";
 import {
@@ -45,6 +45,10 @@ const VideoPlayer = ({
   const { _updateStatus } = usePlayerStore.getState();
   const isMutedFromStore = usePlayerStore((state) => state.isMuted);
 
+  // Create refs for tracking component state
+  const mountedRef = useRef(true);
+  const statusListenerRef = useRef<any>(null);
+
   // FIX: Move the conditional check after hooks but handle gracefully
   const player = useVideoPlayer(videoData?.videoUrl || "", (p) => {
     p.loop = true;
@@ -88,7 +92,7 @@ const VideoPlayer = ({
     } else {
       // This video is not visible, pause and reset
       player.pause();
-      
+
       // Reset to beginning for better UX, but don't block UI
       setTimeout(() => {
         if (mountedRef.current) {
@@ -112,11 +116,11 @@ const VideoPlayer = ({
   useEffect(() => {
     return () => {
       mountedRef.current = false;
-      
+
       if (statusListenerRef.current) {
         statusListenerRef.current.remove();
       }
-      
+
       // Use setTimeout to avoid blocking the UI thread during cleanup
       setTimeout(() => {
         try {

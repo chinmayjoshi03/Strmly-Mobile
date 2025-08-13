@@ -9,18 +9,11 @@ import {
   FlatList,
   Dimensions,
   BackHandler,
-  Modal,
+
   Modal,
 } from "react-native";
 import { IndianRupee, HeartIcon, PaperclipIcon, X, Users, Video } from "lucide-react-native";
-import {
-  IndianRupee,
-  HeartIcon,
-  PaperclipIcon,
-  X,
-  Users,
-  Video,
-} from "lucide-react-native";
+
 import { useAuthStore } from "@/store/useAuthStore";
 import { useThumbnailsGenerate } from "@/utils/useThumbnailGenerator";
 import ThemedView from "@/components/ThemedView";
@@ -36,7 +29,7 @@ import CommunityPassBuyMessage from "./CommPassBuyMessage";
 import { useGiftingStore } from "@/store/useGiftingStore";
 
 export default function PublicCommunityPage() {
-  const [activeTab, setActiveTab] = useState("videos");
+  const [activeTab, setActiveTab] = useState<string>("videos");
   const [communityData, setCommunityData] = useState<any>(null);
   const [videos, setVideos] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -70,7 +63,7 @@ export default function PublicCommunityPage() {
 
   const route = useRoute();
   const router = useRouter();
-  const router = useRouter();
+
   const { id } = route.params as { id: string };
   // const id = "6890586c8039a7684646c364";
 
@@ -89,7 +82,6 @@ export default function PublicCommunityPage() {
 
   useEffect(() => {
     const fetchUserVideos = async () => {
-      if (activeTab !== "videos") {
       if (activeTab !== "videos") {
         return;
       }
@@ -576,8 +568,8 @@ export default function PublicCommunityPage() {
                   source={
                     communityData?.profile_photo
                       ? {
-                          uri: communityData.profile_photo,
-                        }
+                        uri: communityData.profile_photo,
+                      }
                       : require("../../../../assets/images/user.png")
                   }
                   style={{
@@ -776,8 +768,8 @@ export default function PublicCommunityPage() {
           }
           ListEmptyComponent={
             (activeTab === "videos" && isLoadingVideos) ||
-            (activeTab === "followers" && isLoadingFollowers) ||
-            (activeTab === "creators" && isLoadingCreators) ? (
+              (activeTab === "followers" && isLoadingFollowers) ||
+              (activeTab === "creators" && isLoadingCreators) ? (
               <View className="flex-1 h-64 items-center justify-center">
                 <ActivityIndicator size="large" color="white" />
               </View>

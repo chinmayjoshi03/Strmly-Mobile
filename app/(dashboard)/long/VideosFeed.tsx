@@ -42,8 +42,6 @@ const VideosFeed: React.FC = () => {
   }, [token, isLoggedIn]);
 
   const BACKEND_API_URL = CONFIG.API_BASE_URL;
-  const { token } = useAuthStore();
-  const BACKEND_API_URL = Constants.expoConfig?.extra?.BACKEND_API_URL;
 
   const fetchTrendingVideos = async (nextPage = page) => {
     if (!hasMore || isFetchingMore) return;
@@ -111,7 +109,7 @@ const VideosFeed: React.FC = () => {
   const renderItem = useCallback(
     ({ item, index }: { item: VideoItemType; index: number }) => (
       <VideoPlayer
-        videoData={item} 
+        videoData={item}
         isActive={index === visibleIndex}
         showCommentsModal={showCommentsModal}
         setShowCommentsModal={setShowCommentsModal}
@@ -173,7 +171,7 @@ const VideosFeed: React.FC = () => {
               API URL: {BACKEND_API_URL || 'Not configured'}
             </Text>
             <Pressable
-              onPress={fetchTrendingVideos}
+              onPress={() => fetchTrendingVideos()}
               className="bg-blue-600 px-4 py-2 rounded"
             >
               <Text className="text-white">Retry</Text>
@@ -238,29 +236,7 @@ const VideosFeed: React.FC = () => {
         }}
       />
     </ThemedView>
-          <FlatList
-            data={videos}
-            renderItem={renderItem}
-            keyExtractor={(item) => item._id}
-            getItemLayout={getItemLayout}
-            pagingEnabled
-            scrollEnabled={!showCommentsModal}
-            onViewableItemsChanged={onViewableItemsChanged}
-            viewabilityConfig={{ itemVisiblePercentThreshold: 80 }}
-            initialNumToRender={2}
-            maxToRenderPerBatch={2}
-            windowSize={3}
-            showsVerticalScrollIndicator={false}
-            contentInsetAdjustmentBehavior="automatic" // iOS
-            contentContainerStyle={{ paddingBottom: 0 }}
-            style={{ height: VIDEO_HEIGHT }}
-            // onScrollBeginDrag={() => {
-            //   if (showCommentsModal) {
-            //     console.log('🚫 VideosFeed: Scroll blocked - comments modal is open');
-            //   }
-            // }}
-          />
-        </ThemedView>
+
     //   </SafeAreaView>
     // </SafeAreaProvider>
   );
