@@ -40,7 +40,10 @@ const VideoProgressBar = ({
   duration,
   access,
 }: Props) => {
-  const [currentTime, setCurrentTime] = useState(0);
+  // Drive live progress from the global store (updated by VideoPlayer via _updateStatus)
+  const storePosition = usePlayerStore((s) => s.position);
+
+  // Local state only for drag UX
   const [isDragging, setIsDragging] = useState(false);
   const [dragTime, setDragTime] = useState<number | null>(null);
   const progressBarContainerWidth = useRef<number>(0);
@@ -51,18 +54,8 @@ const VideoProgressBar = ({
 
   const initialStartTime = access?.freeRange?.start_time ?? 0;
   const hasSeekedInitially = useRef(false);
-  const hasTriggeredMilestone = useRef(false);
-  const milestoneTime = duration * 0.02;
   const seekInProgress = useRef(false);
   const wasPlayingBeforeSeek = useRef(false);
-
-  const lastTimeRef = useRef(0);
-
-  useEffect(() => {
-    if (isActive && lastTimeRef.current > 0) {
-      player.seekTo?.(lastTimeRef.current);
-    }
-  }, [isActive, player]);
 
   // History API
   const saveVideoToHistory = useCallback(async () => {
@@ -97,55 +90,42 @@ const VideoProgressBar = ({
     }
   }, [token, videoId, BACKEND_API_URL]);
 
-  // Initial seek logic
+  // Initial seek logic (guarded so it won't override user/manual or restored seeks)
   useEffect(() => {
-    if (isActive && !hasSeekedInitially.current && initialStartTime >= 0) {
-      (async () => {
+    const shouldInitialSeek =
+      isActive &&
+      !hasSeekedInitially.current &&
+      initialStartTime >= 0 &&
+      // Only if we're effectively at the start (avoid overriding a real position)
+      storePosition < 0.5;
+
+    if (!shouldInitialSeek) return;
+
+    (async () => {
+      try {
         hasSeekedInitially.current = true;
         await seekTo(initialStartTime);
-        setCurrentTime(initialStartTime);
         player.play();
-      })();
-    }
-  }, [isActive, initialStartTime, player, seekTo]);
-
-  // Time sync and milestone tracking
-  useEffect(() => {
-    if (!isActive) {
-      setCurrentTime(0);
-      return;
-    }
-
-    const interval = setInterval(() => {
-      if (!isDragging && !seekInProgress.current) {
-        const time =
-          typeof player.currentTime === "number"
-            ? player.currentTime
-            : currentTime;
-        setCurrentTime(time);
+      } catch (e) {
+        // no-op; seekTo already logs
       }
-      console.log(
-        "Interval update: player.currentTime =",
-        player.currentTime,
-        "currentTime state =",
-        currentTime
-      );
-    }, 500);
-
-    return () => clearInterval(interval);
-  }, [isActive, player, isDragging, currentTime]);
+    })();
+  }, [isActive, initialStartTime, storePosition, player, seekTo]);
 
   const handleProgressBarLayout = (event: LayoutChangeEvent) => {
     progressBarContainerWidth.current = event.nativeEvent.layout.width;
   };
 
   const handleDragStart = () => {
-    wasPlayingBeforeSeek.current = player.playing;
+    // Snapshot current playing state to optionally resume after seek (handled in store.seekTo)
+    // (Keep this in case you later want to pause on drag)
+    // ts-expect-error expo-video provides 'playing' at runtime
+    wasPlayingBeforeSeek.current = (player as any).playing;
     setIsDragging(true);
   };
 
   const handleDragMove = (event: GestureResponderEvent) => {
-    const containerWidth = progressBarContainerWidth.current;
+    const containerWidth = progressBarContainerWidth.current || 1; // avoid div-by-zero
     const touchX = event.nativeEvent.locationX;
     const seekPercentage = Math.max(0, Math.min(1, touchX / containerWidth));
     setDragTime(seekPercentage * duration);
@@ -155,36 +135,40 @@ const VideoProgressBar = ({
     if (seekInProgress.current) return;
     seekInProgress.current = true;
     try {
-      if (newTimeSeconds < 0.5 || newTimeSeconds > duration - 0.1) {
+      // Guard rails to avoid invalid seeks
+      if (
+        newTimeSeconds < 0.5 ||
+        newTimeSeconds > Math.max(0, duration - 0.1)
+      ) {
         console.warn("Blocked seek: out of bounds");
         return;
       }
 
-      await seekTo(newTimeSeconds); // Guaranteed to finish seeking
-
-      // After seek, always read actual player time
-      const current =
-        typeof player.currentTime === "number"
-          ? player.currentTime
-          : newTimeSeconds;
-      setCurrentTime(current);
+      await seekTo(newTimeSeconds); // Updates store.position internally
+      // No need to set local time; UI is driven by storePosition
     } catch (error) {
       console.error("Seek failed:", error);
-      setCurrentTime(player.currentTime);
     } finally {
       seekInProgress.current = false;
     }
   };
 
   const handleDragEnd = async (event: GestureResponderEvent) => {
-    if (!progressBarContainerWidth.current) return;
+    if (!progressBarContainerWidth.current) {
+      setIsDragging(false);
+      setDragTime(null);
+      return;
+    }
 
     const touchX = event.nativeEvent.locationX;
     const seekPercentage = Math.max(
       0,
       Math.min(1, touchX / progressBarContainerWidth.current)
     );
-    const newTimeSeconds = Math.min(seekPercentage * duration, duration - 0.1);
+    const newTimeSeconds = Math.min(
+      seekPercentage * duration,
+      Math.max(0, duration - 0.1)
+    );
 
     setIsDragging(false);
     setDragTime(null);
@@ -192,7 +176,11 @@ const VideoProgressBar = ({
     await handleSeek(newTimeSeconds);
   };
 
-  const progress = duration > 0 ? (currentTime / duration) * 100 : 0;
+  // Use dragTime while dragging; otherwise follow live store position
+  const effectiveTime =
+    isDragging && dragTime !== null ? dragTime : storePosition;
+
+  const progress = duration > 0 ? (effectiveTime / duration) * 100 : 0;
   const showProgressBar = duration > 0;
 
   if (!showProgressBar) return null;

@@ -131,7 +131,7 @@ const VideosFeed: React.FC = () => {
   const getItemLayout = useCallback(
     (_data: any, index: number) => ({
       length: VIDEO_HEIGHT,
-      offset: VIDEO_HEIGHT * index,
+      offset: VIDEO_HEIGHT,
       index,
     }),
     []

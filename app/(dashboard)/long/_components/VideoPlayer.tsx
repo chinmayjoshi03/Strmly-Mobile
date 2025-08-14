@@ -45,7 +45,7 @@ const VideoPlayer = ({
     clearGiftingData,
     clearSeriesData,
     clearVideoAccessData,
-    clearPassData
+    clearPassData,
   } = useGiftingStore();
 
   const { _updateStatus } = usePlayerStore.getState();
@@ -54,6 +54,7 @@ const VideoPlayer = ({
   // Create refs for tracking component state
   const mountedRef = useRef(true);
   const statusListenerRef = useRef<any>(null);
+  const prevUrlRef = useRef<string | null>(null);
 
   // FIX: Move the conditional check after hooks but handle gracefully
   const player = useVideoPlayer(videoData?.videoUrl || "", (p) => {
@@ -82,12 +83,16 @@ const VideoPlayer = ({
     // Don't proceed if no video URL
     if (!videoData?.videoUrl) return;
 
-    const statusSubscription = player.addListener("statusChange", (payload) => {
-      // Only the active video should update the global store
+    const handleStatus = (payload: any) => {
       if (isActive) {
         _updateStatus(payload.status, payload.error);
       }
-    });
+    };
+
+    const statusSubscription = player.addListener("statusChange", handleStatus);
+
+    // 👇 Add this for continuous position updates
+    const timeSub = player.addListener("timeUpdate", handleStatus);
 
     if (isActive) {
       // This video is visible and should play
@@ -100,23 +105,32 @@ const VideoPlayer = ({
       player.pause();
 
       // Reset to beginning for better UX, but don't block UI
-      setTimeout(() => {
-        if (mountedRef.current) {
-          player.currentTime = 0;
-        }
-      }, 100);
+      if (videoData?.videoUrl !== prevUrlRef.current) {
+        prevUrlRef.current = videoData?.videoUrl;
+        setTimeout(() => {
+          if (mountedRef.current) player.currentTime = 0;
+        }, 100);
+      }
     }
 
     // Cleanup function
     return () => {
       // Always remove the listener
       statusSubscription.remove();
+      timeSub.remove();
       // If this was the active player, clear the global reference
       if (isActive) {
         clearActivePlayer();
       }
     };
   }, [isActive, player, _updateStatus, videoData?.videoUrl]);
+
+  useEffect(() => {
+    const sub = Dimensions.addEventListener("change", ({ screen }) => {
+      styles.container.height = screen.height;
+    });
+    return () => sub?.remove();
+  }, []);
 
   // Final cleanup on unmount
   useEffect(() => {
@@ -244,17 +258,6 @@ const VideoPlayer = ({
       )}
     </View>
   );
-  //  (
-  //   <View style={styles.container}>
-  //     <VideoContentGifting
-  //       creator={videoData.created_by}
-  //       videoId={videoData._id}
-  //       setIsWantToGift={setIsWantToGift}
-  //       setIsGifted={setIsGifted}
-  //       giftMessage={setGiftSuccessMessage}
-  //     />
-  //   </View>
-  // );
 };
 
 const styles = StyleSheet.create({

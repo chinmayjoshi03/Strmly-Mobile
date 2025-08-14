@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StatusBar, Image, ActivityIndicator, Alert } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, StatusBar, Image, ActivityIndicator, Alert, Dimensions } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import Svg, { Path } from 'react-native-svg';
@@ -13,7 +13,10 @@ import { useSeries } from './hooks/useSeries';
 import { useDeleteActions } from './hooks/useDeleteActions';
 import DropdownMenu from './components/DropdownMenu';
 import { CONFIG } from '../../Constants/config';
+import ThemedView from '@/components/ThemedView';
 
+const {height:ActualHeight} = Dimensions.get('window');
+const heightt = ActualHeight;
 
 
 const StrmlyStudio = () => {
@@ -240,11 +243,11 @@ const StrmlyStudio = () => {
 
 
     return (
-        <View className="flex-1 bg-black">
+        <ThemedView style={{height: heightt, flex:1}}>
             <StatusBar barStyle="light-content" backgroundColor="#000" />
 
             {/* Header */}
-            <View className="flex-row items-center justify-between px-4 py-3 mt-8">
+            <View className="flex-row items-center justify-between px-4 py-3">
                 <TouchableOpacity>
                     <Ionicons name="chevron-back" size={24} color="white" />
                 </TouchableOpacity>
@@ -522,7 +525,7 @@ const StrmlyStudio = () => {
             </View>
 
 
-        </View>
+        </ThemedView>
     );
 };
 

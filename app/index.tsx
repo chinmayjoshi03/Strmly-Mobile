@@ -1,13 +1,13 @@
-import StrmlyStudio from './studio/StrmlyStudio';
-import HistoryPage from './(dashboard)/profile/History';
-import PersonalCommunityPage from './(dashboard)/communities/personal/PersonalComm';
-import Dashboard from './(dashboard)/profile/Dashboard';
-import PublicCommunityPage from './(communities)/public/publicComm';
-import Interests from './(InterestsSection)/Interests';
-import Setting from './Setting/Setting';
-import PublicProfilePageWithId from './(dashboard)/profile/public/[id]';
-import CreateCommunityPage from './(communities)/CreateCommunityPage';
-import SearchTab from './(tabs)/search';
+import StrmlyStudio from "./studio/StrmlyStudio";
+import HistoryPage from "./(dashboard)/profile/History";
+import PersonalCommunityPage from "./(dashboard)/communities/personal/PersonalComm";
+import Dashboard from "./(dashboard)/profile/Dashboard";
+import PublicCommunityPage from "./(communities)/public/publicComm";
+import Interests from "./(InterestsSection)/Interests";
+import Setting from "./Setting/Setting";
+import PublicProfilePageWithId from "./(dashboard)/profile/public/[id]";
+import CreateCommunityPage from "./(communities)/CreateCommunityPage";
+import SearchTab from "./(tabs)/search";
 
 // const Home = () => {
 //   return (
@@ -15,11 +15,11 @@ import SearchTab from './(tabs)/search';
 
 //     // <SignUp/>
 //     // <ForgotPassword/>
-    
+
 //     // <SearchTab/>
 
 //     // <Interests/>
-    
+
 //     // <CreateProfile/>
 //     // <AddCreatorPass/>
 //     // <EditProfilePage/>
@@ -55,9 +55,8 @@ import { useEffect, useState } from "react";
 import { View, ActivityIndicator, Text } from "react-native";
 
 export default function Index() {
-  const { token, isLoggedIn, user } = useAuthStore();
+  const { token, isLoggedIn, isOnboarded, hasHydrated } = useAuthStore();
   const [isLoading, setIsLoading] = useState(true);
-  const isOnboarded = user?.isOnboarded || false;
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -84,6 +83,22 @@ export default function Index() {
     );
   }
 
+  if (!hasHydrated) {
+    return (
+      <View
+        style={{
+          flex: 1,
+          justifyContent: "center",
+          alignItems: "center",
+          backgroundColor: "black",
+        }}
+      >
+        <ActivityIndicator size="large" color="#fff" />
+        <Text style={{ color: "white", marginTop: 10 }}>Hydrating...</Text>
+      </View>
+    );
+  }
+
   // Redirect based on authentication status
   if (token && isLoggedIn && !isOnboarded) {
     console.log("✅ User not completed Onboarding, redirecting to Onboarding");
@@ -94,6 +109,6 @@ export default function Index() {
     return <Redirect href="/(tabs)/home" />;
   } else {
     console.log("❌ User not authenticated, redirecting to sign-in");
-    return <Redirect href="/(auth)/Sign-up" />;
+    return <Redirect href="/" />;
   }
 }
