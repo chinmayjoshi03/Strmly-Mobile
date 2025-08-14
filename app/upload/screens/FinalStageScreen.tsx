@@ -51,7 +51,7 @@ const FinalStageScreen: React.FC<FinalStageProps> = ({
     setGenreDropdownOpen(false);
   };
 
-  // Handle autoplay timing changes
+  // Handle autoplay timing changes with auto-conversion support
   const handleAutoplayMinutesChange = (minutes: number) => {
     onFormChange({ ...formData, autoplayStartMinutes: minutes });
   };
@@ -60,7 +60,7 @@ const FinalStageScreen: React.FC<FinalStageProps> = ({
     onFormChange({ ...formData, autoplayStartSeconds: seconds });
   };
 
-  // Handle unlock timing changes
+  // Handle unlock timing changes with auto-conversion support
   const handleUnlockMinutesChange = (minutes: number) => {
     onFormChange({ ...formData, unlockFromMinutes: minutes });
   };
@@ -121,6 +121,9 @@ const FinalStageScreen: React.FC<FinalStageProps> = ({
           <Text className="text-gray-400 text-sm mt-2 leading-5">
             Choose the timestamp where the video should start playing when someone scrolls to it
           </Text>
+          <Text className="text-gray-500 text-xs mt-1">
+            💡 Tip: Enter seconds over 59 to auto-convert to minutes (e.g., 75 sec → 1 min 15 sec)
+          </Text>
         </View>
 
         {/* Unlock Timing - Only show for paid videos */}
@@ -135,6 +138,9 @@ const FinalStageScreen: React.FC<FinalStageProps> = ({
             />
             <Text className="text-gray-400 text-sm mt-2 leading-5">
               The viewer can watch for free until this point. After this, they&apos;ll need to pay to continue.
+            </Text>
+            <Text className="text-gray-500 text-xs mt-1">
+              💡 Tip: Enter seconds over 59 to auto-convert to minutes (e.g., 75 sec → 1 min 15 sec)
             </Text>
           </View>
         )}
@@ -153,7 +159,7 @@ const FinalStageScreen: React.FC<FinalStageProps> = ({
       </ScrollView>
 
       {/* Action Button */}
-      <View className="px-4 pb-8" style={{ marginBottom: 80 }}>
+      <View className="px-4" style={{ paddingBottom: 16, paddingTop: 16, marginBottom: 25 }}>
         {/* Continue Button */}
         <TouchableOpacity
           onPress={onUpload}

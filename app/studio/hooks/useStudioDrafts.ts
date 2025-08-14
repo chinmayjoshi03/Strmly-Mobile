@@ -119,8 +119,8 @@ export const useStudioDrafts = () => {
     return () => clearTimeout(timer);
   }, [token]); // Only depend on token changes
 
-  const refetch = () => {
-    fetchDrafts(true); // Force refresh when manually triggered
+  const refetch = async () => {
+    await fetchDrafts(true); // Force refresh when manually triggered
   };
 
   return {

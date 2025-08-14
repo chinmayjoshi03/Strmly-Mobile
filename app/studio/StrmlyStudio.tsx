@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StatusBar, Image, ActivityIndicator, Alert } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, ScrollView, TouchableOpacity, StatusBar, Image, ActivityIndicator, Alert, RefreshControl } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import Svg, { Path } from 'react-native-svg';
+import { useFocusEffect } from '@react-navigation/native';
 import VideoUploadFlow from '../upload/VideoUploadFlow';
 import { SeriesSelectionScreen, SeriesAnalyticsScreen } from './screens';
 import SimpleSeriesCreationScreen from './screens/SimpleSeriesCreationScreen';
@@ -24,6 +25,7 @@ const StrmlyStudio = () => {
     const [selectedSeriesId, setSelectedSeriesId] = useState<string | null>(null);
     const [editingDraftId, setEditingDraftId] = useState<string | null>(null);
     const [editingDraftData, setEditingDraftData] = useState<any>(null);
+    const [isRefreshing, setIsRefreshing] = useState(false);
 
     // Debug state changes
     console.log('🎬 Studio State:', {
@@ -36,6 +38,26 @@ const StrmlyStudio = () => {
     const { drafts, loading: draftsLoading, error: draftsError, refetch: refetchDrafts } = useStudioDrafts();
     const { series, loading: seriesLoading, error: seriesError, refetch: refetchSeries, refreshKey } = useSeries();
     const { deleteDraft, deleteSeries, confirmDelete } = useDeleteActions();
+
+    // Refresh series data when returning to main screen and series tab is active
+    useEffect(() => {
+        if (currentScreen === 'main' && activeTab === 'series') {
+            console.log('🔄 Auto-refreshing series data on main screen focus');
+            refetchSeries();
+        }
+    }, [currentScreen, activeTab]);
+
+    // Refresh data when screen comes into focus
+    useFocusEffect(
+        React.useCallback(() => {
+            console.log('🎯 StrmlyStudio screen focused, refreshing data...');
+            if (activeTab === 'series') {
+                refetchSeries();
+            } else {
+                refetchDrafts();
+            }
+        }, [activeTab])
+    );
 
     // Navigation handlers
     const goToUploadFlow = () => {
@@ -57,6 +79,10 @@ const StrmlyStudio = () => {
         console.log('🏠 Going back to main');
         setCurrentScreen('main');
         setSelectedSeriesId(null);
+        // Refresh series data when returning to main screen
+        if (activeTab === 'series') {
+            refetchSeries();
+        }
     };
 
     const goToSeriesDetails = (seriesId: string) => {
@@ -67,7 +93,10 @@ const StrmlyStudio = () => {
 
     // Handle upload flow completion
     const handleUploadComplete = () => {
+        console.log('✅ Upload completed, refreshing data...');
         refetchDrafts();
+        // Also refresh series data in case an episode was added to a series
+        refetchSeries();
         setEditingDraftId(null);
         setEditingDraftData(null);
         goToMain();
@@ -116,9 +145,13 @@ const StrmlyStudio = () => {
 
     // Handle series creation completion
     const handleSeriesCreated = (series: Series) => {
-        refetchSeries();
+        console.log('✅ Series created, refreshing series list and switching to series tab');
         setActiveTab('series');
         goToMain();
+        // Delay the refresh slightly to ensure the screen transition is complete
+        setTimeout(() => {
+            refetchSeries();
+        }, 100);
     };
 
     // Handle series creation back
@@ -165,11 +198,11 @@ const StrmlyStudio = () => {
                 console.log('🗑️ Starting series deletion for:', seriesId);
                 await deleteSeries(seriesId);
                 console.log('✅ Series deleted successfully, refreshing list...');
-                
+
                 // Immediately refresh the series list
                 refetchSeries();
                 console.log('🔄 Series list refresh triggered immediately');
-                
+
             } catch (error) {
                 console.error('Failed to delete series:', error);
                 Alert.alert(
@@ -264,7 +297,11 @@ const StrmlyStudio = () => {
                 </TouchableOpacity>
                 <TouchableOpacity
                     className="flex-1 items-center"
-                    onPress={() => setActiveTab('series')}
+                    onPress={() => {
+                        setActiveTab('series');
+                        // Refresh series data when switching to series tab
+                        refetchSeries();
+                    }}
                 >
                     <Text className={`text-2xl font-medium ${activeTab === 'series' ? 'text-white' : 'text-gray-400'}`}>
                         Series
@@ -273,7 +310,30 @@ const StrmlyStudio = () => {
             </View>
 
             {/* Content List */}
-            <ScrollView className="flex-1 px-4" contentContainerStyle={{ paddingBottom: 20 }}>
+            <ScrollView
+                className="flex-1 px-4"
+                contentContainerStyle={{ paddingBottom: 20 }}
+                refreshControl={
+                    <RefreshControl
+                        refreshing={isRefreshing}
+                        onRefresh={async () => {
+                            console.log('🔄 Pull-to-refresh triggered');
+                            setIsRefreshing(true);
+                            try {
+                                if (activeTab === 'series') {
+                                    await refetchSeries();
+                                } else {
+                                    await refetchDrafts();
+                                }
+                            } finally {
+                                setIsRefreshing(false);
+                            }
+                        }}
+                        tintColor="#FFFFFF"
+                        colors={["#FFFFFF"]}
+                    />
+                }
+            >
                 {activeTab === 'draft' ? (
                     // Drafts List
                     <>
@@ -426,74 +486,79 @@ const StrmlyStudio = () => {
                             </View>
                         ) : (
                             <View key={refreshKey}>
+                                {/* Show a subtle loading indicator when refreshing */}
+                                {isRefreshing && (
+                                    <View className="flex-row items-center justify-center py-2 mb-2">
+                                        <ActivityIndicator size="small" color="#F1C40F" />
+                                        <Text className="text-gray-400 ml-2 text-sm">Updating...</Text>
+                                    </View>
+                                )}
                                 {series.map((seriesItem) => (
-                                <TouchableOpacity
-                                    key={seriesItem.id}
-                                    onPress={() => goToSeriesDetails(seriesItem.id)}
-                                >
-                                    <LinearGradient
-                                        colors={['#000000', '#0a0a0a', '#1a1a1a']}
-                                        start={{ x: 0, y: 0 }}
-                                        end={{ x: 1, y: 0 }}
-                                        className={`flex-row items-center rounded-lg p-3 mb-3 ${selectedSeries === seriesItem.id ? 'border-2 border-blue-500' : ''
-                                            }`}
-                                        style={{
-                                            shadowColor: '#ffffff',
-                                            shadowOffset: { width: 0, height: 1 },
-                                            shadowOpacity: 0.1,
-                                            shadowRadius: 2,
-                                            elevation: 3,
-                                        }}
+                                    <TouchableOpacity
+                                        key={seriesItem.id}
+                                        onPress={() => goToSeriesDetails(seriesItem.id)}
                                     >
-                                        <View className="w-12 h-12 mr-3 items-center justify-center">
-                                            {seriesItem.thumbnail ? (
-                                                <Image
-                                                    source={{ uri: seriesItem.thumbnail }}
-                                                    className="w-full h-full rounded"
-                                                    resizeMode="cover"
-                                                />
-                                            ) : (
-                                                <Image
-                                                    source={require('../../assets/episode.png')}
-                                                    style={{ width: 32, height: 32 }}
-                                                    resizeMode="contain"
-                                                />
-                                            )}
-                                        </View>
+                                        <LinearGradient
+                                            colors={['#000000', '#0a0a0a', '#1a1a1a']}
+                                            start={{ x: 0, y: 0 }}
+                                            end={{ x: 1, y: 0 }}
+                                            className={`flex-row items-center rounded-lg p-3 mb-3 ${selectedSeries === seriesItem.id ? 'border-2 border-blue-500' : ''
+                                                }`}
+                                            style={{
+                                                shadowColor: '#ffffff',
+                                                shadowOffset: { width: 0, height: 1 },
+                                                shadowOpacity: 0.1,
+                                                shadowRadius: 2,
+                                                elevation: 3,
+                                            }}
+                                        >
+                                            <View className="w-12 h-12 mr-3 items-center justify-center">
+                                                {seriesItem.thumbnail ? (
+                                                    <Image
+                                                        source={{ uri: seriesItem.thumbnail }}
+                                                        className="w-full h-full rounded"
+                                                        resizeMode="cover"
+                                                    />
+                                                ) : (
+                                                    <Image
+                                                        source={require('../../assets/episode.png')}
+                                                        style={{ width: 32, height: 32 }}
+                                                        resizeMode="contain"
+                                                    />
+                                                )}
+                                            </View>
 
-                                        <View className="flex-1">
-                                            <Text className="text-white text-lg font-medium" numberOfLines={1}>
-                                                {seriesItem.title}
-                                            </Text>
-                                            <Text className="text-gray-400 text-base">{seriesItem.date}</Text>
-                                            <Text className="text-gray-500 text-sm">
-                                                {seriesItem.genre} • {seriesItem.type}
-                                            </Text>
-                                        </View>
+                                            <View className="flex-1">
+                                                <Text className="text-white text-lg font-medium" numberOfLines={1}>
+                                                    {seriesItem.title}
+                                                </Text>
+                                                <Text className="text-gray-400 text-base">{seriesItem.date}</Text>
+                                                <Text className="text-gray-500 text-sm">
+                                                    {seriesItem.genre} • {seriesItem.type}
+                                                </Text>
+                                            </View>
 
-                                        <View className="items-end mr-3">
-                                            <Text className="text-gray-400 text-sm">Total Episode</Text>
-                                            <Text className="text-white text-base font-medium">
-                                                {seriesItem.episodes.toString().padStart(2, '0')}
-                                            </Text>
-                                            <Text className="text-gray-500 text-xs">
-                                                {seriesItem.views} views
-                                            </Text>
-                                        </View>
+                                            <View className="items-end mr-3">
+                                                <Text className="text-gray-400 text-sm">Total Episode</Text>
+                                                <Text className="text-white text-base font-medium">
+                                                    {seriesItem.episodes.toString().padStart(2, '0')}
+                                                </Text>
 
-                                        <DropdownMenu
-                                            options={[
-                                                {
-                                                    id: 'delete',
-                                                    label: 'Delete',
-                                                    icon: 'trash-outline',
-                                                    color: '#EF4444',
-                                                    onPress: () => handleDeleteSeries(seriesItem.id, seriesItem.title),
-                                                },
-                                            ]}
-                                        />
-                                    </LinearGradient>
-                                </TouchableOpacity>
+                                            </View>
+
+                                            <DropdownMenu
+                                                options={[
+                                                    {
+                                                        id: 'delete',
+                                                        label: 'Delete',
+                                                        icon: 'trash-outline',
+                                                        color: '#EF4444',
+                                                        onPress: () => handleDeleteSeries(seriesItem.id, seriesItem.title),
+                                                    },
+                                                ]}
+                                            />
+                                        </LinearGradient>
+                                    </TouchableOpacity>
                                 ))}
                             </View>
                         )}

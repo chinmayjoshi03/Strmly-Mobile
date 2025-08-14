@@ -86,7 +86,7 @@ const SeriesDetailsScreen: React.FC<SeriesDetailsScreenProps> = ({
   // Get parameters from route if not provided as props
   const params = useLocalSearchParams();
   const seriesId = propSeriesId || (params.seriesId as string);
-  
+
 
 
   // Helper function for back navigation
@@ -368,15 +368,7 @@ const SeriesDetailsScreen: React.FC<SeriesDetailsScreenProps> = ({
         <View className="h-20" />
       </ScrollView>
 
-      {/* Add New Episode Button */}
-      <View className="px-4 py-4" style={{ marginBottom: 80 }}>
-        <TouchableOpacity
-          onPress={onAddNewEpisode}
-          className="bg-gray-200 rounded-full py-4 items-center"
-        >
-          <Text className="text-black text-lg font-medium">Add new episode</Text>
-        </TouchableOpacity>
-      </View>
+
 
       {/* Integrated Video Player */}
       {isVideoPlayerActive && currentVideoData && (

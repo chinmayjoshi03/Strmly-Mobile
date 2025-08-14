@@ -376,7 +376,7 @@ export const useUploadFlow = () => {
       return false;
     }
 
-    setState(prev => ({ ...prev, currentStep: 'progress', uploadProgress: 0, isUploading: true }));
+    setState(prev => ({ ...prev, currentStep: 'progress', uploadProgress: 0, isUploading: true, errors: {} }));
 
     try {
       // Get auth token
@@ -441,7 +441,12 @@ export const useUploadFlow = () => {
         directUploadFormData.append('episodeNumber', '1'); // You might want to calculate this properly
       }
 
-      const directUploadResponse = await fetch(`${CONFIG.API_BASE_URL}/videos/upload`, {
+      // Add timeout to prevent hanging
+      const uploadTimeout = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error('Upload timeout - please check your connection and try again')), 300000); // 5 minutes
+      });
+
+      const uploadPromise = fetch(`${CONFIG.API_BASE_URL}/videos/upload`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -449,9 +454,39 @@ export const useUploadFlow = () => {
         body: directUploadFormData,
       });
 
+      const directUploadResponse = await Promise.race([uploadPromise, uploadTimeout]) as Response;
+
       if (!directUploadResponse.ok) {
-        const errorData = await directUploadResponse.json();
-        throw new Error(errorData.error || 'Failed to upload video');
+        let errorMessage = 'Failed to upload video';
+        try {
+          const errorData = await directUploadResponse.json();
+          errorMessage = errorData.error || errorData.message || errorMessage;
+        } catch (parseError) {
+          // If we can't parse the error response, use status-based messages
+          switch (directUploadResponse.status) {
+            case 413:
+              errorMessage = 'Video file is too large. Please select a smaller file.';
+              break;
+            case 415:
+              errorMessage = 'Video format not supported. Please select a different video file.';
+              break;
+            case 401:
+              errorMessage = 'Authentication failed. Please log in again.';
+              break;
+            case 403:
+              errorMessage = 'You do not have permission to upload videos.';
+              break;
+            case 500:
+              errorMessage = 'Server error. Please try again later.';
+              break;
+            case 503:
+              errorMessage = 'Service temporarily unavailable. Please try again later.';
+              break;
+            default:
+              errorMessage = `Upload failed (${directUploadResponse.status}). Please try again.`;
+          }
+        }
+        throw new Error(errorMessage);
       }
 
       const uploadResult = await directUploadResponse.json();
@@ -468,10 +503,26 @@ export const useUploadFlow = () => {
 
     } catch (error) {
       console.error('Upload error:', error);
+      
+      let errorMessage = 'Upload failed';
+      
+      if (error instanceof Error) {
+        errorMessage = error.message;
+      } else if (typeof error === 'string') {
+        errorMessage = error;
+      } else if (error && typeof error === 'object' && 'message' in error) {
+        errorMessage = (error as any).message;
+      }
+      
+      // Handle network errors specifically
+      if (errorMessage.includes('Network request failed') || errorMessage.includes('fetch')) {
+        errorMessage = 'Network error. Please check your connection and try again.';
+      }
+      
       setState(prev => ({
         ...prev,
         isUploading: false,
-        errors: { upload: error instanceof Error ? error.message : 'Upload failed' }
+        errors: { upload: errorMessage }
       }));
       return false;
     }

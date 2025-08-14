@@ -10,7 +10,7 @@ import {
   Alert,
   StatusBar,
 } from "react-native";
-import { useRouter, useLocalSearchParams } from "expo-router";
+import { useRouter, useLocalSearchParams, useFocusEffect } from "expo-router";
 import { ArrowLeft, ChevronRight } from "lucide-react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { CONFIG } from "@/Constants/config";
@@ -49,6 +49,14 @@ export default function ProfileSections() {
       refreshCurrentSection();
     }
   }, [activeSection, refreshCurrentSection]);
+
+  // Add focus listener to refresh data when screen comes into focus
+  useFocusEffect(
+    React.useCallback(() => {
+      // Refresh current section data when screen comes into focus
+      refreshCurrentSection();
+    }, [refreshCurrentSection])
+  );
 
   const filteredData = searchData(searchQuery);
 

@@ -245,7 +245,7 @@ const SimpleSeriesCreationScreen: React.FC<SimpleSeriesCreationScreenProps> = ({
             )}
 
             {/* Create Button */}
-            <View className="items-center mt-4" style={{ marginBottom: 80 }}>
+            <View className="items-center mt-4" style={{ paddingHorizontal: 16, paddingBottom: 16, paddingTop: 16, marginBottom: 25 }}>
               <TouchableOpacity
                 onPress={handleCreate}
                 disabled={loading}
