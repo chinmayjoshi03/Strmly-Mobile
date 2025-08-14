@@ -45,6 +45,7 @@ export default function PersonalProfilePage() {
   const [currentVideoList, setCurrentVideoList] = useState<any[]>([]);
   const [currentVideoIndex, setCurrentVideoIndex] = useState(0);
   const [showCommentsModal, setShowCommentsModal] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(0);
 
   const { token, user } = useAuthStore();
   const router = useRouter();
@@ -53,6 +54,54 @@ export default function PersonalProfilePage() {
   const isLoggedIn = !!token;
 
   const BACKEND_API_URL = Constants.expoConfig?.extra?.BACKEND_API_URL;
+
+  // Manual refresh function
+  const refreshProfileData = useCallback(async () => {
+    if (!token || !isLoggedIn) return;
+    
+    console.log('🔄 Manual profile data refresh triggered');
+    setIsLoading(true);
+    try {
+      const timestamp = new Date().getTime();
+      const response = await fetch(
+        `${CONFIG.API_BASE_URL}/user/profile-details?_=${timestamp}`,
+        {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+            "Cache-Control": "no-cache, no-store, must-revalidate",
+            Pragma: "no-cache",
+            Expires: "0",
+          },
+        }
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || "Failed to fetch user profile");
+      }
+
+      console.log("✅ Profile data refreshed:", {
+        followers: data.user.totalFollowers,
+        following: data.user.totalFollowing,
+        communities: data.user.totalCommunities
+      });
+      setUserData(data.user);
+      setIsError(null);
+      setRefreshKey(prev => prev + 1); // Force re-render
+    } catch (error) {
+      console.error("❌ Error refreshing profile data:", error);
+      setIsError(
+        error instanceof Error
+          ? error.message
+          : "An unknown error occurred."
+      );
+    } finally {
+      setIsLoading(false);
+    }
+  }, [token, isLoggedIn]);
 
   const thumbnails = useThumbnailsGenerate(
     videos.map((video) => ({
@@ -66,6 +115,60 @@ export default function PersonalProfilePage() {
       if (!token || !isLoggedIn) {
         router.replace("/(auth)/Sign-up");
         return;
+      }
+    }, [token, isLoggedIn])
+  );
+
+  // Focus listener to refresh profile data when screen comes into focus
+  useFocusEffect(
+    useCallback(() => {
+      console.log('🎯 Profile screen focused - refreshing profile data');
+      if (token && isLoggedIn) {
+        // Refresh profile data to get latest counts
+        const fetchUserData = async () => {
+          setIsLoading(true);
+          try {
+            const timestamp = new Date().getTime();
+            const response = await fetch(
+              `${CONFIG.API_BASE_URL}/user/profile-details?_=${timestamp}`,
+              {
+                method: "GET",
+                headers: {
+                  Authorization: `Bearer ${token}`,
+                  "Content-Type": "application/json",
+                  "Cache-Control": "no-cache, no-store, must-revalidate",
+                  Pragma: "no-cache",
+                  Expires: "0",
+                },
+              }
+            );
+
+            const data = await response.json();
+
+            if (!response.ok) {
+              throw new Error(data.message || "Failed to fetch user profile");
+            }
+
+            console.log("🔄 Refreshed profile data on focus:", {
+              followers: data.user.totalFollowers,
+              following: data.user.totalFollowing,
+              communities: data.user.totalCommunities
+            });
+            setUserData(data.user);
+            setIsError(null);
+          } catch (error) {
+            console.error("❌ Error refreshing profile data:", error);
+            setIsError(
+              error instanceof Error
+                ? error.message
+                : "An unknown error occurred."
+            );
+          } finally {
+            setIsLoading(false);
+          }
+        };
+
+        fetchUserData();
       }
     }, [token, isLoggedIn])
   );

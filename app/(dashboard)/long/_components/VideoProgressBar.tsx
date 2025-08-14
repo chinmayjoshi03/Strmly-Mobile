@@ -124,12 +124,7 @@ const VideoProgressBar = ({
             : currentTime;
         setCurrentTime(time);
       }
-      console.log(
-        "Interval update: player.currentTime =",
-        player.currentTime,
-        "currentTime state =",
-        currentTime
-      );
+      // Removed interval logging to reduce console noise
     }, 500);
 
     return () => clearInterval(interval);

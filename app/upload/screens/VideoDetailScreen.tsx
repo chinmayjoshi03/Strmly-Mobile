@@ -30,14 +30,14 @@ const VideoDetailScreen: React.FC<VideoDetailProps> = ({
   onContinue,
   onBack,
   selectedSeries,
- 
+
   videoFormat,
   isEditingDraft
 }) => {
   const [communityDropdownOpen, setCommunityDropdownOpen] = useState(false);
   const [formatDropdownOpen, setFormatDropdownOpen] = useState(false);
   const [videoTypeDropdownOpen, setVideoTypeDropdownOpen] = useState(false);
-  
+
   // Fetch communities dynamically
   const { communities: communityOptions, loading: communitiesLoading, error: communitiesError } = useCommunities();
 
@@ -64,6 +64,24 @@ const VideoDetailScreen: React.FC<VideoDetailProps> = ({
     setVideoTypeDropdownOpen(false);
   };
 
+  // Auto-set video type and price from selected series
+  React.useEffect(() => {
+    if (selectedSeries && videoFormat === 'episode') {
+      // Inherit video type and price from series
+      const seriesVideoType = selectedSeries.accessType === 'paid' ? 'paid' : 'free';
+      const seriesPrice = selectedSeries.accessType === 'paid' ? selectedSeries.price : undefined;
+      
+      // Only update if different from current values
+      if (formData.videoType !== seriesVideoType || formData.amount !== seriesPrice) {
+        onFormChange({
+          ...formData,
+          videoType: seriesVideoType,
+          amount: seriesPrice
+        });
+      }
+    }
+  }, [selectedSeries, videoFormat, formData.videoType, formData.amount, onFormChange]);
+
   // Check if current step is valid
   const isStepValid = () => {
     switch (step) {
@@ -78,14 +96,19 @@ const VideoDetailScreen: React.FC<VideoDetailProps> = ({
           formData.community !== null &&
           formData.format !== null &&
           formData.videoType !== null;
-        
-        // Additional validation for paid videos
+
+        // For episodes with selected series, validation is simpler since pricing is inherited
+        if (videoFormat === 'episode' && selectedSeries) {
+          return basicValidation;
+        }
+
+        // Additional validation for paid videos (single videos only)
         if (formData.videoType === 'paid') {
           const hasValidAmount = formData.amount && formData.amount > 0;
           console.log('💰 Paid video validation - amount:', formData.amount, 'isValid:', hasValidAmount);
           return basicValidation && hasValidAmount;
         }
-        
+
         return basicValidation;
       default:
         return false;
@@ -107,7 +130,7 @@ const VideoDetailScreen: React.FC<VideoDetailProps> = ({
         <View className="w-6" />
       </View>
 
-      <ScrollView 
+      <ScrollView
         className="flex-1 px-4 pt-6"
         keyboardShouldPersistTaps="handled"
         nestedScrollEnabled={true}
@@ -162,8 +185,8 @@ const VideoDetailScreen: React.FC<VideoDetailProps> = ({
           </View>
         )}
 
-        {/* Video Type Dropdown - Show from step 3 onwards */}
-        {step >= 3 && (
+        {/* Video Type Dropdown - Show from step 3 onwards, but hide if episode with selected series */}
+        {step >= 3 && !(videoFormat === 'episode' && selectedSeries) && (
           <View className="mb-8">
             <Text className="text-white text-lg font-medium mb-3">Video Type</Text>
             <Dropdown
@@ -174,7 +197,7 @@ const VideoDetailScreen: React.FC<VideoDetailProps> = ({
               isOpen={videoTypeDropdownOpen}
               onToggle={() => setVideoTypeDropdownOpen(!videoTypeDropdownOpen)}
             />
-            
+
             {/* Price Input - Show only when Paid is selected */}
             {formData.videoType === 'paid' && (
               <View className="mt-4">
@@ -201,14 +224,24 @@ const VideoDetailScreen: React.FC<VideoDetailProps> = ({
           </View>
         )}
 
+        {/* Series Information Display - Show when episode with selected series */}
+       
+
         {/* Add some bottom padding for better scrolling */}
         <View className="h-32" />
       </ScrollView>
 
       {/* Continue Button */}
-      <View className="absolute bottom-0 left-0 right-0 bg-black pt-4 px-4" style={{ paddingBottom: 100 }}>
+      <View className="absolute bottom-0 left-0 right-0 bg-black pt-4 px-4" style={{ paddingBottom: 16 }}>
         <ContinueButton
-          title={formData.videoType === 'paid' && (!formData.amount || formData.amount <= 0) ? 'Enter Price to Continue' : 'Continue'}
+          title={
+            // For episodes with series, always show Continue
+            (videoFormat === 'episode' && selectedSeries) ? 'Continue' :
+            // For single paid videos without valid amount, show price prompt
+            (formData.videoType === 'paid' && (!formData.amount || formData.amount <= 0)) ? 'Enter Price to Continue' :
+            // Default continue text
+            'Continue'
+          }
           onPress={onContinue}
           disabled={!isStepValid()}
         />

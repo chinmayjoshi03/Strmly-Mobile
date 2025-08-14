@@ -41,6 +41,9 @@ export interface DropdownOption {
 export interface UploadProgressProps {
   progress: number; // 0-100
   onUploadComplete: () => void;
+  error?: string | null; // Error message if upload failed
+  onRetry?: () => void; // Callback to retry upload
+  onCancel?: () => void; // Callback to cancel upload
 }
 
 export interface VideoDetailProps {

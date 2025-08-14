@@ -11,7 +11,8 @@ interface UseCommunities {
 }
 
 /**
- * Hook to fetch communities for video upload selection
+ * Hook to fetch user's communities (created + joined) for video upload selection
+ * Only shows communities the user has created or joined, not all communities
  * Converts backend community data to dropdown options format
  */
 export const useCommunities = (): UseCommunities => {
@@ -31,10 +32,11 @@ export const useCommunities = (): UseCommunities => {
       setLoading(true);
       setError(null);
       
-      console.log('🔄 Fetching communities for upload selection...');
-      const response = await communityActions.getAllCommunities(token);
+      console.log('🔄 Fetching user communities (created + joined) for upload selection...');
+      const response = await communityActions.getUserCommunities(token, 'all');
       
-      console.log('✅ Communities fetched:', response.communities.length);
+      console.log('✅ User communities fetched:', response.communities.length);
+      console.log('📊 Created:', response.createdCount, 'Joined:', response.joinedCount);
       
       // Convert communities to dropdown options format
       const communityOptions: DropdownOption[] = [
@@ -50,7 +52,7 @@ export const useCommunities = (): UseCommunities => {
       
       setCommunities(communityOptions);
     } catch (err) {
-      console.error('❌ Error fetching communities:', err);
+      console.error('❌ Error fetching user communities:', err);
       setError(err instanceof Error ? err.message : 'Failed to fetch communities');
       
       // Fallback to basic options if API fails

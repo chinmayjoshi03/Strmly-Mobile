@@ -144,8 +144,10 @@ const SeriesSelectionScreen: React.FC<SeriesSelectionScreenProps> = ({
     );
   }
 
+  console.log('🎬 RENDERING SeriesSelectionScreen - You should see this in logs!');
+  
   return (
-    <View className="flex-1 bg-black">
+    <View className="flex-1 bg-black" style={{ backgroundColor: 'red' }}>
       <StatusBar barStyle="light-content" backgroundColor="#000" />
 
       {/* Header */}
@@ -160,6 +162,7 @@ const SeriesSelectionScreen: React.FC<SeriesSelectionScreenProps> = ({
       {/* Title */}
       <View className="px-4 pt-6 pb-4">
         <Text className="text-white text-lg font-medium">Select your series</Text>
+        <Text className="text-red-400 text-xs mt-1">DEBUG: SeriesSelectionScreen - Updated</Text>
       </View>
 
       {/* Series List */}
@@ -231,20 +234,19 @@ const SeriesSelectionScreen: React.FC<SeriesSelectionScreenProps> = ({
 
       {/* Bottom Buttons */}
       <View className="px-4 pb-8 pt-4">
-        {selectedSeriesId ? (
+        <Text className="text-yellow-400 text-xs mb-2">
+          DEBUG: selectedSeriesId = {selectedSeriesId || 'null'}
+        </Text>
+        {selectedSeriesId && (
           <TouchableOpacity
             onPress={handleSelectPress}
-            className="bg-gray-200 rounded-full py-4 items-center"
+            className="bg-blue-500 rounded-full py-4 items-center"
           >
-            <Text className="text-black text-lg font-medium">Select</Text>
+            <Text className="text-white text-lg font-medium">Continue</Text>
           </TouchableOpacity>
-        ) : (
-          <TouchableOpacity
-            onPress={handleAddNewPress}
-            className="bg-gray-200 rounded-full py-4 items-center"
-          >
-            <Text className="text-black text-lg font-medium">Add new series</Text>
-          </TouchableOpacity>
+        )}
+        {!selectedSeriesId && (
+          <Text className="text-gray-400 text-center">No button should show when no series selected</Text>
         )}
       </View>
     </View>

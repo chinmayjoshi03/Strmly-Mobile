@@ -194,20 +194,18 @@ const EpisodeSelectionScreen: React.FC<EpisodeSelectionScreenProps> = ({
 
       {/* Bottom Button */}
       <View style={styles.bottomButton}>
-        {selectedSeriesId ? (
+        {selectedSeriesId && (
           <TouchableOpacity
             onPress={handleSelect}
-            style={styles.selectButton}
+            style={[styles.selectButton, { backgroundColor: '#3B82F6' }]}
           >
-            <Text style={styles.selectButtonText}>Select</Text>
+            <Text style={[styles.selectButtonText, { color: 'white' }]}>Continue</Text>
           </TouchableOpacity>
-        ) : (
-          <TouchableOpacity
-            onPress={onAddNewSeries}
-            style={styles.selectButton}
-          >
-            <Text style={styles.selectButtonText}>Add new series</Text>
-          </TouchableOpacity>
+        )}
+        {!selectedSeriesId && (
+          <Text style={styles.emptyDescription}>
+            Select a series to continue
+          </Text>
         )}
       </View>
     </View>
@@ -334,8 +332,9 @@ const styles = StyleSheet.create({
   },
   bottomButton: {
     paddingHorizontal: 16,
-    paddingBottom: 32,
-    marginBottom: 80,
+    paddingBottom: 16,
+    paddingTop: 16,
+    marginBottom: 25, // Increased to account for nav bar
   },
   selectButton: {
     backgroundColor: '#E5E7EB',

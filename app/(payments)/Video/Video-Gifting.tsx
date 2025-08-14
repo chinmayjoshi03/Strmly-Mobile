@@ -97,7 +97,29 @@ const VideoContentGifting = ({
   // ------------ Transaction -------------------
 
   const giftVideo = async () => {
+    console.log("🎁 Debug - Gift Video Parameters:", {
+      token: token ? "Present" : "Missing",
+      videoId: videoId || "Missing",
+      amount: amount || "Missing",
+    });
+
     if (!token || !videoId) {
+      const missingFields = [];
+      if (!token) missingFields.push("token");
+      if (!videoId) missingFields.push("videoId");
+      
+      setError(`Missing required information: ${missingFields.join(", ")}`);
+      return;
+    }
+
+    const giftAmount = parseInt(amount);
+    if (giftAmount <= 0) {
+      setError("Please enter a valid amount");
+      return;
+    }
+
+    if (walletInfo.balance && giftAmount > walletInfo.balance) {
+      setError("Insufficient balance");
       return;
     }
 
@@ -110,20 +132,25 @@ const VideoContentGifting = ({
             Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({ videoId: videoId, amount: parseInt(amount) }),
+          body: JSON.stringify({ videoId: videoId, amount: giftAmount }),
         }
       );
 
-      if (!response.ok) throw new Error("Failed to provide gifting");
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || `Failed to provide gifting: ${response.status}`);
+      }
+      
       const data = await response.json();
-      console.log("dWallet data---------------", data);
+      console.log("✅ Gift Video Success:", data);
 
       // Setting data when gifting done
       completeGifting(data.gift.amount);
 
       router.back();
     } catch (err) {
-      console.log(err);
+      console.error("❌ Gift Video Error:", err);
+      setError(err instanceof Error ? err.message : "Failed to send gift");
     }
   };
 
@@ -322,19 +349,32 @@ const VideoContentGifting = ({
   };
 
   const handleProceed = async () => {
+    console.log("🚀 Handle Proceed called with:", {
+      isWithdrawMode,
+      isCommentGiftMode,
+      amount,
+      videoId,
+      creator,
+    });
+
     setLoading(true);
     setError(null);
 
-    if (isWithdrawMode) {
-      await withdrawMoney();
-    } else if (isCommentGiftMode) {
-      await giftCommentHandler();
-    } else {
-      await giftVideo();
+    try {
+      if (isWithdrawMode) {
+        await withdrawMoney();
+      } else if (isCommentGiftMode) {
+        await giftCommentHandler();
+      } else {
+        await giftVideo();
+      }
+    } catch (error) {
+      console.error("❌ Handle Proceed Error:", error);
+      setError(error instanceof Error ? error.message : "An error occurred");
+    } finally {
+      setLoading(false);
+      Keyboard.dismiss();
     }
-
-    setLoading(false);
-    Keyboard.dismiss();
   };
 
   useEffect(() => {

@@ -68,6 +68,19 @@ const VideoUploadFlow: React.FC<VideoUploadFlowProps> = ({
     onComplete();
   };
 
+  // Handle retry upload
+  const handleRetryUpload = async () => {
+    console.log('🔄 Retrying upload...');
+    await submitUpload();
+  };
+
+  // Handle cancel upload
+  const handleCancelUpload = () => {
+    console.log('❌ Upload cancelled by user');
+    resetFlow();
+    onCancel();
+  };
+
   // Handle back navigation
   const handleBack = () => {
     if (state.currentStep === 'format-select' && !state.isEditingDraft) {
@@ -293,6 +306,9 @@ const VideoUploadFlow: React.FC<VideoUploadFlowProps> = ({
           <UploadProgressScreen
             progress={state.uploadProgress}
             onUploadComplete={handleUploadComplete}
+            error={state.errors.upload || null}
+            onRetry={handleRetryUpload}
+            onCancel={handleCancelUpload}
           />
         );
 
