@@ -4,7 +4,9 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import Svg, { Path } from 'react-native-svg';
 import { useFocusEffect } from '@react-navigation/native';
+
 import { router } from 'expo-router';
+
 import VideoUploadFlow from '../upload/VideoUploadFlow';
 import { SeriesSelectionScreen, SeriesAnalyticsScreen } from './screens';
 import SimpleSeriesCreationScreen from './screens/SimpleSeriesCreationScreen';
