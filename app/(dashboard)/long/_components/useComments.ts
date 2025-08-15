@@ -55,7 +55,7 @@ export const useComments = ({ videoId }: UseCommentsProps) => {
   //   };
   // }, [ws]);
 
-  const fetchComments = useCallback(async (page = 1, limit = 10) => {
+  const fetchComments = useCallback(async (page = 1, limit = 10, retryCount = 0) => {
     if (!token || !videoId) {
       console.log('📝 Using mock comments - no token or videoId', { token: !!token, videoId });
       setComments(mockComments.slice(0, 10));
@@ -67,13 +67,10 @@ export const useComments = ({ videoId }: UseCommentsProps) => {
 
     try {
       console.log('📝 Fetching real comments for video:', videoId);
-      console.log('📡 API URL:', `${CONFIG.API_BASE_URL}/interactions/videos/${videoId}/comments?page=${page}&limit=${limit}`);
 
       const data = await commentActions.getComments(token, videoId, page, limit);
 
       console.log('✅ Real comments fetched:', data?.comments?.length || 0);
-      console.log('📄 Pagination:', data?.pagination);
-      console.log('💬 Comments data:', data?.comments);
 
       // Validate and filter out malformed comments
       const validComments = (data?.comments || []).filter((comment: any) => {
@@ -82,18 +79,34 @@ export const useComments = ({ videoId }: UseCommentsProps) => {
           return false;
         }
         return true;
-      });
+      }).map((comment: any) => ({
+        ...comment,
+        // Ensure is_monetized field exists - if not provided by backend, default to true for now
+        is_monetized: comment.is_monetized !== undefined ? comment.is_monetized : true
+      }));
 
       console.log('✅ Valid comments after filtering:', validComments.length);
       setComments(validComments);
     } catch (err: any) {
-      console.log('❌ Error fetching real comments, using mock data:', err.message);
-      console.log('❌ Full error details:', err);
+      console.log('❌ Error fetching real comments:', err.message);
+
+      // Handle rate limiting with exponential backoff
+      if (err.message.includes('429') && retryCount < 3) {
+        const delay = Math.pow(2, retryCount) * 1000; // 1s, 2s, 4s
+        console.log(`⏳ Rate limited, retrying in ${delay}ms (attempt ${retryCount + 1}/3)`);
+        
+        setTimeout(() => {
+          fetchComments(page, limit, retryCount + 1);
+        }, delay);
+        return;
+      }
 
       // Check if it's a specific backend error
       if (err.message.includes('Cannot read properties of undefined')) {
         console.log('🔧 Backend issue: Comment data structure problem');
         setError('Comments temporarily unavailable due to data issue');
+      } else if (err.message.includes('429')) {
+        setError('Too many requests. Please wait a moment and try again.');
       } else {
         setError(err.message);
       }
@@ -129,7 +142,7 @@ export const useComments = ({ videoId }: UseCommentsProps) => {
       upvoted: false,
       downvoted: false,
       replies: 0,
-      is_monetized: false // New comments are not monetized by default
+      is_monetized: true // New comments should be monetized if global setting is enabled
     };
 
     // Immediately add the mock comment to the UI for better UX

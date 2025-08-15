@@ -19,6 +19,7 @@ import { useAuthStore } from "@/store/useAuthStore";
 import Constants from "expo-constants";
 import { router, useFocusEffect } from "expo-router";
 import { useGiftingStore } from "@/store/useGiftingStore";
+import { getProfilePhotoUrl } from "@/utils/profileUtils";
 
 type VideoDetailsProps = {
   videoId: string;
@@ -52,12 +53,13 @@ type VideoDetailsProps = {
     type: string;
     price: number;
     total_episodes: number;
-    episodes: [];
+    episodes: any[]; // Changed from [] to any[] to allow episode objects
   } | null;
 
   episode_number: number | null;
   onToggleFullScreen?: () => void;
   isFullScreen?: boolean;
+  onEpisodeChange?: (episodeData: any) => void; // New callback for episode switching
 };
 
 const VideoDetails = ({
@@ -73,6 +75,7 @@ const VideoDetails = ({
   creatorPass,
   onToggleFullScreen,
   isFullScreen,
+  onEpisodeChange,
 }: VideoDetailsProps) => {
   const [showDropdown, setShowDropdown] = useState(false);
   const [selectedEpisodeIndex, setSelectedEpisodeIndex] = useState(0);
@@ -278,13 +281,7 @@ const VideoDetails = ({
             onPress={() => router.push(`/profile/public/${createdBy?._id}`)}
           >
             <Image
-              source={
-                createdBy?.profile_photo !== ""
-                  ? {
-                      uri: createdBy?.profile_photo,
-                    }
-                  : require("../../../../assets/images/user.png")
-              }
+              source={{ uri: getProfilePhotoUrl(createdBy?.profile_photo, 'user') }}
               className="size-8 rounded-full"
             />
             <Text className="text-white font-semibold">
@@ -488,17 +485,24 @@ const VideoDetails = ({
           <View className="absolute bottom-3.5 left-11 rounded-xl p-2 w-56">
             {series?.episodes.map((ep, idx) => (
               <TouchableOpacity
-                key={idx}
+                key={ep._id || idx}
                 className="mb-[0.5px]"
                 onPress={() => {
-                  setSelectedEpisodeIndex(idx);
+                  console.log('🎬 Episode selected:', { idx, episode: ep });
+                  setSelectedEpisodeIndex(idx + 1);
                   setShowDropdown(false);
+                  
+                  // Call the episode change callback if provided
+                  if (onEpisodeChange && ep) {
+                    console.log('🎬 Calling onEpisodeChange with episode:', ep);
+                    onEpisodeChange(ep);
+                  }
                 }}
               >
                 <View
                   className={`bg-black px-2 py-2 flex-row items-center ${
                     idx == 0 && "rounded-t-xl"
-                  } ${idx == series.total_episodes - 1 && "rounded-b-xl"} ${selectedEpisodeIndex === idx && "gap-2"}`}
+                  } ${idx == series.total_episodes - 1 && "rounded-b-xl"} ${selectedEpisodeIndex === idx + 1 && "gap-2"}`}
                 >
                   <Text className="text-white text-[18px] flex-row items-center">
                     Episode: {idx + 1}

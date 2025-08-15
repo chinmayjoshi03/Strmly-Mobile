@@ -18,6 +18,7 @@ import { useRouter } from "expo-router";
 import { useFocusEffect } from "@react-navigation/native";
 import { useAuthStore } from "@/store/useAuthStore";
 import { useThumbnailsGenerate } from "@/utils/useThumbnailGenerator";
+import { getProfilePhotoUrl } from "@/utils/profileUtils";
 
 import ThemedView from "@/components/ThemedView";
 import ProfileTopbar from "@/components/profileTopbar";
@@ -433,13 +434,7 @@ export default function PersonalProfilePage() {
                 <View className="flex flex-col items-center md:flex-row md:items-end space-y-4 md:space-y-0 md:space-x-4">
                   <View className="relative">
                     <Image
-                      source={
-                        userData?.profile_photo
-                          ? {
-                              uri: userData.profile_photo,
-                            }
-                          : require("../../../assets/images/user.png")
-                      }
+                      source={{ uri: getProfilePhotoUrl(userData?.profile_photo, 'user') }}
                       style={{
                         width: 80,
                         height: 80,

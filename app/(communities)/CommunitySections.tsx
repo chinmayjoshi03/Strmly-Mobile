@@ -10,13 +10,13 @@ import {
   Alert,
   StatusBar,
 } from "react-native";
-import { useRouter, useLocalSearchParams } from "expo-router";
-import { ArrowLeft, PaperclipIcon, CameraIcon, SearchIcon, UserIcon } from "lucide-react-native";
+import { useRouter, useLocalSearchParams, useFocusEffect } from "expo-router";
+import { ArrowLeft } from "lucide-react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAuthStore } from "@/store/useAuthStore";
 import ThemedView from "@/components/ThemedView";
 import { communityActions } from "@/api/community/communityActions";
-import { useThumbnailsGenerate } from "@/utils/useThumbnailGenerator";
+import { getProfilePhotoUrl } from "@/utils/profileUtils";
 
 interface User {
   _id: string;
@@ -24,20 +24,7 @@ interface User {
   profile_photo: string;
 }
 
-interface Video {
-  _id: string;
-  name: string;
-  videoUrl: string;
-  thumbnailUrl?: string;
-  views: number;
-  likes: number;
-  created_by: {
-    username: string;
-    profile_photo: string;
-  };
-}
-
-type SectionType = 'followers' | 'creators' | 'videos';
+type SectionType = 'followers' | 'creators';
 
 export default function CommunitySections() {
   const router = useRouter();
@@ -52,27 +39,63 @@ export default function CommunitySections() {
   const [counts, setCounts] = useState({
     followers: 0,
     creators: 0,
-    videos: 0,
   });
 
   const communityId = params.communityId as string;
   const communityName = params.communityName as string;
 
-  // Generate thumbnails for videos
-  const thumbnails = useThumbnailsGenerate(
-    data
-      .filter(item => activeSection === 'videos')
-      .map((video: Video) => ({
-        id: video._id,
-        url: video.videoUrl,
-      }))
-  );
+  // Remove video thumbnails generation since we're removing videos section
 
   useEffect(() => {
     if (communityId && token) {
+      fetchAllCounts();
       fetchData();
     }
   }, [activeSection, communityId, token]);
+
+  // Fetch all counts initially
+  useEffect(() => {
+    if (communityId && token) {
+      fetchAllCounts();
+    }
+  }, [communityId, token]);
+
+  // Refresh counts when screen comes into focus
+  useFocusEffect(
+    React.useCallback(() => {
+      if (communityId && token) {
+        fetchAllCounts();
+      }
+    }, [communityId, token])
+  );
+
+  const fetchAllCounts = async () => {
+    if (!token) {
+      console.error('❌ No token available');
+      return;
+    }
+
+    try {
+      // Fetch both followers and creators counts
+      const [followersResult, creatorsResult] = await Promise.all([
+        communityActions.getCommunityFollowers(token, communityId),
+        communityActions.getCommunityCreators(token, communityId)
+      ]);
+
+      setCounts({
+        followers: followersResult.followers?.length || 0,
+        creators: creatorsResult.creators?.length || 0,
+      });
+
+      console.log('✅ Fetched all counts:', {
+        followers: followersResult.followers?.length || 0,
+        creators: creatorsResult.creators?.length || 0,
+      });
+
+    } catch (error) {
+      console.error('❌ Error fetching counts:', error);
+    }
+  };
 
   const fetchData = async () => {
     if (!token) {
@@ -88,19 +111,15 @@ export default function CommunitySections() {
         case 'followers':
           result = await communityActions.getCommunityFollowers(token, communityId);
           setData(result.followers || []);
+          // Update count for this section
           setCounts(prev => ({ ...prev, followers: result.followers?.length || 0 }));
           break;
 
         case 'creators':
           result = await communityActions.getCommunityCreators(token, communityId);
           setData(result.creators || []);
+          // Update count for this section
           setCounts(prev => ({ ...prev, creators: result.creators?.length || 0 }));
-          break;
-
-        case 'videos':
-          result = await communityActions.getCommunityVideos(token, communityId);
-          setData(result.videos || []);
-          setCounts(prev => ({ ...prev, videos: result.videos?.length || 0 }));
           break;
       }
 
@@ -116,20 +135,22 @@ export default function CommunitySections() {
 
   const filteredData = data.filter((item) => {
     const searchTerm = searchQuery.toLowerCase();
-    if (activeSection === 'videos') {
-      return item.name?.toLowerCase().includes(searchTerm);
-    } else {
-      return item.username?.toLowerCase().includes(searchTerm);
-    }
+    return item.username?.toLowerCase().includes(searchTerm);
   });
 
   const renderUserItem = (user: User) => (
-    <View key={user._id} className="flex-row items-center justify-between py-4 px-4">
+    <TouchableOpacity 
+      key={user._id} 
+      className="flex-row items-center justify-between py-4 px-4"
+      onPress={() => {
+        console.log("🔄 Navigating to user profile:", user._id);
+        router.push(`/(dashboard)/profile/public/${user._id}` as any);
+      }}
+      activeOpacity={0.7}
+    >
       <View className="flex-row items-center flex-1">
         <Image
-          source={{
-            uri: user.profile_photo || 'https://api.dicebear.com/7.x/identicon/svg?seed=' + user.username
-          }}
+          source={{ uri: getProfilePhotoUrl(user.profile_photo, 'user') }}
           className="w-12 h-12 rounded-full mr-3"
         />
         <View className="flex-1">
@@ -141,38 +162,10 @@ export default function CommunitySections() {
           </Text>
         </View>
       </View>
-    </View>
+    </TouchableOpacity>
   );
 
-  const renderVideoItem = (video: Video) => (
-    <View key={video._id} className="w-[32%] mb-4">
-      <TouchableOpacity className="aspect-[9/16] rounded-lg overflow-hidden bg-gray-800">
-        {thumbnails[video._id] ? (
-          <Image
-            source={{ uri: thumbnails[video._id] }}
-            className="w-full h-full"
-            resizeMode="cover"
-          />
-        ) : (
-          <View className="w-full h-full items-center justify-center">
-            <Text className="text-gray-500 text-xs" style={{ fontFamily: 'Poppins' }}>
-              Loading...
-            </Text>
-          </View>
-        )}
-
-        {/* Video overlay info */}
-        <View className="absolute bottom-0 left-0 right-0 bg-black/50 p-2">
-          <Text className="text-white text-xs font-semibold" numberOfLines={2} style={{ fontFamily: 'Poppins' }}>
-            {video.name}
-          </Text>
-          <Text className="text-gray-300 text-xs" style={{ fontFamily: 'Poppins' }}>
-            {video.views || 0} views
-          </Text>
-        </View>
-      </TouchableOpacity>
-    </View>
-  );
+  // Removed video rendering function since we're removing videos section
 
   const getSectionTitle = () => {
     switch (activeSection) {
@@ -180,8 +173,6 @@ export default function CommunitySections() {
         return `${counts.followers} Followers`;
       case 'creators':
         return `${counts.creators} Creators`;
-      case 'videos':
-        return `${counts.videos} Videos`;
       default:
         return 'Community';
     }
@@ -205,7 +196,7 @@ export default function CommunitySections() {
         <View className="w-6" />
       </View>
 
-      {/* Equal Spaced Tabs */}
+      {/* Two Tabs - Followers and Creators */}
       <View className="flex-row justify-around py-3 px-4">
         <TouchableOpacity
           className={`flex-1 py-2 items-center ${activeSection === "followers" ? "border-b-2 border-white" : ""
@@ -230,19 +221,6 @@ export default function CommunitySections() {
             style={{ fontFamily: 'Poppins' }}
           >
             {counts.creators} Creators
-          </Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          className={`flex-1 py-2 items-center ${activeSection === "videos" ? "border-b-2 border-white" : ""
-            }`}
-          onPress={() => setActiveSection("videos")}
-        >
-          <Text
-            className={`${activeSection === "videos" ? "text-white font-semibold" : "text-gray-400"} text-lg`}
-            style={{ fontFamily: 'Poppins' }}
-          >
-            {counts.videos} Videos
           </Text>
         </TouchableOpacity>
       </View>
@@ -277,38 +255,14 @@ export default function CommunitySections() {
             </Text>
           </View>
         ) : (
-          <View className={activeSection === 'videos' ? "flex-row flex-wrap justify-between px-4" : ""}>
-            {filteredData.map((item) => {
-              if (activeSection === 'videos') {
-                return renderVideoItem(item as Video);
-              } else {
-                return renderUserItem(item as User);
-              }
-            })}
+          <View>
+            {filteredData.map((item) => renderUserItem(item as User))}
           </View>
         )}
       </ScrollView>
 
-      {/* Bottom Navigation Bar */}
-      <View className="absolute bottom-0 left-0 right-0 bg-black border-t border-gray-800">
-        <View
-          className="flex-row justify-around items-center py-2"
-          style={{ paddingBottom: insets.bottom + 10 }}
-        >
-          <TouchableOpacity className="p-3">
-            <PaperclipIcon size={24} color="gray" />
-          </TouchableOpacity>
-          <TouchableOpacity className="p-3">
-            <CameraIcon size={24} color="gray" />
-          </TouchableOpacity>
-          <TouchableOpacity className="p-3">
-            <SearchIcon size={24} color="gray" />
-          </TouchableOpacity>
-          <TouchableOpacity className="p-3">
-            <UserIcon size={24} color="white" />
-          </TouchableOpacity>
-        </View>
-      </View>
+
+
     </ThemedView>
   );
 }

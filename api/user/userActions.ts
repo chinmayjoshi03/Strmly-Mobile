@@ -12,6 +12,10 @@ export interface UserProfile {
     email: string;
     profile_photo: string;
     bio: string;
+    gender?: string;
+    content_interests?: string;
+    interest1?: string | string[];
+    interest2?: string | string[];
     followers: any[];
     following: any[];
     my_communities: any[];
@@ -113,6 +117,10 @@ export const getUserProfile = async (token: string) => {
       message: data.message,
       username: data.user?.username,
       email: data.user?.email,
+      gender: data.user?.gender,
+      content_interests: data.user?.content_interests,
+      interest1: data.user?.interest1,
+      interest2: data.user?.interest2,
       followers: data.user?.followers?.length || 0,
       following: data.user?.following?.length || 0,
       communities: data.user?.my_communities?.length || 0,
@@ -570,7 +578,7 @@ export const updateCreatorPassPrice = async (token: string, price: number) => {
 export interface MonetizationStatus {
   message: string;
   comment_monetization_status: boolean;
-  video_monetization_status: boolean;
+  video_monetization_status?: boolean; // Optional since backend doesn't always return this
 }
 
 export const getUserMonetizationStatus = async (token: string): Promise<MonetizationStatus> => {
@@ -604,12 +612,51 @@ export const getUserMonetizationStatus = async (token: string): Promise<Monetiza
   }
 };
 
+// Toggle Comment Monetization API
+export const toggleCommentMonetization = async (token: string): Promise<MonetizationStatus> => {
+  try {
+    const url = `${API_BASE_URL}/user/toggle-comment-monetization`;
+    console.log(`📤 Toggling comment monetization at: ${url}`);
+
+    const res = await fetch(url, {
+      method: "PUT",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json"
+      }
+    });
+
+    console.log(`📊 Toggle comment monetization response status: ${res.status}`);
+
+    if (!res.ok) {
+      const errorText = await res.text();
+      console.error(`❌ Toggle comment monetization API error: ${res.status}`);
+      console.error(`❌ Error response:`, errorText.substring(0, 500));
+      throw new Error(`Failed to toggle comment monetization: ${res.status} - ${errorText}`);
+    }
+
+    const toggleResponse = await res.json();
+    console.log('✅ Comment monetization toggled successfully:', toggleResponse);
+    
+    // Since toggle doesn't return the status, we need to fetch it
+    const statusResponse = await getUserMonetizationStatus(token);
+    return statusResponse;
+  } catch (error) {
+    console.error("❌ Failed to toggle comment monetization:", error);
+    throw error;
+  }
+};
+
 // Update User Profile API
 export const updateUserProfile = async (token: string, profileData: {
   username?: string;
   bio?: string;
   interests?: string | string[];
   profile_photo?: string;
+  gender?: string;
+  content_interests?: string;
+  interest1?: string;
+  interest2?: string;
 }) => {
   try {
     const url = `${API_BASE_URL}/user/profile`;
@@ -632,6 +679,18 @@ export const updateUserProfile = async (token: string, profileData: {
         ? JSON.stringify(profileData.interests)
         : profileData.interests;
       formData.append('interests', interestsString);
+    }
+    if (profileData.gender) {
+      formData.append('gender', profileData.gender);
+    }
+    if (profileData.content_interests) {
+      formData.append('content_interests', profileData.content_interests);
+    }
+    if (profileData.interest1) {
+      formData.append('interest1', profileData.interest1);
+    }
+    if (profileData.interest2) {
+      formData.append('interest2', profileData.interest2);
     }
 
     // Handle profile photo upload

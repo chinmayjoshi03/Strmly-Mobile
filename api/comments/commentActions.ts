@@ -1,6 +1,24 @@
 import { CONFIG } from '@/Constants/config';
 import { Comment, reply } from '@/types/Comments';
 
+// Simple request throttling
+const requestQueue = new Map<string, number>();
+const THROTTLE_DELAY = 1000; // 1 second between requests for same endpoint
+
+const throttleRequest = async (key: string) => {
+  const lastRequest = requestQueue.get(key) || 0;
+  const now = Date.now();
+  const timeSinceLastRequest = now - lastRequest;
+  
+  if (timeSinceLastRequest < THROTTLE_DELAY) {
+    const delay = THROTTLE_DELAY - timeSinceLastRequest;
+    console.log(`⏳ Throttling request for ${key}, waiting ${delay}ms`);
+    await new Promise(resolve => setTimeout(resolve, delay));
+  }
+  
+  requestQueue.set(key, Date.now());
+};
+
 export interface CommentAPIResponse {
   message: string;
   comment?: Comment;
@@ -38,6 +56,9 @@ export class CommentAPI {
     page: number = 1,
     limit: number = 10
   ): Promise<CommentAPIResponse> {
+    const throttleKey = `comments-${videoId}`;
+    await throttleRequest(throttleKey);
+
     const response = await fetch(
       `${CONFIG.API_BASE_URL}/interactions/videos/${videoId}/comments?page=${page}&limit=${limit}`,
       {

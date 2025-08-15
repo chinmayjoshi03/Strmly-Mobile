@@ -172,6 +172,40 @@ const VideoFeed: React.FC = () => {
     }
   });
 
+  // Handle episode change
+  const handleEpisodeChange = useCallback((episodeData: any) => {
+    console.log('🎬 VideoFeed: Episode change requested:', episodeData);
+    
+    if (!episodeData || !episodeData._id) {
+      console.error('❌ Invalid episode data:', episodeData);
+      return;
+    }
+
+    // Update the current video in the videos array
+    setVideos(prevVideos => {
+      const newVideos = [...prevVideos];
+      const currentIndex = visibleIndex;
+      
+      if (currentIndex >= 0 && currentIndex < newVideos.length) {
+        // Replace the current video with the selected episode
+        newVideos[currentIndex] = {
+          ...episodeData,
+          // Ensure all required fields are present
+          videoUrl: episodeData.videoUrl || episodeData.video,
+          likes: episodeData.likes || 0,
+          gifts: episodeData.gifts || 0,
+          shares: episodeData.shares || 0,
+          views: episodeData.views || 0,
+          comments: episodeData.comments || [],
+        };
+        
+        console.log('✅ VideoFeed: Episode switched successfully');
+      }
+      
+      return newVideos;
+    });
+  }, [visibleIndex]);
+
   // OPTIMIZATION 2: Memoize the renderItem function
   // This prevents creating a new render function on every parent render.
   const renderItem = useCallback(
@@ -193,9 +227,10 @@ const VideoFeed: React.FC = () => {
         setIsWantToGift={setIsWantToGift}
         showCommentsModal={showCommentsModal}
         setShowCommentsModal={setShowCommentsModal}
+        onEpisodeChange={handleEpisodeChange}
       />
     ),
-    [visibleIndex, showCommentsModal, adjustedHeight]
+    [visibleIndex, showCommentsModal, adjustedHeight, handleEpisodeChange]
   );
 
   // OPTIMIZATION 3: If all your video items have the same height (full screen), use getItemLayout

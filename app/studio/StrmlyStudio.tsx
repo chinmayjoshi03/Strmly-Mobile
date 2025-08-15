@@ -4,6 +4,9 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import Svg, { Path } from 'react-native-svg';
 import { useFocusEffect } from '@react-navigation/native';
+
+import { router } from 'expo-router';
+
 import VideoUploadFlow from '../upload/VideoUploadFlow';
 import { SeriesSelectionScreen, SeriesAnalyticsScreen } from './screens';
 import SimpleSeriesCreationScreen from './screens/SimpleSeriesCreationScreen';
@@ -278,7 +281,10 @@ const StrmlyStudio = () => {
 
             {/* Header */}
             <View className="flex-row items-center justify-between px-4 py-3 mt-8">
-                <TouchableOpacity>
+                <TouchableOpacity onPress={() => {
+                    console.log('🔙 Back button pressed in StrmlyStudio');
+                    router.back();
+                }}>
                     <Ionicons name="chevron-back" size={24} color="white" />
                 </TouchableOpacity>
                 <Text className="text-white text-2xl font-medium">Strmly studio</Text>

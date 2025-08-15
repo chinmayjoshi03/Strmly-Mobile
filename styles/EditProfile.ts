@@ -6,7 +6,6 @@ export const EditProfile = StyleSheet.create({
         backgroundColor: "#000",
         paddingTop: 50,
         width: '100%',
-        alignItems: 'center'
     },
     CreateCommunityTopBar: {
         width: '100%',
@@ -56,7 +55,7 @@ export const EditProfile = StyleSheet.create({
         paddingVertical: 8,
     },
     InfoFrame: {
-        alignItems: 'center',
+        alignItems: 'flex-start',
         marginTop: 20,
         paddingHorizontal: 20,
         display: 'flex',
