@@ -67,9 +67,19 @@ const Setting = () => {
   const handleMonetization = async () => {
     if (!token) return;
 
+    console.log('💰 Settings: Toggling comment monetization...');
+    console.log('💰 Current status:', monetizationStatus?.comment_monetization_status);
+
     try {
       await toggleCommentMonetization(token);
+      console.log('✅ Settings: Comment monetization toggled successfully');
+      
+      // Refresh the status to ensure UI is updated
+      setTimeout(() => {
+        fetchMonetizationStatus(token, true);
+      }, 1000);
     } catch (error) {
+      console.error('❌ Settings: Failed to toggle monetization:', error);
       Alert.alert(
         "Error",
         error.message || "Failed to update monetization settings"

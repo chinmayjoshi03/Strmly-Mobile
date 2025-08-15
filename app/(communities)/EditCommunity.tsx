@@ -9,7 +9,6 @@ import {
   Image,
   Alert,
   StatusBar,
-  ScrollViewBase,
 } from "react-native";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { ArrowLeft, ChevronDown } from "lucide-react-native";
@@ -18,7 +17,6 @@ import { useAuthStore } from "@/store/useAuthStore";
 import ThemedView from "@/components/ThemedView";
 import { communityActions } from "@/api/community/communityActions";
 import * as ImagePicker from "expo-image-picker";
-import { router } from "expo-router";
 
 interface CommunityDetails {
   communityId: string;
@@ -256,8 +254,7 @@ export default function EditCommunity() {
   }
 
   return (
-    <ScrollViewBase className="flex-1 bg-black">
-      <ThemedView className="flex-1">
+    <ThemedView className="flex-1">
         <StatusBar barStyle="light-content" backgroundColor="black" />
 
         {/* Header */}
@@ -473,6 +470,5 @@ export default function EditCommunity() {
           </View>
         </ScrollView>
       </ThemedView>
-    </ScrollViewBase>
   );
 }

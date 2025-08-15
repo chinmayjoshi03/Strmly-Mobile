@@ -7,7 +7,6 @@ import {
   Alert,
   Image,
   Linking,
-  Pressable,
   FlatList,
   Dimensions,
   BackHandler,
@@ -17,7 +16,6 @@ import {
   HeartIcon,
   IndianRupee,
   PaperclipIcon,
-  ExternalLink,
 } from "lucide-react-native";
 import { useAuthStore } from "@/store/useAuthStore";
 import { useThumbnailsGenerate } from "@/utils/useThumbnailGenerator"; // Ensure this path is correct
@@ -812,6 +810,9 @@ export default function PublicProfilePageWithId() {
             snapToInterval={Dimensions.get("window").height}
             snapToAlignment="start"
           />
+          
+          {/* Bottom Navigation Bar in Video Player */}
+          <BottomNavBar />
         </View>
       )}
 

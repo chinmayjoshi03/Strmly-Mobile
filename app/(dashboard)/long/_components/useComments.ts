@@ -82,9 +82,14 @@ export const useComments = ({ videoId }: UseCommentsProps) => {
           return false;
         }
         return true;
-      });
+      }).map((comment: any) => ({
+        ...comment,
+        // Ensure is_monetized field exists - if not provided by backend, default to true for now
+        is_monetized: comment.is_monetized !== undefined ? comment.is_monetized : true
+      }));
 
       console.log('✅ Valid comments after filtering:', validComments.length);
+      console.log('💰 Comments monetization status:', validComments.map(c => ({ id: c._id, is_monetized: c.is_monetized })));
       setComments(validComments);
     } catch (err: any) {
       console.log('❌ Error fetching real comments, using mock data:', err.message);
@@ -129,7 +134,7 @@ export const useComments = ({ videoId }: UseCommentsProps) => {
       upvoted: false,
       downvoted: false,
       replies: 0,
-      is_monetized: false // New comments are not monetized by default
+      is_monetized: true // New comments should be monetized if global setting is enabled
     };
 
     // Immediately add the mock comment to the UI for better UX

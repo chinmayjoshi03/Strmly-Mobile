@@ -9,6 +9,8 @@ import {
   ActivityIndicator,
   Image,
   Alert,
+  Keyboard,
+  Platform,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { MaterialIcons } from "@expo/vector-icons";
@@ -40,8 +42,19 @@ const CommentsSection = ({
   const [replyingToUser, setReplyingToUser] = useState<string>("");
   const [expandedReplies, setExpandedReplies] = useState<Set<string>>(new Set());
   const [repliesData, setRepliesData] = useState<{ [key: string]: any[] }>({});
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
   const insets = useSafeAreaInsets();
   const { commentMonetizationEnabled, loading: monetizationLoading } = useMonetization(true, 30000); // Enable polling every 30 seconds
+
+  // Debug logging for monetization
+  useEffect(() => {
+    console.log('💰 Comment Monetization Debug:', {
+      commentMonetizationEnabled,
+      monetizationLoading,
+      commentsCount: comments.length,
+      sampleCommentMonetized: comments[0]?.is_monetized
+    });
+  }, [commentMonetizationEnabled, monetizationLoading, comments]);
 
   const {
     comments,
@@ -59,6 +72,27 @@ const CommentsSection = ({
   useEffect(() => {
     if (videoId) fetchComments();
   }, [videoId, fetchComments]);
+
+  useEffect(() => {
+    const keyboardWillShowListener = Keyboard.addListener(
+      Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow',
+      (event) => {
+        setKeyboardHeight(event.endCoordinates.height);
+      }
+    );
+
+    const keyboardWillHideListener = Keyboard.addListener(
+      Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide',
+      () => {
+        setKeyboardHeight(0);
+      }
+    );
+
+    return () => {
+      keyboardWillShowListener.remove();
+      keyboardWillHideListener.remove();
+    };
+  }, []);
 
 
 
@@ -293,7 +327,17 @@ const CommentsSection = ({
           {/* Right action icons - aligned horizontally */}
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 16, paddingLeft: 8 }}>
             {/* Only show rupee icon if both global and comment-specific monetization are enabled */}
-            {commentMonetizationEnabled && item.is_monetized && (
+            {(() => {
+              const shouldShow = commentMonetizationEnabled && item.is_monetized;
+              console.log('💰 Monetization Check for comment:', {
+                commentId: item._id,
+                commentMonetizationEnabled,
+                itemIsMonetized: item.is_monetized,
+                shouldShow,
+                userName: item.user?.name
+              });
+              return shouldShow;
+            })() && (
               <TouchableOpacity
                 onPress={() => {
                   // Navigate to VideoContentGifting with comment parameters
@@ -414,7 +458,7 @@ const CommentsSection = ({
           top: 0,
           left: 0,
           right: 0,
-          bottom: SHEET_MAX_HEIGHT + BOTTOM_NAV_HEIGHT,
+          bottom: SHEET_MAX_HEIGHT + (keyboardHeight > 0 ? keyboardHeight : BOTTOM_NAV_HEIGHT),
         }}
         onPress={onClose}
         activeOpacity={1}
@@ -427,7 +471,7 @@ const CommentsSection = ({
           borderTopLeftRadius: 36,
           borderTopRightRadius: 36,
           height: SHEET_MAX_HEIGHT,
-          marginBottom: BOTTOM_NAV_HEIGHT,
+          marginBottom: keyboardHeight > 0 ? keyboardHeight : BOTTOM_NAV_HEIGHT,
         }}
       >
         {/* Drag handle */}
@@ -497,7 +541,7 @@ const CommentsSection = ({
         <View
           style={{
             paddingHorizontal: 20,
-            paddingBottom: Math.max(insets.bottom, 16),
+            paddingBottom: keyboardHeight > 0 ? 16 : Math.max(insets.bottom, 16),
             paddingTop: 16,
             backgroundColor: '#0E0E0E',
           }}
