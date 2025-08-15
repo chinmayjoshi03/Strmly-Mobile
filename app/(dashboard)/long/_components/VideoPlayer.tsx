@@ -17,7 +17,7 @@ import SeriesPurchaseMessage from "./SeriesPurcchaseMessaage";
 import CreatorPassBuyMessage from "./CreatorPassBuyMessage";
 import VideoBuyMessage from "./VideoBuyMessage";
 
-const { height: screenHeight } = Dimensions.get("screen");
+const { height: screenHeight } = Dimensions.get("window");
 const VIDEO_HEIGHT = screenHeight;
 
 type Props = {
@@ -125,13 +125,6 @@ const VideoPlayer = ({
     };
   }, [isActive, player, _updateStatus, videoData?.videoUrl]);
 
-  useEffect(() => {
-    const sub = Dimensions.addEventListener("change", ({ screen }) => {
-      styles.container.height = screen.height;
-    });
-    return () => sub?.remove();
-  }, []);
-
   // Final cleanup on unmount
   useEffect(() => {
     return () => {
@@ -191,7 +184,7 @@ const VideoPlayer = ({
         />
       </View>
 
-      <View className="z-10 absolute top-16 left-5">
+      <View className="z-10 absolute top-10 left-5">
         <Pressable onPress={() => router.push("/(dashboard)/wallet")}>
           <Image
             source={require("../../../../assets/images/Wallet.png")}
@@ -263,6 +256,7 @@ const VideoPlayer = ({
 const styles = StyleSheet.create({
   container: {
     height: VIDEO_HEIGHT,
+    // flex: 1,
     width: "100%",
   },
   video: {

@@ -89,6 +89,13 @@ export default function PersonalProfilePage() {
 
   useFocusEffect(
     React.useCallback(() => {
+      if (!token) return;
+
+      if(activeTab === "repost"){
+        userReshareVideos();
+        return;
+      }
+
       const fetchUserVideos = async () => {
         setIsLoadingVideos(true);
         try {
@@ -122,7 +129,7 @@ export default function PersonalProfilePage() {
         }
       };
 
-      if (token) {
+      if (token && activeTab !== 'repost') {
         fetchUserVideos();
       }
     }, [isLoggedIn, router, token, activeTab])
@@ -225,7 +232,7 @@ export default function PersonalProfilePage() {
       }
 
       setVideos(data.reshares);
-      console.log("reshare videos", data);
+      console.log("reshare videos", data.reshares[0].long_video.thumbnailUrl);
     } catch (error) {
       console.log(error);
       Alert.alert(
@@ -272,11 +279,11 @@ export default function PersonalProfilePage() {
   const renderGridItem = ({ item }: { item: any }) => (
     <TouchableOpacity
       className="relative aspect-[9/16] flex-1 rounded-sm overflow-hidden"
-      onPress={() => navigateToVideoPlayer(item, videos)}
+      onPress={() => {navigateToVideoPlayer(item, videos); console.log('item', item)}}
     >
-      {item.thumbnailUrl !== "" ? (
+      {(item.thumbnailUrl !== "" || item?.long_video?.thumbnailUrl !== '') ? (
         <Image
-          source={{ uri: item.thumbnailUrl }}
+          source={{ uri: `${item.thumbnailUrl ? item.thumbnailUrl : item.long_video.thumbnailUrl}` }}
           alt="video thumbnail"
           className="w-full h-full object-cover"
         />
