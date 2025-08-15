@@ -8,6 +8,7 @@ import { communityActions } from "@/api/community/communityActions";
 import { useAuthStore } from "@/store/useAuthStore";
 import { CONFIG } from "@/Constants/config";
 import VideoPlayer from "@/app/(dashboard)/long/_components/VideoPlayer";
+import { getProfilePhotoUrl } from "@/utils/profileUtils";
 
 const { width, height: page_height } = Dimensions.get("screen");
 const itemSize = width / 3;
@@ -219,18 +220,14 @@ const SearchScreen: React.FC = () => {
     // Render account items like followers/following in profile
     const renderAccountItem = ({ item }: { item: any }) => {
         const userName = item.username || item.name || 'user';
-        const profilePhoto = (item.profile_photo && item.profile_photo.trim() !== '')
-            ? item.profile_photo
-            : (item.profile_picture && item.profile_picture.trim() !== '')
-                ? item.profile_picture
-                : `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(userName)}&backgroundColor=random`;
+        const profilePhoto = item.profile_photo || item.profile_picture;
         const userId = item._id || item.id;
 
-        console.log('�️ Account imcage data:', {
+        console.log('🖼️ Account image data:', {
             username: userName,
             profile_photo: item.profile_photo,
             profile_picture: item.profile_picture,
-            finalUrl: profilePhoto
+            finalUrl: getProfilePhotoUrl(profilePhoto, 'user')
         });
 
         return (
@@ -246,7 +243,7 @@ const SearchScreen: React.FC = () => {
             >
                 <View style={styles.accountRowContent}>
                     <Image
-                        source={{ uri: profilePhoto }}
+                        source={{ uri: getProfilePhotoUrl(profilePhoto, 'user') }}
                         style={styles.accountAvatar}
                         onError={() => {
                             console.log('Failed to load account profile photo:', item.username);
@@ -272,15 +269,13 @@ const SearchScreen: React.FC = () => {
     // Render community items like communities in profile
     const renderCommunityItem = ({ item }: { item: any }) => {
         const communityName = item.name || 'community';
-        const profilePhoto = (item.profile_photo && item.profile_photo.trim() !== '')
-            ? item.profile_photo
-            : `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(communityName)}&backgroundColor=random`;
+        const profilePhoto = item.profile_photo;
         const communityId = item._id || item.id;
 
         console.log('🖼️ Community image data:', {
             name: communityName,
             profile_photo: item.profile_photo,
-            finalUrl: profilePhoto
+            finalUrl: getProfilePhotoUrl(profilePhoto, 'community')
         });
 
         return (
@@ -296,7 +291,7 @@ const SearchScreen: React.FC = () => {
             >
                 <View style={styles.communityRowContent}>
                     <Image
-                        source={{ uri: profilePhoto }}
+                        source={{ uri: getProfilePhotoUrl(profilePhoto, 'community') }}
                         style={styles.communityAvatar}
                         onError={() => {
                             console.log('Failed to load community profile photo:', item.name);

@@ -18,12 +18,14 @@ import { useComments } from "./useComments";
 import { Comment } from "@/types/Comments";
 import { useMonetization } from "./useMonetization";
 import { router } from "expo-router";
+import { getProfilePhotoUrl } from "@/utils/profileUtils";
 
 interface CommentsSectionProps {
   onClose: () => void;
   videoId: string | null;
   onPressUsername?: (userId: string) => void;
   onPressTip?: (commentId: string) => void;
+  onCommentAdded?: () => void;
 }
 
 const { height: SCREEN_HEIGHT } = Dimensions.get("window");
@@ -35,6 +37,7 @@ const CommentsSection = ({
   videoId,
   onPressUsername,
   onPressTip,
+  onCommentAdded,
 }: CommentsSectionProps) => {
   const [comment, setComment] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -44,17 +47,18 @@ const CommentsSection = ({
   const [repliesData, setRepliesData] = useState<{ [key: string]: any[] }>({});
   const [keyboardHeight, setKeyboardHeight] = useState(0);
   const insets = useSafeAreaInsets();
-  const { commentMonetizationEnabled, loading: monetizationLoading } = useMonetization(true, 30000); // Enable polling every 30 seconds
+  const { commentMonetizationEnabled, loading: monetizationLoading } = useMonetization(false); // Disable polling to reduce API calls
 
-  // Debug logging for monetization
+  // Debug logging for monetization (reduced)
   useEffect(() => {
-    console.log('💰 Comment Monetization Debug:', {
-      commentMonetizationEnabled,
-      monetizationLoading,
-      commentsCount: comments.length,
-      sampleCommentMonetized: comments[0]?.is_monetized
-    });
-  }, [commentMonetizationEnabled, monetizationLoading, comments]);
+    if (comments.length > 0) {
+      console.log('💰 Comment Monetization Status:', {
+        globalEnabled: commentMonetizationEnabled,
+        commentsCount: comments.length,
+        monetizedComments: comments.filter(c => c.is_monetized).length
+      });
+    }
+  }, [commentMonetizationEnabled, comments]);
 
   const {
     comments,
@@ -119,6 +123,10 @@ const CommentsSection = ({
       } else {
         await addComment(comment.trim());
         setComment("");
+        // Notify parent that a comment was added
+        if (onCommentAdded) {
+          onCommentAdded();
+        }
       }
     } catch (error: any) {
       console.error('Error submitting comment:', error);
@@ -218,11 +226,7 @@ const CommentsSection = ({
             style={{ minHeight: 44, minWidth: 44, justifyContent: 'center' }}
           >
             <Image
-              source={
-                reply.user?.avatar
-                  ? { uri: reply.user.avatar }
-                  : require('@/assets/images/user.png')
-              }
+              source={{ uri: getProfilePhotoUrl(reply.user?.avatar, 'user') }}
               style={{ width: 32, height: 32, borderRadius: 16 }}
             />
           </TouchableOpacity>
@@ -303,11 +307,7 @@ const CommentsSection = ({
               style={{ minHeight: 44, minWidth: 44, justifyContent: 'center' }}
             >
               <Image
-                source={
-                  item.user?.avatar
-                    ? { uri: item.user.avatar }
-                    : require('@/assets/images/user.png')
-                }
+                source={{ uri: getProfilePhotoUrl(item.user?.avatar, 'user') }}
                 style={{ width: 44, height: 44, borderRadius: 22 }}
               />
             </TouchableOpacity>
@@ -327,17 +327,7 @@ const CommentsSection = ({
           {/* Right action icons - aligned horizontally */}
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 16, paddingLeft: 8 }}>
             {/* Only show rupee icon if both global and comment-specific monetization are enabled */}
-            {(() => {
-              const shouldShow = commentMonetizationEnabled && item.is_monetized;
-              console.log('💰 Monetization Check for comment:', {
-                commentId: item._id,
-                commentMonetizationEnabled,
-                itemIsMonetized: item.is_monetized,
-                shouldShow,
-                userName: item.user?.name
-              });
-              return shouldShow;
-            })() && (
+            {commentMonetizationEnabled && item.is_monetized && (
               <TouchableOpacity
                 onPress={() => {
                   // Navigate to VideoContentGifting with comment parameters
@@ -496,11 +486,13 @@ const CommentsSection = ({
         {/* Comments List - Using ScrollView for reliable scrolling */}
         <ScrollView
           style={{ flex: 1 }}
+          contentContainerStyle={{ flexGrow: 1 }}
           showsVerticalScrollIndicator={false}
           bounces={true}
           scrollEnabled={true}
-          nestedScrollEnabled={false}
+          nestedScrollEnabled={true}
           keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="interactive"
         >
           {isLoading || monetizationLoading ? (
             <View

@@ -15,6 +15,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import ThemedView from "@/components/ThemedView";
 import { User, Community } from "@/api/profile/profileActions";
 import { useProfileSections } from "./_components/useProfileSections";
+import { getProfilePhotoUrl } from "@/utils/profileUtils";
 
 // Types are now imported from profileActions
 
@@ -63,9 +64,7 @@ export default function ProfileSections() {
     <View key={user._id} className="flex-row items-center justify-between py-4 px-4">
       <View className="flex-row items-center flex-1">
         <Image
-          source={{
-            uri: user.profile_photo || 'https://api.dicebear.com/7.x/identicon/svg?seed=' + user.username
-          }}
+          source={{ uri: getProfilePhotoUrl(user.profile_photo, 'user') }}
           className="w-12 h-12 rounded-full mr-3"
         />
         <View className="flex-1">
@@ -104,9 +103,7 @@ export default function ProfileSections() {
     >
       <View className="flex-row items-center flex-1">
         <Image
-          source={{
-            uri: community.profile_photo || 'https://api.dicebear.com/7.x/identicon/svg?seed=' + community.name
-          }}
+          source={{ uri: getProfilePhotoUrl(community.profile_photo, 'community') }}
           className="w-12 h-12 rounded-full mr-3"
         />
         <View className="flex-1">

@@ -15,7 +15,7 @@ interface MonetizationStore {
   reset: () => void;
 }
 
-const CACHE_DURATION = 30000; // 30 seconds cache
+const CACHE_DURATION = 300000; // 5 minutes cache (increased from 30 seconds)
 
 export const useMonetizationStore = create<MonetizationStore>((set, get) => ({
   monetizationStatus: null,
@@ -29,12 +29,20 @@ export const useMonetizationStore = create<MonetizationStore>((set, get) => ({
     
     // Check if we have recent data (within cache duration) and not forcing refresh
     if (!forceRefresh && state.monetizationStatus && state.lastFetched && (now - state.lastFetched) < CACHE_DURATION) {
+      console.log('💰 Using cached monetization status');
+      return;
+    }
+
+    // Prevent multiple simultaneous requests
+    if (state.loading) {
+      console.log('💰 Monetization fetch already in progress, skipping');
       return;
     }
 
     set({ loading: true, error: null });
 
     try {
+      console.log('💰 Fetching fresh monetization status');
       const status = await getUserMonetizationStatus(token);
       
       set({

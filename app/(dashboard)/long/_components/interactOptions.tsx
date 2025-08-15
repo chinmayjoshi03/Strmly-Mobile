@@ -20,6 +20,11 @@ type InteractOptionsProps = {
     username: string;
     profile_photo: string;
   };
+
+  // Callbacks to update parent component stats
+  onLikeUpdate?: (newLikeCount: number, isLiked: boolean) => void;
+  onShareUpdate?: (newShareCount: number, isShared: boolean) => void;
+  onGiftUpdate?: (newGiftCount: number) => void;
 };
 
 const InteractOptions = ({
@@ -30,6 +35,9 @@ const InteractOptions = ({
   shares,
   comments,
   creator,
+  onLikeUpdate,
+  onShareUpdate,
+  onGiftUpdate,
 }: InteractOptionsProps) => {
   // Destructure onCommentPress from props
   const [like, setLike] = useState(0);
@@ -75,9 +83,12 @@ const InteractOptions = ({
         throw new Error("Failed while like video");
       }
       const data = await response.json();
-      // setLike(data.likes);
-      // setIsLikedVideo(data.isLiked);
       console.log("Like video", data);
+      
+      // Update parent component with new stats
+      if (onLikeUpdate) {
+        onLikeUpdate(like, isLikedVideo);
+      }
     } catch (err) {
       console.log(err);
       setLike(() => prevLikeCount);
@@ -146,6 +157,11 @@ const InteractOptions = ({
           const data = await response.json();
           console.log("check gifting", data);
           setGifts(data.data);
+          
+          // Update parent component with new gift count
+          if (onGiftUpdate) {
+            onGiftUpdate(data.data);
+          }
         } catch (err) {
           console.log(err);
         }
@@ -220,8 +236,12 @@ const InteractOptions = ({
         throw new Error("Failed to reshare video");
       }
       const data = await response.json();
-      // setIsResharedVideo(!isResharedVideo);
-      // setReshares(data.totalReshares);
+      console.log("Reshare video", data);
+      
+      // Update parent component with new stats
+      if (onShareUpdate) {
+        onShareUpdate(reshares, isResharedVideo);
+      }
     } catch (err) {
       setReshares(() => prevReshareCount);
       setIsResharedVideo(() => prevIsReshared);

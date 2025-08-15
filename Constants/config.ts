@@ -24,7 +24,11 @@ export const CONFIG = {
   CURRENCY_SYMBOL: '₹',
   
   // Payment method
-  PAYMENT_METHOD: 'google_play_billing'
+  PAYMENT_METHOD: 'google_play_billing',
+  
+  // Default profile photos
+  DEFAULT_USER_PROFILE_PHOTO: 'https://strmly-videos-dev-mumbai.s3.ap-south-1.amazonaws.com/defaut_user_profile_photo.jpg',
+  DEFAULT_COMMUNITY_PROFILE_PHOTO: 'https://strmly-videos-dev-mumbai.s3.ap-south-1.amazonaws.com/default_commuity_profile_photo.jpg'
 };
 
 export default CONFIG;

@@ -18,6 +18,7 @@ import * as ImagePicker from "expo-image-picker";
 import { router, useFocusEffect } from "expo-router";
 
 import { useAuthStore } from "@/store/useAuthStore";
+import { getProfilePhotoUrl } from "@/utils/profileUtils";
 import { getUserProfile, updateUserProfile } from "@/api/user/userActions";
 import {
   YOUTUBE_CATEGORIES,

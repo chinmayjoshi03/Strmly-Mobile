@@ -16,6 +16,7 @@ import {
 } from "react-native";
 import { useRouter } from "expo-router";
 import { useAuthStore } from "@/store/useAuthStore";
+import { getProfilePhotoUrl } from "@/utils/profileUtils";
 import { communityActions } from "@/api/community/communityActions";
 import * as ImagePicker from "expo-image-picker";
 
@@ -205,11 +206,7 @@ const CreateCommunityPage: React.FC = () => {
           activeOpacity={0.7}
         >
           <Image
-            source={
-              imageUri
-                ? { uri: imageUri }
-                : require("../../assets/images/user.png")
-            }
+            source={{ uri: getProfilePhotoUrl(imageUri, 'community') }}
             style={CreateCommunityStyle.CommunityAvatar}
           />
           <ThemedText style={CommunitiesStyles.RightTab}>

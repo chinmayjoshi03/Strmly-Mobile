@@ -63,7 +63,7 @@ export type VideoItemType = {
     type: string;
     price: number;
     total_episodes: number;
-    episodes: [];
+    episodes: VideoItemType[]; // Episodes are video objects
   } | null;
   episode_number: number | null;
 };

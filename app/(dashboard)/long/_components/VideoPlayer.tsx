@@ -25,6 +25,8 @@ type Props = {
   isActive: boolean;
   showCommentsModal?: boolean;
   setShowCommentsModal?: (show: boolean) => void;
+  onEpisodeChange?: (episodeData: any) => void;
+  onStatsUpdate?: (stats: { likes?: number; gifts?: number; shares?: number; comments?: number }) => void;
 };
 
 const VideoPlayer = ({
@@ -32,6 +34,8 @@ const VideoPlayer = ({
   isActive,
   showCommentsModal = false,
   setShowCommentsModal,
+  onEpisodeChange,
+  onStatsUpdate,
 }: Props) => {
   const {
     isGifted,
@@ -155,6 +159,8 @@ const VideoPlayer = ({
       <VideoControls
         videoData={videoData}
         setShowCommentsModal={setShowCommentsModal}
+        onEpisodeChange={onEpisodeChange}
+        onStatsUpdate={onStatsUpdate}
       />
 
       <View className="absolute bottom-[2.56rem] left-0 h-5 z-10 right-0">
@@ -178,7 +184,23 @@ const VideoPlayer = ({
       </View>
 
       <View className="z-10 absolute top-16 left-5">
-        <Pressable onPress={() => router.push("/(dashboard)/wallet")}>
+        <Pressable 
+          onPress={() => {
+            console.log('💰 Wallet button pressed from VideoPlayer');
+            try {
+              router.push("/(dashboard)/wallet");
+              console.log('✅ Navigation to wallet initiated');
+            } catch (error) {
+              console.error('❌ Navigation failed:', error);
+              // Try alternative navigation
+              try {
+                router.replace("/(dashboard)/wallet");
+              } catch (error2) {
+                console.error('❌ Alternative navigation failed:', error2);
+              }
+            }
+          }}
+        >
           <Image
             source={require("../../../../assets/images/Wallet.png")}
             className="size-10"
@@ -239,6 +261,13 @@ const VideoPlayer = ({
             // Open tip modal for comment
             console.log("Open tip modal for comment:", commentId);
             // You can implement tip modal logic here
+          }}
+          onCommentAdded={() => {
+            // Update comment count when a new comment is added
+            if (onStatsUpdate) {
+              const newCommentCount = (videoData.comments?.length || 0) + 1;
+              onStatsUpdate({ comments: newCommentCount });
+            }
           }}
         />
       )}

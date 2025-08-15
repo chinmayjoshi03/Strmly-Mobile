@@ -9,10 +9,8 @@ import {
   FlatList,
   Dimensions,
   BackHandler,
-
-  Modal,
 } from "react-native";
-import { IndianRupee, HeartIcon, PaperclipIcon, X, Users, Video } from "lucide-react-native";
+import { IndianRupee, HeartIcon, PaperclipIcon, Video } from "lucide-react-native";
 
 import { useAuthStore } from "@/store/useAuthStore";
 import { useThumbnailsGenerate } from "@/utils/useThumbnailGenerator";
@@ -27,6 +25,7 @@ import BottomNavBar from "@/components/BottomNavBar";
 import { communityActions } from "@/api/community/communityActions";
 import CommunityPassBuyMessage from "./CommPassBuyMessage";
 import { useGiftingStore } from "@/store/useGiftingStore";
+import { getProfilePhotoUrl } from "@/utils/profileUtils";
 
 export default function PublicCommunityPage() {
   const [activeTab, setActiveTab] = useState<string>("videos");
@@ -46,11 +45,7 @@ export default function PublicCommunityPage() {
   const [currentVideoIndex, setCurrentVideoIndex] = useState(0);
   const [showCommentsModal, setShowCommentsModal] = useState(false);
 
-  // Section data states
-  const [followers, setFollowers] = useState<any[]>([]);
-  const [creators, setCreators] = useState<any[]>([]);
-  const [isLoadingFollowers, setIsLoadingFollowers] = useState(false);
-  const [isLoadingCreators, setIsLoadingCreators] = useState(false);
+
   const [videoType, setVideoType] = useState("long");
 
   const { token, user } = useAuthStore();
@@ -335,47 +330,11 @@ export default function PublicCommunityPage() {
     }, [id, token])
   );
 
-  // Fetch followers
-  const fetchFollowers = async () => {
-    if (!token || !id) return;
 
-    setIsLoadingFollowers(true);
-    try {
-      const result = await communityActions.getCommunityFollowers(token, id);
-      setFollowers(result.followers || []);
-    } catch (error) {
-      console.error("❌ Error fetching followers:", error);
-      Alert.alert("Error", "Failed to fetch followers");
-    } finally {
-      setIsLoadingFollowers(false);
-    }
-  };
-
-  // Fetch creators
-  const fetchCreators = async () => {
-    if (!token || !id) return;
-
-    setIsLoadingCreators(true);
-    try {
-      const result = await communityActions.getCommunityCreators(token, id);
-      setCreators(result.creators || []);
-    } catch (error) {
-      console.error("❌ Error fetching creators:", error);
-      Alert.alert("Error", "Failed to fetch creators");
-    } finally {
-      setIsLoadingCreators(false);
-    }
-  };
 
   // Handle section changes
   const handleSectionChange = (section: string) => {
     setActiveTab(section);
-
-    if (section === "followers" && followers.length === 0) {
-      fetchFollowers();
-    } else if (section === "creators" && creators.length === 0) {
-      fetchCreators();
-    }
   };
 
   // Navigate to user profile
@@ -469,12 +428,7 @@ export default function PublicCommunityPage() {
         </View>
       </View>
 
-      {/* Play button overlay */}
-      <View className="absolute inset-0 items-center justify-center">
-        <View className="bg-black/50 rounded-full p-3">
-          <Video size={24} color="white" fill="white" />
-        </View>
-      </View>
+
     </TouchableOpacity>
   );
 
@@ -506,43 +460,11 @@ export default function PublicCommunityPage() {
         </Text>
       </View>
 
-      {/* Small play button */}
-      <View className="absolute top-2 right-2">
-        <View className="bg-black/50 rounded-full p-1">
-          <Video size={12} color="white" fill="white" />
-        </View>
-      </View>
+
     </TouchableOpacity>
   );
 
-  // Render user item for followers/creators modals
-  const renderUserItem = ({ item }: { item: any }) => (
-    <TouchableOpacity
-      className="flex-row items-center p-3 border-b border-gray-800"
-      onPress={() => {
-        console.log("🔄 User item pressed:", item.username, item._id);
-        navigateToUserProfile(item._id);
-      }}
-      activeOpacity={0.7}
-    >
-      <View className="w-12 h-12 rounded-full overflow-hidden bg-gray-700 mr-3">
-        <Image
-          source={{
-            uri:
-              item.profile_photo ||
-              `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(item.username || "user")}&backgroundColor=random`,
-          }}
-          className="w-full h-full object-cover"
-        />
-      </View>
-      <View className="flex-1">
-        <Text className="text-white font-medium">{item.username}</Text>
-        {item.name && (
-          <Text className="text-gray-400 text-sm">{item.name}</Text>
-        )}
-      </View>
-    </TouchableOpacity>
-  );
+
 
   return (
     <ThemedView className="flex-1 pt-5">
@@ -567,13 +489,9 @@ export default function PublicCommunityPage() {
             <View className="max-w-4xl -mt-28 relative mx-6 pt-28">
               <View className="items-center justify-center gap-4 h-fit w-full mt-6">
                 <Image
-                  source={
-                    communityData?.profile_photo
-                      ? {
-                        uri: communityData.profile_photo,
-                      }
-                      : require("../../../../assets/images/user.png")
-                  }
+                  source={{
+                    uri: getProfilePhotoUrl(communityData?.profile_photo, 'community')
+                  }}
                   style={{
                     width: 80,
                     height: 80,
@@ -598,7 +516,16 @@ export default function PublicCommunityPage() {
               <View className="mt-6 flex-row justify-around items-center border-gray-800">
                 <TouchableOpacity
                   className={`flex flex-col gap-1 items-center pb-4 flex-1 ${activeTab === "followers" ? "border-b-2 border-white" : ""}`}
-                  onPress={() => handleSectionChange("followers")}
+                  onPress={() => {
+                    router.push({
+                      pathname: "/(communities)/CommunitySections",
+                      params: {
+                        communityId: id,
+                        communityName: communityData?.name,
+                        section: "followers"
+                      }
+                    } as any);
+                  }}
                 >
                   <Text className="font-bold text-lg text-white">
                     {communityData?.followers?.length || 0}
@@ -611,7 +538,16 @@ export default function PublicCommunityPage() {
                 </TouchableOpacity>
                 <TouchableOpacity
                   className={`flex flex-col gap-1 items-center pb-4 flex-1 ${activeTab === "creators" ? "border-b-2 border-white" : ""}`}
-                  onPress={() => handleSectionChange("creators")}
+                  onPress={() => {
+                    router.push({
+                      pathname: "/(communities)/CommunitySections",
+                      params: {
+                        communityId: id,
+                        communityName: communityData?.name,
+                        section: "creators"
+                      }
+                    } as any);
+                  }}
                 >
                   <Text className="font-bold text-lg text-white">
                     {communityData?.creators?.length || 0}
@@ -729,14 +665,7 @@ export default function PublicCommunityPage() {
                 </View>
               )}
 
-              {/* Search Bar - Only show for followers and creators */}
-              {(activeTab === "followers" || activeTab === "creators") && (
-                <View className="mt-4 px-4">
-                  <View className="bg-gray-800 rounded-lg px-4 py-3 flex-row items-center">
-                    <Text className="text-gray-400 flex-1">Search...</Text>
-                  </View>
-                </View>
-              )}
+
             </View>
           }
           data={
@@ -744,24 +673,14 @@ export default function PublicCommunityPage() {
               ? isLoadingVideos
                 ? []
                 : videos
-              : activeTab === "followers"
-                ? isLoadingFollowers
-                  ? []
-                  : followers
-                : activeTab === "creators"
-                  ? isLoadingCreators
-                    ? []
-                    : creators
-                  : []
+              : []
           }
           key={`${activeTab}-${videoType}`}
           keyExtractor={(item) => item._id}
           renderItem={
-            activeTab === "videos"
-              ? videoType === "long"
-                ? renderVideoItem
-                : renderGridItem
-              : renderUserItem
+            videoType === "long"
+              ? renderVideoItem
+              : renderGridItem
           }
           numColumns={activeTab === "videos" && videoType === "liked" ? 3 : 1}
           columnWrapperStyle={
@@ -770,26 +689,18 @@ export default function PublicCommunityPage() {
               : undefined
           }
           ListEmptyComponent={
-            (activeTab === "videos" && isLoadingVideos) ||
-              (activeTab === "followers" && isLoadingFollowers) ||
-              (activeTab === "creators" && isLoadingCreators) ? (
+            activeTab === "videos" && isLoadingVideos ? (
               <View className="flex-1 h-64 items-center justify-center">
                 <ActivityIndicator size="large" color="white" />
               </View>
-            ) : (
+            ) : activeTab === "videos" ? (
               <View className="flex-1 h-64 items-center justify-center">
-                {activeTab === "videos" && <Video size={48} color="gray" />}
-                {activeTab === "followers" && <Users size={48} color="gray" />}
-                {activeTab === "creators" && <Users size={48} color="gray" />}
+                <Video size={48} color="gray" />
                 <Text className="text-gray-400 text-center mt-4">
-                  {activeTab === "videos"
-                    ? `No ${videoType} videos yet`
-                    : activeTab === "followers"
-                      ? "No followers yet"
-                      : "No creators yet"}
+                  {`No ${videoType} videos yet`}
                 </Text>
               </View>
-            )
+            ) : null
           }
           contentContainerStyle={{ paddingBottom: 30, paddingHorizontal: 4 }}
           showsVerticalScrollIndicator={false}
@@ -835,6 +746,9 @@ export default function PublicCommunityPage() {
             snapToInterval={Dimensions.get("window").height}
             snapToAlignment="start"
           />
+          
+          {/* Bottom Navigation Bar for Video Player */}
+          <BottomNavBar />
         </View>
       )}
 
