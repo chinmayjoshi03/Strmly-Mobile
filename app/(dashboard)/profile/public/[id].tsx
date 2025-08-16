@@ -30,7 +30,7 @@ import BottomNavBar from "@/components/BottomNavBar";
 import { getProfilePhotoUrl } from "@/utils/profileUtils";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-const {height} = Dimensions.get('screen');
+const { height } = Dimensions.get("screen");
 
 export default function PublicProfilePageWithId() {
   const [activeTab, setActiveTab] = useState("long");
@@ -428,7 +428,7 @@ export default function PublicProfilePageWithId() {
   );
 
   return (
-    <ThemedView style={{height}}>
+    <ThemedView style={{ height }}>
       <SafeAreaView>
         <FlatList
           data={videos}

@@ -80,11 +80,7 @@ export const useBillingStore = create<BillingState>((set, get) => ({
   },
 
   purchaseProduct: async ({
-    productId,
-    orderId,
-    onVerify,
-    onSuccess,
-    onFailure,
+    productId
   }: PurchaseConfig) => {
     try {
       set({ isLoading: true, error: null });

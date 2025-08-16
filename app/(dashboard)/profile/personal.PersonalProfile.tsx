@@ -94,7 +94,7 @@ export default function PersonalProfilePage() {
     React.useCallback(() => {
       if (!token) return;
 
-      if (activeTab === "repost") {
+      if(activeTab === "repost"){
         userReshareVideos();
         return;
       }
@@ -132,7 +132,7 @@ export default function PersonalProfilePage() {
         }
       };
 
-      if (token && activeTab !== "repost") {
+      if (token && activeTab !== 'repost') {
         fetchUserVideos();
       }
     }, [isLoggedIn, router, token, activeTab])

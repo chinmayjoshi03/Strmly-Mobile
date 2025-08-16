@@ -17,8 +17,9 @@ import SeriesPurchaseMessage from "./SeriesPurcchaseMessaage";
 import CreatorPassBuyMessage from "./CreatorPassBuyMessage";
 import VideoBuyMessage from "./VideoBuyMessage";
 
-const { height: screenHeight } = Dimensions.get("window");
-const VIDEO_HEIGHT = screenHeight;
+// const { height: screenHeight } = Dimensions.get("window");
+// const VIDEO_HEIGHT = screenHeight;
+const { height: screenHeight } = Dimensions.get("screen");
 
 type Props = {
   videoData: VideoItemType;
@@ -26,12 +27,8 @@ type Props = {
   showCommentsModal?: boolean;
   setShowCommentsModal?: (show: boolean) => void;
   onEpisodeChange?: (episodeData: any) => void;
-  onStatsUpdate?: (stats: {
-    likes?: number;
-    gifts?: number;
-    shares?: number;
-    comments?: number;
-  }) => void;
+  onStatsUpdate?: (stats: { likes?: number; gifts?: number; shares?: number; comments?: number }) => void;
+  containerHeight?: number; // Add containerHeight prop
 };
 
 const VideoPlayer = ({
@@ -41,6 +38,7 @@ const VideoPlayer = ({
   setShowCommentsModal,
   onEpisodeChange,
   onStatsUpdate,
+  containerHeight, // Use containerHeight prop
 }: Props) => {
   const {
     isGifted,
@@ -64,6 +62,9 @@ const VideoPlayer = ({
   const mountedRef = useRef(true);
   const statusListenerRef = useRef<any>(null);
   const prevUrlRef = useRef<string | null>(null);
+
+  // Use containerHeight if provided, otherwise fall back to screen height
+  const VIDEO_HEIGHT = containerHeight || screenHeight;
 
   // FIX: Move the conditional check after hooks but handle gracefully
   const player = useVideoPlayer(videoData?.videoUrl || "", (p) => {
@@ -132,7 +133,7 @@ const VideoPlayer = ({
       const { smartPlay } = usePlayerStore.getState();
       smartPlay();
     } else {
-      // This video is not visible, pause and reset
+      // This video is not visible, pause but don't reset time
       player.pause();
 
       // Reset to beginning for better UX, but don't block UI
@@ -175,17 +176,29 @@ const VideoPlayer = ({
     };
   }, [player]);
 
+  // Dynamic styles that use the calculated VIDEO_HEIGHT
+  const dynamicStyles = StyleSheet.create({
+    container: {
+      height: VIDEO_HEIGHT,
+      width: "100%",
+    },
+    video: {
+      width: "100%",
+      height: "100%",
+    },
+  });
+
   // Render empty container if no video URL
   if (!videoData?.videoUrl) {
-    return <View style={styles.container} />;
+    return <View style={dynamicStyles.container} />;
   }
 
   return (
-    <View style={styles.container}>
+    <View style={dynamicStyles.container}>
       <VideoView
         player={player}
         nativeControls={false}
-        style={styles.video}
+        style={dynamicStyles.video}
         contentFit="cover"
       />
 
@@ -196,7 +209,7 @@ const VideoPlayer = ({
         onStatsUpdate={onStatsUpdate}
       />
 
-      <View className="absolute bottom-[2.56rem] left-0 h-5 z-10 right-0">
+      <View className="absolute left-0 right-0 z-10 px-2" style={{ bottom: 46 }}>
         <VideoProgressBar
           player={player}
           isActive={isActive}
@@ -292,16 +305,17 @@ const VideoPlayer = ({
   );
 };
 
-const styles = StyleSheet.create({
-  container: {
-    height: VIDEO_HEIGHT,
-    // flex: 1,
-    width: "100%",
-  },
-  video: {
-    width: "100%",
-    height: "100%",
-  },
-});
+// const styles = StyleSheet.create({
+//   container: {
+//     height: VIDEO_HEIGHT,
+//     // flex: 1,
+//     width: "100%",
+//   },
+//   video: {
+//     width: "100%",
+//     height: "100%",
+//   },
+// });
 
+// export default React.memo(VideoPlayer);
 export default React.memo(VideoPlayer);

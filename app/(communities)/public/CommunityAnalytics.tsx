@@ -5,15 +5,13 @@ import {
     TouchableOpacity,
     ScrollView,
     ActivityIndicator,
-    Image,
-    Alert
+    Image
 } from 'react-native';
 import { ChevronLeft, ChevronDown } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { useAuthStore } from '@/store/useAuthStore';
 import { CONFIG } from '@/Constants/config';
-import { communityActions } from '@/api/community/communityActions';
 
 interface CommunityStats {
     communityFee?: number;
@@ -34,14 +32,27 @@ interface RecentActivity {
     timestamp: string;
 }
 
+interface Transaction {
+    id: string;
+    type: 'credit' | 'debit';
+    amount: number;
+    description: string;
+    date: string;
+    status?: string;
+    from?: string;
+    to?: string;
+    category?: string;
+}
+
 const CommunityAnalytics = () => {
     const [activeTab, setActiveTab] = useState<'non-revenue' | 'revenue'>('revenue');
     const [timeFilter, setTimeFilter] = useState('Last 30 Days');
     const [showTimeDropdown, setShowTimeDropdown] = useState(false);
     const [stats, setStats] = useState<CommunityStats | null>(null);
     const [recentActivity, setRecentActivity] = useState<RecentActivity[]>([]);
+    const [transactions, setTransactions] = useState<Transaction[]>([]);
     const [loading, setLoading] = useState(true);
-    
+
     const router = useRouter();
     const { token } = useAuthStore();
 
@@ -56,42 +67,15 @@ const CommunityAnalytics = () => {
         fetchCommunityData();
     }, [activeTab, timeFilter]);
 
+    const fetchTransactionHistory = async (communityId: string) => {
+        // Transaction history will be implemented later
+        // For now, just set empty array
+        setTransactions([]);
+    };
+
     const fetchRecentActivity = async (communityId: string) => {
         try {
-            // Fetch recent videos uploaded to the community
-            const recentVideosResponse = await fetch(
-                `${CONFIG.API_BASE_URL}/community/${communityId}/videos?sort=recent&limit=5`,
-                {
-                    headers: { 'Authorization': `Bearer ${token}` }
-                }
-            );
-
-            const recentActivities: RecentActivity[] = [];
-
-            if (recentVideosResponse.ok) {
-                const videosData = await recentVideosResponse.json();
-                const videos = videosData.videos || [];
-
-                videos.forEach((video: any) => {
-                    recentActivities.push({
-                        id: `video_${video._id}`,
-                        user: {
-                            name: video.created_by?.username || 'Unknown User',
-                            username: video.created_by?.username || 'unknown',
-                            avatar: video.created_by?.profile_photo || `https://api.dicebear.com/7.x/avataaars/svg?seed=${video.created_by?.username || 'default'}`
-                        },
-                        action: 'post a video on your community',
-                        actionType: 'video_upload',
-                        timestamp: new Date(video.createdAt).toLocaleDateString('en-GB', {
-                            day: 'numeric',
-                            month: 'long',
-                            year: 'numeric'
-                        })
-                    });
-                });
-            }
-
-            // Fetch community details to get recent followers
+            // Fetch community data using the specific API endpoint
             const communityResponse = await fetch(
                 `${CONFIG.API_BASE_URL}/community/${communityId}`,
                 {
@@ -99,25 +83,26 @@ const CommunityAnalytics = () => {
                 }
             );
 
+            const recentActivities: RecentActivity[] = [];
+
             if (communityResponse.ok) {
                 const communityData = await communityResponse.json();
-                const community = communityData.community;
 
-                // Add recent followers (simulate recent activity)
-                if (community.followers && community.followers.length > 0) {
-                    // Take the last few followers as "recent" activity
-                    const recentFollowers = community.followers.slice(-3).reverse();
-                    
-                    recentFollowers.forEach((follower: any, index: number) => {
+                // Add recent video uploads from long_videos array
+                if (communityData.long_videos && Array.isArray(communityData.long_videos)) {
+                    // Take the last 3 videos as recent uploads
+                    const recentVideos = communityData.long_videos.slice(-3).reverse();
+
+                    recentVideos.forEach((video: any, index: number) => {
                         recentActivities.push({
-                            id: `follow_${follower._id}_${index}`,
+                            id: `video_${video._id}_${index}`,
                             user: {
-                                name: follower.username || 'Unknown User',
-                                username: follower.username || 'unknown',
-                                avatar: follower.profile_photo || `https://api.dicebear.com/7.x/avataaars/svg?seed=${follower.username || 'default'}`
+                                name: 'Adithya_new', // Using founder as default since video doesn't have created_by in this structure
+                                username: 'Adithya_new',
+                                avatar: communityData.founder?.profile_photo || 'https://strmly-videos-dev-mumbai.s3.ap-south-1.amazonaws.com/defaut_user_profile_photo.jpg'
                             },
-                            action: 'follow your community',
-                            actionType: 'follow',
+                            action: 'post a video on your community',
+                            actionType: 'video_upload',
                             timestamp: new Date().toLocaleDateString('en-GB', {
                                 day: 'numeric',
                                 month: 'long',
@@ -127,36 +112,42 @@ const CommunityAnalytics = () => {
                     });
                 }
 
-                // Add recent creators as "join" activity
-                if (community.creators && community.creators.length > 0) {
-                    const recentCreators = community.creators.slice(-2).reverse();
-                    
-                    recentCreators.forEach((creator: any, index: number) => {
-                        recentActivities.push({
-                            id: `join_${creator._id}_${index}`,
-                            user: {
-                                name: creator.username || 'Unknown User',
-                                username: creator.username || 'unknown',
-                                avatar: creator.profile_photo || `https://api.dicebear.com/7.x/avataaars/svg?seed=${creator.username || 'default'}`
-                            },
-                            action: 'Join your community',
-                            actionType: 'join',
-                            timestamp: new Date().toLocaleDateString('en-GB', {
-                                day: 'numeric',
-                                month: 'long',
-                                year: 'numeric'
-                            })
-                        });
+                // Add recent followers based on creator_join_order (most recent joins)
+                if (communityData.creator_join_order && Array.isArray(communityData.creator_join_order)) {
+                    // Take the last 3 joins as recent activity
+                    const recentJoins = communityData.creator_join_order.slice(-3).reverse();
+
+                    recentJoins.forEach((joinData: any, index: number) => {
+                        // Find the corresponding user in creators array
+                        const creator = communityData.creators?.find((c: any) => c._id === joinData.user);
+
+                        if (creator) {
+                            recentActivities.push({
+                                id: `join_${creator._id}_${index}`,
+                                user: {
+                                    name: creator.username || 'Unknown User',
+                                    username: creator.username || 'unknown',
+                                    avatar: creator.profile_photo || 'https://strmly-videos-dev-mumbai.s3.ap-south-1.amazonaws.com/defaut_user_profile_photo.jpg'
+                                },
+                                action: creator._id === communityData.founder._id ? 'follow your community' : 'Join your community',
+                                actionType: creator._id === communityData.founder._id ? 'follow' : 'join',
+                                timestamp: new Date(joinData.joined_at).toLocaleDateString('en-GB', {
+                                    day: 'numeric',
+                                    month: 'long',
+                                    year: 'numeric'
+                                })
+                            });
+                        }
                     });
                 }
             }
 
             // Sort by most recent and limit to 5 items
-            recentActivities.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
             setRecentActivity(recentActivities.slice(0, 5));
 
         } catch (error) {
             console.error('Error fetching recent activity:', error);
+            // Set empty array on error to prevent undefined access
             setRecentActivity([]);
         }
     };
@@ -180,40 +171,53 @@ const CommunityAnalytics = () => {
             if (userCommunitiesResponse.ok) {
                 const userCommunitiesData = await userCommunitiesResponse.json();
                 const userCommunities = userCommunitiesData.communities || [];
-                
+
                 if (userCommunities.length > 0) {
                     // Use the first community the user created
                     const firstCommunity = userCommunities[0];
-                    
+
                     try {
-                        // Use the correct community analytics API function
-                        const analyticsResponse = await communityActions.getCommunityAnalytics(token, firstCommunity._id);
-                        
-                        if (analyticsResponse.success) {
-                            const analytics = analyticsResponse.analytics;
+                        // Use the specific API endpoint you provided
+                        const communityResponse = await fetch(
+                            `${CONFIG.API_BASE_URL}/community/${firstCommunity._id}`,
+                            {
+                                headers: { 'Authorization': `Bearer ${token}` }
+                            }
+                        );
+
+                        if (communityResponse.ok) {
+                            const communityData = await communityResponse.json();
+                            console.log('✅ Community data fetched:', communityData);
+
+                            // Extract data from the API response structure
                             setStats({
-                                communityFee: analytics.earnings.communityFees.totalEarned,
-                                totalCreators: analytics.creators.total,
-                                totalVideos: analytics.content.totalContent,
-                                totalFollowers: analytics.followers.total
+                                communityFee: communityData.analytics?.total_revenue || 0,
+                                totalCreators: communityData.creators?.length || 0,
+                                totalVideos: (communityData.long_videos?.length || 0) + (communityData.series?.length || 0),
+                                totalFollowers: communityData.followers?.length || 0
                             });
-                            
-                            // Create recent activity from available data
-                            await fetchRecentActivity(firstCommunity._id);
+
+                            // Fetch appropriate data based on active tab
+                            if (activeTab === 'revenue') {
+                                // For now, just set empty transactions as you mentioned you'll add this later
+                                setTransactions([]);
+                            } else {
+                                await fetchRecentActivity(firstCommunity._id);
+                            }
                         } else {
-                            throw new Error(analyticsResponse.message || 'Failed to get analytics');
+                            throw new Error('Failed to fetch community data');
                         }
                     } catch (apiError) {
-                        console.log('Analytics API call failed:', apiError);
-                        // Use basic community data as fallback
+                        console.log('Community API call failed:', apiError);
+                        // Set empty stats on error
                         setStats({
-                            communityFee: firstCommunity.community_fee_amount || 0,
-                            totalCreators: firstCommunity.creators?.length || 0,
-                            totalVideos: (firstCommunity.long_videos?.length || 0) + (firstCommunity.series?.length || 0),
-                            totalFollowers: firstCommunity.followers?.length || 0
+                            communityFee: 0,
+                            totalCreators: 0,
+                            totalVideos: 0,
+                            totalFollowers: 0
                         });
-                        // Still try to fetch recent activity
-                        await fetchRecentActivity(firstCommunity._id);
+                        setRecentActivity([]);
+                        setTransactions([]);
                     }
                 } else {
                     // User has no communities
@@ -224,6 +228,7 @@ const CommunityAnalytics = () => {
                         totalFollowers: 0
                     });
                     setRecentActivity([]);
+                    setTransactions([]);
                 }
             } else {
                 // Fallback to zero stats if can't get user communities
@@ -234,6 +239,7 @@ const CommunityAnalytics = () => {
                     totalFollowers: 0
                 });
                 setRecentActivity([]);
+                setTransactions([]);
             }
 
         } catch (error) {
@@ -246,6 +252,7 @@ const CommunityAnalytics = () => {
                 totalFollowers: 0
             });
             setRecentActivity([]);
+            setTransactions([]);
         } finally {
             setLoading(false);
         }
@@ -304,11 +311,11 @@ const CommunityAnalytics = () => {
                             start={{ x: 0, y: 0 }}
                             end={{ x: 1, y: 1 }}
                             className="rounded-2xl p-6 mb-6"
-                            style={{ 
-                                width: 360, 
-                                height: activeTab === 'revenue' ? 110 : 166, 
+                            style={{
+                                width: 360,
+                                height: activeTab === 'revenue' ? 110 : 166,
                                 alignSelf: 'center',
-                                borderRadius: 10 
+                                borderRadius: 10
                             }}
                         >
                             {/* Time Filter */}
@@ -345,8 +352,8 @@ const CommunityAnalytics = () => {
 
                             {/* Main Stat */}
                             <Text className="text-white text-3xl font-bold mb-4" style={{ fontFamily: 'Inter' }}>
-                                {activeTab === 'revenue' 
-                                    ? `₹ ${stats?.communityFee || '0'}` 
+                                {activeTab === 'revenue'
+                                    ? `₹ ${stats?.communityFee || '0'}`
                                     : `${stats?.totalCreators || '0'}`
                                 }
                             </Text>
@@ -366,36 +373,78 @@ const CommunityAnalytics = () => {
                             ) : null}
                         </LinearGradient>
 
-                        {/* Recent Activity */}
+                        {/* Recent Activity / Transaction History */}
                         <View className="mb-6">
-                            <Text className="text-white text-2xl font-semibold mb-4" style={{ fontFamily: 'Poppins' }}>Recent</Text>
-                            {recentActivity.length > 0 ? (
-                                <View className="space-y-4">
-                                    {recentActivity.map((activity) => (
-                                        <View key={activity.id} className="flex-row items-center py-2">
-                                            <Image
-                                                source={{ uri: activity.user.avatar }}
-                                                className="w-12 h-12 rounded-full mr-4"
-                                                style={{ width: 48, height: 48 }}
-                                            />
-                                            <View className="flex-1">
-                                                <Text className="text-white text-base" style={{ fontFamily: 'Inter' }}>
-                                                    <Text className="font-semibold">{activity.user.name}</Text>
-                                                    <Text className="text-gray-400"> {activity.action}</Text>
-                                                </Text>
-                                                <Text className="text-gray-500 text-sm mt-1" style={{ fontFamily: 'Inter' }}>
-                                                    {activity.timestamp}
-                                                </Text>
+                            <Text className="text-white text-2xl font-semibold mb-4" style={{ fontFamily: 'Poppins' }}>
+                                {activeTab === 'revenue' ? 'Transaction History' : 'Recent'}
+                            </Text>
+
+                            {activeTab === 'revenue' ? (
+                                // Show transaction history for revenue tab
+                                transactions.length > 0 ? (
+                                    <View className="space-y-4">
+                                        {transactions.map((transaction) => (
+                                            <View key={transaction.id} className="flex-row items-center justify-between py-3 px-4 bg-gray-900 rounded-lg">
+                                                <View className="flex-1">
+                                                    <Text className="text-white text-base font-medium" style={{ fontFamily: 'Inter' }}>
+                                                        {transaction.description}
+                                                    </Text>
+                                                    <Text className="text-gray-400 text-sm mt-1" style={{ fontFamily: 'Inter' }}>
+                                                        {transaction.from} • {new Date(transaction.date).toLocaleDateString('en-GB', {
+                                                            day: 'numeric',
+                                                            month: 'short',
+                                                            year: 'numeric'
+                                                        })}
+                                                    </Text>
+                                                </View>
+                                                <View className="items-end">
+                                                    <Text className={`text-base font-bold ${transaction.type === 'credit' ? 'text-green-400' : 'text-red-400'}`} style={{ fontFamily: 'Inter' }}>
+                                                        {transaction.type === 'credit' ? '+' : '-'}₹{transaction.amount}
+                                                    </Text>
+                                                    <Text className="text-gray-500 text-xs" style={{ fontFamily: 'Inter' }}>
+                                                        {transaction.status || 'Completed'}
+                                                    </Text>
+                                                </View>
                                             </View>
-                                        </View>
-                                    ))}
-                                </View>
+                                        ))}
+                                    </View>
+                                ) : (
+                                    <View className="py-8 items-center">
+                                        <Text className="text-gray-400 text-base" style={{ fontFamily: 'Inter' }}>
+                                            No transactions found
+                                        </Text>
+                                    </View>
+                                )
                             ) : (
-                                <View className="py-8 items-center">
-                                    <Text className="text-gray-400 text-base" style={{ fontFamily: 'Inter' }}>
-                                        No recent activity
-                                    </Text>
-                                </View>
+                                // Show recent activity for non-revenue tab
+                                recentActivity.length > 0 ? (
+                                    <View className="space-y-4">
+                                        {recentActivity.map((activity) => (
+                                            <View key={activity.id} className="flex-row items-center py-2">
+                                                <Image
+                                                    source={{ uri: activity.user.avatar }}
+                                                    className="w-12 h-12 rounded-full mr-4"
+                                                    style={{ width: 48, height: 48 }}
+                                                />
+                                                <View className="flex-1">
+                                                    <Text className="text-white text-base" style={{ fontFamily: 'Inter' }}>
+                                                        <Text className="font-semibold">{activity.user.name}</Text>
+                                                        <Text className="text-gray-400"> {activity.action}</Text>
+                                                    </Text>
+                                                    <Text className="text-gray-500 text-sm mt-1" style={{ fontFamily: 'Inter' }}>
+                                                        {activity.timestamp}
+                                                    </Text>
+                                                </View>
+                                            </View>
+                                        ))}
+                                    </View>
+                                ) : (
+                                    <View className="py-8 items-center">
+                                        <Text className="text-gray-400 text-base" style={{ fontFamily: 'Inter' }}>
+                                            No recent activity
+                                        </Text>
+                                    </View>
+                                )
                             )}
                         </View>
                     </>

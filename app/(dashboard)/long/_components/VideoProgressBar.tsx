@@ -1,18 +1,15 @@
-import React, { useState, useEffect, useRef, useCallback } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   View,
-  Pressable,
   StyleSheet,
   LayoutChangeEvent,
-  GestureResponderEvent,
   Text,
+  Pressable,
+  GestureResponderEvent,
 } from "react-native";
 import { VideoPlayer } from "expo-video";
-import { usePlayerStore } from "@/store/usePlayerStore";
-import { useAuthStore } from "@/store/useAuthStore";
-import CONFIG from "@/Constants/config";
 
-const PROGRESS_BAR_HEIGHT = 3;
+const PROGRESS_BAR_HEIGHT = 4; // Thicker progress bar like YouTube/TikTok
 
 type AccessType = {
   isPlayable: boolean;
@@ -40,168 +37,209 @@ const VideoProgressBar = ({
   duration,
   access,
 }: Props) => {
-  // Drive live progress from the global store (updated by VideoPlayer via _updateStatus)
-  const storePosition = usePlayerStore((s) => s.position);
-
-  // Local state only for drag UX
+  const [currentTime, setCurrentTime] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
   const [dragTime, setDragTime] = useState<number | null>(null);
+  const [dragProgress, setDragProgress] = useState(0);
   const progressBarContainerWidth = useRef<number>(0);
-
-  const { seekTo } = usePlayerStore();
-  const { token } = useAuthStore();
-  const BACKEND_API_URL = CONFIG.API_BASE_URL;
 
   const initialStartTime = access?.freeRange?.start_time ?? 0;
   const hasSeekedInitially = useRef(false);
   const seekInProgress = useRef(false);
   const wasPlayingBeforeSeek = useRef(false);
+  const userInteracting = useRef(false);
+  const touchStartTime = useRef(0);
 
-  // History API
-  const saveVideoToHistory = useCallback(async () => {
-    if (!token || !videoId) return;
-    try {
-      await fetch(`${BACKEND_API_URL}/user/history`, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ videoId }),
-      });
-    } catch (err) {
-      console.error("Failed to save history:", err);
-    }
-  }, [token, videoId, BACKEND_API_URL]);
+  const lastTimeRef = useRef(0);
 
-  // View API
-  const incrementVideoViews = useCallback(async () => {
-    if (!token || !videoId) return;
-    try {
-      await fetch(`${BACKEND_API_URL}/videos/${videoId}/view`, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-      });
-    } catch (err) {
-      console.error("Failed to increment views:", err);
-    }
-  }, [token, videoId, BACKEND_API_URL]);
-
-  // Initial seek logic (guarded so it won't override user/manual or restored seeks)
   useEffect(() => {
-    const shouldInitialSeek =
-      isActive &&
-      !hasSeekedInitially.current &&
-      initialStartTime >= 0 &&
-      // Only if we're effectively at the start (avoid overriding a real position)
-      storePosition < 0.5;
-
-    if (!shouldInitialSeek) return;
-
-    (async () => {
-      try {
-        hasSeekedInitially.current = true;
-        await seekTo(initialStartTime);
-        player.play();
-      } catch (e) {
-        // no-op; seekTo already logs
+    if (isActive && lastTimeRef.current > 0) {
+      const currentPlayerTime = player.currentTime || 0;
+      if (Math.abs(lastTimeRef.current - currentPlayerTime) > 1) {
+        console.log("Restoring position to:", lastTimeRef.current);
+        const offset = lastTimeRef.current - currentPlayerTime;
+        player.seekBy(offset);
       }
-    })();
-  }, [isActive, initialStartTime, storePosition, player, seekTo]);
+    }
+  }, [isActive, player]);
+
+  // Initial seek logic
+  useEffect(() => {
+    if (isActive && !hasSeekedInitially.current && initialStartTime >= 0) {
+      hasSeekedInitially.current = true;
+      if (initialStartTime > 0) {
+        console.log("Initial seek to:", initialStartTime);
+        player.seekBy(initialStartTime);
+      }
+      setCurrentTime(initialStartTime);
+      player.play();
+    }
+  }, [isActive, initialStartTime, player]);
+
+  // Time sync and milestone tracking - Optimized for performance
+  useEffect(() => {
+    if (!isActive) {
+      setCurrentTime(0);
+      return;
+    }
+
+    const interval = setInterval(() => {
+      // Only sync time when user is definitely not interacting
+      if (!isDragging && !seekInProgress.current && !userInteracting.current) {
+        const time = typeof player.currentTime === "number" ? player.currentTime : 0;
+
+        // Only update if time has changed significantly to reduce re-renders
+        if (time >= 0 && Math.abs(time - lastTimeRef.current) > 0.2) {
+          const timeDiff = Math.abs(time - lastTimeRef.current);
+          
+          // Handle looping: if time is much smaller than lastTime, it's likely a loop restart
+          const isLoopRestart = time < 2 && lastTimeRef.current > duration - 2;
+          
+          // Simplified logic for better performance
+          if (isLoopRestart || time >= lastTimeRef.current - 1 || timeDiff > 3) {
+            setCurrentTime(time);
+            lastTimeRef.current = time;
+          }
+        }
+      }
+    }, 300); // Slower updates to reduce CPU usage
+
+    return () => clearInterval(interval);
+  }, [isActive, player, isDragging, duration]);
 
   const handleProgressBarLayout = (event: LayoutChangeEvent) => {
     progressBarContainerWidth.current = event.nativeEvent.layout.width;
   };
 
-  const handleDragStart = () => {
-    // Snapshot current playing state to optionally resume after seek (handled in store.seekTo)
-    // (Keep this in case you later want to pause on drag)
-    // ts-expect-error expo-video provides 'playing' at runtime
-    wasPlayingBeforeSeek.current = (player as any).playing;
-    setIsDragging(true);
-  };
-
-  const handleDragMove = (event: GestureResponderEvent) => {
-    const containerWidth = progressBarContainerWidth.current || 1; // avoid div-by-zero
-    const touchX = event.nativeEvent.locationX;
-    const seekPercentage = Math.max(0, Math.min(1, touchX / containerWidth));
-    setDragTime(seekPercentage * duration);
-  };
-
-  const handleSeek = async (newTimeSeconds: number) => {
+  const handleSeek = (newTimeSeconds: number) => {
     if (seekInProgress.current) return;
+
     seekInProgress.current = true;
+
     try {
-      // Guard rails to avoid invalid seeks
-      if (
-        newTimeSeconds < 0.5 ||
-        newTimeSeconds > Math.max(0, duration - 0.1)
-      ) {
-        console.warn("Blocked seek: out of bounds");
+      if (newTimeSeconds < 0 || newTimeSeconds > duration) {
         return;
       }
 
-      await seekTo(newTimeSeconds); // Updates store.position internally
-      // No need to set local time; UI is driven by storePosition
+      // Update local state immediately
+      setCurrentTime(newTimeSeconds);
+      lastTimeRef.current = newTimeSeconds;
+
+      // Simple seek - just use direct assignment
+      player.currentTime = newTimeSeconds;
+
     } catch (error) {
-      console.error("Seek failed:", error);
+      // Silent error handling to reduce console spam
     } finally {
       seekInProgress.current = false;
     }
   };
 
-  const handleDragEnd = async (event: GestureResponderEvent) => {
-    if (!progressBarContainerWidth.current) {
-      setIsDragging(false);
-      setDragTime(null);
-      return;
-    }
+  const handleTouchStart = (event: GestureResponderEvent) => {
+    const containerWidth = progressBarContainerWidth.current;
+    if (containerWidth > 0) {
+      userInteracting.current = true;
+      wasPlayingBeforeSeek.current = player.playing;
+      setIsDragging(true);
 
-    const touchX = event.nativeEvent.locationX;
-    const seekPercentage = Math.max(
-      0,
-      Math.min(1, touchX / progressBarContainerWidth.current)
-    );
-    const newTimeSeconds = Math.min(
-      seekPercentage * duration,
-      Math.max(0, duration - 0.1)
-    );
+      const touchX = event.nativeEvent.locationX;
+      const seekPercentage = Math.max(0, Math.min(1, touchX / containerWidth));
+      const newTime = seekPercentage * duration;
+
+      setDragProgress(seekPercentage);
+      setDragTime(newTime);
+    }
+  };
+
+  const handleTouchMove = (event: GestureResponderEvent) => {
+    if (!isDragging) return;
+
+    const containerWidth = progressBarContainerWidth.current;
+    if (containerWidth > 0) {
+      const touchX = event.nativeEvent.locationX;
+      const seekPercentage = Math.max(0, Math.min(1, touchX / containerWidth));
+      const newTime = seekPercentage * duration;
+
+      // Throttle updates to reduce re-renders
+      if (Math.abs(newTime - (dragTime || 0)) > 0.1) {
+        setDragProgress(seekPercentage);
+        setDragTime(newTime);
+      }
+    }
+  };
+
+  const handleTouchEnd = () => {
+    if (!isDragging) return;
+
+    const finalSeekTime = dragTime !== null ? dragTime : currentTime;
 
     setIsDragging(false);
     setDragTime(null);
 
-    await handleSeek(newTimeSeconds);
+    // Seek to final position
+    if (finalSeekTime !== null && finalSeekTime >= 0 && finalSeekTime <= duration) {
+      handleSeek(finalSeekTime);
+      
+      // Resume playback
+      if (wasPlayingBeforeSeek.current) {
+        setTimeout(() => player.play(), 50);
+      }
+    }
+
+    // Re-enable time sync
+    setTimeout(() => {
+      userInteracting.current = false;
+    }, 500);
   };
 
-  // Use dragTime while dragging; otherwise follow live store position
-  const effectiveTime =
-    isDragging && dragTime !== null ? dragTime : storePosition;
-
-  const progress = duration > 0 ? (effectiveTime / duration) * 100 : 0;
+  const progress = isDragging ? dragProgress : (duration > 0 ? (currentTime / duration) : 0);
   const showProgressBar = duration > 0;
 
   if (!showProgressBar) return null;
 
   return (
-    <Pressable
-      style={styles.progressBarContainer}
-      onLayout={handleProgressBarLayout}
-      onPressIn={handleDragStart}
-      onPressOut={handleDragEnd}
-      onTouchMove={handleDragMove}
-    >
-      <View style={[styles.progressBar, { width: `${progress}%` }]} />
-      <View style={[styles.knob, { left: `${progress}%` }]} />
+    <View style={styles.progressBarContainer} onLayout={handleProgressBarLayout}>
+      {/* Background track - gray/transparent */}
+      <View style={styles.progressBarBackground} />
+
+      {/* Filled progress - white bar that fills up as video progresses */}
+      <View style={[styles.progressBar, {
+        width: `${progress * 100}%`,
+        opacity: isDragging ? 0.9 : 1,
+      }]} />
+
+      <Pressable
+        style={styles.touchArea}
+        onPressIn={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onPressOut={handleTouchEnd}
+        onTouchEnd={handleTouchEnd}
+        onTouchCancel={handleTouchEnd}
+        onPress={(event) => {
+          // Handle quick taps
+          const containerWidth = progressBarContainerWidth.current;
+          if (containerWidth > 0 && !isDragging) {
+            const touchX = event.nativeEvent.locationX;
+            const seekPercentage = Math.max(0, Math.min(1, touchX / containerWidth));
+            const newTime = seekPercentage * duration;
+
+            console.log("Quick tap - seeking to:", newTime);
+            handleSeek(newTime);
+
+            // Ensure video continues playing
+            if (!player.playing) {
+              player.play();
+            }
+          }
+        }}
+      />
 
       {isDragging && dragTime !== null && (
         <View style={styles.timestampContainer}>
           <Text style={styles.timestampText}>{formatTime(dragTime)}</Text>
         </View>
       )}
-    </Pressable>
+    </View>
   );
 };
 
@@ -214,27 +252,42 @@ const formatTime = (seconds: number) => {
 const styles = StyleSheet.create({
   progressBarContainer: {
     width: "100%",
-    height: PROGRESS_BAR_HEIGHT,
-    backgroundColor: "rgba(255, 255, 255, 0.3)",
+    height: 20, // Increased height for better touch area
+    justifyContent: "center",
     zIndex: 10,
     position: "relative",
   },
-  progressBar: {
-    height: "100%",
-    backgroundColor: "white",
-  },
-  knob: {
+  progressBarBackground: {
     position: "absolute",
-    top: -6,
-    width: 10,
-    height: 10,
+    width: "100%",
+    height: PROGRESS_BAR_HEIGHT,
+    backgroundColor: "rgba(255, 255, 255, 0.3)", // Semi-transparent white background
     borderRadius: 2,
-    backgroundColor: "transparent",
-    zIndex: 20,
+  },
+  progressBar: {
+    position: "absolute",
+    height: PROGRESS_BAR_HEIGHT,
+    backgroundColor: "white", // Solid white fill
+    borderRadius: 2,
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 1,
+    },
+    shadowOpacity: 0.2,
+    shadowRadius: 1,
+    elevation: 2,
+  },
+  touchArea: {
+    position: "absolute",
+    width: "100%",
+    height: 16,
+    top: -6,
+    justifyContent: "center",
   },
   timestampContainer: {
     position: "absolute",
-    bottom: 10,
+    bottom: 25,
     left: 0,
     right: 0,
     alignItems: "center",
@@ -242,12 +295,20 @@ const styles = StyleSheet.create({
   timestampText: {
     color: "white",
     fontSize: 12,
-    backgroundColor: "rgba(0,0,0,0.6)",
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 4,
+    backgroundColor: "rgba(0,0,0,0.8)",
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
     zIndex: 20,
   },
 });
 
-export default React.memo(VideoProgressBar);
+export default React.memo(VideoProgressBar, (prevProps, nextProps) => {
+  // Only re-render if essential props change
+  return (
+    prevProps.isActive === nextProps.isActive &&
+    prevProps.duration === nextProps.duration &&
+    prevProps.videoId === nextProps.videoId &&
+    prevProps.player === nextProps.player
+  );
+});

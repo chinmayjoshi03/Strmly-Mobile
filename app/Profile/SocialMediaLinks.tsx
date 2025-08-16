@@ -44,7 +44,7 @@ const SocialMediaLinks: React.FC = () => {
     // Count current filled fields
     const currentFilledCount = Object.values(socialLinks).filter(link => link.trim() !== '').length;
     const isCurrentFieldEmpty = socialLinks[platform as keyof typeof socialLinks].trim() === '';
-    
+
     // If trying to fill a 4th field (current field is empty and we already have 3 filled)
     if (isCurrentFieldEmpty && value.trim() !== '' && currentFilledCount >= 3) {
       Alert.alert(
@@ -78,7 +78,7 @@ const SocialMediaLinks: React.FC = () => {
       setSaving(true);
 
       await updateSocialMediaLinks(token, socialLinks);
-      
+
       Alert.alert('Success', 'Social media links updated successfully');
       router.back();
     } catch (error) {
@@ -116,11 +116,11 @@ const SocialMediaLinks: React.FC = () => {
         {/* Facebook */}
         <View style={EditProfile.InfoFrame}>
           <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
-            <View style={{ 
-              width: 24, 
-              height: 24, 
-              borderRadius: 12, 
-              backgroundColor: '#1877F2', 
+            <View style={{
+              width: 24,
+              height: 24,
+              borderRadius: 12,
+              backgroundColor: '#1877F2',
               marginRight: 8,
               justifyContent: 'center',
               alignItems: 'center'
@@ -144,11 +144,11 @@ const SocialMediaLinks: React.FC = () => {
         {/* Twitter */}
         <View style={EditProfile.InfoFrame}>
           <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
-            <View style={{ 
-              width: 24, 
-              height: 24, 
-              borderRadius: 12, 
-              backgroundColor: '#1DA1F2', 
+            <View style={{
+              width: 24,
+              height: 24,
+              borderRadius: 12,
+              backgroundColor: '#1DA1F2',
               marginRight: 8,
               justifyContent: 'center',
               alignItems: 'center'
@@ -172,11 +172,11 @@ const SocialMediaLinks: React.FC = () => {
         {/* Instagram */}
         <View style={EditProfile.InfoFrame}>
           <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
-            <View style={{ 
-              width: 24, 
-              height: 24, 
-              borderRadius: 12, 
-              backgroundColor: '#E4405F', 
+            <View style={{
+              width: 24,
+              height: 24,
+              borderRadius: 12,
+              backgroundColor: '#E4405F',
               marginRight: 8,
               justifyContent: 'center',
               alignItems: 'center'
@@ -200,11 +200,11 @@ const SocialMediaLinks: React.FC = () => {
         {/* Snapchat */}
         <View style={EditProfile.InfoFrame}>
           <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
-            <View style={{ 
-              width: 24, 
-              height: 24, 
-              borderRadius: 12, 
-              backgroundColor: '#FFFC00', 
+            <View style={{
+              width: 24,
+              height: 24,
+              borderRadius: 12,
+              backgroundColor: '#FFFC00',
               marginRight: 8,
               justifyContent: 'center',
               alignItems: 'center'
@@ -228,11 +228,11 @@ const SocialMediaLinks: React.FC = () => {
         {/* YouTube */}
         <View style={EditProfile.InfoFrame}>
           <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
-            <View style={{ 
-              width: 24, 
-              height: 24, 
-              borderRadius: 12, 
-              backgroundColor: '#FF0000', 
+            <View style={{
+              width: 24,
+              height: 24,
+              borderRadius: 12,
+              backgroundColor: '#FF0000',
               marginRight: 8,
               justifyContent: 'center',
               alignItems: 'center'
@@ -256,7 +256,7 @@ const SocialMediaLinks: React.FC = () => {
         {/* Info Text */}
         <View style={{ marginTop: 20, paddingHorizontal: 20 }}>
           <ThemedText style={EditProfile.ExtraInfo}>
-            Add your social media links to help your fans connect with you across different platforms. 
+            Add your social media links to help your fans connect with you across different platforms.
             Leave fields empty if you don't have an account on that platform.
           </ThemedText>
         </View>

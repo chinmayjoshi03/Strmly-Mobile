@@ -103,7 +103,7 @@ const VideosFeed: React.FC = () => {
         setVisibleIndex(currentIndex);
 
         // Trigger next batch if user watched 6 videos
-        if (currentIndex === 3 || currentIndex === 4) {
+        if (currentIndex === 6 || currentIndex === 4) {
           fetchTrendingVideos(page);
         }
 
