@@ -19,6 +19,7 @@ import { useAuthStore } from "@/store/useAuthStore";
 import Constants from "expo-constants";
 import { router, useFocusEffect } from "expo-router";
 import { useGiftingStore } from "@/store/useGiftingStore";
+import { getProfilePhotoUrl } from "@/utils/profileUtils";
 
 type VideoDetailsProps = {
   videoId: string;
@@ -46,6 +47,8 @@ type VideoDetailsProps = {
     };
   } | null;
 
+  is_following_creator: boolean;
+
   series?:
     | {
         _id: string;
@@ -55,6 +58,7 @@ type VideoDetailsProps = {
         total_episodes: number;
         episodes: [
           {
+            _id: string;
             episode_number: number;
           },
         ];
@@ -65,6 +69,7 @@ type VideoDetailsProps = {
   episode_number: number | null;
   onToggleFullScreen?: () => void;
   isFullScreen?: boolean;
+  onEpisodeChange?: (episodeData: any) => void; // New callback for episode switching
 };
 
 const VideoDetails = ({
@@ -81,6 +86,7 @@ const VideoDetails = ({
   is_following_creator,
   onToggleFullScreen,
   isFullScreen,
+  onEpisodeChange,
 }: VideoDetailsProps) => {
   const [showDropdown, setShowDropdown] = useState(false);
   const [selectedEpisodeIndex, setSelectedEpisodeIndex] = useState(0);
@@ -290,13 +296,9 @@ const VideoDetails = ({
             onPress={() => router.push(`/profile/public/${createdBy?._id}`)}
           >
             <Image
-              source={
-                createdBy?.profile_photo !== ""
-                  ? {
-                      uri: createdBy?.profile_photo,
-                    }
-                  : require("../../../../assets/images/user.png")
-              }
+              source={{
+                uri: getProfilePhotoUrl(createdBy?.profile_photo, "user"),
+              }}
               className="size-8 rounded-full"
             />
             <Text className="text-white font-semibold">
@@ -522,11 +524,17 @@ const VideoDetails = ({
           <View className="absolute bottom-3.5 left-11 rounded-xl p-2 w-56">
             {series?.episodes.map((ep, idx) => (
               <TouchableOpacity
-                key={idx}
+                key={ep._id || idx}
                 className="mb-[0.5px]"
                 onPress={() => {
                   setSelectedEpisodeIndex(ep.episode_number);
                   setShowDropdown(false);
+
+                  // Call the episode change callback if provided
+                  if (onEpisodeChange && ep) {
+                    console.log("🎬 Calling onEpisodeChange with episode:", ep);
+                    onEpisodeChange(ep);
+                  }
                 }}
               >
                 <View

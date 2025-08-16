@@ -7,7 +7,6 @@ import {
   Alert,
   Image,
   Linking,
-  Pressable,
   FlatList,
   Dimensions,
   BackHandler,
@@ -17,7 +16,6 @@ import {
   HeartIcon,
   IndianRupee,
   PaperclipIcon,
-  ExternalLink,
 } from "lucide-react-native";
 import { useAuthStore } from "@/store/useAuthStore";
 import { useThumbnailsGenerate } from "@/utils/useThumbnailGenerator"; // Ensure this path is correct
@@ -29,6 +27,7 @@ import { useRoute } from "@react-navigation/native";
 import { router, useFocusEffect } from "expo-router";
 import VideoPlayer from "@/app/(dashboard)/long/_components/VideoPlayer";
 import BottomNavBar from "@/components/BottomNavBar";
+import { getProfilePhotoUrl } from "@/utils/profileUtils";
 
 export default function PublicProfilePageWithId() {
   const [activeTab, setActiveTab] = useState("long");
@@ -54,6 +53,26 @@ export default function PublicProfilePageWithId() {
   const [currentVideoList, setCurrentVideoList] = useState<any[]>([]);
   const [currentVideoIndex, setCurrentVideoIndex] = useState(0);
   const [showCommentsModal, setShowCommentsModal] = useState(false);
+
+  // Handle stats updates
+  const handleStatsUpdate = useCallback((videoId: string, stats: { likes?: number; gifts?: number; shares?: number; comments?: number }) => {
+    setCurrentVideoList(prevList => 
+      prevList.map(video => 
+        video._id === videoId 
+          ? { ...video, ...stats }
+          : video
+      )
+    );
+    
+    // Also update the main videos list if the video exists there
+    setVideos(prevVideos => 
+      prevVideos.map(video => 
+        video._id === videoId 
+          ? { ...video, ...stats }
+          : video
+      )
+    );
+  }, []);
 
   const BACKEND_API_URL = Constants.expoConfig?.extra?.BACKEND_API_URL;
 
@@ -438,13 +457,7 @@ export default function PublicProfilePageWithId() {
                       <View className="items-center">
                         <View className="size-24 border-white border rounded-full overflow-hidden">
                           <Image
-                            source={
-                              userData?.userDetails?.profile_photo
-                                ? {
-                                    uri: userData.userDetails.profile_photo,
-                                  }
-                                : require("../../../../assets/images/user.png")
-                            }
+                            source={{ uri: getProfilePhotoUrl(userData?.userDetails?.profile_photo, 'user') }}
                             className="w-full h-full object-cover rounded-full"
                           />
                         </View>
@@ -787,6 +800,7 @@ export default function PublicProfilePageWithId() {
                 isActive={index === currentVideoIndex}
                 showCommentsModal={showCommentsModal}
                 setShowCommentsModal={setShowCommentsModal}
+                onStatsUpdate={(stats) => handleStatsUpdate(item._id, stats)}
               />
             )}
             initialScrollIndex={currentVideoIndex}
@@ -803,11 +817,11 @@ export default function PublicProfilePageWithId() {
             snapToInterval={Dimensions.get("window").height}
             snapToAlignment="start"
           />
+          
+          {/* Bottom Navigation Bar in Video Player */}
+          <BottomNavBar />
         </View>
       )}
-
-      {/* Bottom Navigation Bar */}
-      {!isVideoPlayerActive && <BottomNavBar />}
     </ThemedView>
   );
 }

@@ -1,7 +1,8 @@
 import { StyleSheet, Text, View, Image, TouchableOpacity, StatusBar, Alert } from 'react-native';
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Ionicons } from '@expo/vector-icons';
 import * as DocumentPicker from 'expo-document-picker';
+import { useVideoPlayer, VideoView } from 'expo-video';
 
 interface FileSelectScreenProps {
   onFileSelected: (file: any) => void;
@@ -19,6 +20,28 @@ const FileSelectScreen: React.FC<FileSelectScreenProps> = ({
   isEditingDraft
 }) => {
   const [selectedFile, setSelectedFile] = useState<any>(null);
+  const [isPlaying, setIsPlaying] = useState(false);
+
+  // Create video player instance - always call the hook to maintain hook order
+  const player = useVideoPlayer(selectedFile?.uri || '', (player) => {
+    if (selectedFile) {
+      player.loop = false;
+      player.volume = 1;
+    }
+  });
+
+  // Track player status
+  useEffect(() => {
+    if (player && selectedFile) {
+      const subscription = player.addListener('playingChange', (isPlaying) => {
+        setIsPlaying(isPlaying);
+      });
+
+      return () => {
+        subscription.remove();
+      };
+    }
+  }, [player, selectedFile]);
 
   // Handle file selection
   const handleFileSelect = async () => {
@@ -38,8 +61,16 @@ const FileSelectScreen: React.FC<FileSelectScreenProps> = ({
           return;
         }
 
-        console.log('Selected file:', file);
+        console.log('✅ FileSelectScreen: Selected file:', {
+          name: file.name,
+          size: file.size,
+          type: file.mimeType,
+          uri: file.uri
+        });
         setSelectedFile(file);
+        // Immediately notify parent component about file selection
+        onFileSelected(file);
+        console.log('✅ FileSelectScreen: Notified parent about file selection');
       }
     } catch (error) {
       Alert.alert('Error', 'Failed to select file. Please try again.');
@@ -50,11 +81,33 @@ const FileSelectScreen: React.FC<FileSelectScreenProps> = ({
   // Handle continue with selected file
   const handleContinue = () => {
     if (selectedFile) {
-      onFileSelected(selectedFile);
+      console.log('✅ FileSelectScreen: Continue with file:', selectedFile.name);
       if (onContinueUpload) {
         onContinueUpload();
       }
+    } else {
+      console.warn('⚠️ FileSelectScreen: No file selected');
+      Alert.alert('No File Selected', 'Please select a video file first.');
     }
+  };
+
+  // Handle video play/pause
+  const togglePlayPause = () => {
+    if (player && selectedFile) {
+      if (isPlaying) {
+        player.pause();
+      } else {
+        player.play();
+      }
+      setIsPlaying(!isPlaying);
+    }
+  };
+
+  // Handle video selection from preview
+  const handleSelectDifferentVideo = () => {
+    setSelectedFile(null);
+    setIsPlaying(false);
+    handleFileSelect();
   };
 
   return (
@@ -72,25 +125,76 @@ const FileSelectScreen: React.FC<FileSelectScreenProps> = ({
 
       {/* Main Content */}
       <View style={styles.content}>
-        <View style={styles.innerContainer}>
-          <Image
-            source={require('../../../assets/upload.png')}
-            style={styles.uploadIcon}
-            resizeMode="contain"
-          />
-          <Text style={styles.uploadText}>
-            You can upload videos of any length — 30 sec, 5 min, 1 hours or more.
-          </Text>
-          <TouchableOpacity
-            style={styles.uploadButton}
-            onPress={handleFileSelect}
-          >
-            <Text style={styles.uploadButtonText}>Upload file</Text>
-          </TouchableOpacity>
-          <Text style={styles.infoText}>
-            Our smart AI detector reshapes your video to look great in both portrait and landscape views—so every viewer gets the best experience.
-          </Text>
-        </View>
+        {selectedFile ? (
+          /* Video Preview Card */
+          <View style={styles.videoPreviewContainer}>
+            <View style={styles.videoContainer}>
+              {player && selectedFile && (
+                <VideoView
+                  player={player}
+                  style={styles.video}
+                  contentFit="contain"
+                  nativeControls={false}
+                  allowsPictureInPicture={false}
+                />
+              )}
+
+              {/* Play/Pause Overlay */}
+              <TouchableOpacity
+                style={styles.playPauseOverlay}
+                onPress={togglePlayPause}
+              >
+                <View style={styles.playPauseButton}>
+                  <Ionicons
+                    name={isPlaying ? "pause" : "play"}
+                    size={32}
+                    color="white"
+                  />
+                </View>
+              </TouchableOpacity>
+            </View>
+
+            {/* Video Info */}
+            <View style={styles.videoInfo}>
+              <Text style={styles.videoName} numberOfLines={1}>
+                {selectedFile.name}
+              </Text>
+              <Text style={styles.videoSize}>
+                {selectedFile.size ? `${(selectedFile.size / (1024 * 1024)).toFixed(1)} MB` : 'Unknown size'}
+              </Text>
+            </View>
+
+            {/* Change Video Button */}
+            <TouchableOpacity
+              style={styles.changeVideoButton}
+              onPress={handleSelectDifferentVideo}
+            >
+              <Ionicons name="refresh" size={20} color="#9CA3AF" />
+              <Text style={styles.changeVideoText}>Select Different Video</Text>
+            </TouchableOpacity>
+          </View>
+        ) : (
+          /* Upload Interface */
+          <View style={styles.innerContainer}>
+            <Image
+              source={require('../../../assets/upload.png')}
+              style={styles.uploadIcon}
+              resizeMode="contain"
+            />
+            <Text style={styles.uploadText}>
+              You can upload videos of any length — 30 sec, 5 min, 1 hours or more.
+            </Text>
+            <TouchableOpacity
+              style={styles.uploadButton}
+              onPress={handleFileSelect}
+            >
+              <Text style={styles.uploadButtonText}>Upload file</Text>
+            </TouchableOpacity>
+            <Text style={styles.infoText}>
+              Our smart AI detector reshapes your video to look great in both portrait and landscape views—so every viewer gets the best experience.
+            </Text>
+          </View>
+        )}
       </View>
 
       {/* Action Buttons */}
@@ -104,16 +208,23 @@ const FileSelectScreen: React.FC<FileSelectScreenProps> = ({
             <Text style={styles.draftButtonText}>Save to Draft</Text>
           </TouchableOpacity>
         )}
-        
-        {/* Continue Button - Only show when file is selected */}
-        {selectedFile && (
-          <TouchableOpacity
-            onPress={handleContinue}
-            style={styles.continueButton}
-          >
-            <Text style={styles.continueButtonText}>Continue</Text>
-          </TouchableOpacity>
-        )}
+
+        {/* Continue Button - Always show, but disabled when no file */}
+        <TouchableOpacity
+          onPress={handleContinue}
+          style={[
+            styles.continueButton,
+            !selectedFile && styles.continueButtonDisabled
+          ]}
+          disabled={!selectedFile}
+        >
+          <Text style={[
+            styles.continueButtonText,
+            !selectedFile && styles.continueButtonTextDisabled
+          ]}>
+            {selectedFile ? 'Continue' : 'Select a video to continue'}
+          </Text>
+        </TouchableOpacity>
       </View>
     </View>
   );
@@ -187,8 +298,9 @@ const styles = StyleSheet.create({
   },
   actionButtonsContainer: {
     paddingHorizontal: 16,
-    paddingBottom: 32,
-    marginBottom: 80,
+    paddingBottom: 16,
+    paddingTop: 16,
+    marginBottom: 25,
     gap: 12,
   },
   draftButton: {
@@ -214,6 +326,81 @@ const styles = StyleSheet.create({
     color: '#000',
     fontSize: 18,
     fontWeight: '500',
+  },
+  continueButtonDisabled: {
+    backgroundColor: '#374151',
+  },
+  continueButtonTextDisabled: {
+    color: '#9CA3AF',
+  },
+  // Video Preview Styles
+  videoPreviewContainer: {
+    backgroundColor: '#1C1C1E',
+    borderRadius: 12,
+    padding: 16,
+    width: 361,
+    alignItems: 'center',
+  },
+  videoContainer: {
+    width: '100%',
+    height: 200,
+    borderRadius: 8,
+    overflow: 'hidden',
+    position: 'relative',
+    backgroundColor: '#000',
+  },
+  video: {
+    width: '100%',
+    height: '100%',
+  },
+  playPauseOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.3)',
+  },
+  playPauseButton: {
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    borderRadius: 30,
+    width: 60,
+    height: 60,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  videoInfo: {
+    width: '100%',
+    marginTop: 16,
+    alignItems: 'center',
+  },
+  videoName: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '500',
+    textAlign: 'center',
+    marginBottom: 4,
+  },
+  videoSize: {
+    color: '#9CA3AF',
+    fontSize: 14,
+    textAlign: 'center',
+  },
+  changeVideoButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 16,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    backgroundColor: '#374151',
+  },
+  changeVideoText: {
+    color: '#9CA3AF',
+    fontSize: 14,
+    marginLeft: 8,
   },
 });
 

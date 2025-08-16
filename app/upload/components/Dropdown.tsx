@@ -1,19 +1,19 @@
-import React, { useState, useMemo } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, TextInput, Modal, Dimensions } from 'react-native';
+import React from 'react';
+import { View, Text, TouchableOpacity, ScrollView, Modal, Dimensions } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { DropdownProps } from '../types';
 
 /**
  * Dropdown Component
  * Reusable dropdown with overlay selection list
+ * Search functionality has been removed for simplified user experience
  * 
  * Backend Integration Notes:
  * - Options can be fetched from API endpoints
  * - Consider caching frequently used options (communities, genres)
- * - Implement search functionality for large option lists
  * 
  * API Endpoints that might be needed:
- * - GET /api/communities (for community options)
+ * - GET /api/community/user-communities (for user's communities)
  * - GET /api/genres (for genre options)
  * - GET /api/formats (for format options)
  */
@@ -26,18 +26,11 @@ const Dropdown: React.FC<DropdownProps> = ({
   onToggle,
   disabled = false
 }) => {
-  const [searchText, setSearchText] = useState('');
+  // Use options directly without filtering
+  const filteredOptions = options;
 
-  // Filter options based on search text
-  const filteredOptions = useMemo(() => {
-    if (!searchText.trim()) return options;
-    return options.filter(option => 
-      option.label.toLowerCase().includes(searchText.toLowerCase())
-    );
-  }, [options, searchText]);
-
-  // Show search bar only if there are more than 5 options
-  const showSearch = options.length > 5;
+  // Disable search functionality
+  const showSearch = false;
 
   return (
     <View>
@@ -90,35 +83,22 @@ const Dropdown: React.FC<DropdownProps> = ({
               >
                 {/* Header */}
                 <View className="flex-row items-center justify-between px-4 py-3 border-b border-gray-500">
-                  <Text className="text-white text-lg font-medium">Select Community</Text>
+                  <Text className="text-white text-lg font-medium">Select Option</Text>
                   <TouchableOpacity onPress={onToggle}>
                     <Ionicons name="close" size={24} color="white" />
                   </TouchableOpacity>
                 </View>
 
-                {/* Search Input - Only show if there are many options */}
-                {showSearch && (
-                  <View className="px-4 py-3 border-b border-gray-500">
-                    <TextInput
-                      value={searchText}
-                      onChangeText={setSearchText}
-                      placeholder="Search communities..."
-                      placeholderTextColor="#9CA3AF"
-                      className="text-white text-base bg-gray-700 rounded-lg px-3 py-2"
-                      autoCapitalize="none"
-                      autoCorrect={false}
-                    />
-                  </View>
-                )}
+                {/* Search functionality removed */}
                 
                 <ScrollView 
                   showsVerticalScrollIndicator={true}
-                  style={{ maxHeight: showSearch ? 300 : 400 }}
+                  style={{ maxHeight: 400 }}
                   keyboardShouldPersistTaps="handled"
                 >
                   {filteredOptions.length === 0 ? (
                     <View className="px-6 py-8 items-center">
-                      <Text className="text-gray-400 text-base">No communities found</Text>
+                      <Text className="text-gray-400 text-base">No options found</Text>
                     </View>
                   ) : (
                     filteredOptions.map((option, index) => (
@@ -126,7 +106,6 @@ const Dropdown: React.FC<DropdownProps> = ({
                         key={option.value}
                         onPress={() => {
                           onSelect(option.value);
-                          setSearchText(''); // Clear search when selecting
                           onToggle(); // Close dropdown after selection
                         }}
                         className={`px-6 py-4 ${

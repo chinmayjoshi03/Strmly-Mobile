@@ -5,6 +5,7 @@ import Svg, { Path } from 'react-native-svg';
 import { router } from 'expo-router';
 import { useAuthStore } from '@/store/useAuthStore';
 import { CONFIG } from '@/Constants/config';
+import { getProfilePhotoUrl } from '@/utils/profileUtils';
 
 interface BottomNavBarProps {
   activeTab?: 'home' | 'studio' | 'search' | 'profile';
@@ -121,18 +122,11 @@ export default function BottomNavBar({ activeTab }: BottomNavBarProps) {
         className={`w-8 h-8 items-center justify-center ${activeTab === 'profile' ? 'opacity-100' : 'opacity-60'}`}
       >
         <View className="w-7 h-7 bg-gray-600 rounded-full overflow-hidden items-center justify-center">
-          {profilePhoto ? (
-            <Image 
-              source={{ uri: profilePhoto }}
-              className="w-full h-full"
-              style={{ width: 28, height: 28, resizeMode: 'cover' }}
-            />
-          ) : (
-            <View className="w-full h-full bg-gradient-to-b from-gray-500 to-gray-700 items-center justify-center">
-              <View className="w-3 h-3 bg-white rounded-full mb-1" />
-              <View className="w-5 h-2 bg-white rounded-t-full" />
-            </View>
-          )}
+          <Image 
+            source={{ uri: getProfilePhotoUrl(profilePhoto, 'user') }}
+            className="w-full h-full"
+            style={{ width: 28, height: 28, resizeMode: 'cover' }}
+          />
         </View>
       </TouchableOpacity>
     </View>

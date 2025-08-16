@@ -214,7 +214,7 @@ const WalletPage = () => {
           </View>
         </>
       )}
-      
+
       {/* Bottom Navigation Bar */}
       {!isOpenTBalance && !isOpenWBalance && !isOpenRevenue && (
         <BottomNavBar />

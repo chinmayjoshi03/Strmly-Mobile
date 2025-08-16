@@ -102,8 +102,8 @@ export const useSeries = () => {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`,
-         
           'Content-Type': 'application/json',
+          'Cache-Control': 'no-cache',
         },
       });
 
@@ -149,18 +149,13 @@ export const useSeries = () => {
     fetchSeries();
   }, []);
 
-  const refetch = () => {
+  const refetch = async () => {
     console.log('🔄 Refetching series data...');
     // Clear current series to force a refresh
     setSeries([]);
     setError(null);
     setRefreshKey(prev => prev + 1);
-    console.log('🔄 Refetching series data...');
-    // Clear current series to force a refresh
-    setSeries([]);
-    setError(null);
-    setRefreshKey(prev => prev + 1);
-    fetchSeries();
+    await fetchSeries();
   };
 
   return {

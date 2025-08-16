@@ -25,6 +25,8 @@ type Props = {
   isActive: boolean;
   showCommentsModal?: boolean;
   setShowCommentsModal?: (show: boolean) => void;
+  onEpisodeChange?: (episodeData: any) => void;
+  onStatsUpdate?: (stats: { likes?: number; gifts?: number; shares?: number; comments?: number }) => void;
 };
 
 const VideoPlayer = ({
@@ -32,6 +34,8 @@ const VideoPlayer = ({
   isActive,
   showCommentsModal = false,
   setShowCommentsModal,
+  onEpisodeChange,
+  onStatsUpdate,
 }: Props) => {
   const {
     isGifted,
@@ -45,7 +49,7 @@ const VideoPlayer = ({
     clearGiftingData,
     clearSeriesData,
     clearVideoAccessData,
-    clearPassData,
+    clearPassData
   } = useGiftingStore();
 
   const { _updateStatus } = usePlayerStore.getState();
@@ -162,6 +166,8 @@ const VideoPlayer = ({
       <VideoControls
         videoData={videoData}
         setShowCommentsModal={setShowCommentsModal}
+        onEpisodeChange={onEpisodeChange}
+        onStatsUpdate={onStatsUpdate}
       />
 
       <View className="absolute bottom-[2.56rem] left-0 h-5 z-10 right-0">
@@ -170,7 +176,7 @@ const VideoPlayer = ({
           isActive={isActive}
           videoId={videoData._id}
           duration={
-            videoData.duration || videoData.access.freeRange.display_till_time
+            videoData.duration || videoData.access?.freeRange?.display_till_time || 0
           }
           access={
             videoData.access || {
@@ -246,6 +252,13 @@ const VideoPlayer = ({
             // Open tip modal for comment
             console.log("Open tip modal for comment:", commentId);
             // You can implement tip modal logic here
+          }}
+          onCommentAdded={() => {
+            // Update comment count when a new comment is added
+            if (onStatsUpdate) {
+              const newCommentCount = (videoData.comments?.length || 0) + 1;
+              onStatsUpdate({ comments: newCommentCount });
+            }
           }}
         />
       )}

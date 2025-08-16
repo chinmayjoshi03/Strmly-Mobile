@@ -47,6 +47,7 @@ export interface UnifiedVideoPlayerProps {
   onPlaybackStatusUpdate?: (status: any) => void;
   onVideoEnd?: () => void;
   onError?: (error: string) => void;
+  onEpisodeChange?: (episodeData: any) => void;
 
   // Interaction props (always available for unified experience)
   setGiftingData?: (data: any) => void;
@@ -84,6 +85,7 @@ const UnifiedVideoPlayer: React.FC<UnifiedVideoPlayerProps> = ({
   onPlaybackStatusUpdate,
   onVideoEnd,
   onError,
+  onEpisodeChange,
   setGiftingData,
   setIsWantToGift,
   showCommentsModal = false,
@@ -111,6 +113,12 @@ const UnifiedVideoPlayer: React.FC<UnifiedVideoPlayerProps> = ({
   const [isFullScreen, setIsFullScreen] = useState(mode === 'fullscreen');
   const [hasCalledWatchFunction, setHasCalledWatchFunction] = useState(false);
   const [screenSize, setScreenSize] = useState(Dimensions.get("screen"));
+
+  // Video stats state (to handle real-time updates)
+  const [currentLikes, setCurrentLikes] = useState(videoData?.likes || 0);
+  const [currentGifts, setCurrentGifts] = useState(videoData?.gifts || 0);
+  const [currentShares, setCurrentShares] = useState(videoData?.shares || 0);
+  const [currentComments, setCurrentComments] = useState(videoData?.comments?.length || 0);
 
   // Calculate container dimensions based on mode
   const getContainerStyle = () => {
@@ -235,6 +243,29 @@ const UnifiedVideoPlayer: React.FC<UnifiedVideoPlayerProps> = ({
       setIsPaused(true);
     }
   }, [isActive, autoPlay, player]);
+
+  // Update stats when videoData changes
+  useEffect(() => {
+    if (videoData) {
+      setCurrentLikes(videoData.likes || 0);
+      setCurrentGifts(videoData.gifts || 0);
+      setCurrentShares(videoData.shares || 0);
+      setCurrentComments(videoData.comments?.length || 0);
+    }
+  }, [videoData]);
+
+  // Stat update callbacks
+  const handleLikeUpdate = useCallback((newLikeCount: number, isLiked: boolean) => {
+    setCurrentLikes(newLikeCount);
+  }, []);
+
+  const handleShareUpdate = useCallback((newShareCount: number, isShared: boolean) => {
+    setCurrentShares(newShareCount);
+  }, []);
+
+  const handleGiftUpdate = useCallback((newGiftCount: number) => {
+    setCurrentGifts(newGiftCount);
+  }, []);
 
   // Watch tracking for feed mode
   useEffect(() => {
@@ -386,20 +417,16 @@ const UnifiedVideoPlayer: React.FC<UnifiedVideoPlayerProps> = ({
       {shouldShowInteractions() && (
         <View style={styles.interact}>
           <InteractOptions
-            creator={{
-              _id: videoData!.created_by?._id || '',
-              username: videoData!.created_by?.username || '',
-              name: videoData!.created_by?.username || '',
-              profile_photo: videoData!.created_by?.profile_photo || ''
-            }}
-            setGiftingData={setGiftingData!}
-            setIsWantToGift={setIsWantToGift!}
+            creator={videoData!.created_by}
             videoId={videoData!._id}
-            likes={videoData!.likes}
-            gifts={videoData!.gifts}
-            shares={videoData!.shares}
-            comments={videoData!.comments?.length}
+            likes={currentLikes}
+            gifts={currentGifts}
+            shares={currentShares}
+            comments={currentComments}
             onCommentPress={shouldShowComments() ? handleOpenComments : undefined}
+            onLikeUpdate={handleLikeUpdate}
+            onShareUpdate={handleShareUpdate}
+            onGiftUpdate={handleGiftUpdate}
           />
         </View>
       )}
@@ -410,14 +437,17 @@ const UnifiedVideoPlayer: React.FC<UnifiedVideoPlayerProps> = ({
           <VideoDetails
             videoId={videoData!._id}
             type={videoData!.type}
+            videoAmount={videoData!.amount}
             name={videoData!.name}
             is_monetized={videoData!.is_monetized}
             community={videoData!.community}
             series={videoData!.series}
             episode_number={videoData!.episode_number}
             createdBy={videoData!.created_by}
+            creatorPass={videoData!.creatorPassDetails}
             onToggleFullScreen={toggleFullScreen}
             isFullScreen={isFullScreen}
+            onEpisodeChange={onEpisodeChange}
           />
         </View>
       )}

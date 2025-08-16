@@ -128,3 +128,29 @@ export const addEpisodeToSeries = async (seriesId: string, videoId: string, epis
 
   return response.json();
 };
+
+/**
+ * Recalculate series analytics
+ */
+export const recalculateSeriesAnalytics = async (seriesId: string): Promise<any> => {
+  const { token } = useAuthStore.getState();
+  
+  if (!token) {
+    throw new Error('Authentication required');
+  }
+
+  const response = await fetch(`${CONFIG.API_BASE_URL}/series/${seriesId}/recalculate-analytics`, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    },
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json();
+    throw new Error(errorData.error || 'Failed to recalculate series analytics');
+  }
+
+  return response.json();
+};

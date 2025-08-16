@@ -23,11 +23,12 @@ export const useMonetization = (enablePolling = false, pollingInterval = 10000) 
     }
   }, [token, fetchMonetizationStatus]);
 
-  // Polling mechanism
+  // Polling mechanism (with reduced frequency)
   useEffect(() => {
     if (enablePolling && token && appState.current === 'active') {
+      // Use cache-aware fetching instead of force refresh
       pollingRef.current = setInterval(() => {
-        fetchMonetizationStatus(token, true);
+        fetchMonetizationStatus(token, false); // Don't force refresh, use cache
       }, pollingInterval);
 
       return () => {
@@ -43,7 +44,7 @@ export const useMonetization = (enablePolling = false, pollingInterval = 10000) 
   useEffect(() => {
     const handleAppStateChange = (nextAppState: AppStateStatus) => {
       if (appState.current.match(/inactive|background/) && nextAppState === 'active' && token) {
-        fetchMonetizationStatus(token, true); // Force refresh when coming to foreground
+        fetchMonetizationStatus(token, false); // Use cache when coming to foreground
 
         // Restart polling if enabled
         if (enablePolling && !pollingRef.current) {

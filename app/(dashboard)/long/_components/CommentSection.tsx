@@ -9,6 +9,8 @@ import {
   ActivityIndicator,
   Image,
   Alert,
+  Keyboard,
+  Platform,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { MaterialIcons } from "@expo/vector-icons";
@@ -16,12 +18,14 @@ import { useComments } from "./useComments";
 import { Comment } from "@/types/Comments";
 import { useMonetization } from "./useMonetization";
 import { router } from "expo-router";
+import { getProfilePhotoUrl } from "@/utils/profileUtils";
 
 interface CommentsSectionProps {
   onClose: () => void;
   videoId: string | null;
   onPressUsername?: (userId: string) => void;
   onPressTip?: (commentId: string) => void;
+  onCommentAdded?: () => void;
 }
 
 const { height: SCREEN_HEIGHT } = Dimensions.get("window");
@@ -33,6 +37,7 @@ const CommentsSection = ({
   videoId,
   onPressUsername,
   onPressTip,
+  onCommentAdded,
 }: CommentsSectionProps) => {
   const [comment, setComment] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -40,8 +45,20 @@ const CommentsSection = ({
   const [replyingToUser, setReplyingToUser] = useState<string>("");
   const [expandedReplies, setExpandedReplies] = useState<Set<string>>(new Set());
   const [repliesData, setRepliesData] = useState<{ [key: string]: any[] }>({});
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
   const insets = useSafeAreaInsets();
-  const { commentMonetizationEnabled, loading: monetizationLoading } = useMonetization(true, 30000); // Enable polling every 30 seconds
+  const { commentMonetizationEnabled, loading: monetizationLoading } = useMonetization(false); // Disable polling to reduce API calls
+
+  // Debug logging for monetization (reduced)
+  useEffect(() => {
+    if (comments.length > 0) {
+      console.log('💰 Comment Monetization Status:', {
+        globalEnabled: commentMonetizationEnabled,
+        commentsCount: comments.length,
+        monetizedComments: comments.filter(c => c.is_monetized).length
+      });
+    }
+  }, [commentMonetizationEnabled, comments]);
 
   const {
     comments,
@@ -59,6 +76,27 @@ const CommentsSection = ({
   useEffect(() => {
     if (videoId) fetchComments();
   }, [videoId, fetchComments]);
+
+  useEffect(() => {
+    const keyboardWillShowListener = Keyboard.addListener(
+      Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow',
+      (event) => {
+        setKeyboardHeight(event.endCoordinates.height);
+      }
+    );
+
+    const keyboardWillHideListener = Keyboard.addListener(
+      Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide',
+      () => {
+        setKeyboardHeight(0);
+      }
+    );
+
+    return () => {
+      keyboardWillShowListener.remove();
+      keyboardWillHideListener.remove();
+    };
+  }, []);
 
 
 
@@ -85,6 +123,10 @@ const CommentsSection = ({
       } else {
         await addComment(comment.trim());
         setComment("");
+        // Notify parent that a comment was added
+        if (onCommentAdded) {
+          onCommentAdded();
+        }
       }
     } catch (error: any) {
       console.error('Error submitting comment:', error);
@@ -184,11 +226,7 @@ const CommentsSection = ({
             style={{ minHeight: 44, minWidth: 44, justifyContent: 'center' }}
           >
             <Image
-              source={
-                reply.user?.avatar
-                  ? { uri: reply.user.avatar }
-                  : require('@/assets/images/user.png')
-              }
+              source={{ uri: getProfilePhotoUrl(reply.user?.avatar, 'user') }}
               style={{ width: 32, height: 32, borderRadius: 16 }}
             />
           </TouchableOpacity>
@@ -269,11 +307,7 @@ const CommentsSection = ({
               style={{ minHeight: 44, minWidth: 44, justifyContent: 'center' }}
             >
               <Image
-                source={
-                  item.user?.avatar
-                    ? { uri: item.user.avatar }
-                    : require('@/assets/images/user.png')
-                }
+                source={{ uri: getProfilePhotoUrl(item.user?.avatar, 'user') }}
                 style={{ width: 44, height: 44, borderRadius: 22 }}
               />
             </TouchableOpacity>
@@ -414,7 +448,7 @@ const CommentsSection = ({
           top: 0,
           left: 0,
           right: 0,
-          bottom: SHEET_MAX_HEIGHT + BOTTOM_NAV_HEIGHT,
+          bottom: SHEET_MAX_HEIGHT + (keyboardHeight > 0 ? keyboardHeight : BOTTOM_NAV_HEIGHT),
         }}
         onPress={onClose}
         activeOpacity={1}
@@ -427,7 +461,7 @@ const CommentsSection = ({
           borderTopLeftRadius: 36,
           borderTopRightRadius: 36,
           height: SHEET_MAX_HEIGHT,
-          marginBottom: BOTTOM_NAV_HEIGHT,
+          marginBottom: keyboardHeight > 0 ? keyboardHeight : BOTTOM_NAV_HEIGHT,
         }}
       >
         {/* Drag handle */}
@@ -452,11 +486,13 @@ const CommentsSection = ({
         {/* Comments List - Using ScrollView for reliable scrolling */}
         <ScrollView
           style={{ flex: 1 }}
+          contentContainerStyle={{ flexGrow: 1 }}
           showsVerticalScrollIndicator={false}
           bounces={true}
           scrollEnabled={true}
-          nestedScrollEnabled={false}
+          nestedScrollEnabled={true}
           keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="interactive"
         >
           {isLoading || monetizationLoading ? (
             <View
@@ -497,7 +533,7 @@ const CommentsSection = ({
         <View
           style={{
             paddingHorizontal: 20,
-            paddingBottom: Math.max(insets.bottom, 16),
+            paddingBottom: keyboardHeight > 0 ? 16 : Math.max(insets.bottom, 16),
             paddingTop: 16,
             backgroundColor: '#0E0E0E',
           }}

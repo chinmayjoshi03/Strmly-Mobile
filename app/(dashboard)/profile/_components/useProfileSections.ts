@@ -21,6 +21,43 @@ export const useProfileSections = ({ initialSection = 'followers' }: UseProfileS
     community: 0,
   });
   const [error, setError] = useState<string | null>(null);
+  const [countsLoaded, setCountsLoaded] = useState(false);
+
+  // Fetch all counts initially
+  const fetchAllCounts = useCallback(async () => {
+    if (!token) {
+      setError('No authentication token available');
+      return;
+    }
+
+    try {
+      const [followersResult, followingResult, myCommunitiesResult, joinedCommunitiesResult] = await Promise.all([
+        profileActions.getUserFollowers(token),
+        profileActions.getUserFollowing(token),
+        profileActions.getUserCommunities(token, 'created'),
+        profileActions.getUserCommunities(token, 'joined'),
+      ]);
+
+      setCounts({
+        followers: followersResult.count || 0,
+        following: followingResult.count || 0,
+        myCommunity: Array.isArray(myCommunitiesResult.communities) ? myCommunitiesResult.communities.length : 0,
+        community: Array.isArray(joinedCommunitiesResult.communities) ? joinedCommunitiesResult.communities.length : 0,
+      });
+
+      setCountsLoaded(true);
+      console.log('✅ Fetched all counts:', {
+        followers: followersResult.count || 0,
+        following: followingResult.count || 0,
+        myCommunity: Array.isArray(myCommunitiesResult.communities) ? myCommunitiesResult.communities.length : 0,
+        community: Array.isArray(joinedCommunitiesResult.communities) ? joinedCommunitiesResult.communities.length : 0,
+      });
+
+    } catch (error) {
+      console.error('❌ Error fetching counts:', error);
+      // Don't show alert for count fetching errors, just log them
+    }
+  }, [token]);
 
   const fetchData = useCallback(async (section: SectionType) => {
     if (!token) {
@@ -87,6 +124,10 @@ export const useProfileSections = ({ initialSection = 'followers' }: UseProfileS
     fetchData(activeSection);
   }, [fetchData, activeSection]);
 
+  const refreshAllCounts = useCallback(() => {
+    fetchAllCounts();
+  }, [fetchAllCounts]);
+
   const searchData = useCallback((query: string) => {
     if (!query.trim()) {
       return data;
@@ -104,10 +145,13 @@ export const useProfileSections = ({ initialSection = 'followers' }: UseProfileS
     });
   }, [data, activeSection]);
 
-  // Initial data fetch
+  // Initial setup - fetch all counts first, then active section data
   useEffect(() => {
+    if (!countsLoaded) {
+      fetchAllCounts();
+    }
     fetchData(activeSection);
-  }, [fetchData, activeSection]);
+  }, [fetchData, fetchAllCounts, activeSection, countsLoaded]);
 
   const getSectionTitle = useCallback(() => {
     switch (activeSection) {
@@ -132,6 +176,7 @@ export const useProfileSections = ({ initialSection = 'followers' }: UseProfileS
     error,
     changeSection,
     refreshCurrentSection,
+    refreshAllCounts,
     searchData,
     getSectionTitle,
   };

@@ -18,6 +18,7 @@ import * as ImagePicker from "expo-image-picker";
 import { router, useFocusEffect } from "expo-router";
 
 import { useAuthStore } from "@/store/useAuthStore";
+import { getProfilePhotoUrl } from "@/utils/profileUtils";
 import { getUserProfile, updateUserProfile } from "@/api/user/userActions";
 import {
   YOUTUBE_CATEGORIES,
@@ -106,14 +107,13 @@ const EditProfilePage: React.FC = () => {
       const profileData = await getUserProfile(token);
 
       if (profileData.user) {
-        console.log(
-          "📸 Profile photo from API:",
-          profileData.user.profile_photo
-        );
-        console.log(
-          "📸 Profile photo from API:",
-          profileData.user.profile_photo
-        );
+        console.log("🔄 Loading user profile data:", {
+          interest1: profileData.user.interest1,
+          interest2: profileData.user.interest2,
+          gender: profileData.user.gender,
+          content_interests: profileData.user.content_interests,
+        });
+
         setName(profileData.user.username || "");
         setUsername(profileData.user.username || "");
         setBio(profileData.user.bio || "");
@@ -125,18 +125,43 @@ const EditProfilePage: React.FC = () => {
         setGender(profileData.user.gender || "");
         setContentInterest(profileData.user.content_interests || "");
 
+        // Reset interests first
+        setInterest1([]);
+        setInterest2([]);
+
         // Set interests if available - split between YouTube and Netflix
-        if (
-          profileData.user.interest1 &&
-          profileData.user.interest1.length > 0
-        ) {
-          setInterest1(profileData.user.interest1);
+        if (profileData.user.interest1) {
+          try {
+            // Handle both array and string formats
+            const interest1Data =
+              typeof profileData.user.interest1 === "string"
+                ? JSON.parse(profileData.user.interest1)
+                : profileData.user.interest1;
+
+            if (Array.isArray(interest1Data) && interest1Data.length > 0) {
+              setInterest1(interest1Data);
+              console.log("✅ Loaded Interest 1:", interest1Data);
+            }
+          } catch (error) {
+            console.error("❌ Error parsing interest1:", error);
+          }
         }
-        if (
-          profileData.user.interest2 &&
-          profileData.user.interest2.length > 0
-        ) {
-          setInterest2(profileData.user.interest2);
+
+        if (profileData.user.interest2) {
+          try {
+            // Handle both array and string formats
+            const interest2Data =
+              typeof profileData.user.interest2 === "string"
+                ? JSON.parse(profileData.user.interest2)
+                : profileData.user.interest2;
+
+            if (Array.isArray(interest2Data) && interest2Data.length > 0) {
+              setInterest2(interest2Data);
+              console.log("✅ Loaded Interest 2:", interest2Data);
+            }
+          } catch (error) {
+            console.error("❌ Error parsing interest2:", error);
+          }
         }
       }
     } catch (error) {
@@ -221,9 +246,9 @@ const EditProfilePage: React.FC = () => {
       case "contentInterest":
         return contentInterest;
       case "interest1":
-        return interest1.length > 0 ? `${interest1.length} selected` : "";
+        return interest1.length > 0 ? interest1.join(", ") : "";
       case "interest2":
-        return interest2.length > 0 ? `${interest2.length} selected` : "";
+        return interest2.length > 0 ? interest2.join(", ") : "";
       default:
         return "";
     }
@@ -322,8 +347,12 @@ const EditProfilePage: React.FC = () => {
   );
 
   return (
-    <ScrollView>
-      <ThemedView style={EditProfile.container}>
+    <ThemedView style={EditProfile.container}>
+      <ScrollView
+        contentContainerStyle={{ paddingBottom: 20 }}
+        showsVerticalScrollIndicator={false}
+        style={{ flex: 1 }}
+      >
         {/* Top Bar */}
         <View style={EditProfile.CreateCommunityTopBar}>
           <TouchableOpacity
@@ -331,7 +360,7 @@ const EditProfilePage: React.FC = () => {
             style={EditProfile.BackIcon}
           >
             <Image
-              className="size-5"
+              style={{ width: 20, height: 20 }}
               source={require("../../assets/images/back.png")}
             />
           </TouchableOpacity>
@@ -348,7 +377,7 @@ const EditProfilePage: React.FC = () => {
         </View>
 
         {/* Image picker */}
-        <TouchableOpacity className="items-center w-fit" onPress={pickImage}>
+        <TouchableOpacity style={{ alignItems: "center" }} onPress={pickImage}>
           <Image
             source={
               imageUri
@@ -401,27 +430,15 @@ const EditProfilePage: React.FC = () => {
           <View style={EditProfile.TwoFieldRow}>
             <View style={EditProfile.HalfField}>
               <ThemedText style={EditProfile.InfoLabel}>Gender</ThemedText>
-              {renderDropdownField("Gender", gender, "Select", "gender")}
-              {renderDropdownField("Gender", gender, "Select", "gender")}
+              {renderDropdownField("Gender", gender, "Select gender", "gender")}
             </View>
 
             <View style={EditProfile.HalfField}>
-              <ThemedText style={EditProfile.InfoLabel}>
-                Content interest
-              </ThemedText>
+              <ThemedText style={EditProfile.InfoLabel}>Platform</ThemedText>
               {renderDropdownField(
-                "Content interest",
+                "Platform",
                 contentInterest,
-                "Select",
-                "contentInterest"
-              )}
-              <ThemedText style={EditProfile.InfoLabel}>
-                Content interest
-              </ThemedText>
-              {renderDropdownField(
-                "Content interest",
-                contentInterest,
-                "Select",
+                "Select platform",
                 "contentInterest"
               )}
             </View>
@@ -432,12 +449,8 @@ const EditProfilePage: React.FC = () => {
             <ThemedText style={EditProfile.InfoLabel}>Interest 1 </ThemedText>
             {renderDropdownField(
               "Interest 1",
-              getCurrentValue() === "" && dropdownType === "interest1"
-                ? ""
-                : interest1.length > 0
-                  ? `${interest1.length} selected`
-                  : "",
-              "Crime, Comedy, Romance",
+              interest1.length > 0 ? interest1.join(", ") : "",
+              "Select YouTube interests",
               "interest1"
             )}
             {interest1.length > 0 && (
@@ -467,12 +480,8 @@ const EditProfilePage: React.FC = () => {
             <ThemedText style={EditProfile.InfoLabel}>Interest 2 </ThemedText>
             {renderDropdownField(
               "Interest 2",
-              getCurrentValue() === "" && dropdownType === "interest2"
-                ? ""
-                : interest2.length > 0
-                  ? `${interest2.length} selected`
-                  : "",
-              "Crime, Comedy, Romance",
+              interest2.length > 0 ? interest2.join(", ") : "",
+              "Select Netflix interests",
               "interest2"
             )}
             {interest2.length > 0 && (
@@ -632,8 +641,8 @@ const EditProfilePage: React.FC = () => {
             </ThemedText>
           </View>
         </View>
-      </ThemedView>
-    </ScrollView>
+      </ScrollView>
+    </ThemedView>
   );
 };
 

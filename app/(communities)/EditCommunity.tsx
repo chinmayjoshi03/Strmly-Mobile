@@ -15,10 +15,10 @@ import { useRouter, useLocalSearchParams } from "expo-router";
 import { ArrowLeft, ChevronDown } from "lucide-react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAuthStore } from "@/store/useAuthStore";
+import { getProfilePhotoUrl } from "@/utils/profileUtils";
 import ThemedView from "@/components/ThemedView";
 import { communityActions } from "@/api/community/communityActions";
 import * as ImagePicker from "expo-image-picker";
-import { router } from "expo-router";
 
 interface CommunityDetails {
   communityId: string;
@@ -293,18 +293,11 @@ export default function EditCommunity() {
           <View className="items-center py-8">
             <TouchableOpacity onPress={pickImage} className="items-center">
               <View className="w-32 h-32 rounded-full bg-gray-600 items-center justify-center mb-4 overflow-hidden">
-                {imageUri ? (
-                  <Image
-                    source={{ uri: imageUri }}
-                    className="w-full h-full"
-                    resizeMode="cover"
-                  />
-                ) : (
-                  <View className="w-16 h-16 bg-gray-400 rounded-full items-center justify-center">
-                    <View className="w-8 h-8 bg-white rounded-full mb-1" />
-                    <View className="w-12 h-6 bg-white rounded-t-full" />
-                  </View>
-                )}
+                <Image
+                  source={{ uri: getProfilePhotoUrl(imageUri, "community") }}
+                  className="w-full h-full"
+                  resizeMode="cover"
+                />
               </View>
               <Text
                 className="text-blue-400 text-center"

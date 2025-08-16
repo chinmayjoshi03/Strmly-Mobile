@@ -9,11 +9,15 @@ import { VideoItemType } from "@/types/VideosType";
 type Props = {
   videoData: VideoItemType;
   setShowCommentsModal?: (visible: boolean) => void;
+  onEpisodeChange?: (episodeData: any) => void;
+  onStatsUpdate?: (stats: { likes?: number; gifts?: number; shares?: number; comments?: number }) => void;
 };
 
 const VideoControls = ({
   videoData,
   setShowCommentsModal,
+  onEpisodeChange,
+  onStatsUpdate,
 }: Props) => {
   const isPlaying = usePlayerStore((state) => state.isPlaying);
   const isBuffering = usePlayerStore((state) => state.isBuffering);
@@ -60,6 +64,9 @@ const VideoControls = ({
           shares={videoData.shares}
           comments={videoData.comments?.length}
           onCommentPress={setShowCommentsModal ? () => setShowCommentsModal(true) : undefined}
+          onLikeUpdate={(newLikes, isLiked) => onStatsUpdate?.({ likes: newLikes })}
+          onShareUpdate={(newShares, isShared) => onStatsUpdate?.({ shares: newShares })}
+          onGiftUpdate={(newGifts) => onStatsUpdate?.({ gifts: newGifts })}
         />
       </View>
       <View style={styles.details}>
@@ -75,6 +82,7 @@ const VideoControls = ({
           episode_number={videoData?.episode_number}
           createdBy={videoData?.created_by}
           community={videoData?.community}
+          onEpisodeChange={onEpisodeChange}
         />
       </View>
     </>

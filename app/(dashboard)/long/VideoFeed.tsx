@@ -1,5 +1,6 @@
 import React, { useRef, useState, useEffect, useCallback } from "react";
 import { FlatList, Dimensions, ActivityIndicator, Text, Pressable } from "react-native";
+import { useFocusEffect } from '@react-navigation/native';
 import { router } from "expo-router";
 import ThemedView from "@/components/ThemedView";
 import { useAuthStore } from "@/store/useAuthStore";
@@ -9,6 +10,7 @@ import GiftingMessage from "./_components/GiftingMessage";
 import UnifiedVideoPlayer from "@/components/UnifiedVideoPlayer";
 import CommentsSection from "./_components/CommentSection";
 import VideoFeedDebug from "@/components/VideoFeedDebug";
+import VideoContentGifting from "@/app/(payments)/Video/Video-Gifting";
 
 export type GiftType = {
   _id: string;
@@ -26,16 +28,15 @@ const VideoFeed: React.FC = () => {
 
   const BACKEND_API_URL = CONFIG.API_BASE_URL;
   console.log('🔧 VideoFeed API URL:', BACKEND_API_URL);
-  const TAB_BAR_HEIGHT = 55; // Height of the bottom navigation bar (reduced from 70)
-  const TAB_BAR_PADDING = 10; // paddingBottom from tab bar (reduced from 15)
-  const BUFFER = 10; // Additional buffer to ensure no overlap
+  const [screenDimensions, setScreenDimensions] = useState(Dimensions.get("screen"));
+  
+  const BOTTOM_NAV_HEIGHT = 50; // Height of the bottom navigation bar (matching GlobalVideoPlayer)
+  
+  // Calculate available height consistently
+  const adjustedHeight = screenDimensions.height - BOTTOM_NAV_HEIGHT;
 
-  // Calculate available height more precisely
-  // We need to account for the tab bar height plus its padding plus safe area
-  const adjustedHeight = height - TAB_BAR_HEIGHT - TAB_BAR_PADDING - BUFFER;
-
-  console.log('Screen height:', height);
-  console.log('Tab bar total space needed:', TAB_BAR_HEIGHT + TAB_BAR_PADDING + BUFFER);
+  console.log('Screen height:', screenDimensions.height);
+  console.log('Bottom nav height:', BOTTOM_NAV_HEIGHT);
   console.log('Adjusted height:', adjustedHeight);
 
   const [visibleIndex, setVisibleIndex] = useState(0);
@@ -121,6 +122,30 @@ const VideoFeed: React.FC = () => {
     }
   };
 
+  // Listen for dimension changes
+  useEffect(() => {
+    const subscription = Dimensions.addEventListener('change', ({ screen }) => {
+      console.log('📱 Screen dimensions changed:', screen);
+      setScreenDimensions(screen);
+    });
+
+    return () => subscription?.remove();
+  }, []);
+
+  // Focus effect to ensure proper layout when returning to this screen
+  useFocusEffect(
+    useCallback(() => {
+      console.log('🎯 VideoFeed focused - recalculating layout');
+      
+      // Force layout recalculation with a small delay
+      setTimeout(() => {
+        const currentDimensions = Dimensions.get("screen");
+        console.log('📐 Recalculating layout - Height:', currentDimensions.height, 'Adjusted:', currentDimensions.height - BOTTOM_NAV_HEIGHT);
+        setScreenDimensions(currentDimensions);
+      }, 50); // Small delay to ensure navigation is complete
+    }, [BOTTOM_NAV_HEIGHT])
+  );
+
   useEffect(() => {
     console.log('🔧 VideoFeed useEffect triggered');
     console.log('🔑 Token state:', {
@@ -147,6 +172,40 @@ const VideoFeed: React.FC = () => {
     }
   });
 
+  // Handle episode change
+  const handleEpisodeChange = useCallback((episodeData: any) => {
+    console.log('🎬 VideoFeed: Episode change requested:', episodeData);
+    
+    if (!episodeData || !episodeData._id) {
+      console.error('❌ Invalid episode data:', episodeData);
+      return;
+    }
+
+    // Update the current video in the videos array
+    setVideos(prevVideos => {
+      const newVideos = [...prevVideos];
+      const currentIndex = visibleIndex;
+      
+      if (currentIndex >= 0 && currentIndex < newVideos.length) {
+        // Replace the current video with the selected episode
+        newVideos[currentIndex] = {
+          ...episodeData,
+          // Ensure all required fields are present
+          videoUrl: episodeData.videoUrl || episodeData.video,
+          likes: episodeData.likes || 0,
+          gifts: episodeData.gifts || 0,
+          shares: episodeData.shares || 0,
+          views: episodeData.views || 0,
+          comments: episodeData.comments || [],
+        };
+        
+        console.log('✅ VideoFeed: Episode switched successfully');
+      }
+      
+      return newVideos;
+    });
+  }, [visibleIndex]);
+
   // OPTIMIZATION 2: Memoize the renderItem function
   // This prevents creating a new render function on every parent render.
   const renderItem = useCallback(
@@ -168,9 +227,10 @@ const VideoFeed: React.FC = () => {
         setIsWantToGift={setIsWantToGift}
         showCommentsModal={showCommentsModal}
         setShowCommentsModal={setShowCommentsModal}
+        onEpisodeChange={handleEpisodeChange}
       />
     ),
-    [visibleIndex, showCommentsModal, adjustedHeight]
+    [visibleIndex, showCommentsModal, adjustedHeight, handleEpisodeChange]
   );
 
   // OPTIMIZATION 3: If all your video items have the same height (full screen), use getItemLayout
@@ -191,7 +251,7 @@ const VideoFeed: React.FC = () => {
         top: 0,
         left: 0,
         right: 0,
-        height: adjustedHeight,
+        bottom: BOTTOM_NAV_HEIGHT,
         backgroundColor: 'black'
       }} className="justify-center items-center">
         <ActivityIndicator size="large" color="white" />
@@ -206,7 +266,7 @@ const VideoFeed: React.FC = () => {
         top: 0,
         left: 0,
         right: 0,
-        height: adjustedHeight,
+        bottom: BOTTOM_NAV_HEIGHT,
         backgroundColor: 'black'
       }} className="justify-center items-center px-4">
         <Text className="text-white text-center mb-4">Failed to load videos</Text>
@@ -232,7 +292,7 @@ const VideoFeed: React.FC = () => {
       top: 0,
       left: 0,
       right: 0,
-      height: adjustedHeight,
+      bottom: BOTTOM_NAV_HEIGHT,
       backgroundColor: 'black'
     }}>
       <VideoFeedDebug />
@@ -252,6 +312,7 @@ const VideoFeed: React.FC = () => {
         />
       ) : (
         <FlatList
+          key={`${screenDimensions.width}-${screenDimensions.height}`} // Force re-render on dimension change
           data={videos}
           keyExtractor={(item) => item._id}
           renderItem={renderItem}

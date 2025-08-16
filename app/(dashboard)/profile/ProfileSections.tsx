@@ -7,17 +7,15 @@ import {
   ScrollView,
   TextInput,
   Image,
-  Alert,
   StatusBar,
 } from "react-native";
-import { useRouter, useLocalSearchParams } from "expo-router";
+import { useRouter, useLocalSearchParams, useFocusEffect } from "expo-router";
 import { ArrowLeft, ChevronRight } from "lucide-react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { CONFIG } from "@/Constants/config";
-import { useAuthStore } from "@/store/useAuthStore";
 import ThemedView from "@/components/ThemedView";
 import { User, Community } from "@/api/profile/profileActions";
 import { useProfileSections } from "./_components/useProfileSections";
+import { getProfilePhotoUrl } from "@/utils/profileUtils";
 
 // Types are now imported from profileActions
 
@@ -40,6 +38,7 @@ export default function ProfileSections() {
     searchData,
     getSectionTitle,
     refreshCurrentSection,
+    refreshAllCounts,
   } = useProfileSections({ initialSection });
 
   // Refresh data when returning from create community page
@@ -50,15 +49,22 @@ export default function ProfileSections() {
     }
   }, [activeSection, refreshCurrentSection]);
 
+  // Add focus listener to refresh data when screen comes into focus
+  useFocusEffect(
+    React.useCallback(() => {
+      // Refresh all counts and current section data when screen comes into focus
+      refreshAllCounts();
+      refreshCurrentSection();
+    }, [refreshAllCounts, refreshCurrentSection])
+  );
+
   const filteredData = searchData(searchQuery);
 
   const renderUserItem = (user: User) => (
     <View key={user._id} className="flex-row items-center justify-between py-4 px-4">
       <View className="flex-row items-center flex-1">
         <Image
-          source={{
-            uri: user.profile_photo || 'https://api.dicebear.com/7.x/identicon/svg?seed=' + user.username
-          }}
+          source={{ uri: getProfilePhotoUrl(user.profile_photo, 'user') }}
           className="w-12 h-12 rounded-full mr-3"
         />
         <View className="flex-1">
@@ -97,9 +103,7 @@ export default function ProfileSections() {
     >
       <View className="flex-row items-center flex-1">
         <Image
-          source={{
-            uri: community.profile_photo || 'https://api.dicebear.com/7.x/identicon/svg?seed=' + community.name
-          }}
+          source={{ uri: getProfilePhotoUrl(community.profile_photo, 'community') }}
           className="w-12 h-12 rounded-full mr-3"
         />
         <View className="flex-1">

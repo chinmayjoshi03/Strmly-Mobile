@@ -16,6 +16,7 @@ import { useRouter, useLocalSearchParams } from "expo-router";
 import { ArrowLeft, MoreHorizontal } from "lucide-react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAuthStore } from "@/store/useAuthStore";
+import { getProfilePhotoUrl } from "@/utils/profileUtils";
 import ThemedView from "@/components/ThemedView";
 import { communityActions } from "@/api/community/communityActions";
 import VideoPlayer from "@/app/(dashboard)/long/_components/VideoPlayer";
@@ -193,18 +194,11 @@ export default function CommunityDetails() {
         {/* Community Profile */}
         <View className="items-center py-6">
           <View className="w-24 h-24 rounded-full bg-gray-600 items-center justify-center mb-4 overflow-hidden">
-            {community.profilePhoto ? (
-              <Image
-                source={{ uri: community.profilePhoto }}
-                className="w-full h-full"
-                resizeMode="cover"
-              />
-            ) : (
-              <View className="w-12 h-12 bg-gray-400 rounded-full items-center justify-center">
-                <View className="w-6 h-6 bg-white rounded-full mb-1" />
-                <View className="w-8 h-4 bg-white rounded-t-full" />
-              </View>
-            )}
+            <Image
+              source={{ uri: getProfilePhotoUrl(community.profilePhoto, 'community') }}
+              className="w-full h-full"
+              resizeMode="cover"
+            />
           </View>
           <Text className="text-white text-xl font-bold mb-2" style={{ fontFamily: 'Poppins' }}>
             By @{community.founder?.username || 'Unknown'}
