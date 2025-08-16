@@ -199,38 +199,7 @@ const VideoFeed: React.FC = () => {
   }, [visibleIndex]);
 
   // Handle episode change
-  const handleEpisodeChange = useCallback((episodeData: any) => {
-    console.log('🎬 VideoFeed: Episode change requested:', episodeData);
-    
-    if (!episodeData || !episodeData._id) {
-      console.error('❌ Invalid episode data:', episodeData);
-      return;
-    }
 
-    // Update the current video in the videos array
-    setVideos(prevVideos => {
-      const newVideos = [...prevVideos];
-      const currentIndex = visibleIndex;
-      
-      if (currentIndex >= 0 && currentIndex < newVideos.length) {
-        // Replace the current video with the selected episode
-        newVideos[currentIndex] = {
-          ...episodeData,
-          // Ensure all required fields are present
-          videoUrl: episodeData.videoUrl || episodeData.video,
-          likes: episodeData.likes || 0,
-          gifts: episodeData.gifts || 0,
-          shares: episodeData.shares || 0,
-          views: episodeData.views || 0,
-          comments: episodeData.comments || [],
-        };
-        
-        console.log('✅ VideoFeed: Episode switched successfully');
-      }
-      
-      return newVideos;
-    });
-  }, [visibleIndex]);
 
   // OPTIMIZATION 2: Memoize the renderItem function with reduced dependencies
   const renderItem = useCallback(
@@ -253,7 +222,7 @@ const VideoFeed: React.FC = () => {
         showCommentsModal={showCommentsModal}
         setShowCommentsModal={setShowCommentsModal}
         onEpisodeChange={handleEpisodeChange}
-        onEpisodeChange={handleEpisodeChange}
+       
       />
     ),
     [visibleIndex, adjustedHeight, handleEpisodeChange, showCommentsModal, setGiftingData, setIsWantToGift, setShowCommentsModal]

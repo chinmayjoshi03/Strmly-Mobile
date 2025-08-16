@@ -22,9 +22,7 @@ type InteractOptionsProps = {
   };
 
   // Callbacks to update parent component stats
-  onLikeUpdate?: (newLikeCount: number, isLiked: boolean) => void;
-  onShareUpdate?: (newShareCount: number, isShared: boolean) => void;
-  onGiftUpdate?: (newGiftCount: number) => void;
+
 
   // Callbacks to update parent component stats
   onLikeUpdate?: (newLikeCount: number, isLiked: boolean) => void;
@@ -40,9 +38,7 @@ const InteractOptions = ({
   shares,
   comments,
   creator,
-  onLikeUpdate,
-  onShareUpdate,
-  onGiftUpdate,
+
   onLikeUpdate,
   onShareUpdate,
   onGiftUpdate,
