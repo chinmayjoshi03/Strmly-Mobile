@@ -100,15 +100,9 @@ const VideoPlayer = ({
       const { smartPlay } = usePlayerStore.getState();
       smartPlay();
     } else {
-      // This video is not visible, pause and reset
+      // This video is not visible, pause but don't reset time
       player.pause();
-
-      // Reset to beginning for better UX, but don't block UI
-      setTimeout(() => {
-        if (mountedRef.current) {
-          player.currentTime = 0;
-        }
-      }, 100);
+      // Note: Removed automatic reset to preserve user's progress position
     }
 
     // Cleanup function
@@ -163,7 +157,7 @@ const VideoPlayer = ({
         onStatsUpdate={onStatsUpdate}
       />
 
-      <View className="absolute bottom-[2.56rem] left-0 h-5 z-10 right-0">
+      <View className="absolute left-0 right-0 z-10 px-2" style={{ bottom: 46 }}>
         <VideoProgressBar
           player={player}
           isActive={isActive}
@@ -184,7 +178,7 @@ const VideoPlayer = ({
       </View>
 
       <View className="z-10 absolute top-16 left-5">
-        <Pressable 
+        <Pressable
           onPress={() => {
             console.log('💰 Wallet button pressed from VideoPlayer');
             try {
