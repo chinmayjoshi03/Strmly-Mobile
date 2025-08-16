@@ -242,6 +242,7 @@ export const setupBankAccount = async (
 };
 
 export const createWithdrawalRequest = async (token: string, amount: number) => {
+  console.log('withdrawing', amount)
   const res = await fetch(`${API_BASE_URL}/withdrawal/create`, {
     method: "POST",
     headers: {

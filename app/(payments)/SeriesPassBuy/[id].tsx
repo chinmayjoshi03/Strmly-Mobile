@@ -42,7 +42,7 @@ const SeriesPassBuy = () => {
   const { token, user } = useAuthStore();
   const { completeSeriesPurchasing, series } = useGiftingStore();
 
-  // Check if Creator pass is already purchased
+  // Check if Series access is already purchased
   useEffect(() => {
     const hasSeriesPass = async () => {
       try {

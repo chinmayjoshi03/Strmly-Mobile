@@ -545,9 +545,6 @@ export default function PublicCommunityPage() {
                   <Text
                     className={`text-md ${activeTab === "creators" ? "text-white" : "text-gray-400"}`}
                   >
-                    <Text className="font-bold text-lg text-white">
-                      {communityData?.creators?.length || 0}
-                    </Text>
                     <Text
                       className={`text-md ${activeTab === "creators" ? "text-white" : "text-gray-400"}`}
                     >

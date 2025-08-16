@@ -25,6 +25,7 @@ import { useAuthStore } from "@/store/useAuthStore";
 import Constants from "expo-constants";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useGiftingStore } from "@/store/useGiftingStore";
+import ModalMessage from "@/components/AuthModalMessage";
 
 const { height } = Dimensions.get("screen");
 const BACKEND_API_URL = Constants.expoConfig?.extra?.BACKEND_API_URL;
@@ -76,8 +77,16 @@ const VideoContentGifting = ({
     creatorId,
   });
   const [amount, setAmount] = useState("");
+  const [userUPI, setUserUPI] = useState("");
   const [walletInfo, setWalletInfo] = useState<{ balance?: number }>({});
   const [loading, setLoading] = useState(false);
+
+  const [step, setStep] = useState<number | null>(null);
+  const [isWithdrawalComplete, setIsWithdrawalComplete] =
+    useState<boolean>(false);
+  const [isWithdrawalCompleteMessage, setIsWithdrawalCompleteMessage] =
+    useState<string | null>(null);
+
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
@@ -88,9 +97,26 @@ const VideoContentGifting = ({
 
   const { token } = useAuthStore();
 
+  const handleCloseModalMessage = () => {
+    setIsWithdrawalComplete(false);
+    setIsWithdrawalCompleteMessage(null);
+    router.back();
+  };
+
+  useEffect(() => {
+    if (mode === "withdraw") {
+      setStep(1);
+    }
+  }, [mode]);
+
   const handleAmountChange = (text: string) => {
     const filtered = text.replace(/[^0-9]/g, "");
     setAmount(filtered);
+    setError(null); // Clear error when user types
+  };
+
+  const handleUpiChange = (text: string) => {
+    setUserUPI(text);
     setError(null); // Clear error when user types
   };
 
@@ -107,7 +133,7 @@ const VideoContentGifting = ({
       const missingFields = [];
       if (!token) missingFields.push("token");
       if (!videoId) missingFields.push("videoId");
-      
+
       setError(`Missing required information: ${missingFields.join(", ")}`);
       return;
     }
@@ -138,9 +164,11 @@ const VideoContentGifting = ({
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error || `Failed to provide gifting: ${response.status}`);
+        throw new Error(
+          errorData.error || `Failed to provide gifting: ${response.status}`
+        );
       }
-      
+
       const data = await response.json();
       console.log("✅ Gift Video Success:", data);
 
@@ -223,11 +251,6 @@ const VideoContentGifting = ({
       setSuccessMessage(
         `Successfully gifted ₹${giftAmount} to ${creatorName || "the creator"}!`
       );
-
-      // Navigate back after showing success
-      setTimeout(() => {
-        router.back();
-      }, 2000);
     } catch (err: any) {
       console.error("❌ Comment gift error:", err);
 
@@ -273,54 +296,24 @@ const VideoContentGifting = ({
 
     try {
       console.log("💰 Creating withdrawal request for amount:", withdrawAmount);
-      console.log("🔗 API URL:", `${BACKEND_API_URL}/withdrawal/create`);
-      console.log("🔑 Token:", token?.substring(0, 20) + "...");
 
-      const response = await fetch(`${BACKEND_API_URL}/withdrawal/create`, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ amount: withdrawAmount }),
-      });
-
-      console.log("📡 Response status:", response.status);
-      console.log("📡 Response headers:", response.headers);
-
-      // Check if response is JSON
-      const contentType = response.headers.get("content-type");
-      if (!contentType || !contentType.includes("application/json")) {
-        const textResponse = await response.text();
-        console.error("❌ Non-JSON response:", textResponse);
-        setError("Server returned invalid response. Please try again.");
-        return;
-      }
+      const response = await fetch(
+        `${BACKEND_API_URL}/withdrawal/manual/create`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ amount: withdrawAmount }),
+        }
+      );
 
       const data = await response.json();
       console.log("✅ Withdrawal API response:", data);
 
       // Check for specific error codes first, regardless of HTTP status
       if (!data.success) {
-        console.log("❌ API returned success: false");
-        console.log("🔍 Error code:", data.code);
-        console.log("🔍 Error message:", data.error);
-
-        if (data.code === "BANK_ACCOUNT_NOT_SETUP") {
-          console.log("🏦 Navigating to bank setup...");
-          try {
-            // Navigate to bank setup form
-            setTimeout(() => {
-              router.push("/(payments)/BankSetup");
-              console.log("✅ Navigation initiated");
-            }, 100);
-          } catch (navError) {
-            console.error("❌ Navigation error:", navError);
-            // Fallback: show error with manual button
-            setError(data.error + " - Please setup your bank account");
-          }
-          return;
-        }
         setError(data.error || "Failed to create withdrawal request");
         return;
       }
@@ -331,7 +324,9 @@ const VideoContentGifting = ({
         return;
       }
 
-      router.back();
+      setIsWithdrawalCompleteMessage(data.message);
+      setIsWithdrawalComplete(true);
+      setStep(null);
     } catch (err) {
       console.error("❌ Withdrawal error:", err);
       if (err instanceof SyntaxError && err.message.includes("JSON")) {
@@ -343,6 +338,62 @@ const VideoContentGifting = ({
           err instanceof Error
             ? err.message
             : "Failed to create withdrawal request"
+        );
+      }
+    }
+  };
+
+  const handleUpdateUPI = async () => {
+    if (!token || !userUPI) {
+      return;
+    }
+
+    if (userUPI.length < 13 && !userUPI.includes("@")) {
+      Alert.alert("Incorrect UPI");
+    }
+
+    setError(null);
+
+    try {
+      console.log(" User UPI:", userUPI);
+
+      const response = await fetch(
+        `${BACKEND_API_URL}/withdrawal/create-or-update-upi`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ upi_id: userUPI }),
+        }
+      );
+
+      const data = await response.json();
+      console.log("✅ User UPI response:", data);
+
+      // Check for specific error codes first, regardless of HTTP status
+      if (!data.success) {
+        setError(data.error || "Failed to save or update UPI");
+        return;
+      }
+
+      // Check HTTP status for other errors
+      if (!response.ok) {
+        setError(data.error || `Server error: ${response.status}`);
+        return;
+      }
+
+      setStep(2);
+    } catch (err) {
+      console.error("❌ UPI update error:", err);
+      if (err instanceof SyntaxError && err.message.includes("JSON")) {
+        setError(
+          "Server returned invalid response. Please check your connection."
+        );
+      } else {
+        setError(
+          err instanceof Error ? err.message : "Failed to save or update UPI ID"
         );
       }
     }
@@ -510,19 +561,35 @@ const VideoContentGifting = ({
 
             {/* Middle section */}
             <View className="items-center">
-              <View className="flex-row items-center justify-center">
-                <Text className="text-4xl text-white">₹</Text>
-                <TextInput
-                  value={amount}
-                  onChangeText={handleAmountChange}
-                  keyboardType="number-pad"
-                  returnKeyType={Platform.OS === "ios" ? "done" : "none"}
-                  placeholder="0"
-                  placeholderTextColor="#666"
-                  className="text-3xl text-white placeholder:text-gray-500 font-semibold items-center justify-center"
-                  style={{ minWidth: 100, textAlign: "center" }}
-                />
-              </View>
+              {isWithdrawMode && step === 1 ? (
+                <View className="flex-row items-center absolute -top-20">
+                  <Text className="text-xl text-white">Your UPI: </Text>
+                  <TextInput
+                    value={userUPI}
+                    onChangeText={handleUpiChange}
+                    keyboardType="default"
+                    returnKeyType={Platform.OS === "ios" ? "done" : "none"}
+                    placeholder="xxxxxxx584@ibl"
+                    placeholderTextColor="#666"
+                    className="text-xl border-b border-blue-700 text-white placeholder:text-gray-500 font-semibold px-1 items-center justify-center"
+                    style={{ minWidth: 100, textAlign: "center" }}
+                  />
+                </View>
+              ) : (
+                <View className="flex-row items-center justify-center">
+                  <Text className="text-4xl text-white">₹</Text>
+                  <TextInput
+                    value={amount}
+                    onChangeText={handleAmountChange}
+                    keyboardType="number-pad"
+                    returnKeyType={Platform.OS === "ios" ? "done" : "none"}
+                    placeholder="0"
+                    placeholderTextColor="#666"
+                    className="text-3xl text-white placeholder:text-gray-500 font-semibold items-center justify-center"
+                    style={{ minWidth: 100, textAlign: "center" }}
+                  />
+                </View>
+              )}
 
               {/* Error Message */}
               {error && (
@@ -574,15 +641,17 @@ const VideoContentGifting = ({
               <Pressable
                 disabled={
                   loading ||
-                  !amount ||
-                  parseInt(amount) <= 0 ||
+                  (step === 1
+                    ? userUPI.length < 13 || !userUPI.includes("@")
+                    : !amount || parseInt(amount) <= 0) ||
                   successMessage !== null
                 }
-                onPress={handleProceed}
+                onPress={step === 1 ? handleUpdateUPI : handleProceed}
                 className={`p-4 rounded-lg items-center justify-center ${
                   loading ||
-                  !amount ||
-                  parseInt(amount) <= 0 ||
+                  (step === 1
+                    ? userUPI.length < 13 || !userUPI.includes("@")
+                    : !amount || parseInt(amount) <= 0) ||
                   successMessage !== null
                     ? "bg-gray-600"
                     : "bg-[#008A3C]"
@@ -593,7 +662,9 @@ const VideoContentGifting = ({
                 ) : (
                   <Text className="text-white text-base font-semibold">
                     {isWithdrawMode
-                      ? "Withdraw"
+                      ? step === 1
+                        ? "Update and continue"
+                        : "Withdraw"
                       : isCommentGiftMode
                         ? "Send Gift"
                         : "Proceed"}
@@ -620,6 +691,15 @@ const VideoContentGifting = ({
           </View>
         </TouchableWithoutFeedback>
       </KeyboardAvoidingView>
+
+      {isWithdrawalComplete && (
+        <ModalMessage
+          visible={isWithdrawalComplete}
+          text={isWithdrawalCompleteMessage || ""}
+          needCloseButton={true}
+          onClose={handleCloseModalMessage}
+        />
+      )}
     </ThemedView>
   );
 };

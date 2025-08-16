@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -16,19 +16,28 @@ interface AddMoneyModalProps {
   onSuccess: (amount: number) => void;
   onCreateOrder: (amount: number) => Promise<any>;
   onVerifyPayment: (orderId: string, paymentId: string, signature: string) => Promise<any>;
+  onError?: (error: Error) => void;
 }
+
+const quickAmounts = [100, 500, 1000, 2000, 5000];
 
 const AddMoneyModal: React.FC<AddMoneyModalProps> = ({
   visible,
   onClose,
   onSuccess,
   onCreateOrder,
-  onVerifyPayment
+  onVerifyPayment,
+  onError
 }) => {
   const [amount, setAmount] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
 
-  const quickAmounts = [100, 500, 1000, 2000, 5000];
+  useEffect(() => {
+    if (!visible) {
+      setAmount('');
+      setIsProcessing(false);
+    }
+  }, [visible]);
 
   const handleQuickAmount = (quickAmount: number) => {
     setAmount(quickAmount.toString());
@@ -45,17 +54,23 @@ const AddMoneyModal: React.FC<AddMoneyModalProps> = ({
     setIsProcessing(true);
 
     try {
-      // Create order
       const order = await onCreateOrder(numAmount);
+      if (!order?.id) throw new Error('Invalid order response');
 
-      // Initiate Google Play Billing
       const billingResponse = await initiateGooglePlayBilling({
         id: order.id,
         amount: numAmount,
         currency: 'INR'
       });
 
-      // Verify payment with Google Play Billing response
+      if (
+        !billingResponse?.orderId ||
+        !billingResponse?.purchaseToken ||
+        !billingResponse?.signature
+      ) {
+        throw new Error('Incomplete billing response');
+      }
+
       await onVerifyPayment(
         billingResponse.orderId,
         billingResponse.purchaseToken,
@@ -63,12 +78,12 @@ const AddMoneyModal: React.FC<AddMoneyModalProps> = ({
       );
 
       onSuccess(numAmount);
-      setAmount('');
-      onClose();
       Alert.alert('Success', `₹${numAmount} added to your wallet successfully!`);
-
+      onClose();
     } catch (error: any) {
+      console.error('AddMoneyModal error:', error);
       Alert.alert('Error', error.message || 'Google Play Billing failed');
+      onError?.(error);
     } finally {
       setIsProcessing(false);
     }
@@ -90,7 +105,6 @@ const AddMoneyModal: React.FC<AddMoneyModalProps> = ({
             Payment via Google Play Billing
           </Text>
 
-          {/* Quick Amount Buttons */}
           <Text className="text-gray-300 text-sm mb-3">Quick Add</Text>
           <View className="flex-row flex-wrap gap-2 mb-6">
             {quickAmounts.map((quickAmount) => (
@@ -104,7 +118,6 @@ const AddMoneyModal: React.FC<AddMoneyModalProps> = ({
             ))}
           </View>
 
-          {/* Custom Amount Input */}
           <Text className="text-gray-300 text-sm mb-2">Enter Amount</Text>
           <TextInput
             value={amount}
@@ -115,7 +128,6 @@ const AddMoneyModal: React.FC<AddMoneyModalProps> = ({
             className="bg-gray-800 text-white p-4 rounded-lg mb-6 text-lg"
           />
 
-          {/* Action Buttons */}
           <View className="flex-row gap-3">
             <Pressable
               onPress={onClose}
@@ -128,8 +140,9 @@ const AddMoneyModal: React.FC<AddMoneyModalProps> = ({
             <Pressable
               onPress={handleAddMoney}
               disabled={isProcessing || !amount}
-              className={`flex-1 p-4 rounded-lg ${isProcessing || !amount ? 'bg-gray-500' : 'bg-white'
-                }`}
+              className={`flex-1 p-4 rounded-lg ${
+                isProcessing || !amount ? 'bg-gray-500' : 'bg-white'
+              }`}
             >
               {isProcessing ? (
                 <View className="flex-row items-center justify-center gap-2">

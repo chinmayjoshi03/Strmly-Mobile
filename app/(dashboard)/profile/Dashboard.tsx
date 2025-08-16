@@ -15,6 +15,7 @@ import { useAuthStore } from '@/store/useAuthStore';
 import { useDashboard } from './_components/useDashboard';
 
 import { useTransactionHistory } from '../wallet/_components/useTransactionHistory';
+import { getProfilePhotoUrl } from '@/utils/profileUtils';
 
 interface DashboardStats {
     totalViews: number;
@@ -64,24 +65,6 @@ const Dashboard = () => {
     
     // Use transaction history hook to get recent revenue activities
     const { transactions, gifts, fetchTransactionHistory, fetchGiftHistory } = useTransactionHistory(token || '');
-
-    // Test API connection on mount
-    useEffect(() => {
-        console.log('=== DASHBOARD TOKEN CHECK ===');
-        console.log('Token from auth store:', token);
-        console.log('Token length:', token?.length);
-        console.log('Token type:', typeof token);
-        console.log('Is logged in:', useAuthStore.getState().isLoggedIn);
-        console.log('User:', useAuthStore.getState().user);
-        console.log('Full auth state:', useAuthStore.getState());
-        console.log('============================');
-
-        if (token) {
-            console.log('✅ Token available');
-        } else {
-            console.log('❌ No token available - user needs to sign in');
-        }
-    }, [token]);
 
     const timeFilterOptions = [
         'Last 7 Days',
@@ -326,8 +309,8 @@ const Dashboard = () => {
                                             recentActivity.map((activity) => (
                                                 <View key={activity.id} className="flex-row items-center mb-4">
                                                     <Image
-                                                        source={{ uri: activity.user.avatar }}
-                                                        className="w-10 h-10 rounded-full mr-3"
+                                                        source={{ uri: getProfilePhotoUrl(activity.user.avatar, "user") }}
+                                                        className="w-12 h-12 rounded-full mr-3"
                                                     />
                                                     <View className="flex-1">
                                                         <Text className="text-white text-lg">

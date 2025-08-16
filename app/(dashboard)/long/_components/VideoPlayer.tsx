@@ -26,7 +26,12 @@ type Props = {
   showCommentsModal?: boolean;
   setShowCommentsModal?: (show: boolean) => void;
   onEpisodeChange?: (episodeData: any) => void;
-  onStatsUpdate?: (stats: { likes?: number; gifts?: number; shares?: number; comments?: number }) => void;
+  onStatsUpdate?: (stats: {
+    likes?: number;
+    gifts?: number;
+    shares?: number;
+    comments?: number;
+  }) => void;
 };
 
 const VideoPlayer = ({
@@ -49,7 +54,7 @@ const VideoPlayer = ({
     clearGiftingData,
     clearSeriesData,
     clearVideoAccessData,
-    clearPassData
+    clearPassData,
   } = useGiftingStore();
 
   const { _updateStatus } = usePlayerStore.getState();
@@ -66,6 +71,14 @@ const VideoPlayer = ({
     p.muted = isMutedFromStore;
   });
 
+  useEffect(() => {
+    if (isActive) {
+      player.play();
+      setActivePlayer(player);
+      usePlayerStore.getState().smartPlay();
+    }
+  }, []);
+
   // Track component mount state
   useEffect(() => {
     mountedRef.current = true;
@@ -81,6 +94,20 @@ const VideoPlayer = ({
       player.play();
     }
   }, [isGifted]);
+
+  useEffect(() => {
+    if (!player) return;
+
+    if (isActive) {
+      player.play();
+      setActivePlayer(player);
+      usePlayerStore.getState().smartPlay();
+    } else {
+      player.pause();
+      player.currentTime = 0;
+      clearActivePlayer();
+    }
+  }, [isActive]);
 
   // Optimized lifecycle management
   useEffect(() => {
@@ -109,11 +136,10 @@ const VideoPlayer = ({
       player.pause();
 
       // Reset to beginning for better UX, but don't block UI
-      if (videoData?.videoUrl !== prevUrlRef.current) {
-        prevUrlRef.current = videoData?.videoUrl;
-        setTimeout(() => {
-          if (mountedRef.current) player.currentTime = 0;
-        }, 100);
+      if (!isActive) {
+        player.pause();
+        player.currentTime = 0;
+        clearActivePlayer();
       }
     }
 

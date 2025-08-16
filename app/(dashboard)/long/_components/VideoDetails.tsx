@@ -93,6 +93,7 @@ const VideoDetails = ({
   const [showPriceDropdown, setShowPriceDropdown] = useState(false);
   const [isFollowCreator, setIsFollowCreator] = useState<boolean>(false);
   const [hasCreatorPass, setHasCreatorPass] = useState<boolean>(false);
+  const [hasAccessPass, setHasAccessPass] = useState<string | null>(null);
   const [isFollowCreatorLoading, setIsFollowCreatorLoading] =
     useState<boolean>(false);
   const [isFollowCommunity, setIsFollowCommunity] = useState<boolean>(false);
@@ -111,6 +112,51 @@ const VideoDetails = ({
   useEffect(() => {
     if (episode_number) setSelectedEpisodeIndex(episode_number);
   }, [episode_number]);
+
+  useEffect(() => {
+    const hasAccessPass = async () => {
+      const accessId = series && series.price != 0 ? series._id : videoId;
+      try {
+        const response = await fetch(
+          `${BACKEND_API_URL}/user/has-user-access/${accessId}`,
+          {
+            method: "GET",
+            headers: {
+              Authorization: `Bearer ${token}`,
+              "Content-Type": "application/json",
+            },
+          }
+        );
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.message || "Failed to fetch video access");
+        }
+
+        console.log(
+          "has access pass",
+          data.data?.accessData && data.data?.accessData.content_type
+        );
+        setHasAccessPass(
+          data.data?.accessData ? data.data.accessData.content_type : null
+        );
+      } catch (error) {
+        console.log(error);
+        Alert.alert(
+          "Error",
+          error instanceof Error
+            ? error.message
+            : "An unknown error occurred while checking video access."
+        );
+      }
+    };
+
+    if ((series?._id || videoId) && token) {
+      console.log(series);
+      hasAccessPass();
+    }
+  }, []);
 
   useEffect(() => {
     const checkIfFollowCommunity = async () => {
@@ -414,17 +460,24 @@ const VideoDetails = ({
 
                 <Pressable
                   onPress={() => {
-                    series && series?.type !== "Free"
+                    series && series?.type !== "Free" && !hasCreatorPass
                       ? router.push({
                           pathname:
                             "/(dashboard)/PurchasePass/PurchaseSeries/[id]",
                           params: { id: series?._id },
                         })
-                      : router.push({
-                          pathname:
-                            "/(dashboard)/PurchasePass/PurchaseVideo/[id]",
-                          params: { id: videoId },
-                        });
+                      : !hasCreatorPass
+                        ? router.push({
+                            pathname:
+                              "/(dashboard)/PurchasePass/PurchaseVideo/[id]",
+                            params: { id: videoId },
+                          })
+                        : router.push({
+                            pathname: "/(dashboard)/profile/access",
+                            params: {
+                              routeTab: series?.type ? "series" : "content",
+                            },
+                          });
                   }}
                 >
                   <View
@@ -433,12 +486,18 @@ const VideoDetails = ({
                     <Text className="text-white text-[16px] flex-row items-center">
                       Content access
                     </Text>
-                    <Text className="text-white text-[16px]">
-                      ₹
-                      {series && series?.type !== "Free"
-                        ? series?.price
-                        : videoAmount}
-                    </Text>
+                    {hasCreatorPass ? (
+                      <Text className="text-[16px] text-green-600">
+                        Activate
+                      </Text>
+                    ) : (
+                      <Text className="text-white text-[16px]">
+                        ₹
+                        {series && series?.type !== "Free"
+                          ? series?.price
+                          : videoAmount}
+                      </Text>
+                    )}
                   </View>
                 </Pressable>
               </TouchableOpacity>
@@ -505,10 +564,23 @@ const VideoDetails = ({
                           Content access
                         </Text>
                         <Text className="text-white text-[16px]">
-                          ₹
-                          {series && series?.type !== "Free"
-                            ? series?.price
-                            : videoAmount}
+                          {series && series?.type !== "Free" ? (
+                            hasAccessPass?.toLowerCase() == "series" ||
+                            hasCreatorPass ? (
+                              <Text className="text-[16px] text-green-600">
+                                Activate
+                              </Text>
+                            ) : (
+                              `₹${series?.price}`
+                            )
+                          ) : hasAccessPass?.toLocaleLowerCase() != "video" ||
+                            hasCreatorPass ? (
+                            <Text className="text-[16px] text-green-600">
+                              Activate
+                            </Text>
+                          ) : (
+                            `₹${videoAmount}`
+                          )}
                         </Text>
                       </>
                     )}
