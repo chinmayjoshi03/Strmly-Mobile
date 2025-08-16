@@ -10,7 +10,12 @@ import {
   Dimensions,
   BackHandler,
 } from "react-native";
-import { IndianRupee, HeartIcon, PaperclipIcon, Video } from "lucide-react-native";
+import {
+  IndianRupee,
+  HeartIcon,
+  PaperclipIcon,
+  Video,
+} from "lucide-react-native";
 
 import { useAuthStore } from "@/store/useAuthStore";
 import { useThumbnailsGenerate } from "@/utils/useThumbnailGenerator";
@@ -26,6 +31,8 @@ import { communityActions } from "@/api/community/communityActions";
 import CommunityPassBuyMessage from "./CommPassBuyMessage";
 import { useGiftingStore } from "@/store/useGiftingStore";
 import { getProfilePhotoUrl } from "@/utils/profileUtils";
+
+const { height } = Dimensions.get("screen");
 
 export default function PublicCommunityPage() {
   const [activeTab, setActiveTab] = useState<string>("videos");
@@ -44,7 +51,6 @@ export default function PublicCommunityPage() {
   const [currentVideoList, setCurrentVideoList] = useState<any[]>([]);
   const [currentVideoIndex, setCurrentVideoIndex] = useState(0);
   const [showCommentsModal, setShowCommentsModal] = useState(false);
-
 
   const [videoType, setVideoType] = useState("long");
 
@@ -268,7 +274,7 @@ export default function PublicCommunityPage() {
         throw new Error(data.message || "Failed to follow community profile");
       }
 
-      console.log('Follow comm data', data);
+      console.log("Follow comm data", data);
       setIsFollowingCommunity(data.isFollowingCommunity);
     } catch (error) {
       console.log(error);
@@ -329,8 +335,6 @@ export default function PublicCommunityPage() {
       }
     }, [id, token])
   );
-
-
 
   // Handle section changes
   const handleSectionChange = (section: string) => {
@@ -427,8 +431,6 @@ export default function PublicCommunityPage() {
           )}
         </View>
       </View>
-
-
     </TouchableOpacity>
   );
 
@@ -459,26 +461,11 @@ export default function PublicCommunityPage() {
           {item.title || item.name || "Untitled"}
         </Text>
       </View>
-
-
     </TouchableOpacity>
   );
 
-
-
   return (
-    <ThemedView className="flex-1 pt-5">
-      {/* Cover Image */}
-      {!isLoading && (
-        <View className="relative">
-          <ProfileTopbar
-            isMore={false}
-            hashtag={true}
-            name={communityData?.name}
-          />
-        </View>
-      )}
-
+    <ThemedView style={{ height, paddingTop: 10 }}>
       {isLoading ? (
         <View className="flex-1 items-center justify-center">
           <ActivityIndicator size="large" color="white" />
@@ -490,7 +477,10 @@ export default function PublicCommunityPage() {
               <View className="items-center justify-center gap-4 h-fit w-full mt-6">
                 <Image
                   source={{
-                    uri: getProfilePhotoUrl(communityData?.profile_photo, 'community')
+                    uri: getProfilePhotoUrl(
+                      communityData?.profile_photo,
+                      "community"
+                    ),
                   }}
                   style={{
                     width: 80,
@@ -522,8 +512,8 @@ export default function PublicCommunityPage() {
                       params: {
                         communityId: id,
                         communityName: communityData?.name,
-                        section: "followers"
-                      }
+                        section: "followers",
+                      },
                     } as any);
                   }}
                 >
@@ -544,8 +534,8 @@ export default function PublicCommunityPage() {
                       params: {
                         communityId: id,
                         communityName: communityData?.name,
-                        section: "creators"
-                      }
+                        section: "creators",
+                      },
                     } as any);
                   }}
                 >
@@ -555,7 +545,14 @@ export default function PublicCommunityPage() {
                   <Text
                     className={`text-md ${activeTab === "creators" ? "text-white" : "text-gray-400"}`}
                   >
-                    Creators
+                    <Text className="font-bold text-lg text-white">
+                      {communityData?.creators?.length || 0}
+                    </Text>
+                    <Text
+                      className={`text-md ${activeTab === "creators" ? "text-white" : "text-gray-400"}`}
+                    >
+                      Creators
+                    </Text>
                   </Text>
                 </TouchableOpacity>
                 <TouchableOpacity
@@ -586,7 +583,16 @@ export default function PublicCommunityPage() {
 
                 {communityData?.community_fee_type !== "free" &&
                   !hasCommunityPass && (
-                    <TouchableOpacity className="rounded-xl overflow-hidden">
+                    <TouchableOpacity
+                      onPress={() =>
+                        router.push({
+                          pathname:
+                            "/(dashboard)/PurchasePass/PurchaseCommPass/[id]",
+                          params: { id: id },
+                        })
+                      }
+                      className="rounded-xl overflow-hidden"
+                    >
                       <LinearGradient
                         colors={[
                           "#4400FFA6",
@@ -633,12 +639,13 @@ export default function PublicCommunityPage() {
               </View>
 
               {/* Bio */}
-              {communityData?.bio &&
-              <View className="mt-6 flex flex-col items-center justify-center px-4">
-                <Text className="text-gray-400 text-xs text-center">
-                  {communityData?.bio}
-                </Text>
-              </View>}
+              {communityData?.bio && (
+                <View className="mt-6 flex flex-col items-center justify-center px-4">
+                  <Text className="text-gray-400 text-xs text-center">
+                    {communityData?.bio}
+                  </Text>
+                </View>
+              )}
 
               {/* Video Type Tabs - Only show when videos section is active */}
               {activeTab === "videos" && (
@@ -665,23 +672,20 @@ export default function PublicCommunityPage() {
                 </View>
               )}
 
-
+              {/* Search Bar - Only show for followers and creators */}
+              {(activeTab === "followers" || activeTab === "creators") && (
+                <View className="mt-4 px-4">
+                  <View className="bg-gray-800 rounded-lg px-4 py-3 flex-row items-center">
+                    <Text className="text-gray-400 flex-1">Search...</Text>
+                  </View>
+                </View>
+              )}
             </View>
           }
-          data={
-            activeTab === "videos"
-              ? isLoadingVideos
-                ? []
-                : videos
-              : []
-          }
+          data={activeTab === "videos" ? (isLoadingVideos ? [] : videos) : []}
           key={`${activeTab}-${videoType}`}
           keyExtractor={(item) => item._id}
-          renderItem={
-            videoType === "long"
-              ? renderVideoItem
-              : renderGridItem
-          }
+          renderItem={videoType === "long" ? renderVideoItem : renderGridItem}
           numColumns={activeTab === "videos" && videoType === "liked" ? 3 : 1}
           columnWrapperStyle={
             activeTab === "videos" && videoType === "liked"
@@ -746,7 +750,7 @@ export default function PublicCommunityPage() {
             snapToInterval={Dimensions.get("window").height}
             snapToAlignment="start"
           />
-          
+
           {/* Bottom Navigation Bar for Video Player */}
           <BottomNavBar />
         </View>

@@ -47,14 +47,24 @@ type VideoDetailsProps = {
     };
   } | null;
 
-  series: {
-    _id: string;
-    title: string;
-    type: string;
-    price: number;
-    total_episodes: number;
-    episodes: any[]; // Changed from [] to any[] to allow episode objects
-  } | null;
+  is_following_creator: boolean;
+
+  series?:
+    | {
+        _id: string;
+        title: string;
+        type: string;
+        price: number;
+        total_episodes: number;
+        episodes: [
+          {
+            _id: string;
+            episode_number: number;
+          },
+        ];
+      }
+    | null
+    | undefined;
 
   episode_number: number | null;
   onToggleFullScreen?: () => void;
@@ -73,6 +83,7 @@ const VideoDetails = ({
   createdBy,
   community,
   creatorPass,
+  is_following_creator,
   onToggleFullScreen,
   isFullScreen,
   onEpisodeChange,
@@ -92,6 +103,10 @@ const VideoDetails = ({
   const { initiateGifting } = useGiftingStore();
 
   const BACKEND_API_URL = Constants.expoConfig?.extra?.BACKEND_API_URL;
+
+  useEffect(() => {
+    setIsFollowCreator(is_following_creator);
+  }, [is_following_creator]);
 
   useEffect(() => {
     if (episode_number) setSelectedEpisodeIndex(episode_number);
@@ -281,7 +296,9 @@ const VideoDetails = ({
             onPress={() => router.push(`/profile/public/${createdBy?._id}`)}
           >
             <Image
-              source={{ uri: getProfilePhotoUrl(createdBy?.profile_photo, 'user') }}
+              source={{
+                uri: getProfilePhotoUrl(createdBy?.profile_photo, "user"),
+              }}
               className="size-8 rounded-full"
             />
             <Text className="text-white font-semibold">
@@ -303,10 +320,15 @@ const VideoDetails = ({
           </TouchableOpacity>
         </View>
 
-        {type !== "Free" || series?.type != 'Free' || creatorPass?.creator_profile.creator_pass_price != 0 && (
+        {(type !== "Free" ||
+          creatorPass?.creator_profile.creator_pass_price != 0 ||
+          (series != null &&
+            (series?.type != "Free" || series?.price != 0))) && (
           <View>
             <TouchableOpacity
               onPress={() => {
+                console.log("videoId", videoId);
+                console.log("series id", series?._id);
                 setShowPriceDropdown((prev) => !prev);
                 setShowDropdown(false);
               }}
@@ -351,7 +373,9 @@ const VideoDetails = ({
         {/* Paid Dropdown */}
         {showPriceDropdown && (
           <View className="absolute bottom-14 -right-2 rounded-xl p-2 w-80">
-            {series != null && series.type != "Free" && creatorPass ? (
+            {series != null &&
+            series.type != "Free" &&
+            creatorPass?.creator_profile.creator_pass_price !== 0 ? (
               <TouchableOpacity
                 className="mb-0.5"
                 onPress={() => {
@@ -363,9 +387,11 @@ const VideoDetails = ({
                   onPress={() => {
                     initiateGifting(createdBy, videoId);
                     !hasCreatorPass &&
-                      router.push(
-                        `/(demo)/PurchaseCreatorPass/${createdBy._id}`
-                      );
+                      router.push({
+                        pathname:
+                          "/(dashboard)/PurchasePass/PurchaseCreatorPass/[id]",
+                        params: { id: createdBy?._id },
+                      });
                   }}
                 >
                   <View
@@ -390,11 +416,13 @@ const VideoDetails = ({
                   onPress={() => {
                     series && series?.type !== "Free"
                       ? router.push({
-                          pathname: "/(demo)/PurchaseSeries/[id]",
+                          pathname:
+                            "/(dashboard)/PurchasePass/PurchaseSeries/[id]",
                           params: { id: series?._id },
                         })
                       : router.push({
-                          pathname: "/(demo)/PurchaseVideo/[id]",
+                          pathname:
+                            "/(dashboard)/PurchasePass/PurchaseVideo/[id]",
                           params: { id: videoId },
                         });
                   }}
@@ -426,32 +454,43 @@ const VideoDetails = ({
                   onPress={() => {
                     (series === null || series?.type === "Free") &&
                     !hasCreatorPass &&
-                    creatorPass
-                      ? router.push(
-                          `/(demo)/PurchaseCreatorPass/${createdBy?._id}`
-                        )
+                    creatorPass?.creator_profile.creator_pass_price !== 0
+                      ? router.push({
+                          pathname:
+                            "/(dashboard)/PurchasePass/PurchaseCreatorPass/[id]",
+                          params: { id: createdBy?._id },
+                        })
                       : series && series?.type !== "Free"
                         ? router.push({
-                            pathname: "/(demo)/PurchaseSeries/[id]",
+                            pathname:
+                              "/(dashboard)/PurchasePass/PurchaseSeries/[id]",
                             params: { id: series?._id },
                           })
-                        : router.push({
-                            pathname: "/(demo)/PurchaseVideo/[id]",
-                            params: { id: videoId },
-                          });
+                        : hasCreatorPass
+                          ? ""
+                          : router.push({
+                              pathname:
+                                "/(dashboard)/PurchasePass/PurchaseVideo/[id]",
+                              params: { id: videoId },
+                            });
                   }}
                 >
                   <View
                     className={`bg-black h-11 px-2 py-1 flex-row items-center justify-between rounded-t-xl`}
                   >
-                    {(series === null || series?.type === "Free") &&
-                    creatorPass ? (
+                    {(series === undefined ||
+                      series === null ||
+                      series?.type === "Free") &&
+                    creatorPass &&
+                    creatorPass?.creator_profile.creator_pass_price !== 0 ? (
                       <>
                         <Text className="text-white text-[16px] flex-row items-center">
                           Creator Pass
                         </Text>
                         <Text className="text-white text-[16px]">
-                          {!hasCreatorPass ? (
+                          {!hasCreatorPass &&
+                          creatorPass?.creator_profile?.creator_pass_price !==
+                            0 ? (
                             `₹${creatorPass?.creator_profile?.creator_pass_price}`
                           ) : (
                             <Text className="text-[16px] text-green-600">
@@ -488,13 +527,12 @@ const VideoDetails = ({
                 key={ep._id || idx}
                 className="mb-[0.5px]"
                 onPress={() => {
-                  console.log('🎬 Episode selected:', { idx, episode: ep });
-                  setSelectedEpisodeIndex(idx + 1);
+                  setSelectedEpisodeIndex(ep.episode_number);
                   setShowDropdown(false);
-                  
+
                   // Call the episode change callback if provided
                   if (onEpisodeChange && ep) {
-                    console.log('🎬 Calling onEpisodeChange with episode:', ep);
+                    console.log("🎬 Calling onEpisodeChange with episode:", ep);
                     onEpisodeChange(ep);
                   }
                 }}
@@ -502,12 +540,12 @@ const VideoDetails = ({
                 <View
                   className={`bg-black px-2 py-2 flex-row items-center ${
                     idx == 0 && "rounded-t-xl"
-                  } ${idx == series.total_episodes - 1 && "rounded-b-xl"} ${selectedEpisodeIndex === idx + 1 && "gap-2"}`}
+                  } ${ep.episode_number == series.total_episodes && "rounded-b-xl"} ${selectedEpisodeIndex === ep.episode_number && "gap-2"}`}
                 >
                   <Text className="text-white text-[18px] flex-row items-center">
-                    Episode: {idx + 1}
+                    Episode: {ep.episode_number}
                   </Text>
-                  {selectedEpisodeIndex === idx + 1 && (
+                  {selectedEpisodeIndex === ep.episode_number && (
                     <Text className="text-white pl-5">✔</Text>
                   )}
                 </View>
