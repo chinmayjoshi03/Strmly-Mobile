@@ -18,7 +18,6 @@ import CreatorPassBuyMessage from "./CreatorPassBuyMessage";
 import VideoBuyMessage from "./VideoBuyMessage";
 
 const { height: screenHeight } = Dimensions.get("screen");
-const VIDEO_HEIGHT = screenHeight;
 
 type Props = {
   videoData: VideoItemType;
@@ -27,6 +26,7 @@ type Props = {
   setShowCommentsModal?: (show: boolean) => void;
   onEpisodeChange?: (episodeData: any) => void;
   onStatsUpdate?: (stats: { likes?: number; gifts?: number; shares?: number; comments?: number }) => void;
+  containerHeight?: number; // Add containerHeight prop
 };
 
 const VideoPlayer = ({
@@ -36,6 +36,7 @@ const VideoPlayer = ({
   setShowCommentsModal,
   onEpisodeChange,
   onStatsUpdate,
+  containerHeight, // Use containerHeight prop
 }: Props) => {
   const {
     isGifted,
@@ -58,6 +59,9 @@ const VideoPlayer = ({
   // Create refs for tracking component state
   const mountedRef = useRef(true);
   const statusListenerRef = useRef<any>(null);
+
+  // Use containerHeight if provided, otherwise fall back to screen height
+  const VIDEO_HEIGHT = containerHeight || screenHeight;
 
   // FIX: Move the conditional check after hooks but handle gracefully
   const player = useVideoPlayer(videoData?.videoUrl || "", (p) => {
@@ -136,17 +140,29 @@ const VideoPlayer = ({
     };
   }, [player]);
 
+  // Dynamic styles that use the calculated VIDEO_HEIGHT
+  const dynamicStyles = StyleSheet.create({
+    container: {
+      height: VIDEO_HEIGHT,
+      width: "100%",
+    },
+    video: {
+      width: "100%",
+      height: "100%",
+    },
+  });
+
   // Render empty container if no video URL
   if (!videoData?.videoUrl) {
-    return <View style={styles.container} />;
+    return <View style={dynamicStyles.container} />;
   }
 
   return (
-    <View style={styles.container}>
+    <View style={dynamicStyles.container}>
       <VideoView
         player={player}
         nativeControls={false}
-        style={styles.video}
+        style={dynamicStyles.video}
         contentFit="cover"
       />
 
@@ -268,16 +284,5 @@ const VideoPlayer = ({
     </View>
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    height: VIDEO_HEIGHT,
-    width: "100%",
-  },
-  video: {
-    width: "100%",
-    height: "100%",
-  },
-});
 
 export default React.memo(VideoPlayer);

@@ -2,6 +2,7 @@ import React, { useRef, useState, useEffect, useCallback } from "react";
 import { FlatList, Dimensions, ActivityIndicator, Text, Pressable } from "react-native";
 import { useFocusEffect } from '@react-navigation/native';
 import { router } from "expo-router";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import ThemedView from "@/components/ThemedView";
 import { useAuthStore } from "@/store/useAuthStore";
 import { CONFIG } from "@/Constants/config";
@@ -19,7 +20,7 @@ export type GiftType = {
   profile_photo: string;
 };
 
-const { height } = Dimensions.get("screen");
+const { height } = Dimensions.get("window");
 
 const VideoFeed: React.FC = () => {
   const [videos, setVideos] = useState<VideoItemType[]>([]);
@@ -28,14 +29,18 @@ const VideoFeed: React.FC = () => {
 
   const BACKEND_API_URL = CONFIG.API_BASE_URL;
   console.log('🔧 VideoFeed API URL:', BACKEND_API_URL);
-  const [screenDimensions, setScreenDimensions] = useState(Dimensions.get("screen"));
+  const [screenDimensions, setScreenDimensions] = useState(Dimensions.get("window"));
   
-  const BOTTOM_NAV_HEIGHT = 50; // Height of the bottom navigation bar (matching GlobalVideoPlayer)
+  // Get safe area insets
+  const insets = useSafeAreaInsets();
   
-  // Calculate available height consistently
-  const adjustedHeight = screenDimensions.height - BOTTOM_NAV_HEIGHT;
+  const BOTTOM_NAV_HEIGHT = 50; // Height of the bottom navigation bar
+  
+  // Calculate available height - use full screen height minus bottom nav only
+  const adjustedHeight = screenDimensions.height - BOTTOM_NAV_HEIGHT - insets.bottom;
 
   console.log('Screen height:', screenDimensions.height);
+  console.log('Top inset:', insets.top);
   console.log('Bottom nav height:', BOTTOM_NAV_HEIGHT);
   console.log('Adjusted height:', adjustedHeight);
 
@@ -124,9 +129,9 @@ const VideoFeed: React.FC = () => {
 
   // Listen for dimension changes
   useEffect(() => {
-    const subscription = Dimensions.addEventListener('change', ({ screen }) => {
-      console.log('📱 Screen dimensions changed:', screen);
-      setScreenDimensions(screen);
+    const subscription = Dimensions.addEventListener('change', ({ window }) => {
+      console.log('📱 Window dimensions changed:', window);
+      setScreenDimensions(window);
     });
 
     return () => subscription?.remove();
@@ -139,7 +144,7 @@ const VideoFeed: React.FC = () => {
       
       // Force layout recalculation with a small delay
       setTimeout(() => {
-        const currentDimensions = Dimensions.get("screen");
+        const currentDimensions = Dimensions.get("window");
         console.log('📐 Recalculating layout - Height:', currentDimensions.height, 'Adjusted:', currentDimensions.height - BOTTOM_NAV_HEIGHT);
         setScreenDimensions(currentDimensions);
       }, 50); // Small delay to ensure navigation is complete
@@ -147,28 +152,20 @@ const VideoFeed: React.FC = () => {
   );
 
   useEffect(() => {
-    console.log('🔧 VideoFeed useEffect triggered');
-    console.log('🔑 Token state:', {
-      exists: !!token,
-      length: token?.length || 0,
-      preview: token ? `${token.substring(0, 10)}...` : 'null'
-    });
-
     if (token) {
-      console.log('✅ Token found, fetching videos...');
       fetchTrendingVideos();
     } else {
-      console.log('❌ No token found, user may not be logged in');
       setError('Please log in to view videos');
       setLoading(false);
     }
   }, [token]);
 
-  // OPTIMIZATION 1: Stabilize the onViewableItemsChanged callback
-  // This prevents FlatList from re-rendering just because the parent re-rendered.
+  // OPTIMIZATION 1: Stabilize and throttle the onViewableItemsChanged callback
   const onViewableItemsChanged = useRef(({ viewableItems }: any) => {
     if (viewableItems.length > 0) {
-      setVisibleIndex(viewableItems[0].index);
+      const newIndex = viewableItems[0].index;
+      // Only update if index actually changed to reduce re-renders
+      setVisibleIndex(prevIndex => prevIndex !== newIndex ? newIndex : prevIndex);
     }
   });
 
@@ -206,31 +203,24 @@ const VideoFeed: React.FC = () => {
     });
   }, [visibleIndex]);
 
-  // OPTIMIZATION 2: Memoize the renderItem function
-  // This prevents creating a new render function on every parent render.
+  // OPTIMIZATION 2: Memoize the renderItem function with reduced dependencies
   const renderItem = useCallback(
     ({ item, index }: { item: VideoItemType; index: number }) => (
-      <UnifiedVideoPlayer
-        key={`${item._id}-${visibleIndex === index}`}
-        uri={item.videoUrl}
+      <VideoPlayer
+        key={item._id}
         videoData={item}
-        mode="feed"
         isActive={index === visibleIndex}
-        autoPlay={index === visibleIndex}
-        loop={true}
-        showControls={true}
-        showInteractions={true}
-        showDetails={true}
-        showComments={true}
         containerHeight={adjustedHeight}
-        setGiftingData={setGiftingData}
-        setIsWantToGift={setIsWantToGift}
         showCommentsModal={showCommentsModal}
         setShowCommentsModal={setShowCommentsModal}
         onEpisodeChange={handleEpisodeChange}
+        onStatsUpdate={(stats) => {
+          // Handle stats update if needed
+          console.log('Video stats updated:', stats);
+        }}
       />
     ),
-    [visibleIndex, showCommentsModal, adjustedHeight, handleEpisodeChange]
+    [visibleIndex, adjustedHeight, handleEpisodeChange, showCommentsModal, setShowCommentsModal]
   );
 
   // OPTIMIZATION 3: If all your video items have the same height (full screen), use getItemLayout
@@ -251,7 +241,7 @@ const VideoFeed: React.FC = () => {
         top: 0,
         left: 0,
         right: 0,
-        bottom: BOTTOM_NAV_HEIGHT,
+        bottom: 0,
         backgroundColor: 'black'
       }} className="justify-center items-center">
         <ActivityIndicator size="large" color="white" />
@@ -266,7 +256,7 @@ const VideoFeed: React.FC = () => {
         top: 0,
         left: 0,
         right: 0,
-        bottom: BOTTOM_NAV_HEIGHT,
+        bottom: 0,
         backgroundColor: 'black'
       }} className="justify-center items-center px-4">
         <Text className="text-white text-center mb-4">Failed to load videos</Text>
@@ -288,12 +278,10 @@ const VideoFeed: React.FC = () => {
   // The FlatList is always rendered. Gifting components are rendered as overlays.
   return (
     <ThemedView style={{
-      position: 'absolute',
-      top: 0,
-      left: 0,
-      right: 0,
-      bottom: BOTTOM_NAV_HEIGHT,
-      backgroundColor: 'black'
+      flex: 1,
+      backgroundColor: 'black',
+      paddingTop: insets.top,
+      paddingBottom: insets.bottom
     }}>
       <VideoFeedDebug />
       {isGifted && giftingData ? (
@@ -312,7 +300,6 @@ const VideoFeed: React.FC = () => {
         />
       ) : (
         <FlatList
-          key={`${screenDimensions.width}-${screenDimensions.height}`} // Force re-render on dimension change
           data={videos}
           keyExtractor={(item) => item._id}
           renderItem={renderItem}
@@ -321,16 +308,19 @@ const VideoFeed: React.FC = () => {
           pagingEnabled
           scrollEnabled={!showCommentsModal}
           onViewableItemsChanged={onViewableItemsChanged.current}
-          viewabilityConfig={{ itemVisiblePercentThreshold: 80 }}
+          viewabilityConfig={{ 
+            itemVisiblePercentThreshold: 80,
+            minimumViewTime: 100 // Reduce sensitivity
+          }}
           decelerationRate="fast"
           showsVerticalScrollIndicator={false}
           snapToInterval={adjustedHeight}
           snapToAlignment="start"
-          onScrollBeginDrag={() => {
-            if (showCommentsModal) {
-              console.log('🚫 VideoFeed: Scroll blocked - comments modal is open');
-            }
-          }}
+          removeClippedSubviews={true} // Performance optimization
+          maxToRenderPerBatch={2} // Render fewer items at once
+          windowSize={3} // Smaller window size
+          initialNumToRender={1} // Only render first item initially
+          updateCellsBatchingPeriod={100} // Batch updates
         />
       )}
 

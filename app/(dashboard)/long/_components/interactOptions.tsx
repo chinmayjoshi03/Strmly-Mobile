@@ -22,6 +22,9 @@ type InteractOptionsProps = {
   };
 
   // Callbacks to update parent component stats
+
+
+  // Callbacks to update parent component stats
   onLikeUpdate?: (newLikeCount: number, isLiked: boolean) => void;
   onShareUpdate?: (newShareCount: number, isShared: boolean) => void;
   onGiftUpdate?: (newGiftCount: number) => void;
@@ -35,6 +38,7 @@ const InteractOptions = ({
   shares,
   comments,
   creator,
+
   onLikeUpdate,
   onShareUpdate,
   onGiftUpdate,
@@ -84,6 +88,11 @@ const InteractOptions = ({
       }
       const data = await response.json();
       console.log("Like video", data);
+      
+      // Update parent component with new stats
+      if (onLikeUpdate) {
+        onLikeUpdate(like, isLikedVideo);
+      }
       
       // Update parent component with new stats
       if (onLikeUpdate) {
@@ -157,6 +166,11 @@ const InteractOptions = ({
           const data = await response.json();
           console.log("check gifting", data);
           setGifts(data.data);
+          
+          // Update parent component with new gift count
+          if (onGiftUpdate) {
+            onGiftUpdate(data.data);
+          }
           
           // Update parent component with new gift count
           if (onGiftUpdate) {
@@ -236,7 +250,6 @@ const InteractOptions = ({
         throw new Error("Failed to reshare video");
       }
       const data = await response.json();
-
       console.log("Reshare video", data);
       
       // Update parent component with new stats
