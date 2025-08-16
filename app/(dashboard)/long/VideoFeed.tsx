@@ -147,28 +147,20 @@ const VideoFeed: React.FC = () => {
   );
 
   useEffect(() => {
-    console.log('🔧 VideoFeed useEffect triggered');
-    console.log('🔑 Token state:', {
-      exists: !!token,
-      length: token?.length || 0,
-      preview: token ? `${token.substring(0, 10)}...` : 'null'
-    });
-
     if (token) {
-      console.log('✅ Token found, fetching videos...');
       fetchTrendingVideos();
     } else {
-      console.log('❌ No token found, user may not be logged in');
       setError('Please log in to view videos');
       setLoading(false);
     }
   }, [token]);
 
-  // OPTIMIZATION 1: Stabilize the onViewableItemsChanged callback
-  // This prevents FlatList from re-rendering just because the parent re-rendered.
+  // OPTIMIZATION 1: Stabilize and throttle the onViewableItemsChanged callback
   const onViewableItemsChanged = useRef(({ viewableItems }: any) => {
     if (viewableItems.length > 0) {
-      setVisibleIndex(viewableItems[0].index);
+      const newIndex = viewableItems[0].index;
+      // Only update if index actually changed to reduce re-renders
+      setVisibleIndex(prevIndex => prevIndex !== newIndex ? newIndex : prevIndex);
     }
   });
 
@@ -206,12 +198,11 @@ const VideoFeed: React.FC = () => {
     });
   }, [visibleIndex]);
 
-  // OPTIMIZATION 2: Memoize the renderItem function
-  // This prevents creating a new render function on every parent render.
+  // OPTIMIZATION 2: Memoize the renderItem function with reduced dependencies
   const renderItem = useCallback(
     ({ item, index }: { item: VideoItemType; index: number }) => (
       <UnifiedVideoPlayer
-        key={`${item._id}-${visibleIndex === index}`}
+        key={item._id}
         uri={item.videoUrl}
         videoData={item}
         mode="feed"
@@ -230,7 +221,7 @@ const VideoFeed: React.FC = () => {
         onEpisodeChange={handleEpisodeChange}
       />
     ),
-    [visibleIndex, showCommentsModal, adjustedHeight, handleEpisodeChange]
+    [visibleIndex, adjustedHeight, handleEpisodeChange, showCommentsModal, setGiftingData, setIsWantToGift, setShowCommentsModal]
   );
 
   // OPTIMIZATION 3: If all your video items have the same height (full screen), use getItemLayout
@@ -312,7 +303,6 @@ const VideoFeed: React.FC = () => {
         />
       ) : (
         <FlatList
-          key={`${screenDimensions.width}-${screenDimensions.height}`} // Force re-render on dimension change
           data={videos}
           keyExtractor={(item) => item._id}
           renderItem={renderItem}
@@ -321,16 +311,19 @@ const VideoFeed: React.FC = () => {
           pagingEnabled
           scrollEnabled={!showCommentsModal}
           onViewableItemsChanged={onViewableItemsChanged.current}
-          viewabilityConfig={{ itemVisiblePercentThreshold: 80 }}
+          viewabilityConfig={{ 
+            itemVisiblePercentThreshold: 80,
+            minimumViewTime: 100 // Reduce sensitivity
+          }}
           decelerationRate="fast"
           showsVerticalScrollIndicator={false}
           snapToInterval={adjustedHeight}
           snapToAlignment="start"
-          onScrollBeginDrag={() => {
-            if (showCommentsModal) {
-              console.log('🚫 VideoFeed: Scroll blocked - comments modal is open');
-            }
-          }}
+          removeClippedSubviews={true} // Performance optimization
+          maxToRenderPerBatch={2} // Render fewer items at once
+          windowSize={3} // Smaller window size
+          initialNumToRender={1} // Only render first item initially
+          updateCellsBatchingPeriod={100} // Batch updates
         />
       )}
 
