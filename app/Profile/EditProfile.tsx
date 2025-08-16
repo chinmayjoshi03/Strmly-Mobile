@@ -111,9 +111,9 @@ const EditProfilePage: React.FC = () => {
           interest1: profileData.user.interest1,
           interest2: profileData.user.interest2,
           gender: profileData.user.gender,
-          content_interests: profileData.user.content_interests,
+          content_interests: profileData.user.content_interests
         });
-
+        
         setName(profileData.user.username || "");
         setUsername(profileData.user.username || "");
         setBio(profileData.user.bio || "");
@@ -124,7 +124,7 @@ const EditProfilePage: React.FC = () => {
         // Set gender and content interests
         setGender(profileData.user.gender || "");
         setContentInterest(profileData.user.content_interests || "");
-
+        
         // Reset interests first
         setInterest1([]);
         setInterest2([]);
@@ -133,11 +133,10 @@ const EditProfilePage: React.FC = () => {
         if (profileData.user.interest1) {
           try {
             // Handle both array and string formats
-            const interest1Data =
-              typeof profileData.user.interest1 === "string"
-                ? JSON.parse(profileData.user.interest1)
-                : profileData.user.interest1;
-
+            const interest1Data = typeof profileData.user.interest1 === 'string' 
+              ? JSON.parse(profileData.user.interest1) 
+              : profileData.user.interest1;
+            
             if (Array.isArray(interest1Data) && interest1Data.length > 0) {
               setInterest1(interest1Data);
               console.log("✅ Loaded Interest 1:", interest1Data);
@@ -146,15 +145,14 @@ const EditProfilePage: React.FC = () => {
             console.error("❌ Error parsing interest1:", error);
           }
         }
-
+        
         if (profileData.user.interest2) {
           try {
             // Handle both array and string formats
-            const interest2Data =
-              typeof profileData.user.interest2 === "string"
-                ? JSON.parse(profileData.user.interest2)
-                : profileData.user.interest2;
-
+            const interest2Data = typeof profileData.user.interest2 === 'string' 
+              ? JSON.parse(profileData.user.interest2) 
+              : profileData.user.interest2;
+            
             if (Array.isArray(interest2Data) && interest2Data.length > 0) {
               setInterest2(interest2Data);
               console.log("✅ Loaded Interest 2:", interest2Data);
@@ -288,7 +286,9 @@ const EditProfilePage: React.FC = () => {
 
       const response = await updateUserProfile(token, profileData);
 
+
       // Update the auth store with new data (use the URL from server response if available)
+
 
       // Update the auth store with new data (use the URL from server response if available)
       const updatedProfilePhoto = response.user?.profile_photo || imageUri;
@@ -327,12 +327,9 @@ const EditProfilePage: React.FC = () => {
     }
   };
 
-  const renderDropdownField = (
-    label: string,
-    value: string,
-    placeholder: string,
-    dropdownKey: "gender" | "interest1" | "interest2" | "contentInterest"
-  ) => (
+
+
+  const renderDropdownField = (label: string, value: string, placeholder: string, dropdownKey: 'gender' | 'interest1' | 'interest2' | 'contentInterest') => (
     <TouchableOpacity
       onPress={() => openDropdown(dropdownKey)}
       style={EditProfile.dropdownTrigger}
@@ -348,8 +345,8 @@ const EditProfilePage: React.FC = () => {
 
   return (
     <ThemedView style={EditProfile.container}>
-      <ScrollView
-        contentContainerStyle={{ paddingBottom: 20 }}
+      <ScrollView 
+        contentContainerStyle={{ paddingBottom: 20 }} 
         showsVerticalScrollIndicator={false}
         style={{ flex: 1 }}
       >
@@ -377,7 +374,7 @@ const EditProfilePage: React.FC = () => {
         </View>
 
         {/* Image picker */}
-        <TouchableOpacity style={{ alignItems: "center" }} onPress={pickImage}>
+        <TouchableOpacity style={{ alignItems: 'center' }} onPress={pickImage}>
           <Image
             source={
               imageUri
@@ -426,23 +423,18 @@ const EditProfilePage: React.FC = () => {
             />
           </View>
 
-          {/* Gender & Content Interest */}
-          <View style={EditProfile.TwoFieldRow}>
-            <View style={EditProfile.HalfField}>
-              <ThemedText style={EditProfile.InfoLabel}>Gender</ThemedText>
-              {renderDropdownField("Gender", gender, "Select gender", "gender")}
-            </View>
-
-            <View style={EditProfile.HalfField}>
-              <ThemedText style={EditProfile.InfoLabel}>Platform</ThemedText>
-              {renderDropdownField(
-                "Platform",
-                contentInterest,
-                "Select platform",
-                "contentInterest"
-              )}
-            </View>
+        {/* Gender & Content Interest */}
+        <View style={EditProfile.TwoFieldRow}>
+          <View style={EditProfile.HalfField}>
+            <ThemedText style={EditProfile.InfoLabel}>Gender</ThemedText>
+            {renderDropdownField("Gender", gender, "Select gender", 'gender')}
           </View>
+
+          <View style={EditProfile.HalfField}>
+            <ThemedText style={EditProfile.InfoLabel}>Platform</ThemedText>
+            {renderDropdownField("Platform", contentInterest, "Select platform", 'contentInterest')}
+          </View>
+        </View>
 
           {/* Interest 1 (YouTube) & Interest 2 (Netflix) */}
           <View style={EditProfile.InfoFrame}>

@@ -83,8 +83,6 @@ const InteractOptions = ({
         throw new Error("Failed while like video");
       }
       const data = await response.json();
-      // setLike(data.likes);
-      // setIsLikedVideo(data.isLiked);
       console.log("Like video", data);
       
       // Update parent component with new stats
@@ -238,8 +236,7 @@ const InteractOptions = ({
         throw new Error("Failed to reshare video");
       }
       const data = await response.json();
-      // setIsResharedVideo(!isResharedVideo);
-      // setReshares(data.totalReshares);
+
       console.log("Reshare video", data);
       
       // Update parent component with new stats

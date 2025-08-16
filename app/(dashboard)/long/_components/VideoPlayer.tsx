@@ -17,7 +17,7 @@ import SeriesPurchaseMessage from "./SeriesPurcchaseMessaage";
 import CreatorPassBuyMessage from "./CreatorPassBuyMessage";
 import VideoBuyMessage from "./VideoBuyMessage";
 
-const { height: screenHeight } = Dimensions.get("window");
+const { height: screenHeight } = Dimensions.get("screen");
 const VIDEO_HEIGHT = screenHeight;
 
 type Props = {
@@ -58,7 +58,6 @@ const VideoPlayer = ({
   // Create refs for tracking component state
   const mountedRef = useRef(true);
   const statusListenerRef = useRef<any>(null);
-  const prevUrlRef = useRef<string | null>(null);
 
   // FIX: Move the conditional check after hooks but handle gracefully
   const player = useVideoPlayer(videoData?.videoUrl || "", (p) => {
@@ -87,16 +86,12 @@ const VideoPlayer = ({
     // Don't proceed if no video URL
     if (!videoData?.videoUrl) return;
 
-    const handleStatus = (payload: any) => {
+    const statusSubscription = player.addListener("statusChange", (payload) => {
+      // Only the active video should update the global store
       if (isActive) {
         _updateStatus(payload.status, payload.error);
       }
-    };
-
-    const statusSubscription = player.addListener("statusChange", handleStatus);
-
-    // 👇 Add this for continuous position updates
-    const timeSub = player.addListener("timeUpdate", handleStatus);
+    });
 
     if (isActive) {
       // This video is visible and should play
@@ -105,23 +100,15 @@ const VideoPlayer = ({
       const { smartPlay } = usePlayerStore.getState();
       smartPlay();
     } else {
-      // This video is not visible, pause and reset
+      // This video is not visible, pause but don't reset time
       player.pause();
-
-      // Reset to beginning for better UX, but don't block UI
-      if (videoData?.videoUrl !== prevUrlRef.current) {
-        prevUrlRef.current = videoData?.videoUrl;
-        setTimeout(() => {
-          if (mountedRef.current) player.currentTime = 0;
-        }, 100);
-      }
+      // Note: Removed automatic reset to preserve user's progress position
     }
 
     // Cleanup function
     return () => {
       // Always remove the listener
       statusSubscription.remove();
-      timeSub.remove();
       // If this was the active player, clear the global reference
       if (isActive) {
         clearActivePlayer();
@@ -170,7 +157,7 @@ const VideoPlayer = ({
         onStatsUpdate={onStatsUpdate}
       />
 
-      <View className="absolute bottom-[2.56rem] left-0 h-5 z-10 right-0">
+      <View className="absolute left-0 right-0 z-10 px-2" style={{ bottom: 46 }}>
         <VideoProgressBar
           player={player}
           isActive={isActive}
@@ -190,8 +177,24 @@ const VideoPlayer = ({
         />
       </View>
 
-      <View className="z-10 absolute top-10 left-5">
-        <Pressable onPress={() => router.push("/(dashboard)/wallet")}>
+      <View className="z-10 absolute top-16 left-5">
+        <Pressable
+          onPress={() => {
+            console.log('💰 Wallet button pressed from VideoPlayer');
+            try {
+              router.push("/(dashboard)/wallet");
+              console.log('✅ Navigation to wallet initiated');
+            } catch (error) {
+              console.error('❌ Navigation failed:', error);
+              // Try alternative navigation
+              try {
+                router.replace("/(dashboard)/wallet");
+              } catch (error2) {
+                console.error('❌ Alternative navigation failed:', error2);
+              }
+            }
+          }}
+        >
           <Image
             source={require("../../../../assets/images/Wallet.png")}
             className="size-10"
@@ -269,7 +272,6 @@ const VideoPlayer = ({
 const styles = StyleSheet.create({
   container: {
     height: VIDEO_HEIGHT,
-    // flex: 1,
     width: "100%",
   },
   video: {

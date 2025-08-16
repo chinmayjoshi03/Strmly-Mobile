@@ -9,7 +9,6 @@ import {
   Image,
   Alert,
   StatusBar,
-  ScrollViewBase,
 } from "react-native";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { ArrowLeft, ChevronDown } from "lucide-react-native";
@@ -256,8 +255,7 @@ export default function EditCommunity() {
   }
 
   return (
-    <ScrollViewBase className="flex-1 bg-black">
-      <ThemedView className="flex-1">
+    <ThemedView className="flex-1">
         <StatusBar barStyle="light-content" backgroundColor="black" />
 
         {/* Header */}
@@ -294,7 +292,9 @@ export default function EditCommunity() {
             <TouchableOpacity onPress={pickImage} className="items-center">
               <View className="w-32 h-32 rounded-full bg-gray-600 items-center justify-center mb-4 overflow-hidden">
                 <Image
-                  source={{ uri: getProfilePhotoUrl(imageUri, "community") }}
+
+                  source={{ uri: getProfilePhotoUrl(imageUri, 'community') }}
+
                   className="w-full h-full"
                   resizeMode="cover"
                 />
@@ -466,6 +466,5 @@ export default function EditCommunity() {
           </View>
         </ScrollView>
       </ThemedView>
-    </ScrollViewBase>
   );
 }

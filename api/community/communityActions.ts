@@ -329,13 +329,13 @@ export class CommunityAPI {
   ): Promise<{
     success: boolean;
     message: string;
-    community: {
+    community?: {
       id: string;
       name: string;
       founder: any;
       createdAt: string;
     };
-    analytics: {
+    analytics?: {
       followers: {
         total: number;
         growth: any;
@@ -377,21 +377,35 @@ export class CommunityAPI {
       };
     };
   }> {
-    const response = await fetch(
-      `${CONFIG.API_BASE_URL}/community-analytics/${communityId}`,
-      {
-        method: 'GET',
-        headers: CommunityAPI.getHeaders(token),
+    try {
+      const response = await fetch(
+        `${CONFIG.API_BASE_URL}/community-analytics/${communityId}`,
+        {
+          method: 'GET',
+          headers: CommunityAPI.getHeaders(token),
+        }
+      );
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('❌ Get community analytics error response:', errorText);
+        
+        // Return a structured error response instead of throwing
+        return {
+          success: false,
+          message: `Failed to get community analytics: ${response.status} - ${errorText}`,
+        };
       }
-    );
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('❌ Get community analytics error response:', errorText);
-      throw new Error(`Failed to get community analytics: ${response.status} - ${errorText}`);
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      console.error('❌ Network error getting community analytics:', error);
+      return {
+        success: false,
+        message: `Network error: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      };
     }
-
-    return response.json();
   }
 
   // Get user communities
