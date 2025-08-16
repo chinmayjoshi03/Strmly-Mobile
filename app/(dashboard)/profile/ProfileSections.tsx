@@ -44,7 +44,7 @@ export default function ProfileSections() {
   // Refresh data when returning from create community page
   useEffect(() => {
     // Check if we're coming back to myCommunity section
-    if (activeSection === 'myCommunity') {
+    if (activeSection === "myCommunity") {
       refreshCurrentSection();
     }
   }, [activeSection, refreshCurrentSection]);
@@ -61,33 +61,49 @@ export default function ProfileSections() {
   const filteredData = searchData(searchQuery);
 
   const renderUserItem = (user: User) => (
-    <View key={user._id} className="flex-row items-center justify-between py-4 px-4">
+    <View
+      key={user._id}
+      className="flex-row items-center justify-between py-4 px-4"
+    >
       <View className="flex-row items-center flex-1">
         <Image
-          source={{ uri: getProfilePhotoUrl(user.profile_photo, 'user') }}
+          source={{ uri: getProfilePhotoUrl(user.profile_photo, "user") }}
           className="w-12 h-12 rounded-full mr-3"
         />
         <View className="flex-1">
-          <Text className="text-white font-semibold text-base" style={{ fontFamily: 'Poppins' }}>
+          <Text
+            className="text-white font-semibold text-base"
+            style={{ fontFamily: "Poppins" }}
+          >
             {user.username}
           </Text>
-          <Text className="text-gray-400 text-sm" style={{ fontFamily: 'Poppins' }}>
+          <Text
+            className="text-gray-400 text-sm"
+            style={{ fontFamily: "Poppins" }}
+          >
             @{user.username}
           </Text>
         </View>
       </View>
       <View className="items-end">
-        <Text className="text-white font-bold text-lg" style={{ fontFamily: 'Poppins' }}>
+        <Text
+          className="text-white font-bold text-lg"
+          style={{ fontFamily: "Poppins" }}
+        >
           {user.total_followers
             ? user.total_followers >= 1000000
               ? `${(user.total_followers / 1000000).toFixed(1)}M`
               : user.total_followers >= 1000
                 ? `${(user.total_followers / 1000).toFixed(1)}K`
                 : user.total_followers.toString()
-            : '0'
-          }
+            : "0"}
         </Text>
-        <Text className="text-gray-400 text-sm" style={{ fontFamily: 'Poppins' }}>Followers</Text>
+        <Text
+          className="text-gray-400 text-sm"
+          style={{ fontFamily: "Poppins" }}
+        >
+          Followers
+        </Text>
       </View>
     </View>
   );
@@ -96,22 +112,32 @@ export default function ProfileSections() {
     <TouchableOpacity
       key={community._id}
       className="flex-row items-center justify-between py-4 px-4"
-      onPress={() => router.push({
-        pathname: "/(communities)/CommunityDetails",
-        params: { id: community._id }
-      })}
+      onPress={() =>
+        router.push({
+          pathname: "/(communities)/CommunityDetails",
+          params: { id: community._id },
+        })
+      }
     >
       <View className="flex-row items-center flex-1">
         <Image
-          source={{ uri: getProfilePhotoUrl(community.profile_photo, 'community') }}
+          source={{
+            uri: getProfilePhotoUrl(community.profile_photo, "community"),
+          }}
           className="w-12 h-12 rounded-full mr-3"
         />
         <View className="flex-1">
-          <Text className="text-white font-semibold text-base" style={{ fontFamily: 'Poppins' }}>
+          <Text
+            className="text-white font-semibold text-base"
+            style={{ fontFamily: "Poppins" }}
+          >
             {community.name}
           </Text>
           {community.founder && (
-            <Text className="text-gray-400 text-sm" style={{ fontFamily: 'Poppins' }}>
+            <Text
+              className="text-gray-400 text-sm"
+              style={{ fontFamily: "Poppins" }}
+            >
               @{community.founder.username}
             </Text>
           )}
@@ -121,28 +147,42 @@ export default function ProfileSections() {
         <View className="items-end mr-4">
           <View className="flex-row items-center space-x-4">
             <View className="items-center">
-              <Text className="text-white font-bold text-sm" style={{ fontFamily: 'Poppins' }}>
+              <Text
+                className="text-white font-bold text-sm"
+                style={{ fontFamily: "Poppins" }}
+              >
                 {community.creators?.length
                   ? community.creators.length >= 1000
                     ? `${(community.creators.length / 1000).toFixed(1)}K`
                     : community.creators.length.toString()
-                  : '0'
-                }
+                  : "0"}
               </Text>
-              <Text className="text-gray-400 text-xs" style={{ fontFamily: 'Poppins' }}>Creators</Text>
+              <Text
+                className="text-gray-400 text-xs"
+                style={{ fontFamily: "Poppins" }}
+              >
+                Creators
+              </Text>
             </View>
             <View className="items-center">
-              <Text className="text-white font-bold text-sm" style={{ fontFamily: 'Poppins' }}>
+              <Text
+                className="text-white font-bold text-sm"
+                style={{ fontFamily: "Poppins" }}
+              >
                 {community.followers?.length
                   ? community.followers.length >= 1000000
                     ? `${(community.followers.length / 1000000).toFixed(1)}M`
                     : community.followers.length >= 1000
                       ? `${(community.followers.length / 1000).toFixed(1)}K`
                       : community.followers.length.toString()
-                  : '0'
-                }
+                  : "0"}
               </Text>
-              <Text className="text-gray-400 text-xs" style={{ fontFamily: 'Poppins' }}>Followers</Text>
+              <Text
+                className="text-gray-400 text-xs"
+                style={{ fontFamily: "Poppins" }}
+              >
+                Followers
+              </Text>
             </View>
           </View>
         </View>
@@ -165,7 +205,10 @@ export default function ProfileSections() {
         <TouchableOpacity onPress={() => router.back()}>
           <ArrowLeft size={24} color="white" />
         </TouchableOpacity>
-        <Text className="text-white text-lg font-semibold" style={{ fontFamily: 'Poppins' }}>
+        <Text
+          className="text-white text-lg font-semibold"
+          style={{ fontFamily: "Poppins" }}
+        >
           {userName}
         </Text>
         <View className="w-6" />
@@ -180,52 +223,56 @@ export default function ProfileSections() {
       >
         <View className="flex-row space-x-20 py-3">
           <TouchableOpacity
-            className={`py-2 px-2 ${activeSection === "followers" ? "border-b-2 border-white" : ""
-              }`}
+            className={`py-2 px-2 ${
+              activeSection === "followers" ? "border-b-2 border-white" : ""
+            }`}
             onPress={() => changeSection("followers")}
           >
             <Text
               className={`${activeSection === "followers" ? "text-white font-semibold" : "text-gray-400"} whitespace-nowrap text-lg`}
-              style={{ fontFamily: 'Poppins' }}
+              style={{ fontFamily: "Poppins" }}
             >
               {counts.followers} Followers
             </Text>
           </TouchableOpacity>
 
           <TouchableOpacity
-            className={`py-2 px-2 ${activeSection === "following" ? "border-b-2 border-white" : ""
-              }`}
+            className={`py-2 px-2 ${
+              activeSection === "following" ? "border-b-2 border-white" : ""
+            }`}
             onPress={() => changeSection("following")}
           >
             <Text
               className={`${activeSection === "following" ? "text-white font-semibold" : "text-gray-400"} whitespace-nowrap text-lg`}
-              style={{ fontFamily: 'Poppins' }}
+              style={{ fontFamily: "Poppins" }}
             >
               {counts.following} Following
             </Text>
           </TouchableOpacity>
 
           <TouchableOpacity
-            className={`py-2 px-2 ${activeSection === "myCommunity" ? "border-b-2 border-white" : ""
-              }`}
+            className={`py-2 px-2 ${
+              activeSection === "myCommunity" ? "border-b-2 border-white" : ""
+            }`}
             onPress={() => changeSection("myCommunity")}
           >
             <Text
               className={`${activeSection === "myCommunity" ? "text-white font-semibold" : "text-gray-400"} whitespace-nowrap text-lg`}
-              style={{ fontFamily: 'Poppins' }}
+              style={{ fontFamily: "Poppins" }}
             >
               {counts.myCommunity} My Community
             </Text>
           </TouchableOpacity>
 
           <TouchableOpacity
-            className={`py-2 px-2 ${activeSection === "community" ? "border-b-2 border-white" : ""
-              }`}
+            className={`py-2 px-2 ${
+              activeSection === "community" ? "border-b-2 border-white" : ""
+            }`}
             onPress={() => changeSection("community")}
           >
             <Text
               className={`${activeSection === "community" ? "text-white font-semibold" : "text-gray-400"} whitespace-nowrap text-lg`}
-              style={{ fontFamily: 'Poppins' }}
+              style={{ fontFamily: "Poppins" }}
             >
               {counts.community} Community
             </Text>
@@ -242,7 +289,7 @@ export default function ProfileSections() {
             placeholderTextColor="gray"
             value={searchQuery}
             onChangeText={setSearchQuery}
-            style={{ fontFamily: 'Poppins' }}
+            style={{ fontFamily: "Poppins" }}
           />
         </View>
       </View>
@@ -252,26 +299,38 @@ export default function ProfileSections() {
         {loading ? (
           <View className="flex-1 items-center justify-center py-20">
             <ActivityIndicator size="large" color="#F1C40F" />
-            <Text className="text-gray-400 mt-2" style={{ fontFamily: 'Poppins' }}>
+            <Text
+              className="text-gray-400 mt-2"
+              style={{ fontFamily: "Poppins" }}
+            >
               Loading {getSectionTitle()}...
             </Text>
           </View>
         ) : error ? (
           <View className="flex-1 items-center justify-center py-20">
-            <Text className="text-red-400 text-center" style={{ fontFamily: 'Poppins' }}>
+            <Text
+              className="text-red-400 text-center"
+              style={{ fontFamily: "Poppins" }}
+            >
               {error}
             </Text>
           </View>
         ) : filteredData.length === 0 ? (
           <View className="flex-1 items-center justify-center py-20">
-            <Text className="text-gray-400 text-center" style={{ fontFamily: 'Poppins' }}>
+            <Text
+              className="text-gray-400 text-center"
+              style={{ fontFamily: "Poppins" }}
+            >
               {searchQuery ? "No results found" : `No ${activeSection} yet`}
             </Text>
           </View>
         ) : (
           <View>
             {filteredData.map((item) => {
-              if (activeSection === "followers" || activeSection === "following") {
+              if (
+                activeSection === "followers" ||
+                activeSection === "following"
+              ) {
                 return renderUserItem(item as User);
               } else {
                 return renderCommunityItem(item as Community);
@@ -283,19 +342,20 @@ export default function ProfileSections() {
 
       {/* Create Community Button (only for My Community tab) */}
       {activeSection === "myCommunity" && (
-        <View className="px-4 py-3">
+        <View className="px-4 pb-5">
           <TouchableOpacity
-            className="bg-white rounded-full py-3"
+            className="bg-white rounded-full py-4"
             onPress={() => router.push("/(communities)/CreateCommunityPage")}
           >
-            <Text className="text-black text-center font-semibold" style={{ fontFamily: 'Poppins' }}>
+            <Text
+              className="text-black text-center text-lg font-semibold"
+              style={{ fontFamily: "Poppins" }}
+            >
               Create new community
             </Text>
           </TouchableOpacity>
         </View>
       )}
-
-
     </ThemedView>
   );
 }

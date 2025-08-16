@@ -32,7 +32,7 @@ const VideosFeed: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [visibleIndex, setVisibleIndex] = useState(0);
   const [page, setPage] = useState(1);
-  const [limit, setLimit] = useState(8);
+  const [limit, setLimit] = useState(6);
   const [hasMore, setHasMore] = useState(true);
   const [isFetchingMore, setIsFetchingMore] = useState(false);
   const [showCommentsModal, setShowCommentsModal] = useState(false);
@@ -56,6 +56,7 @@ const VideosFeed: React.FC = () => {
 
     setIsFetchingMore(true);
     try {
+      console.log('calling');
       const res = await fetch(
         `${BACKEND_API_URL}/videos/trending?page=${nextPage}&limit=${limit}`,
         {
@@ -71,9 +72,12 @@ const VideosFeed: React.FC = () => {
       const json = await res.json();
       if (json.data.length < limit) setHasMore(false);
       setVideos((prev) => [...prev, ...json.data]);
-      // setVideos(json.recommendations);
+      // if (json.recommendations.length < limit) setHasMore(false);
+      // setVideos((prev) => [...prev, ...json.recommendations]);
+      // console.log('length--->', json.recommendations.length)
       setPage(nextPage + 1);
     } catch (err: any) {
+      console.log(err);
       setError(err.message || "Something went wrong");
     } finally {
       setLoading(false);
@@ -83,7 +87,7 @@ const VideosFeed: React.FC = () => {
 
   useEffect(() => {
     if (token) {
-      fetchTrendingVideos();
+      fetchTrendingVideos(page);
     } else {
       setError("Please log in to view videos");
       setLoading(false);
@@ -230,9 +234,9 @@ const VideosFeed: React.FC = () => {
           scrollEnabled={!showCommentsModal}
           onViewableItemsChanged={onViewableItemsChanged}
           viewabilityConfig={{ itemVisiblePercentThreshold: 80 }}
-          initialNumToRender={2}
-          maxToRenderPerBatch={2}
-          windowSize={3}
+          initialNumToRender={3}
+          maxToRenderPerBatch={3}
+          windowSize={5}
           showsVerticalScrollIndicator={false}
           contentInsetAdjustmentBehavior="automatic" // iOS
           contentContainerStyle={{ paddingBottom: 0 }}

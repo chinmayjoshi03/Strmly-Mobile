@@ -25,6 +25,7 @@ import ProfileTopbar from "@/components/profileTopbar";
 import { LinearGradient } from "expo-linear-gradient";
 import Constants from "expo-constants";
 import VideoPlayer from "@/app/(dashboard)/long/_components/VideoPlayer";
+import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 
 const { height } = Dimensions.get("window");
 // Note: testVideos, api, toast, and format are not directly used in the final render
@@ -281,11 +282,16 @@ export default function PersonalProfilePage() {
   const renderGridItem = ({ item }: { item: any }) => (
     <TouchableOpacity
       className="relative aspect-[9/16] flex-1 rounded-sm overflow-hidden"
-      onPress={() => {navigateToVideoPlayer(item, videos); console.log('item', item)}}
+      onPress={() => {
+        navigateToVideoPlayer(item, videos);
+        console.log("item", item);
+      }}
     >
-      {(item.thumbnailUrl !== "" || item?.long_video?.thumbnailUrl !== '') ? (
+      {item.thumbnailUrl !== "" || item?.long_video?.thumbnailUrl !== "" ? (
         <Image
-          source={{ uri: `${item.thumbnailUrl ? item.thumbnailUrl : item.long_video.thumbnailUrl}` }}
+          source={{
+            uri: `${item.thumbnailUrl ? item.thumbnailUrl : item.long_video.thumbnailUrl}`,
+          }}
           alt="video thumbnail"
           className="w-full h-full object-cover"
         />
@@ -304,282 +310,298 @@ export default function PersonalProfilePage() {
   );
 
   return (
-    <ThemedView style={{ height, paddingTop: 10 }}>
-      {/* Video Grid */}
-      <FlatList
-        data={videos}
-        keyExtractor={(item) => item._id}
-        renderItem={renderGridItem}
-        numColumns={3}
-        contentContainerStyle={{ paddingBottom: 30, paddingHorizontal: 0 }}
-        showsVerticalScrollIndicator={false}
-        nestedScrollEnabled={true}
-        ListHeaderComponent={
-          <>
-            {!isLoading && (
-              <View className="h-48 relative">
-                <ProfileTopbar hashtag={false} name={userData?.username} />
-              </View>
-            )}
-
-            {/* Profile Info */}
-            {isLoading ? (
-              <View className="w-full h-96 flex items-center justify-center -mt-20 relative">
-                <ActivityIndicator size="large" color="white" />
-              </View>
-            ) : isError ? (
-              <View className="flex-1 items-center justify-center h-60 -mt-20">
-                <Text className="text-white text-center">
-                  Sorry, it looks like an error occurred:{" "}
-                  {typeof isError === "string" ? isError : "Unknown error"}
-                </Text>
-              </View>
-            ) : (
-              <View className="max-w-4xl -mt-28 relative mx-6">
-                <View className="flex flex-col items-center md:flex-row md:items-end space-y-4 md:space-y-0 md:space-x-4">
-                  <View className="relative">
-                    <Image
-                      source={{ uri: getProfilePhotoUrl(userData?.profile_photo, 'user') }}
-                      style={{
-                        width: 80,
-                        height: 80,
-                        borderRadius: 40,
-                        borderWidth: 2,
-                        borderColor: "white",
-                        resizeMode: "cover",
-                      }}
-                    />
-
-                    <View className="flex flex-row gap-2 items-center justify-center mt-2">
-                      <Text className="text-gray-400">
-                        @{userData?.username}
-                      </Text>
-                      {userData?.creator_profile?.verification_status ===
-                        "verified" && (
-                        <Text className="ml-2 px-2 py-1 rounded-full text-xs font-medium bg-blue-500 text-white">
-                          Verified
-                        </Text>
-                      )}
-                    </View>
-                  </View>
+    <ThemedView style={{ height }}>
+      <SafeAreaView>
+        {/* Video Grid */}
+        <FlatList
+          data={videos}
+          keyExtractor={(item) => item._id}
+          renderItem={renderGridItem}
+          numColumns={3}
+          contentContainerStyle={{ paddingBottom: 30, paddingHorizontal: 0 }}
+          showsVerticalScrollIndicator={false}
+          nestedScrollEnabled={true}
+          ListHeaderComponent={
+            <>
+              {!isLoading && (
+                <View className="h-48 relative">
+                  <ProfileTopbar hashtag={false} name={userData?.username} />
                 </View>
+              )}
 
-                {/* Stats */}
-                <View className="mt-6 flex-row justify-around items-center">
-                  <TouchableOpacity
-                    className="flex flex-col gap-1 items-center"
-                    onPress={() =>
-                      router.push({
-                        pathname: "/(dashboard)/profile/ProfileSections",
-                        params: {
-                          section: "followers",
-                          userName: userData?.username || "Username",
-                        },
-                      })
-                    }
-                  >
-                    <Text className="font-bold text-lg text-white">
-                      {userData?.totalFollowers || 0}
-                    </Text>
-                    <Text className="text-gray-400 text-md">Followers</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    className="flex flex-col gap-1 items-center"
-                    onPress={() =>
-                      router.push({
-                        pathname: "/(dashboard)/profile/ProfileSections",
-                        params: {
-                          section: "myCommunity",
-                          userName: userData?.username || "User",
-                        },
-                      })
-                    }
-                  >
-                    <Text className="font-bold text-lg text-white">
-                      {userData?.totalCommunities || 0}
-                    </Text>
-                    <Text className="text-gray-400 text-md">Community</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    className="flex flex-col gap-1 items-center"
-                    onPress={() =>
-                      router.push({
-                        pathname: "/(dashboard)/profile/ProfileSections",
-                        params: {
-                          section: "following",
-                          userName: userData?.username || "User",
-                        },
-                      })
-                    }
-                  >
-                    <Text className="font-bold text-lg text-white">
-                      {userData?.totalFollowing || 0}
-                    </Text>
-                    <Text className="text-gray-400 text-md">Followings</Text>
-                  </TouchableOpacity>
+              {/* Profile Info */}
+              {isLoading ? (
+                <View className="w-full h-96 flex items-center justify-center -mt-20 relative">
+                  <ActivityIndicator size="large" color="white" />
                 </View>
-
-                <View className="flex flex-row w-full items-center justify-center gap-2 mt-5">
-                  {/* My Community Button */}
-                  <TouchableOpacity
-                    onPress={() =>
-                      router.push({
-                        pathname: "/(dashboard)/profile/ProfileSections",
-                        params: {
-                          section: "myCommunity",
-                          userName: userData?.username || "User",
-                        },
-                      })
-                    }
-                    className="px-4 py-2 rounded-lg border border-white"
-                  >
-                    <Text className="text-white text-center font-bold">
-                      My Community
-                    </Text>
-                  </TouchableOpacity>
-
-                  {/* Dashboard Button (Gradient Border) */}
-                  <TouchableOpacity
-                    onPress={() =>
-                      router.push("/(dashboard)/profile/Dashboard")
-                    }
-                    className="px-4 py-2 rounded-lg border border-white" // Use rounded-md for consistency
-                  >
-                    <Text className="text-white text-center font-bold">
-                      Dashboard
-                    </Text>
-                  </TouchableOpacity>
-                </View>
-
-                <View className="flex-1 flex-row w-full items-center justify-center gap-2 mt-5">
-                  <TouchableOpacity
-                    onPress={() => router.push("/Profile/EditProfile")}
-                    className="px-4 py-2 border border-gray-400 rounded-lg"
-                  >
-                    <Text className="text-white text-center">Edit Profile</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    onPress={() => router.push("/(dashboard)/profile/History")}
-                    className="px-4 py-2 border border-gray-400 rounded-lg"
-                  >
-                    <Text className="text-white text-center">History</Text>
-                  </TouchableOpacity>
-
-                  <TouchableOpacity
-                    onPress={() => router.push("/(dashboard)/profile/access")}
-                    className="rounded-lg overflow-hidden"
-                  >
-                    <LinearGradient
-                      colors={["#4400FFA6", "#FFFFFF", "#FF00004D", "#FFFFFF"]}
-                      start={{ x: 0, y: 0 }}
-                      end={{ x: 1, y: 1 }}
-                      className="p-[1.5px] rounded-lg flex-1" // Use rounded-md here
-                    >
-                      <View className="flex-1 px-4 py-2 rounded-lg bg-black items-center justify-center">
-                        <Text className="text-white text-center font-bold">
-                          Access
-                        </Text>
-                      </View>
-                    </LinearGradient>
-                  </TouchableOpacity>
-                </View>
-
-                {/* Bio */}
-                <View className="mt-6 flex flex-col items-center justify-center px-4">
-                  <Text className="text-gray-400 text-center text-xs">
-                    {userData?.bio}
+              ) : isError ? (
+                <View className="flex-1 items-center justify-center h-60 -mt-20">
+                  <Text className="text-white text-center">
+                    Sorry, it looks like an error occurred:{" "}
+                    {typeof isError === "string" ? isError : "Unknown error"}
                   </Text>
                 </View>
+              ) : (
+                <View className="max-w-4xl -mt-28 relative mx-6">
+                  <View className="flex flex-col items-center md:flex-row md:items-end space-y-4 md:space-y-0 md:space-x-4">
+                    <View className="relative">
+                      <Image
+                        source={{
+                          uri: getProfilePhotoUrl(
+                            userData?.profile_photo,
+                            "user"
+                          ),
+                        }}
+                        style={{
+                          width: 80,
+                          height: 80,
+                          borderRadius: 40,
+                          borderWidth: 2,
+                          borderColor: "white",
+                          resizeMode: "cover",
+                        }}
+                      />
+
+                      <View className="flex flex-row gap-2 items-center justify-center mt-2">
+                        <Text className="text-gray-400">
+                          @{userData?.username}
+                        </Text>
+                        {userData?.creator_profile?.verification_status ===
+                          "verified" && (
+                          <Text className="ml-2 px-2 py-1 rounded-full text-xs font-medium bg-blue-500 text-white">
+                            Verified
+                          </Text>
+                        )}
+                      </View>
+                    </View>
+                  </View>
+
+                  {/* Stats */}
+                  <View className="mt-6 flex-row justify-around items-center">
+                    <TouchableOpacity
+                      className="flex flex-col gap-1 items-center"
+                      onPress={() =>
+                        router.push({
+                          pathname: "/(dashboard)/profile/ProfileSections",
+                          params: {
+                            section: "followers",
+                            userName: userData?.username || "Username",
+                          },
+                        })
+                      }
+                    >
+                      <Text className="font-bold text-lg text-white">
+                        {userData?.totalFollowers || 0}
+                      </Text>
+                      <Text className="text-gray-400 text-md">Followers</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      className="flex flex-col gap-1 items-center"
+                      onPress={() =>
+                        router.push({
+                          pathname: "/(dashboard)/profile/ProfileSections",
+                          params: {
+                            section: "myCommunity",
+                            userName: userData?.username || "User",
+                          },
+                        })
+                      }
+                    >
+                      <Text className="font-bold text-lg text-white">
+                        {userData?.totalCommunities || 0}
+                      </Text>
+                      <Text className="text-gray-400 text-md">Community</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      className="flex flex-col gap-1 items-center"
+                      onPress={() =>
+                        router.push({
+                          pathname: "/(dashboard)/profile/ProfileSections",
+                          params: {
+                            section: "following",
+                            userName: userData?.username || "User",
+                          },
+                        })
+                      }
+                    >
+                      <Text className="font-bold text-lg text-white">
+                        {userData?.totalFollowing || 0}
+                      </Text>
+                      <Text className="text-gray-400 text-md">Followings</Text>
+                    </TouchableOpacity>
+                  </View>
+
+                  <View className="flex flex-row w-full items-center justify-center gap-2 mt-5">
+                    {/* My Community Button */}
+                    <TouchableOpacity
+                      onPress={() =>
+                        router.push({
+                          pathname: "/(dashboard)/profile/ProfileSections",
+                          params: {
+                            section: "myCommunity",
+                            userName: userData?.username || "User",
+                          },
+                        })
+                      }
+                      className="px-4 py-2 rounded-lg border border-white"
+                    >
+                      <Text className="text-white text-center font-bold">
+                        My Community
+                      </Text>
+                    </TouchableOpacity>
+
+                    {/* Dashboard Button (Gradient Border) */}
+                    <TouchableOpacity
+                      onPress={() =>
+                        router.push("/(dashboard)/profile/Dashboard")
+                      }
+                      className="px-4 py-2 rounded-lg border border-white" // Use rounded-md for consistency
+                    >
+                      <Text className="text-white text-center font-bold">
+                        Dashboard
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+
+                  <View className="flex-1 flex-row w-full items-center justify-center gap-2 mt-5">
+                    <TouchableOpacity
+                      onPress={() => router.push("/Profile/EditProfile")}
+                      className="px-4 py-2 border border-gray-400 rounded-lg"
+                    >
+                      <Text className="text-white text-center">
+                        Edit Profile
+                      </Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      onPress={() =>
+                        router.push("/(dashboard)/profile/History")
+                      }
+                      className="px-4 py-2 border border-gray-400 rounded-lg"
+                    >
+                      <Text className="text-white text-center">History</Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                      onPress={() => router.push("/(dashboard)/profile/access")}
+                      className="rounded-lg overflow-hidden"
+                    >
+                      <LinearGradient
+                        colors={[
+                          "#4400FFA6",
+                          "#FFFFFF",
+                          "#FF00004D",
+                          "#FFFFFF",
+                        ]}
+                        start={{ x: 0, y: 0 }}
+                        end={{ x: 1, y: 1 }}
+                        className="p-[1.5px] rounded-lg flex-1" // Use rounded-md here
+                      >
+                        <View className="flex-1 px-4 py-2 rounded-lg bg-black items-center justify-center">
+                          <Text className="text-white text-center font-bold">
+                            Access
+                          </Text>
+                        </View>
+                      </LinearGradient>
+                    </TouchableOpacity>
+                  </View>
+
+                  {/* Bio */}
+                  <View className="mt-6 flex flex-col items-center justify-center px-4">
+                    <Text className="text-gray-400 text-center text-xs">
+                      {userData?.bio}
+                    </Text>
+                  </View>
+                </View>
+              )}
+
+              {/* Tabs */}
+              <View className="mt-6 border-b border-gray-700">
+                <View className="flex-1 flex-row justify-around items-center">
+                  <TouchableOpacity
+                    className={`pb-4 flex-1 items-center justify-center`}
+                    onPress={() => setActiveTab("long")}
+                  >
+                    <PaperclipIcon
+                      color={activeTab === "long" ? "white" : "gray"}
+                    />
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    className={`pb-4 flex-1 items-center justify-center`}
+                    onPress={() => {
+                      setActiveTab(() => "repost");
+                      userReshareVideos();
+                    }}
+                  >
+                    <Image
+                      source={require("../../../assets/images/repost.png")}
+                      className={`size-7 ${activeTab === "repost" ? "text-white font-semibold" : " opacity-55"}`}
+                    />
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    className={`pb-4 flex-1 items-center justify-center`}
+                    onPress={() => setActiveTab("liked")}
+                  >
+                    <HeartIcon
+                      color={activeTab === "liked" ? "white" : "gray"}
+                      fill={activeTab === "liked" ? "white" : ""}
+                    />
+                  </TouchableOpacity>
+                </View>
               </View>
-            )}
 
-            {/* Tabs */}
-            <View className="mt-6 border-b border-gray-700">
-              <View className="flex-1 flex-row justify-around items-center">
-                <TouchableOpacity
-                  className={`pb-4 flex-1 items-center justify-center`}
-                  onPress={() => setActiveTab("long")}
-                >
-                  <PaperclipIcon
-                    color={activeTab === "long" ? "white" : "gray"}
-                  />
-                </TouchableOpacity>
+              {isLoadingVideos && (
+                <View className="w-full h-96 flex-1 items-center justify-center mt-20">
+                  <ActivityIndicator size="large" color="#fff" />
+                </View>
+              )}
+            </>
+          }
+        />
 
-                <TouchableOpacity
-                  className={`pb-4 flex-1 items-center justify-center`}
-                  onPress={() => {
-                    setActiveTab(() => "repost");
-                    userReshareVideos();
-                  }}
-                >
-                  <Image
-                    source={require("../../../assets/images/repost.png")}
-                    className={`size-7 ${activeTab === "repost" ? "text-white font-semibold" : " opacity-55"}`}
-                  />
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  className={`pb-4 flex-1 items-center justify-center`}
-                  onPress={() => setActiveTab("liked")}
-                >
-                  <HeartIcon
-                    color={activeTab === "liked" ? "white" : "gray"}
-                    fill={activeTab === "liked" ? "white" : ""}
-                  />
-                </TouchableOpacity>
-              </View>
-            </View>
-
-            {isLoadingVideos && (
-              <View className="w-full h-96 flex-1 items-center justify-center mt-20">
-                <ActivityIndicator size="large" color="#fff" />
-              </View>
-            )}
-          </>
-        }
-      />
-
-      {/* Integrated Video Player */}
-      {isVideoPlayerActive && currentVideoData && (
-        <View
-          style={{
-            position: "absolute",
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            backgroundColor: "black",
-            zIndex: 1000,
-          }}
-        >
-          <FlatList
-            data={currentVideoList}
-            keyExtractor={(item) => item._id}
-            renderItem={({ item, index }) => (
-              <VideoPlayer
-                key={`${item._id}-${index === currentVideoIndex}`}
-                videoData={item}
-                isActive={index === currentVideoIndex}
-                showCommentsModal={showCommentsModal}
-                setShowCommentsModal={setShowCommentsModal}
-              />
-            )}
-            initialScrollIndex={currentVideoIndex}
-            getItemLayout={(_, index) => ({
-              length: Dimensions.get("window").height,
-              offset: Dimensions.get("window").height * index,
-              index,
-            })}
-            pagingEnabled
-            onViewableItemsChanged={onViewableItemsChanged}
-            viewabilityConfig={{ itemVisiblePercentThreshold: 80 }}
-            decelerationRate="fast"
-            showsVerticalScrollIndicator={false}
-            snapToInterval={Dimensions.get("window").height}
-            snapToAlignment="start"
-          />
-        </View>
-      )}
+        {/* Integrated Video Player */}
+        {isVideoPlayerActive && currentVideoData && (
+          <View
+            style={{
+              position: "absolute",
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              backgroundColor: "black",
+              zIndex: 1000,
+            }}
+          >
+            <FlatList
+              data={currentVideoList}
+              keyExtractor={(item) => item._id}
+              renderItem={({ item, index }) => (
+                <VideoPlayer
+                  key={`${item._id}-${index === currentVideoIndex}`}
+                  videoData={item}
+                  isActive={index === currentVideoIndex}
+                  showCommentsModal={showCommentsModal}
+                  setShowCommentsModal={setShowCommentsModal}
+                />
+              )}
+              initialScrollIndex={currentVideoIndex}
+              getItemLayout={(_, index) => ({
+                length: Dimensions.get("window").height,
+                offset: Dimensions.get("window").height * index,
+                index,
+              })}
+              pagingEnabled
+              onViewableItemsChanged={onViewableItemsChanged}
+              viewabilityConfig={{ itemVisiblePercentThreshold: 80 }}
+              decelerationRate="fast"
+              showsVerticalScrollIndicator={false}
+              snapToInterval={Dimensions.get("window").height}
+              snapToAlignment="start"
+            />
+          </View>
+        )}
+      </SafeAreaView>
     </ThemedView>
   );
 }

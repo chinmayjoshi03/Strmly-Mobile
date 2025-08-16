@@ -47,6 +47,12 @@ export default {
           supportsPictureInPicture: true
         }
       ],
+      [
+        "react-native-iap",
+        {
+          "googlePlayPackageName": "com.anonymous.strmly"
+        }
+      ],
       "expo-web-browser"
     ],
     experiments: {

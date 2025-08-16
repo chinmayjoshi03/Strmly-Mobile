@@ -28,6 +28,9 @@ import { router, useFocusEffect } from "expo-router";
 import VideoPlayer from "@/app/(dashboard)/long/_components/VideoPlayer";
 import BottomNavBar from "@/components/BottomNavBar";
 import { getProfilePhotoUrl } from "@/utils/profileUtils";
+import { SafeAreaView } from "react-native-safe-area-context";
+
+const { height } = Dimensions.get("screen");
 
 export default function PublicProfilePageWithId() {
   const [activeTab, setActiveTab] = useState("long");
@@ -55,24 +58,31 @@ export default function PublicProfilePageWithId() {
   const [showCommentsModal, setShowCommentsModal] = useState(false);
 
   // Handle stats updates
-  const handleStatsUpdate = useCallback((videoId: string, stats: { likes?: number; gifts?: number; shares?: number; comments?: number }) => {
-    setCurrentVideoList(prevList => 
-      prevList.map(video => 
-        video._id === videoId 
-          ? { ...video, ...stats }
-          : video
-      )
-    );
-    
-    // Also update the main videos list if the video exists there
-    setVideos(prevVideos => 
-      prevVideos.map(video => 
-        video._id === videoId 
-          ? { ...video, ...stats }
-          : video
-      )
-    );
-  }, []);
+  const handleStatsUpdate = useCallback(
+    (
+      videoId: string,
+      stats: {
+        likes?: number;
+        gifts?: number;
+        shares?: number;
+        comments?: number;
+      }
+    ) => {
+      setCurrentVideoList((prevList) =>
+        prevList.map((video) =>
+          video._id === videoId ? { ...video, ...stats } : video
+        )
+      );
+
+      // Also update the main videos list if the video exists there
+      setVideos((prevVideos) =>
+        prevVideos.map((video) =>
+          video._id === videoId ? { ...video, ...stats } : video
+        )
+      );
+    },
+    []
+  );
 
   const BACKEND_API_URL = Constants.expoConfig?.extra?.BACKEND_API_URL;
 
@@ -418,410 +428,429 @@ export default function PublicProfilePageWithId() {
   );
 
   return (
-    <ThemedView className="flex-1">
-      <FlatList
-        data={videos}
-        keyExtractor={(item) => item._id}
-        renderItem={renderGridItem}
-        numColumns={3}
-        contentContainerStyle={{
-          paddingBottom: 30,
-          paddingHorizontal: 0,
-        }}
-        showsVerticalScrollIndicator={false}
-        ListHeaderComponent={
-          <>
-            {userError !== null ? (
-              <View className="h-full w-full items-center justify-center">
-                <Text className="text-white text-xl">No such user exists</Text>
-              </View>
-            ) : (
-              <View className="flex-1 pt-5 gap-5">
-                {!isLoading && (
-                  <View className="h-48 relative">
-                    <ProfileTopbar
-                      hashtag={false}
-                      name={userData?.userDetails?.username}
-                    />
-                  </View>
-                )}
+    <ThemedView style={{ height }}>
+      <SafeAreaView>
+        <FlatList
+          data={videos}
+          keyExtractor={(item) => item._id}
+          renderItem={renderGridItem}
+          numColumns={3}
+          contentContainerStyle={{
+            paddingBottom: 30,
+            paddingHorizontal: 0,
+          }}
+          showsVerticalScrollIndicator={false}
+          ListHeaderComponent={
+            <>
+              {userError !== null ? (
+                <View className="h-full w-full items-center justify-center">
+                  <Text className="text-white text-xl">
+                    No such user exists
+                  </Text>
+                </View>
+              ) : (
+                <View className="flex-1 gap-5">
+                  {!isLoading && (
+                    <View className="h-48 relative">
+                      <ProfileTopbar
+                        hashtag={false}
+                        name={userData?.userDetails?.username}
+                      />
+                    </View>
+                  )}
 
-                {/* Profile Info */}
-                {isLoading ? (
-                  <View className="w-full h-96 flex items-center justify-center -mt-20 relative">
-                    <ActivityIndicator size="large" color="#F1C40F" />
-                  </View>
-                ) : (
-                  <View className="max-w-4xl -mt-28 relative mx-6">
-                    <View className="flex flex-col items-center md:flex-row md:items-end space-y-4 md:space-y-0 md:space-x-4">
-                      <View className="items-center">
-                        <View className="size-24 border-white border rounded-full overflow-hidden">
-                          <Image
-                            source={{ uri: getProfilePhotoUrl(userData?.userDetails?.profile_photo, 'user') }}
-                            className="w-full h-full object-cover rounded-full"
-                          />
-                        </View>
+                  {/* Profile Info */}
+                  {isLoading ? (
+                    <View className="w-full h-96 flex items-center justify-center -mt-20 relative">
+                      <ActivityIndicator size="large" color="#F1C40F" />
+                    </View>
+                  ) : (
+                    <View className="max-w-4xl -mt-28 relative mx-6">
+                      <View className="flex flex-col items-center md:flex-row md:items-end space-y-4 md:space-y-0 md:space-x-4">
+                        <View className="items-center">
+                          <View className="size-24 border-white border rounded-full overflow-hidden">
+                            <Image
+                              source={{
+                                uri: getProfilePhotoUrl(
+                                  userData?.userDetails?.profile_photo,
+                                  "user"
+                                ),
+                              }}
+                              className="w-full h-full object-cover rounded-full"
+                            />
+                          </View>
 
-                        <View className="flex flex-row gap-2 items-center justify-center mt-2">
-                          <Text className="text-gray-400">
-                            @{userData?.userDetails?.username}
-                          </Text>
-                          {userData?.creator_profile?.verification_status ===
-                            "verified" && (
-                            <Text className="ml-2 px-2 py-1 rounded-full text-xs font-medium bg-blue-500 text-white">
-                              Verified
+                          <View className="flex flex-row gap-2 items-center justify-center mt-2">
+                            <Text className="text-gray-400">
+                              @{userData?.userDetails?.username}
                             </Text>
-                          )}
+                            {userData?.creator_profile?.verification_status ===
+                              "verified" && (
+                              <Text className="ml-2 px-2 py-1 rounded-full text-xs font-medium bg-blue-500 text-white">
+                                Verified
+                              </Text>
+                            )}
+                          </View>
                         </View>
                       </View>
-                    </View>
 
-                    {/* Stats */}
-                    <View
-                      className={`mt-6 flex-row items-center ${userData?.userDetails?.creator_profile?.creator_pass_price !== 0 && !hasCreatorPass ? "justify-evenly gap-4" : "justify-center gap-5"}`}
-                    >
-                      <TouchableOpacity
-                        className="text-center items-center"
-                        // onPress={() => router.push("/communities?type=followers")}
+                      {/* Stats */}
+                      <View
+                        className={`mt-6 flex-row items-center ${userData?.userDetails?.creator_profile?.creator_pass_price !== 0 && !hasCreatorPass ? "justify-evenly gap-4" : "justify-center gap-5"}`}
                       >
-                        <Text className="font-semibold text-lg text-white">
-                          {following}
-                        </Text>
-                        <Text className="text-gray-400 text-md font-thin">
-                          Followers
-                        </Text>
-                      </TouchableOpacity>
-
-                      {/* Follow Button */}
-                      <TouchableOpacity
-                        onPress={() => followCreator()}
-                        className="h-9 px-7 py-2 rounded-lg border border-white"
-                      >
-                        <Text className="text-white text-center font-semibold">
-                          {isFollowing ? "Following" : "Follow"}
-                        </Text>
-                      </TouchableOpacity>
-
-                      {/* Access Button with Gradient Border */}
-                      {userData?.userDetails?.creator_profile
-                        ?.creator_pass_price !== 0 && !hasCreatorPass ? (
                         <TouchableOpacity
-                          onPress={() =>
-                            router.push({
-                              pathname: "/(dashboard)/PurchasePass/PurchaseCreatorPass/[id]",
-                              params: {id: userData?.userDetails._id}
+                          className="text-center items-center"
+                          // onPress={() => router.push("/communities?type=followers")}
+                        >
+                          <Text className="font-semibold text-lg text-white">
+                            {following}
+                          </Text>
+                          <Text className="text-gray-400 text-md font-thin">
+                            Followers
+                          </Text>
+                        </TouchableOpacity>
+
+                        {/* Follow Button */}
+                        <TouchableOpacity
+                          onPress={() => followCreator()}
+                          className="h-9 px-7 py-2 rounded-lg border border-white"
+                        >
+                          <Text className="text-white text-center font-semibold">
+                            {isFollowing ? "Following" : "Follow"}
+                          </Text>
+                        </TouchableOpacity>
+
+                        {/* Access Button with Gradient Border */}
+                        {userData?.userDetails?.creator_profile
+                          ?.creator_pass_price !== 0 && !hasCreatorPass ? (
+                          <TouchableOpacity
+                            onPress={() =>
+                              router.push({
+                                pathname:
+                                  "/(dashboard)/PurchasePass/PurchaseCreatorPass/[id]",
+                                params: { id: userData?.userDetails._id },
+                              })
                             }
-                            )
-                          }
-                          className={`h-10 rounded-lg overflow-hidden`}
-                        >
-                          <LinearGradient
-                            colors={[
-                              "#4400FFA6",
-                              "#FFFFFF",
-                              "#FF00004D",
-                              "#FFFFFF",
-                            ]}
-                            start={{ x: 0, y: 0 }}
-                            end={{ x: 1, y: 1 }}
-                            className="p-[1px] rounded-lg flex-1"
+                            className={`h-10 rounded-lg overflow-hidden`}
                           >
-                            <View
-                              className={`flex-1 px-2 rounded-lg bg-black items-center justify-center`}
+                            <LinearGradient
+                              colors={[
+                                "#4400FFA6",
+                                "#FFFFFF",
+                                "#FF00004D",
+                                "#FFFFFF",
+                              ]}
+                              start={{ x: 0, y: 0 }}
+                              end={{ x: 1, y: 1 }}
+                              className="p-[1px] rounded-lg flex-1"
                             >
-                              <View className="flex-row items-center justify-center">
-                                <Text className="text-white text-center">
-                                  Access at
-                                </Text>
-                                <IndianRupee color={"white"} size={13} />
-                                <Text className="text-white text-center ml-0.5">
-                                  {
-                                    userData?.userDetails?.creator_profile
-                                      ?.creator_pass_price
-                                  }
-                                  /month
-                                </Text>
+                              <View
+                                className={`flex-1 px-2 rounded-lg bg-black items-center justify-center`}
+                              >
+                                <View className="flex-row items-center justify-center">
+                                  <Text className="text-white text-center">
+                                    Access at
+                                  </Text>
+                                  <IndianRupee color={"white"} size={13} />
+                                  <Text className="text-white text-center ml-0.5">
+                                    {
+                                      userData?.userDetails?.creator_profile
+                                        ?.creator_pass_price
+                                    }
+                                    /month
+                                  </Text>
+                                </View>
                               </View>
-                            </View>
-                          </LinearGradient>
-                        </TouchableOpacity>
-                      ) : userData?.userDetails?.creator_profile.creator_pass_price !== 0 ?(
-                        <TouchableOpacity
-                          className={`h-10 rounded-lg overflow-hidden`}
-                        >
-                          <LinearGradient
-                            colors={[
-                              "#4400FFA6",
-                              "#FFFFFF",
-                              "#FF00004D",
-                              "#FFFFFF",
-                            ]}
-                            start={{ x: 0, y: 0 }}
-                            end={{ x: 1, y: 1 }}
-                            className="p-[1px] rounded-lg flex-1"
-                          >
-                            <View
-                              className={`flex-1 px-4 rounded-lg bg-black items-center justify-center`}
-                            >
-                              <View className="flex-row items-center justify-center">
-                                <Text className="text-white text-center">
-                                  Joined
-                                </Text>
-                              </View>
-                            </View>
-                          </LinearGradient>
-                        </TouchableOpacity>
-                      )
-                      :
-                      (
-                        <></>
-                      )
-                      }
-                    </View>
-
-                    {/* Social Media Links - Moved here to replace hashtags */}
-                    {userData?.userDetails?.social_media_links &&
-                      Object.values(
-                        userData.userDetails.social_media_links
-                      ).some((link) => link) && (
-                        <View className="mt-5 flex-row justify-center gap-8 flex-wrap">
-                          {userData.userDetails.social_media_links.snapchat && (
-                            <TouchableOpacity
-                              onPress={() =>
-                                Linking.openURL(
-                                  userData.userDetails.social_media_links
-                                    .snapchat
-                                )
-                              }
-                              className="w-10 h-10 rounded-lg overflow-hidden"
-                              style={{ backgroundColor: "#FFFC00" }}
-                            >
-                              <Image source={require('../../../../assets/images/snapchat.png')}/>
-                            </TouchableOpacity>
-                          )}
-                          {userData.userDetails.social_media_links
-                            .instagram && (
-                            <TouchableOpacity
-                              onPress={() =>
-                                Linking.openURL(
-                                  userData.userDetails.social_media_links
-                                    .instagram
-                                )
-                              }
-                            >
-                              <Image source={require('../../../../assets/images/insta.png')} className="size-10"/>
-                            </TouchableOpacity>
-                          )}
-                          {userData.userDetails.social_media_links.youtube && (
-                            <TouchableOpacity
-                              onPress={() =>
-                                Linking.openURL(
-                                  userData.userDetails.social_media_links
-                                    .youtube
-                                )
-                              }
-                            >
-                              <Image source={require('../../../../assets/images/yt.png')} className="size-10"/>
-                            </TouchableOpacity>
-                          )}
-                          {userData.userDetails.social_media_links.facebook && (
-                            <TouchableOpacity
-                              onPress={() =>
-                                Linking.openURL(
-                                  userData.userDetails.social_media_links
-                                    .facebook
-                                )
-                              }
-                              className="w-10 h-10 rounded-lg overflow-hidden"
-                              style={{ backgroundColor: "#1877F2" }}
-                            >
-                              <View className="w-full h-full items-center justify-center">
-                                <Text className="text-white text-lg font-bold">
-                                  f
-                                </Text>
-                              </View>
-                            </TouchableOpacity>
-                          )}
-                          {userData.userDetails.social_media_links.twitter && (
-                            <TouchableOpacity
-                              onPress={() =>
-                                Linking.openURL(
-                                  userData.userDetails.social_media_links
-                                    .twitter
-                                )
-                              }
-                              className="w-10 border border-gray-800 h-10 rounded-lg overflow-hidden"
-                              style={{ backgroundColor: "#000000" }}
-                            >
-                              <View className="w-full h-full items-center justify-center">
-                                <Text className="text-white text-lg font-bold">
-                                  𝕏
-                                </Text>
-                              </View>
-                            </TouchableOpacity>
-                          )}
-                        </View>
-                      )}
-
-                    {/* Bio - Moved below social media links with larger font */}
-                    <View className="mt-4 flex flex-col items-center justify-center px-4">
-                      {userData?.userDetails?.bio && (
-                        <Text className="text-gray-400 text-sm text-center">
-                          {userData?.userDetails?.bio}
-                        </Text>
-                      )}
-                      {userData?.website && (
-                        <View className="mt-2 flex flex-row flex-wrap gap-4 text-gray-400 justify-center">
-                          <TouchableOpacity
-                            onPress={() => Linking.openURL(userData.website)}
-                            className="flex-row items-center"
-                          >
-                            <LinkIcon className="w-4 h-4 mr-1 text-white" />
-                            <Text className="text-white underline">
-                              {userData.website}
-                            </Text>
+                            </LinearGradient>
                           </TouchableOpacity>
-                        </View>
-                      )}
-                    </View>
-
-                    {/* Communities as Hashtags */}
-                    {communities.length > 0 && (
-                      <View className="flex flex-row flex-wrap w-full items-center justify-center gap-2 mt-3">
-                        {communities.slice(0, 2).map((community) => (
+                        ) : userData?.userDetails?.creator_profile
+                            .creator_pass_price !== 0 ? (
                           <TouchableOpacity
-                            key={community._id}
-                            onPress={() => {
-                              router.push({
-                                pathname:
-                                  "/(dashboard)/communities/public/[id]",
-                                params: { id: community._id },
-                              });
-                            }}
-                            className="px-4 py-2 border border-gray-400 rounded-[8px]"
+                            className={`h-10 rounded-lg overflow-hidden`}
                           >
-                            <Text className="text-white">
-                              #{community.name}
-                            </Text>
+                            <LinearGradient
+                              colors={[
+                                "#4400FFA6",
+                                "#FFFFFF",
+                                "#FF00004D",
+                                "#FFFFFF",
+                              ]}
+                              start={{ x: 0, y: 0 }}
+                              end={{ x: 1, y: 1 }}
+                              className="p-[1px] rounded-lg flex-1"
+                            >
+                              <View
+                                className={`flex-1 px-4 rounded-lg bg-black items-center justify-center`}
+                              >
+                                <View className="flex-row items-center justify-center">
+                                  <Text className="text-white text-center">
+                                    Joined
+                                  </Text>
+                                </View>
+                              </View>
+                            </LinearGradient>
                           </TouchableOpacity>
-                        ))}
-
-                        {communities.length > 2 && (
-                          <TouchableOpacity
-                            onPress={() => {
-                              router.push({
-                                pathname:
-                                  "/(dashboard)/profile/ProfileSections",
-                                params: {
-                                  section: "myCommunity",
-                                  userName: userData?.username,
-                                },
-                              });
-                            }}
-                            className="px-4 py-2 border border-gray-400 rounded-[8px]"
-                          >
-                            <Text className="text-white">More</Text>
-                          </TouchableOpacity>
+                        ) : (
+                          <></>
                         )}
+                      </View>
+
+                      {/* Social Media Links - Moved here to replace hashtags */}
+                      {userData?.userDetails?.social_media_links &&
+                        Object.values(
+                          userData.userDetails.social_media_links
+                        ).some((link) => link) && (
+                          <View className="mt-5 flex-row justify-center gap-8 flex-wrap">
+                            {userData.userDetails.social_media_links
+                              .snapchat && (
+                              <TouchableOpacity
+                                onPress={() =>
+                                  Linking.openURL(
+                                    userData.userDetails.social_media_links
+                                      .snapchat
+                                  )
+                                }
+                                className="w-10 h-10 rounded-lg overflow-hidden"
+                                style={{ backgroundColor: "#FFFC00" }}
+                              >
+                                <Image
+                                  source={require("../../../../assets/images/snapchat.png")}
+                                />
+                              </TouchableOpacity>
+                            )}
+                            {userData.userDetails.social_media_links
+                              .instagram && (
+                              <TouchableOpacity
+                                onPress={() =>
+                                  Linking.openURL(
+                                    userData.userDetails.social_media_links
+                                      .instagram
+                                  )
+                                }
+                              >
+                                <Image
+                                  source={require("../../../../assets/images/insta.png")}
+                                  className="size-10"
+                                />
+                              </TouchableOpacity>
+                            )}
+                            {userData.userDetails.social_media_links
+                              .youtube && (
+                              <TouchableOpacity
+                                onPress={() =>
+                                  Linking.openURL(
+                                    userData.userDetails.social_media_links
+                                      .youtube
+                                  )
+                                }
+                              >
+                                <Image
+                                  source={require("../../../../assets/images/yt.png")}
+                                  className="size-10"
+                                />
+                              </TouchableOpacity>
+                            )}
+                            {userData.userDetails.social_media_links
+                              .facebook && (
+                              <TouchableOpacity
+                                onPress={() =>
+                                  Linking.openURL(
+                                    userData.userDetails.social_media_links
+                                      .facebook
+                                  )
+                                }
+                                className="w-10 h-10 rounded-lg overflow-hidden"
+                                style={{ backgroundColor: "#1877F2" }}
+                              >
+                                <View className="w-full h-full items-center justify-center">
+                                  <Text className="text-white text-lg font-bold">
+                                    f
+                                  </Text>
+                                </View>
+                              </TouchableOpacity>
+                            )}
+                            {userData.userDetails.social_media_links
+                              .twitter && (
+                              <TouchableOpacity
+                                onPress={() =>
+                                  Linking.openURL(
+                                    userData.userDetails.social_media_links
+                                      .twitter
+                                  )
+                                }
+                                className="w-10 border border-gray-800 h-10 rounded-lg overflow-hidden"
+                                style={{ backgroundColor: "#000000" }}
+                              >
+                                <View className="w-full h-full items-center justify-center">
+                                  <Text className="text-white text-lg font-bold">
+                                    𝕏
+                                  </Text>
+                                </View>
+                              </TouchableOpacity>
+                            )}
+                          </View>
+                        )}
+
+                      {/* Bio - Moved below social media links with larger font */}
+                      <View className="mt-4 flex flex-col items-center justify-center px-4">
+                        {userData?.userDetails?.bio && (
+                          <Text className="text-gray-400 text-sm text-center">
+                            {userData?.userDetails?.bio}
+                          </Text>
+                        )}
+                        {userData?.website && (
+                          <View className="mt-2 flex flex-row flex-wrap gap-4 text-gray-400 justify-center">
+                            <TouchableOpacity
+                              onPress={() => Linking.openURL(userData.website)}
+                              className="flex-row items-center"
+                            >
+                              <LinkIcon className="w-4 h-4 mr-1 text-white" />
+                              <Text className="text-white underline">
+                                {userData.website}
+                              </Text>
+                            </TouchableOpacity>
+                          </View>
+                        )}
+                      </View>
+
+                      {/* Communities as Hashtags */}
+                      {communities.length > 0 && (
+                        <View className="flex flex-row flex-wrap w-full items-center justify-center gap-2 mt-3">
+                          {communities.slice(0, 2).map((community) => (
+                            <TouchableOpacity
+                              key={community._id}
+                              onPress={() => {
+                                router.push({
+                                  pathname:
+                                    "/(dashboard)/communities/public/[id]",
+                                  params: { id: community._id },
+                                });
+                              }}
+                              className="px-4 py-2 border border-gray-400 rounded-[8px]"
+                            >
+                              <Text className="text-white">
+                                #{community.name}
+                              </Text>
+                            </TouchableOpacity>
+                          ))}
+
+                          {communities.length > 2 && (
+                            <TouchableOpacity
+                              onPress={() => {
+                                router.push({
+                                  pathname:
+                                    "/(dashboard)/profile/ProfileSections",
+                                  params: {
+                                    section: "myCommunity",
+                                    userName: userData?.username,
+                                  },
+                                });
+                              }}
+                              className="px-4 py-2 border border-gray-400 rounded-[8px]"
+                            >
+                              <Text className="text-white">More</Text>
+                            </TouchableOpacity>
+                          )}
+                        </View>
+                      )}
+                    </View>
+                  )}
+
+                  {/* Tabs */}
+                  <View className="mt-6">
+                    <View className="flex-1 flex-row justify-around items-center">
+                      <TouchableOpacity
+                        className={`pb-4 flex-1 items-center justify-center`}
+                        onPress={() => setActiveTab("long")}
+                      >
+                        <PaperclipIcon
+                          color={activeTab === "long" ? "white" : "gray"}
+                        />
+                      </TouchableOpacity>
+
+                      <TouchableOpacity
+                        className={`pb-4 flex-1 items-center justify-center`}
+                        onPress={() => {
+                          setActiveTab(() => "repost");
+                          fetchUserReshareVideos();
+                        }}
+                      >
+                        <Image
+                          source={require("../../../../assets/images/repost.png")}
+                          className="w-6 h-6"
+                          tintColor={activeTab === "repost" ? "white" : "gray"} // Apply tintColor for coloring images
+                        />
+                      </TouchableOpacity>
+
+                      <TouchableOpacity
+                        className={`pb-4 flex-1 items-center justify-center`}
+                        onPress={() => setActiveTab("liked")}
+                      >
+                        <HeartIcon
+                          color={activeTab === "liked" ? "white" : "gray"}
+                          fill={activeTab === "liked" ? "white" : ""}
+                        />
+                      </TouchableOpacity>
+                    </View>
+
+                    {isLoadingVideos && (
+                      <View className="w-full h-96 flex-1 items-center justify-center mt-20">
+                        <ActivityIndicator size="large" color="white" />
                       </View>
                     )}
                   </View>
-                )}
-
-                {/* Tabs */}
-                <View className="mt-6">
-                  <View className="flex-1 flex-row justify-around items-center">
-                    <TouchableOpacity
-                      className={`pb-4 flex-1 items-center justify-center`}
-                      onPress={() => setActiveTab("long")}
-                    >
-                      <PaperclipIcon
-                        color={activeTab === "long" ? "white" : "gray"}
-                      />
-                    </TouchableOpacity>
-
-                    <TouchableOpacity
-                      className={`pb-4 flex-1 items-center justify-center`}
-                      onPress={() => {
-                        setActiveTab(() => "repost");
-                        fetchUserReshareVideos();
-                      }}
-                    >
-                      <Image
-                        source={require("../../../../assets/images/repost.png")}
-                        className="w-6 h-6"
-                        tintColor={activeTab === "repost" ? "white" : "gray"} // Apply tintColor for coloring images
-                      />
-                    </TouchableOpacity>
-
-                    <TouchableOpacity
-                      className={`pb-4 flex-1 items-center justify-center`}
-                      onPress={() => setActiveTab("liked")}
-                    >
-                      <HeartIcon
-                        color={activeTab === "liked" ? "white" : "gray"}
-                        fill={activeTab === "liked" ? "white" : ""}
-                      />
-                    </TouchableOpacity>
-                  </View>
-
-                  {isLoadingVideos && (
-                    <View className="w-full h-96 flex-1 items-center justify-center mt-20">
-                      <ActivityIndicator size="large" color="white" />
-                    </View>
-                  )}
                 </View>
-              </View>
-            )}
-          </>
-        }
-      />
+              )}
+            </>
+          }
+        />
 
-      {/* Integrated Video Player */}
-      {isVideoPlayerActive && currentVideoData && (
-        <View
-          style={{
-            position: "absolute",
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            backgroundColor: "black",
-            zIndex: 1000,
-          }}
-        >
-          <FlatList
-            data={currentVideoList}
-            keyExtractor={(item) => item._id}
-            renderItem={({ item, index }) => (
-              <VideoPlayer
-                key={`${item._id}-${index === currentVideoIndex}`}
-                videoData={item}
-                isActive={index === currentVideoIndex}
-                showCommentsModal={showCommentsModal}
-                setShowCommentsModal={setShowCommentsModal}
-                onStatsUpdate={(stats) => handleStatsUpdate(item._id, stats)}
-              />
-            )}
-            initialScrollIndex={currentVideoIndex}
-            getItemLayout={(_, index) => ({
-              length: Dimensions.get("window").height,
-              offset: Dimensions.get("window").height * index,
-              index,
-            })}
-            pagingEnabled
-            onViewableItemsChanged={onViewableItemsChanged}
-            viewabilityConfig={{ itemVisiblePercentThreshold: 80 }}
-            decelerationRate="fast"
-            showsVerticalScrollIndicator={false}
-            snapToInterval={Dimensions.get("window").height}
-            snapToAlignment="start"
-          />
-          
-          {/* Bottom Navigation Bar in Video Player */}
-          <BottomNavBar />
-        </View>
-      )}
+        {/* Integrated Video Player */}
+        {isVideoPlayerActive && currentVideoData && (
+          <View
+            style={{
+              position: "absolute",
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              backgroundColor: "black",
+              zIndex: 1000,
+            }}
+          >
+            <FlatList
+              data={currentVideoList}
+              keyExtractor={(item) => item._id}
+              renderItem={({ item, index }) => (
+                <VideoPlayer
+                  key={`${item._id}-${index === currentVideoIndex}`}
+                  videoData={item}
+                  isActive={index === currentVideoIndex}
+                  showCommentsModal={showCommentsModal}
+                  setShowCommentsModal={setShowCommentsModal}
+                  onStatsUpdate={(stats) => handleStatsUpdate(item._id, stats)}
+                />
+              )}
+              initialScrollIndex={currentVideoIndex}
+              getItemLayout={(_, index) => ({
+                length: Dimensions.get("window").height,
+                offset: Dimensions.get("window").height * index,
+                index,
+              })}
+              pagingEnabled
+              onViewableItemsChanged={onViewableItemsChanged}
+              viewabilityConfig={{ itemVisiblePercentThreshold: 80 }}
+              decelerationRate="fast"
+              showsVerticalScrollIndicator={false}
+              snapToInterval={Dimensions.get("window").height}
+              snapToAlignment="start"
+            />
+
+            {/* Bottom Navigation Bar in Video Player */}
+            <BottomNavBar />
+          </View>
+        )}
+      </SafeAreaView>
     </ThemedView>
   );
 }

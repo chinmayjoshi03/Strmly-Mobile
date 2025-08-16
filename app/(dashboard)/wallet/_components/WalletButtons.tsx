@@ -1,11 +1,15 @@
-import { View, Text, Pressable, Alert, TextInput, Modal } from 'react-native'
-import React, { useState } from 'react'
-import AddMoneyModal from './AddMoneyModal'
+import { View, Text, Pressable, Alert, TextInput, Modal } from "react-native";
+import React, { useState } from "react";
+import AddMoneyModal from "./AddMoneyModal";
 
 interface WalletButtonsProps {
   onWithdraw: () => void;
   onCreateOrder: (amount: number) => Promise<any>;
-  onVerifyPayment: (orderId: string, paymentId: string, signature: string) => Promise<any>;
+  onVerifyPayment: (
+    orderId: string,
+    paymentId: string,
+    signature: string
+  ) => Promise<any>;
   onRefreshWallet: () => void;
   walletBalance: number;
 }
@@ -15,11 +19,11 @@ const WalletButtons: React.FC<WalletButtonsProps> = ({
   onCreateOrder,
   onVerifyPayment,
   onRefreshWallet,
-  walletBalance
+  walletBalance,
 }) => {
   const [showWithdrawModal, setShowWithdrawModal] = useState(false);
   const [showAddMoneyModal, setShowAddMoneyModal] = useState(false);
-  const [withdrawAmount, setWithdrawAmount] = useState('');
+  const [withdrawAmount, setWithdrawAmount] = useState("");
 
   const handleAddToWallet = () => {
     setShowAddMoneyModal(true);
@@ -37,21 +41,21 @@ const WalletButtons: React.FC<WalletButtonsProps> = ({
     const amount = parseFloat(withdrawAmount);
 
     if (!amount || amount <= 0) {
-      Alert.alert('Error', 'Please enter a valid amount');
+      Alert.alert("Error", "Please enter a valid amount");
       return;
     }
 
     if (amount > walletBalance) {
-      Alert.alert('Error', 'Insufficient balance');
+      Alert.alert("Error", "Insufficient balance");
       return;
     }
 
     try {
-      await onWithdraw(amount);
+      await onWithdraw();
       setShowWithdrawModal(false);
-      setWithdrawAmount('');
+      setWithdrawAmount("");
     } catch (error) {
-      Alert.alert('Error', 'Failed to process withdrawal');
+      Alert.alert("Error", "Failed to process withdrawal");
     }
   };
 
@@ -62,7 +66,9 @@ const WalletButtons: React.FC<WalletButtonsProps> = ({
           onPress={handleAddToWallet}
           className="bg-white rounded-3xl h-[45px] justify-center items-center"
         >
-          <Text className="text-black text-base font-semibold">Add to wallet</Text>
+          <Text className="text-black text-base font-semibold">
+            Add to wallet
+          </Text>
         </Pressable>
 
         <Pressable
@@ -113,21 +119,25 @@ const WalletButtons: React.FC<WalletButtonsProps> = ({
                 onPress={() => setShowWithdrawModal(false)}
                 className="flex-1 bg-gray-600 p-3 rounded-lg"
               >
-                <Text className="text-white text-center font-semibold">Cancel</Text>
+                <Text className="text-white text-center font-semibold">
+                  Cancel
+                </Text>
               </Pressable>
 
               <Pressable
                 onPress={handleWithdrawConfirm}
                 className="flex-1 bg-white p-3 rounded-lg"
               >
-                <Text className="text-black text-center font-semibold">Withdraw</Text>
+                <Text className="text-black text-center font-semibold">
+                  Withdraw
+                </Text>
               </Pressable>
             </View>
           </View>
         </View>
       </Modal>
     </>
-  )
-}
+  );
+};
 
-export default WalletButtons
+export default WalletButtons;

@@ -31,7 +31,7 @@ const ProfileTopbar = ({
 
 
   return (
-    <View className="top-6 z-20">
+    <View className="top-3 px-1 z-20">
       <View className="flex-row items-center justify-between">
         <TouchableOpacity onPress={() => router.back()} className="p-2">
           <ChevronLeft size={28} color={"white"} className="text-white" />
