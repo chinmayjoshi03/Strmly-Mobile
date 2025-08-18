@@ -8,7 +8,8 @@ interface WalletButtonsProps {
   onVerifyPayment: (
     orderId: string,
     paymentId: string,
-    signature: string
+    purchaseToken: string,
+    amount: number
   ) => Promise<any>;
   onRefreshWallet: () => void;
   walletBalance: number;

@@ -2,7 +2,7 @@
 import { googlePlayBillingService } from '@/services/googlePlayBilling';
 
 export interface PaymentOrder {
-  id: string;
+  id?: string;
   amount: number;
   currency: string;
 }
@@ -21,7 +21,8 @@ export const initiateGooglePlayBilling = async (order: PaymentOrder): Promise<Go
     const productId = googlePlayBillingService.getProductIdForAmount(order.amount);
     
     // Purchase the product
-    const purchaseResult = await googlePlayBillingService.purchaseProduct(productId, order.id);
+    const purchaseResult = await googlePlayBillingService.purchaseProduct(productId);
+    // const purchaseResult = await googlePlayBillingService.purchaseProduct(productId, order?.id);
     
     return {
       orderId: purchaseResult.orderId,

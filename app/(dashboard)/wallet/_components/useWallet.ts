@@ -47,7 +47,8 @@ export const useWallet = (token: string) => {
       setIsLoading(true);
       setError(null);
       const response = await createWalletLoadOrder(token, amount);
-      return response.order;
+      console.log('Wallet load order response:', response);
+      return response.success;
     } catch (err: any) {
       setError(err.message);
       throw err;
@@ -57,11 +58,11 @@ export const useWallet = (token: string) => {
   };
 
   // Verify Google Play Billing payment
-  const verifyPayment = async (orderId: string, purchaseToken: string, signature: string) => {
+  const verifyPayment = async (orderId: string, productId: string, purchaseToken: string, amount: number) => {
     try {
       setIsLoading(true);
       setError(null);
-      const response = await verifyWalletLoad(token, orderId, purchaseToken, signature);
+      const response = await verifyWalletLoad(token, orderId, productId, purchaseToken, amount);
       await fetchWalletDetails(); // Refresh wallet data
       return response.transaction;
     } catch (err: any) {

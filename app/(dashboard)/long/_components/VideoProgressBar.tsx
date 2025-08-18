@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import {
   View,
   StyleSheet,
@@ -8,6 +8,8 @@ import {
   GestureResponderEvent,
 } from "react-native";
 import { VideoPlayer } from "expo-video";
+import { useAuthStore } from "@/store/useAuthStore";
+import Constants from "expo-constants";
 
 const PROGRESS_BAR_HEIGHT = 4; // Thicker progress bar like YouTube/TikTok
 
@@ -52,6 +54,67 @@ const VideoProgressBar = ({
 
   const lastTimeRef = useRef(0);
 
+  // ✅ new ref to make sure we only call once
+  const hasTriggered2Percent = useRef(false);
+  const { token } = useAuthStore();
+  const BACKEND_API_URL = Constants.expoConfig?.extra?.BACKEND_API_URL;
+
+  // History API
+  const saveVideoToHistory = useCallback(async () => {
+    if (!token || !videoId) return;
+    try {
+      const res = await fetch(`${BACKEND_API_URL}/user/history`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ videoId }),
+      });
+      console.error("Video saved to history", await res.json());
+    } catch (err) {
+      console.error("Failed to save history:", err);
+    }
+  }, [token, videoId, BACKEND_API_URL]);
+
+  // View API
+  const incrementVideoViews = useCallback(async () => {
+    if (!token || !videoId) return;
+    try {
+      const res = await fetch(`${BACKEND_API_URL}/videos/${videoId}/view`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      });
+      const data = await res.json();
+      console.log(data.message);
+    } catch (err) {
+      console.error("Failed to increment views:", err);
+    }
+  }, [token, videoId, BACKEND_API_URL]);
+
+  // Monitor progress for 2% milestone
+  useEffect(() => {
+    if (!isActive || duration <= 0) return;
+
+    const percentWatched = (currentTime / duration) * 100;
+
+    if (!hasTriggered2Percent.current && percentWatched >= 2) {
+      hasTriggered2Percent.current = true; // prevent multiple calls
+      saveVideoToHistory();
+      incrementVideoViews();
+    }
+  }, [currentTime, duration, isActive]);
+
+  // Reset when video changes
+  useEffect(() => {
+    if (!isActive) {
+      hasTriggered2Percent.current = false;
+    }
+  }, [isActive]);
+
   useEffect(() => {
     if (isActive && lastTimeRef.current > 0) {
       const currentPlayerTime = player.currentTime || 0;
@@ -86,17 +149,22 @@ const VideoProgressBar = ({
     const interval = setInterval(() => {
       // Only sync time when user is definitely not interacting
       if (!isDragging && !seekInProgress.current && !userInteracting.current) {
-        const time = typeof player.currentTime === "number" ? player.currentTime : 0;
+        const time =
+          typeof player.currentTime === "number" ? player.currentTime : 0;
 
         // Only update if time has changed significantly to reduce re-renders
         if (time >= 0 && Math.abs(time - lastTimeRef.current) > 0.2) {
           const timeDiff = Math.abs(time - lastTimeRef.current);
-          
+
           // Handle looping: if time is much smaller than lastTime, it's likely a loop restart
           const isLoopRestart = time < 2 && lastTimeRef.current > duration - 2;
-          
+
           // Simplified logic for better performance
-          if (isLoopRestart || time >= lastTimeRef.current - 1 || timeDiff > 3) {
+          if (
+            isLoopRestart ||
+            time >= lastTimeRef.current - 1 ||
+            timeDiff > 3
+          ) {
             setCurrentTime(time);
             lastTimeRef.current = time;
           }
@@ -127,7 +195,6 @@ const VideoProgressBar = ({
 
       // Simple seek - just use direct assignment
       player.currentTime = newTimeSeconds;
-
     } catch (error) {
       // Silent error handling to reduce console spam
     } finally {
@@ -177,9 +244,13 @@ const VideoProgressBar = ({
     setDragTime(null);
 
     // Seek to final position
-    if (finalSeekTime !== null && finalSeekTime >= 0 && finalSeekTime <= duration) {
+    if (
+      finalSeekTime !== null &&
+      finalSeekTime >= 0 &&
+      finalSeekTime <= duration
+    ) {
       handleSeek(finalSeekTime);
-      
+
       // Resume playback
       if (wasPlayingBeforeSeek.current) {
         setTimeout(() => player.play(), 50);
@@ -192,21 +263,33 @@ const VideoProgressBar = ({
     }, 500);
   };
 
-  const progress = isDragging ? dragProgress : (duration > 0 ? (currentTime / duration) : 0);
+  const progress = isDragging
+    ? dragProgress
+    : duration > 0
+      ? currentTime / duration
+      : 0;
   const showProgressBar = duration > 0;
 
   if (!showProgressBar) return null;
 
   return (
-    <View style={styles.progressBarContainer} onLayout={handleProgressBarLayout}>
+    <View
+      style={styles.progressBarContainer}
+      onLayout={handleProgressBarLayout}
+    >
       {/* Background track - gray/transparent */}
       <View style={styles.progressBarBackground} />
 
       {/* Filled progress - white bar that fills up as video progresses */}
-      <View style={[styles.progressBar, {
-        width: `${progress * 100}%`,
-        opacity: isDragging ? 0.9 : 1,
-      }]} />
+      <View
+        style={[
+          styles.progressBar,
+          {
+            width: `${progress * 100}%`,
+            opacity: isDragging ? 0.9 : 1,
+          },
+        ]}
+      />
 
       <Pressable
         style={styles.touchArea}
@@ -220,7 +303,10 @@ const VideoProgressBar = ({
           const containerWidth = progressBarContainerWidth.current;
           if (containerWidth > 0 && !isDragging) {
             const touchX = event.nativeEvent.locationX;
-            const seekPercentage = Math.max(0, Math.min(1, touchX / containerWidth));
+            const seekPercentage = Math.max(
+              0,
+              Math.min(1, touchX / containerWidth)
+            );
             const newTime = seekPercentage * duration;
 
             console.log("Quick tap - seeking to:", newTime);

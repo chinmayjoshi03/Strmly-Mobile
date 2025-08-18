@@ -13,6 +13,7 @@ import { CONFIG } from "@/Constants/config";
 import { VideoItemType } from "@/types/VideosType";
 import { Link, router, useFocusEffect } from "expo-router";
 import VideoPlayer from "./_components/VideoPlayer";
+import VideoItem from "./VideoItem";
 
 export type GiftType = {
   creator: {
@@ -51,16 +52,17 @@ const VideosFeed: React.FC = () => {
 
   const BACKEND_API_URL = CONFIG.API_BASE_URL;
 
-  const fetchTrendingVideos = async (nextPage = page) => {
+  const fetchTrendingVideos = async (nextPage?: number) => {
+    const targetPage = nextPage ?? page;
+
     if (!hasMore || isFetchingMore) return;
 
     setIsFetchingMore(true);
     try {
-      console.log('calling');
+      console.log("calling...");
       const res = await fetch(
-        `${BACKEND_API_URL}/videos/trending?page=${nextPage}&limit=${limit}`,
+        `${BACKEND_API_URL}/recommendations/videos?page=${targetPage}&limit=${limit}`,
         {
-          //recommendations/videos
           method: "GET",
           headers: {
             Authorization: `Bearer ${token}`,
@@ -70,12 +72,20 @@ const VideosFeed: React.FC = () => {
       );
       if (!res.ok) throw new Error("Failed to fetch videos");
       const json = await res.json();
-      if (json.data.length < limit) setHasMore(false);
-      setVideos((prev) => [...prev, ...json.data]);
-      // if (json.recommendations.length < limit) setHasMore(false);
-      // setVideos((prev) => [...prev, ...json.recommendations]);
-      // console.log('length--->', json.recommendations.length)
-      setPage(nextPage + 1);
+      // if (json.data.length < limit) setHasMore(false);
+      // setVideos((prev) => [...prev, ...json.data]);
+
+      setVideos((prev) => {
+        const existingIds = new Set(prev.map((v) => v._id));
+        const uniqueNew = json.recommendations.filter(
+          (v: { _id: string }) => !existingIds.has(v._id)
+        );
+        return [...prev, ...uniqueNew];
+      });
+
+      if (json.recommendations.length < limit) setHasMore(false);
+      // console.log(json.recommendations.length);
+      setPage(targetPage + 1); // increment only once
     } catch (err: any) {
       console.log(err);
       setError(err.message || "Something went wrong");
@@ -102,24 +112,23 @@ const VideosFeed: React.FC = () => {
         const currentIndex = viewableItems[0].index;
         setVisibleIndex(currentIndex);
 
-        // Trigger next batch if user watched 6 videos
-        if (currentIndex === 6 || currentIndex === 4) {
-          fetchTrendingVideos(page);
-        }
-
-        // Trigger near-end fetch
-        if (currentIndex >= videos.length - 2) {
-          fetchTrendingVideos(page);
-        }
+        // Prefetch when 2 items left
+        // if (currentIndex >= videos.length - 3 && hasMore && !isFetchingMore) {
+        //   fetchTrendingVideos();
+        // }
       }
     },
-    [videos.length, page, hasMore, isFetchingMore]
-  ); // Empty dependency array means this function is created only once.
+    []
+  );
 
   // OPTIMIZATION 2: Memoize the renderItem function
   // This prevents creating a new render function on every parent render.
   const renderItem = useCallback(
     ({ item, index }: { item: VideoItemType; index: number }) => (
+      // <VideoItem
+      //   video={item}
+      //   isActive={index === visibleIndex}
+      // />
       <VideoPlayer
         videoData={item}
         isActive={index === visibleIndex}
@@ -135,20 +144,11 @@ const VideosFeed: React.FC = () => {
   const getItemLayout = useCallback(
     (_data: any, index: number) => ({
       length: VIDEO_HEIGHT,
-      offset: VIDEO_HEIGHT,
+      offset: VIDEO_HEIGHT * index,
       index,
     }),
-    []
+    [router]
   );
-
-  // Key extractor for better performance
-  const keyExtractor = useCallback((item: VideoItemType) => item._id, []);
-
-  // Viewability config for better performance
-  const viewabilityConfig = {
-    itemVisiblePercentThreshold: 80,
-    minimumViewTime: 100,
-  };
 
   // Show loading while checking authentication or fetching videos
   if (loading || !token || !isLoggedIn) {
@@ -185,11 +185,12 @@ const VideosFeed: React.FC = () => {
             <Text className="text-red-400 text-center text-sm mb-4">
               {error}
             </Text>
-            <Text className="text-gray-400 text-center text-xs mb-4">
-              API URL: {BACKEND_API_URL || "Not configured"}
-            </Text>
             <Pressable
-              onPress={() => fetchTrendingVideos()}
+              onPress={() => {
+                setLoading(() => true);
+                setError(() => null);
+                fetchTrendingVideos();
+              }}
               className="bg-blue-600 px-4 py-2 rounded"
             >
               <Text className="text-white">Retry</Text>
@@ -240,6 +241,8 @@ const VideosFeed: React.FC = () => {
           showsVerticalScrollIndicator={false}
           contentInsetAdjustmentBehavior="automatic" // iOS
           contentContainerStyle={{ paddingBottom: 0 }}
+          onEndReachedThreshold={0.85}
+          onEndReached={() => fetchTrendingVideos()}
           style={{ height: VIDEO_HEIGHT }}
           // onScrollBeginDrag={() => {
           //   if (showCommentsModal) {

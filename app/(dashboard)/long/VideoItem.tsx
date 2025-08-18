@@ -1,365 +1,192 @@
-import React, { useEffect, useState, useRef, useCallback } from "react";
+import { useVideoPlayer, VideoView } from "expo-video";
+import React, { useState } from "react";
 import {
+  Text,
+  TouchableOpacity,
   View,
   StyleSheet,
-  ActivityIndicator,
-  Pressable,
   Dimensions,
-  Image,
 } from "react-native";
-import { useVideoPlayer, VideoView, type VideoPlayerStatus } from "expo-video";
-import InteractOptions from "./_components/interactOptions";
-import VideoDetails from "./_components/VideoDetails";
-import { Play } from "lucide-react-native";
-import CommentsSection from "./_components/CommentSection";
+import Slider from "@react-native-community/slider";
 import { VideoItemType } from "@/types/VideosType";
-import { router } from "expo-router";
-import { useAuthStore } from "@/store/useAuthStore";
-// Define GiftType locally since VideoFeed was removed
-export type GiftType = {
-  _id: string;
-  name?: string;
-  username: string;
-  profile_photo: string;
-};
-// ADDED: Import the new self-contained progress bar component
-import VideoProgressBar from "./_components/VideoProgressBar";
+import { useEvent } from "expo";
 
-type Props = {
-  BACKEND_API_URL: string;
-  uri: string;
-  isActive: boolean;
-  videoData: VideoItemType;
-  showCommentsModal: boolean;
-  setShowCommentsModal: any;
-  setIsWantToGift: any;
-  setGiftingData: (type: GiftType) => void;
-};
+const SPEEDS = [1.0, 1.2, 1.5, 2.0];
+const { width, height } = Dimensions.get("window");
 
-const PROGRESS_BAR_HEIGHT = 2;
-const FULL_SCREEN_PRESSABLE_BOTTOM_OFFSET = PROGRESS_BAR_HEIGHT;
-const { height } = Dimensions.get("screen");
-const actualHeight = height - 50;
-
-const VideoItem = ({
-  BACKEND_API_URL,
-  uri,
+export default function VideoItem({
+  video,
   isActive,
-  videoData,
-  showCommentsModal,
-  setShowCommentsModal,
-  setGiftingData,
-  setIsWantToGift,
-
-}: Props) => {
-  const player = useVideoPlayer(uri, (p) => {
-    p.loop = true;
-    p.volume = 1;
+}: {
+  video: VideoItemType;
+  isActive: boolean;
+}) {
+  const [qualityIdx, setQualityIdx] = useState(0);
+  const [speedIdx, setSpeedIdx] = useState(0);
+  const [showControls, setShowControls] = useState(true);
+  const player = useVideoPlayer(video.videoUrl, (plyr) => {
+    plyr.loop = false;
+    plyr.playbackRate = SPEEDS[speedIdx];
+  });
+  const { isPlaying } = useEvent(player, "playingChange", {
+    isPlaying: player.playing,
   });
 
-  const [videoStatus, setVideoStatus] = useState<VideoPlayerStatus | null>(
-    null
+  // Seek
+  const [currentTime, setCurrentTime] = useState(0);
+  player.addListener("timeUpdate", ({ currentTime }) =>
+    setCurrentTime(currentTime)
   );
-  const [isPaused, setIsPaused] = useState(false);
-  const [isFullScreen, setIsFullScreen] = useState(false);
-  const [hasCalledWatchFunction, setHasCalledWatchFunction] = useState(false);
-  const [screenSize, setScreenSize] = useState(Dimensions.get("screen"));
-  const { token } = useAuthStore();
 
-  const handleTwoPercentWatch = useCallback(() => {
-    const saveVideoToHistory = async () => {
-      if (!token || !videoData?._id) {
-        return;
-      }
-      try {
-        const response = await fetch(`${BACKEND_API_URL}/user/history`, {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ videoId: videoData._id }),
-        });
-        if (!response.ok) throw new Error("Failed to save video to history");
-        const data = await response.json();
-        console.log("Video Saved to history ---------------", data);
-      } catch (err) {
-        console.error("Failed to save video to history:", err);
-      }
-    };
-    if (token || videoData?._id) {
-      saveVideoToHistory();
-    }
-  }, [videoData?._id, token, BACKEND_API_URL]);
+  // Only play/pause when active to save memory
+  React.useEffect(() => {
+    if (isActive) player.play();
+    else player.pause();
+  }, [isActive]);
 
-  const toggleFullScreen = async () => {
-    /* ... your logic ... */
-  };
+  const [sliderValue, setSliderValue] = useState(0);
+  const [isSliding, setIsSliding] = useState(false);
 
-  const togglePlayPause = () => {
-    if (isPaused) {
-      player.play();
-    } else {
-      player.pause();
-    }
-    setIsPaused(!isPaused);
-  };
-
-  useEffect(() => {
-    const subscription = player.addListener("statusChange", (event) => {
-      setVideoStatus(event.status);
+  // Listen to video player progress, but ignore updates when actively sliding
+  React.useEffect(() => {
+    const listener = player.addListener("timeUpdate", ({ currentTime }) => {
+      if (!isSliding) setSliderValue(currentTime);
     });
-    return () => subscription.remove();
-  }, [player]);
+    return () => listener.remove();
+  }, [player, isSliding]);
 
-  useEffect(() => {
-    if (isActive) {
-      player.play();
-    } else {
-      player.pause();
-      player.currentTime = 0;
-      setHasCalledWatchFunction(false);
-    }
-  }, [isActive, player]);
-
-  // --- FIX START ---
-  // This effect now waits until the video is ready to play before starting its check.
-  useEffect(() => {
-    // Exit if not the active video, if the function was already called, or if the video isn't ready.
-    if (!isActive || hasCalledWatchFunction || videoStatus !== 'readyToPlay') {
-      return;
-    }
-
-    const checkInterval = setInterval(() => {
-      const videoDuration = player.duration ?? 0;
-      if (videoDuration > 0) {
-        const twoPercentMark = videoDuration * 0.02;
-        if (player.currentTime > twoPercentMark) {
-          handleTwoPercentWatch();
-          setHasCalledWatchFunction(true);
-          clearInterval(checkInterval); // IMPORTANT: Stop the interval once its job is done.
-        }
-      }
-    }, 500);
-
-    return () => clearInterval(checkInterval);
-    // Add `videoStatus` to the dependency array.
-  }, [isActive, player, hasCalledWatchFunction, handleTwoPercentWatch, videoStatus]);
-  // --- FIX END ---
-
-  const isBuffering = videoStatus === "loading";
-
-  const handleOpenComments = useCallback(() => {
-    setShowCommentsModal(true);
-    player.pause();
-    setIsPaused(true);
-  }, [player]);
-
-  const handleCloseComments = useCallback(() => {
-    setShowCommentsModal(false);
-    player.play();
-    setIsPaused(false);
-  }, [player]);
-
+  // UI Controls
   return (
-    <View
-      style={[
-        styles.container,
-        {
-          width: screenSize.width,
-          height: isFullScreen ? screenSize.width : actualHeight,
-        },
-      ]}
-    >
-      {/* Double-tap Seek Left */}
-      <Pressable
-        style={styles.leftOverlay}
-        onPress={() => {
-          player.currentTime = Math.max(0, player.currentTime - 10);
-        }}
+    <View style={styles.videoContainer}>
+      <VideoView
+        player={player}
+        style={styles.video}
+        contentFit="cover"
+        allowsFullscreen={true}
+        allowsPictureInPicture={true}
+        nativeControls={false}
       />
+      {showControls && (
+        <View style={styles.controlsOverlay}>
+          <TouchableOpacity
+            onPress={() => (isPlaying ? player.pause() : player.play())}
+          >
+            <Text style={styles.controlBtn}>
+              {isPlaying ? "Pause" : "Play"}
+            </Text>
+          </TouchableOpacity>
 
-      {/* Double-tap Seek Right */}
-      <Pressable
-        style={styles.rightOverlay}
-        onPress={() => {
-          const duration = player.duration ?? 0;
-          player.currentTime = Math.min(duration, player.currentTime + 10);
-        }}
-      />
-
-      <Pressable
-        style={[
-          styles.fullScreenPressable,
-          { bottom: FULL_SCREEN_PRESSABLE_BOTTOM_OFFSET },
-        ]}
-        onPress={togglePlayPause}
-      >
-        <VideoView
-          player={player}
-          style={styles.video}
-          contentFit="cover"
-          nativeControls={false}
-          allowsPictureInPicture={false}
-        />
-
-        {isPaused && (
-          <View pointerEvents="none" style={styles.overlayLayer}>
-            <View style={styles.brownOverlay} />
-            <Play size={40} color="white" />
+          <View style={styles.skipRow}>
+            <TouchableOpacity onPress={() => player.seekBy(-10)}>
+              <Text style={styles.controlBtn}>-10s</Text>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => player.seekBy(10)}>
+              <Text style={styles.controlBtn}>+10s</Text>
+            </TouchableOpacity>
           </View>
-        )}
-      </Pressable>
 
-      {isBuffering && (
-        <View style={styles.bufferingIndicator}>
-          <ActivityIndicator size="large" color="white" />
+          {/* Jump to time */}
+          <Text>Jump to:</Text>
+          <Slider
+            minimumValue={0}
+            maximumValue={video.duration}
+            value={player.currentTime}
+            onSlidingStart={() => setIsSliding(true)}
+            onValueChange={setSliderValue}
+            onSlidingComplete={(t) => {
+              player.currentTime = t; // use seekTo, not currentTime
+              setIsSliding(false);
+            }}
+            style={{ width: 180 }}
+          />
+          <Text>
+            {Math.floor(sliderValue / 60)}:{Math.floor(sliderValue % 60)}/
+            {Math.floor(video.duration / 60)}:{Math.floor(video.duration % 60)}
+          </Text>
+
+          {/* Speed */}
+          <View style={styles.speedRow}>
+            {SPEEDS.map((s, idx) => (
+              <TouchableOpacity
+                key={s}
+                onPress={() => {
+                  setSpeedIdx(idx);
+                  player.playbackRate = s;
+                  console.log(player.currentLiveTimestamp, player.playbackRate);
+                }}
+              >
+                <Text
+                  style={
+                    speedIdx === idx ? styles.speedActive : styles.speedBtn
+                  }
+                >
+                  {s}x
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+
+          {/* Quality */}
+          {video?.videoResolutions && (
+            <View style={styles.qualityRow}>
+              {Object.entries(video.videoResolutions).map(
+                ([label, res], idx) => (
+                  <TouchableOpacity
+                    key={label}
+                    onPress={() => {
+                      setQualityIdx(idx);
+                      player.replace(res.url);
+                    }}
+                  >
+                    <Text
+                      style={
+                        qualityIdx === idx
+                          ? styles.qualityActive
+                          : styles.qualityBtn
+                      }
+                    >
+                      {label}
+                    </Text>
+                  </TouchableOpacity>
+                )
+              )}
+            </View>
+          )}
         </View>
       )}
-
-      {/* REPLACED: The old progress bar JSX is replaced by our new component */}
-      <VideoProgressBar player={player} isActive={isActive} />
-
-      <View className="absolute w-fit top-16 left-5">
-        <Pressable onPress={() => {
-          console.log('💰 Wallet button pressed!');
-          try {
-            router.push("/(dashboard)/wallet");
-            console.log('✅ Navigation to wallet successful');
-          } catch (error) {
-            console.error('❌ Navigation error:', error);
-          }
-        }}>
-          <Image
-            source={require("../../../assets/images/Wallet.png")}
-            className="size-8"
-          />
-        </Pressable>
-      </View>
-
-      <View style={styles.interact}>
-        <InteractOptions
-          creator={{
-            _id: videoData.created_by?._id || '',
-            username: videoData.created_by?.username || '',
-            profile_photo: videoData.created_by?.profile_photo || ''
-          }}
-          setIsWantToGift={setIsWantToGift}
-          videoId={videoData._id}
-          likes={videoData.likes}
-          gifts={videoData.gifts}
-          shares={videoData.shares}
-          comments={videoData.comments?.length}
-          onCommentPress={handleOpenComments}
-        />
-      </View>
-
-      {showCommentsModal && (
-        <CommentsSection
-          onClose={handleCloseComments}
-          videoId={videoData._id}
-          onPressUsername={(userId) => {
-            // Navigate to user profile
-            console.log('Navigate to user profile:', userId);
-            try {
-              router.push(`/(dashboard)/profile/public/${userId}`);
-            } catch (error) {
-              console.error('Navigation error:', error);
-            }
-          }}
-          onPressTip={(commentId) => {
-            // Open tip modal for comment
-            console.log('Open tip modal for comment:', commentId);
-            // You can implement tip modal logic here
-          }}
-        />
-      )}
-
-      <View style={styles.details}>
-        <VideoDetails
-          videoId={videoData._id}
-          type={videoData.type}
-          name={videoData.name}
-          is_monetized={videoData.is_monetized}
-          community={videoData.community}
-          series={videoData?.series}
-          episode_number={videoData?.episode_number}
-          createdBy={videoData?.created_by}
-          onToggleFullScreen={toggleFullScreen}
-          isFullScreen={isFullScreen}
-        />
-      </View>
+      <TouchableOpacity
+        style={styles.touchArea}
+        onPress={() => setShowControls((prev) => !prev)}
+      />
     </View>
   );
-};
+}
 
 const styles = StyleSheet.create({
-  container: {
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  video: {
+  videoContainer: { width, height },
+  video: { width: "100%", height: "100%" },
+  controlsOverlay: {
     position: "absolute",
-    top: 0,
-    left: 0,
-    bottom: 0,
-    right: 0,
+    top: 40,
+    left: 20,
+    right: 20,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    borderRadius: 10,
+    padding: 16,
+    zIndex: 20,
   },
-  leftOverlay: {
-    position: "absolute",
-    top: 0,
-    bottom: 0,
-    left: 0,
-    width: "35%",
+  touchArea: { position: "absolute", top: 0, left: 0, right: 0, bottom: 0 },
+  controlBtn: { color: "white", fontSize: 16, padding: 6 },
+  skipRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginVertical: 8,
   },
-  rightOverlay: {
-    position: "absolute",
-    top: 0,
-    bottom: 0,
-    right: 0,
-    width: "35%",
-  },
-  bufferingIndicator: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    bottom: 0,
-    right: 0,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  fullScreenPressable: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-  },
-  overlayLayer: {
-    ...StyleSheet.absoluteFillObject,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  brownOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: "rgba(0, 0, 0, 0.3)",
-  },
-  interact: {
-    position: "absolute",
-    bottom: "15%",
-    right: 10,
-    width: "auto",
-    zIndex: 1,
-    elevation: 1,
-  },
-  details: {
-    position: "absolute",
-    bottom: "2%",
-    width: "100%",
-    paddingLeft: 10,
-    paddingRight: 16,
-    zIndex: 1,
-    elevation: 1,
-  },
+  speedRow: { flexDirection: "row", marginVertical: 6 },
+  speedBtn: { color: "#AAA", marginHorizontal: 4 },
+  speedActive: { color: "#FFD700", marginHorizontal: 4, fontWeight: "bold" },
+  qualityRow: { flexDirection: "row", marginVertical: 6 },
+  qualityBtn: { color: "#AAA", marginHorizontal: 4 },
+  qualityActive: { color: "#11FF22", marginHorizontal: 4, fontWeight: "bold" },
+  orientRow: { flexDirection: "row", marginVertical: 8 },
 });
-
-export default VideoItem;

@@ -577,13 +577,15 @@ export default function PersonalProfilePage() {
               data={currentVideoList}
               keyExtractor={(item) => item._id}
               renderItem={({ item, index }) => (
-                <VideoPlayer
+                <SafeAreaView>
+                  <VideoPlayer
                   key={`${item._id}-${index === currentVideoIndex}`}
                   videoData={item}
                   isActive={index === currentVideoIndex}
                   showCommentsModal={showCommentsModal}
                   setShowCommentsModal={setShowCommentsModal}
                 />
+                </SafeAreaView>
               )}
               initialScrollIndex={currentVideoIndex}
               getItemLayout={(_, index) => ({

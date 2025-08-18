@@ -1,25 +1,36 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from "react";
+
 import {
   View,
   Text,
   Modal,
-  Pressable,
   TextInput,
   Alert,
-  ActivityIndicator
-} from 'react-native';
-import { validateAmount, initiateGooglePlayBilling } from '@/utils/paymentUtils';
+  ActivityIndicator,
+  TouchableOpacity,
+} from "react-native";
+import {
+  validateAmount,
+  initiateGooglePlayBilling,
+} from "@/utils/paymentUtils";
 
 interface AddMoneyModalProps {
   visible: boolean;
   onClose: () => void;
   onSuccess: (amount: number) => void;
   onCreateOrder: (amount: number) => Promise<any>;
-  onVerifyPayment: (orderId: string, paymentId: string, signature: string) => Promise<any>;
+
+  onVerifyPayment: (
+    orderId: string,
+    paymentId: string,
+    purchaseToken: string,
+    amount: number
+  ) => Promise<any>;
   onError?: (error: Error) => void;
 }
 
-const quickAmounts = [100, 500, 1000, 2000, 5000];
+const quickAmounts = [10, 50, 100, 200, 500];
+
 
 const AddMoneyModal: React.FC<AddMoneyModalProps> = ({
   visible,
@@ -29,12 +40,12 @@ const AddMoneyModal: React.FC<AddMoneyModalProps> = ({
   onVerifyPayment,
   onError
 }) => {
-  const [amount, setAmount] = useState('');
+  const [amount, setAmount] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
 
   useEffect(() => {
     if (!visible) {
-      setAmount('');
+      setAmount("");
       setIsProcessing(false);
     }
   }, [visible]);
@@ -45,22 +56,24 @@ const AddMoneyModal: React.FC<AddMoneyModalProps> = ({
 
   const handleAddMoney = async () => {
     const validation = validateAmount(amount);
+    console.log("Validating amount:", amount, validation);
     if (!validation.isValid) {
-      Alert.alert('Error', validation.error);
+      Alert.alert("Error", validation.error);
       return;
     }
 
     const numAmount = parseFloat(amount);
     setIsProcessing(true);
+    console.log("Processing add money for amount:", numAmount);
 
     try {
       const order = await onCreateOrder(numAmount);
-      if (!order?.id) throw new Error('Invalid order response');
+      console.log("Order created:", order, numAmount);
+      if (!order) throw new Error("Failed to create wallet load order");
 
       const billingResponse = await initiateGooglePlayBilling({
-        id: order.id,
         amount: numAmount,
-        currency: 'INR'
+        currency: "INR",
       });
 
       if (
@@ -68,21 +81,27 @@ const AddMoneyModal: React.FC<AddMoneyModalProps> = ({
         !billingResponse?.purchaseToken ||
         !billingResponse?.signature
       ) {
-        throw new Error('Incomplete billing response');
+        throw new Error("Incomplete billing response");
       }
 
       await onVerifyPayment(
         billingResponse.orderId,
+        billingResponse.productId,
         billingResponse.purchaseToken,
-        billingResponse.signature
+        numAmount
       );
 
       onSuccess(numAmount);
-      Alert.alert('Success', `₹${numAmount} added to your wallet successfully!`);
-      onClose();
+      Alert.alert(
+        "Success",
+        `₹${numAmount} added to your wallet successfully!`
+      );
+      setTimeout(() => {
+        onClose();
+      }, 2000);
     } catch (error: any) {
-      console.error('AddMoneyModal error:', error);
-      Alert.alert('Error', error.message || 'Google Play Billing failed');
+      console.error("AddMoneyModal error:", error);
+      Alert.alert("Error", error.message || "Google Play Billing failed");
       onError?.(error);
     } finally {
       setIsProcessing(false);
@@ -97,7 +116,7 @@ const AddMoneyModal: React.FC<AddMoneyModalProps> = ({
       onRequestClose={onClose}
     >
       <View className="flex-1 bg-black bg-opacity-50 justify-end">
-        <View className="bg-[#1E1E1E] rounded-t-3xl p-6">
+        <View className="border-2 border-gray-600 bg-gray-900 rounded-t-3xl p-6">
           <Text className="text-white text-xl font-semibold mb-2 text-center">
             Add Money to Wallet
           </Text>
@@ -108,40 +127,42 @@ const AddMoneyModal: React.FC<AddMoneyModalProps> = ({
           <Text className="text-gray-300 text-sm mb-3">Quick Add</Text>
           <View className="flex-row flex-wrap gap-2 mb-6">
             {quickAmounts.map((quickAmount) => (
-              <Pressable
+              <TouchableOpacity
                 key={quickAmount}
                 onPress={() => handleQuickAmount(quickAmount)}
                 className="bg-gray-700 px-4 py-2 rounded-lg"
               >
                 <Text className="text-white">₹{quickAmount}</Text>
-              </Pressable>
+              </TouchableOpacity>
             ))}
           </View>
 
-          <Text className="text-gray-300 text-sm mb-2">Enter Amount</Text>
-          <TextInput
-            value={amount}
-            onChangeText={setAmount}
-            placeholder="Enter amount"
-            placeholderTextColor="#666"
-            keyboardType="numeric"
-            className="bg-gray-800 text-white p-4 rounded-lg mb-6 text-lg"
-          />
+          {amount && (
+            <TextInput
+              value={amount}
+              readOnly
+              placeholderTextColor="#666"
+              keyboardType="numeric"
+              className="bg-gray-800 text-white p-4 rounded-lg mb-6 text-lg"
+            />
+          )}
 
-          <View className="flex-row gap-3">
-            <Pressable
+          <View className="flex-row justify-center gap-3">
+            <TouchableOpacity
               onPress={onClose}
               disabled={isProcessing}
-              className="flex-1 bg-gray-600 p-4 rounded-lg"
+              className="flex-1 bg-gray-600 justify-center p-4 rounded-xl"
             >
-              <Text className="text-white text-center font-semibold">Cancel</Text>
-            </Pressable>
+              <Text className="text-white text-center font-semibold">
+                Cancel
+              </Text>
+            </TouchableOpacity>
 
-            <Pressable
+            <TouchableOpacity
               onPress={handleAddMoney}
               disabled={isProcessing || !amount}
-              className={`flex-1 p-4 rounded-lg ${
-                isProcessing || !amount ? 'bg-gray-500' : 'bg-white'
+              className={`flex-grow p-4 rounded-xl justify-center ${
+                isProcessing || !amount ? "bg-gray-500" : "bg-white"
               }`}
             >
               {isProcessing ? (
@@ -153,10 +174,10 @@ const AddMoneyModal: React.FC<AddMoneyModalProps> = ({
                 </View>
               ) : (
                 <Text className="text-black text-center font-semibold">
-                  Pay ₹{amount || '0'} via Google Play
+                  Pay ₹{amount || "0"} via Google Play
                 </Text>
               )}
-            </Pressable>
+            </TouchableOpacity>
           </View>
         </View>
       </View>

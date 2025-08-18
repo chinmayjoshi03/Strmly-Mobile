@@ -16,10 +16,9 @@ import { useGiftingStore } from "@/store/useGiftingStore";
 import SeriesPurchaseMessage from "./SeriesPurcchaseMessaage";
 import CreatorPassBuyMessage from "./CreatorPassBuyMessage";
 import VideoBuyMessage from "./VideoBuyMessage";
+import { useIsFocused } from "@react-navigation/native";
 
-// const { height: screenHeight } = Dimensions.get("window");
-// const VIDEO_HEIGHT = screenHeight;
-const { height: screenHeight } = Dimensions.get("screen");
+const { height: screenHeight } = Dimensions.get("window");
 
 type Props = {
   videoData: VideoItemType;
@@ -27,7 +26,12 @@ type Props = {
   showCommentsModal?: boolean;
   setShowCommentsModal?: (show: boolean) => void;
   onEpisodeChange?: (episodeData: any) => void;
-  onStatsUpdate?: (stats: { likes?: number; gifts?: number; shares?: number; comments?: number }) => void;
+  onStatsUpdate?: (stats: {
+    likes?: number;
+    gifts?: number;
+    shares?: number;
+    comments?: number;
+  }) => void;
   containerHeight?: number; // Add containerHeight prop
 };
 
@@ -65,6 +69,7 @@ const VideoPlayer = ({
 
   // Use containerHeight if provided, otherwise fall back to screen height
   const VIDEO_HEIGHT = containerHeight || screenHeight;
+  const isFocused = useIsFocused();
 
   // FIX: Move the conditional check after hooks but handle gracefully
   const player = useVideoPlayer(videoData?.videoUrl || "", (p) => {
@@ -97,18 +102,16 @@ const VideoPlayer = ({
   }, [isGifted]);
 
   useEffect(() => {
-    if (!player) return;
-
-    if (isActive) {
-      player.play();
-      setActivePlayer(player);
-      usePlayerStore.getState().smartPlay();
-    } else {
+    if (!isFocused) {
+      // Screen is not active → pause & mute
       player.pause();
-      player.currentTime = 0;
-      clearActivePlayer();
+      player.muted = true;
+    } else if (isActive) {
+      // Screen is back & this video is active → play with store mute state
+      player.muted = isMutedFromStore;
+      player.play();
     }
-  }, [isActive]);
+  }, [isFocused, isActive, player, isMutedFromStore]);
 
   // Optimized lifecycle management
   useEffect(() => {
@@ -135,13 +138,7 @@ const VideoPlayer = ({
     } else {
       // This video is not visible, pause but don't reset time
       player.pause();
-
-      // Reset to beginning for better UX, but don't block UI
-      if (!isActive) {
-        player.pause();
-        player.currentTime = 0;
-        clearActivePlayer();
-      }
+      player.muted = isMutedFromStore; // Ensure mute state is consistent
     }
 
     // Cleanup function
@@ -209,13 +206,18 @@ const VideoPlayer = ({
         onStatsUpdate={onStatsUpdate}
       />
 
-      <View className="absolute left-0 right-0 z-10 px-2" style={{ bottom: 46 }}>
+      <View
+        className="absolute left-0 right-0 z-10 px-2"
+        style={{ bottom: 42.5 }}
+      >
         <VideoProgressBar
           player={player}
           isActive={isActive}
           videoId={videoData._id}
           duration={
-            videoData.duration || videoData.access?.freeRange?.display_till_time || 0
+            videoData.duration ||
+            videoData.access?.freeRange?.display_till_time ||
+            0
           }
           access={
             videoData.access || {
@@ -228,6 +230,7 @@ const VideoPlayer = ({
           }
         />
       </View>
+
 
       <View className="z-10 absolute top-10 left-5">
         <Pressable onPress={() => router.push("/(dashboard)/wallet")}>
@@ -305,17 +308,4 @@ const VideoPlayer = ({
   );
 };
 
-// const styles = StyleSheet.create({
-//   container: {
-//     height: VIDEO_HEIGHT,
-//     // flex: 1,
-//     width: "100%",
-//   },
-//   video: {
-//     width: "100%",
-//     height: "100%",
-//   },
-// });
-
-// export default React.memo(VideoPlayer);
 export default React.memo(VideoPlayer);

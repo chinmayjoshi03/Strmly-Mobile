@@ -31,6 +31,9 @@ import { communityActions } from "@/api/community/communityActions";
 import CommunityPassBuyMessage from "./CommPassBuyMessage";
 import { useGiftingStore } from "@/store/useGiftingStore";
 import { getProfilePhotoUrl } from "@/utils/profileUtils";
+import { SafeAreaView } from "react-native-safe-area-context";
+
+const { height } = Dimensions.get("screen");
 
 const { height } = Dimensions.get("screen");
 
@@ -725,13 +728,15 @@ export default function PublicCommunityPage() {
             data={currentVideoList}
             keyExtractor={(item) => item._id}
             renderItem={({ item, index }) => (
-              <VideoPlayer
-                key={`${item._id}-${index === currentVideoIndex}`}
-                videoData={item}
-                isActive={index === currentVideoIndex}
-                showCommentsModal={showCommentsModal}
-                setShowCommentsModal={setShowCommentsModal}
-              />
+              <SafeAreaView>
+                <VideoPlayer
+                  key={`${item._id}-${index === currentVideoIndex}`}
+                  videoData={item}
+                  isActive={index === currentVideoIndex}
+                  showCommentsModal={showCommentsModal}
+                  setShowCommentsModal={setShowCommentsModal}
+                />
+              </SafeAreaView>
             )}
             initialScrollIndex={currentVideoIndex}
             getItemLayout={(_, index) => ({

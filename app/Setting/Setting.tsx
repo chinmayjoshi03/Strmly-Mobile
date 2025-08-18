@@ -14,12 +14,13 @@ import ActionModal from "./_component/customModal";
 import { useAuthStore } from "@/store/useAuthStore";
 // Make sure this import matches your store export
 import { useMonetizationStore } from "@/store/useMonetizationStore";
-import { router } from "expo-router";
+import { router, useNavigation } from "expo-router";
 import Constants from "expo-constants";
+import { NativeStackNavigationProp } from "react-native-screens/lib/typescript/native-stack/types";
 
 const Setting = () => {
   const { logout, token } = useAuthStore();
-  
+
   // Add error boundary for store usage
   let monetizationHook;
   try {
@@ -41,6 +42,8 @@ const Setting = () => {
     fetchMonetizationStatus,
     loading: isMonetizationLoading,
   } = monetizationHook;
+
+  const navigation = useNavigation<NativeStackNavigationProp<any>>();
 
   const BACKEND_API_URL = Constants.expoConfig?.extra?.BACKEND_API_URL;
 
@@ -67,19 +70,22 @@ const Setting = () => {
   const handleMonetization = async () => {
     if (!token) return;
 
-    console.log('💰 Settings: Toggling comment monetization...');
-    console.log('💰 Current status:', monetizationStatus?.comment_monetization_status);
+    console.log("💰 Settings: Toggling comment monetization...");
+    console.log(
+      "💰 Current status:",
+      monetizationStatus?.comment_monetization_status
+    );
 
     try {
       await toggleCommentMonetization(token);
-      console.log('✅ Settings: Comment monetization toggled successfully');
-      
+      console.log("✅ Settings: Comment monetization toggled successfully");
+
       // Refresh the status to ensure UI is updated
       setTimeout(() => {
         fetchMonetizationStatus(token, true);
       }, 1000);
     } catch (error) {
-      console.error('❌ Settings: Failed to toggle monetization:', error);
+      console.error("❌ Settings: Failed to toggle monetization:", error);
       Alert.alert(
         "Error",
         error.message || "Failed to update monetization settings"
@@ -97,7 +103,9 @@ const Setting = () => {
 
   const handleLogout = () => {
     logout();
-    router.replace("/(auth)/Sign-up");
+    navigation.reset({
+      routes: [{ name: "(auth)/Sign-up" }],
+    });
   };
 
   const handleDeleteAccount = async () => {
@@ -129,7 +137,7 @@ const Setting = () => {
     }
   };
 
-  const openURL = async (url:any) => {
+  const openURL = async (url: any) => {
     const supported = await Linking.canOpenURL(url);
     if (supported) {
       await Linking.openURL(url);

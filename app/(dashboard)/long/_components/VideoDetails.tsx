@@ -451,7 +451,7 @@ const VideoDetails = ({
                         `₹${creatorPass?.creator_profile?.creator_pass_price}`
                       ) : (
                         <Text className="text-[16px] text-green-600">
-                          Activate
+                          Active
                         </Text>
                       )}
                     </Text>
@@ -488,7 +488,7 @@ const VideoDetails = ({
                     </Text>
                     {hasCreatorPass ? (
                       <Text className="text-[16px] text-green-600">
-                        Activate
+                        Active
                       </Text>
                     ) : (
                       <Text className="text-white text-[16px]">
@@ -553,7 +553,7 @@ const VideoDetails = ({
                             `₹${creatorPass?.creator_profile?.creator_pass_price}`
                           ) : (
                             <Text className="text-[16px] text-green-600">
-                              Activate
+                              Active
                             </Text>
                           )}
                         </Text>
@@ -568,7 +568,7 @@ const VideoDetails = ({
                             hasAccessPass?.toLowerCase() == "series" ||
                             hasCreatorPass ? (
                               <Text className="text-[16px] text-green-600">
-                                Activate
+                                Active
                               </Text>
                             ) : (
                               `₹${series?.price}`
@@ -576,7 +576,7 @@ const VideoDetails = ({
                           ) : hasAccessPass?.toLocaleLowerCase() != "video" ||
                             hasCreatorPass ? (
                             <Text className="text-[16px] text-green-600">
-                              Activate
+                              Active
                             </Text>
                           ) : (
                             `₹${videoAmount}`
