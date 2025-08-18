@@ -466,7 +466,7 @@ export default function PublicCommunityPage() {
   );
 
   return (
-    <ThemedView style={{ height, paddingTop: 10 }}>
+    <ThemedView style={{ height, paddingTop: 20 }}>
       {isLoading ? (
         <View className="flex-1 items-center justify-center">
           <ActivityIndicator size="large" color="white" />
@@ -474,7 +474,8 @@ export default function PublicCommunityPage() {
       ) : (
         <FlatList
           ListHeaderComponent={
-            <View className="max-w-4xl -mt-28 relative mx-6 pt-28">
+            <View className="max-w-4xl -mt-24 relative mx-6 pt-28">
+              <ProfileTopbar isMore={false} name={communityData?.name} hashtag={false}/>
               <View className="items-center justify-center gap-4 h-fit w-full mt-6">
                 <Image
                   source={{

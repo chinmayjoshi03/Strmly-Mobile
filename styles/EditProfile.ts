@@ -4,7 +4,7 @@ export const EditProfile = StyleSheet.create({
     container: {
         flex: 1,
         backgroundColor: "#000",
-        paddingTop: 50,
+        paddingTop: 40,
         width: '100%',
     },
     CreateCommunityTopBar: {
