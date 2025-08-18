@@ -21,8 +21,9 @@ export const getGoogleClientId = () => {
   }
   
   if (!clientId) {
-    console.warn(`Google Client ID not found for platform: ${Platform.OS}`);
-    console.warn('Available extra config:', extra);
+    // console.warn(`Google Client ID not found for platform: ${Platform.OS}`);
+    // console.warn('Available extra config:', extra);
+    
     // Return a placeholder to prevent the error, but Google auth won't work
     return "placeholder-client-id";
   }
@@ -31,13 +32,13 @@ export const getGoogleClientId = () => {
 };
 
 export const useGoogleAuth = () => {
-  console.log("Redirect URI:", makeRedirectUri());
+  // console.log("Redirect URI:", makeRedirectUri());
 
   const redirectUri = makeRedirectUri();
   const clientId = getGoogleClientId();
 
-  console.log("Google Client ID:", clientId);
-  console.log("Platform:", Platform.OS);
+  // console.log("Google Client ID:", clientId);
+  // console.log("Platform:", Platform.OS);
 
   // Only initialize Google auth if we have a valid client ID
   const [request, response, promptAsync] = Google.useAuthRequest(

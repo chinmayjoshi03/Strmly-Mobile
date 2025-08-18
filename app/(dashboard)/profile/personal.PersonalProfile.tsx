@@ -238,12 +238,12 @@ export default function PersonalProfilePage() {
       console.log("reshare videos", data.reshares[0].long_video.thumbnailUrl);
     } catch (error) {
       console.log(error);
-      Alert.alert(
-        "Error",
-        error instanceof Error
-          ? error.message
-          : "An unknown error occurred while fetching user reshare videos."
-      );
+      // Alert.alert(
+      //   "Error",
+      //   error instanceof Error
+      //     ? error.message
+      //     : "An unknown error occurred while fetching user reshare videos."
+      // );
     } finally {
       setIsLoadingVideos(false);
     }
@@ -556,6 +556,14 @@ export default function PersonalProfilePage() {
                   <ActivityIndicator size="large" color="#fff" />
                 </View>
               )}
+
+              {
+                videos.length === 0 && !isLoadingVideos && (
+                  <View className="items-center h-20 justify-center">
+                    <Text className="text-white text-xl text-center">No videos found</Text>
+                  </View>
+                )
+              }
             </>
           }
         />
