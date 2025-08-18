@@ -9,7 +9,7 @@ import {
   View,
 } from "react-native";
 import { useFonts } from "expo-font";
-import { Link, router } from "expo-router";
+import { Link, router, useNavigation } from "expo-router";
 
 import ThemedText from "@/components/ThemedText";
 import ThemedView from "@/components/ThemedView";
@@ -18,7 +18,7 @@ import { CreateProfileStyles } from "@/styles/createprofile";
 import { useAuthStore } from "@/store/useAuthStore";
 import CONFIG from "@/Constants/config";
 import ModalMessage from "@/components/AuthModalMessage";
-
+import { NativeStackNavigationProp } from "react-native-screens/lib/typescript/native-stack/types";
 
 const SignIn = () => {
   const [useEmail, setUseEmail] = useState(true);
@@ -30,7 +30,7 @@ const SignIn = () => {
   const [showAlert, setShowAlert] = useState(false);
   const [alert, setAlert] = useState("");
 
-  const {isOnboarded} = useAuthStore();
+  const navigation = useNavigation<NativeStackNavigationProp<any>>();
 
   const [fontsLoaded] = useFonts({
     "Poppins-Regular": require("../../assets/fonts/poppins/Poppins-Regular.ttf"),
@@ -71,9 +71,12 @@ const SignIn = () => {
       });
 
       if (!res.ok) {
-        const errorText = await res.text();
-        console.error("❌ Login error response:", errorText);
-        throw new Error(`Login failed: ${res.status} ${res.statusText}`);
+        const errorText: { message: string } = await res.json();
+        setAlert(errorText.message || "Something went wrong");
+        setShowAlert(() => true);
+        setNeedButton(true);
+        // throw new Error(`Login failed: ${res.status} ${res.statusText}`);
+        return;
       }
 
       const data = await res.json();
@@ -85,12 +88,18 @@ const SignIn = () => {
       setAlert("Login successful!");
       setShowAlert(() => true);
       setNeedButton(false);
-      setTimeout(() => router.replace("/(tabs)/home"), 1000);
+      setTimeout(
+        () =>
+          navigation.reset({
+            routes: [{ name: "(tabs)" }],
+          }),
+        1000
+      );
     } catch (error: any) {
       console.error("Login Error", error);
-      setAlert(error.message || "Something went wrong");
-      setShowAlert(() => true);
-      setNeedButton(true);
+      setAlert("Something went wrong");
+      // setShowAlert(() => true);
+      // setNeedButton(true);
     } finally {
       setIsLoading(false);
     }

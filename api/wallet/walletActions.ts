@@ -90,15 +90,16 @@ export const createWalletLoadOrder = async (token: string, amount: number) => {
     const error = await res.json();
     throw new Error(error.message || "Failed to create load order");
   }
-
+  // console.log('Wallet load order created:', await res);
   return await res.json();
 };
 
 export const verifyWalletLoad = async (
   token: string, 
   orderId: string, 
-  purchaseToken: string, 
-  signature: string
+  productId: string,
+  purchaseToken: string,
+  amount: number,
 ) => {
   const res = await fetch(`${API_BASE_URL}/wallet/load/verify`, {
     method: "POST",
@@ -107,10 +108,10 @@ export const verifyWalletLoad = async (
       "Content-Type": "application/json"
     },
     body: JSON.stringify({ 
-      orderId, 
-      purchaseToken, 
-      signature,
-      paymentMethod: 'google_play_billing'
+      google_purchase_token: purchaseToken,
+      google_product_id: productId,
+      google_order_id: orderId,
+      amount,
     })
   });
 

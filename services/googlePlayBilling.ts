@@ -1,5 +1,11 @@
 // Google Play Billing Service
 // This service handles all Google Play Billing operations
+import {
+  endConnection,
+  getProducts,
+  initConnection,
+  requestPurchase,
+} from "react-native-iap";
 
 export interface BillingProduct {
   productId: string;
@@ -19,11 +25,11 @@ export interface PurchaseResult {
 
 // Predefined wallet recharge products
 export const WALLET_PRODUCTS = [
-  { productId: 'wallet_recharge_100', amount: 100, price: '₹100' },
-  { productId: 'wallet_recharge_500', amount: 500, price: '₹500' },
-  { productId: 'wallet_recharge_1000', amount: 1000, price: '₹1000' },
-  { productId: 'wallet_recharge_2000', amount: 2000, price: '₹2000' },
-  { productId: 'wallet_recharge_5000', amount: 5000, price: '₹5000' },
+  { productId: "add_money_to_wallet_10", amount: 10, price: "₹10" },
+  { productId: "add_money_to_wallet_50", amount: 50, price: "₹50" },
+  { productId: "add_money_to_wallet_100", amount: 100, price: "₹100" },
+  { productId: "add_money_to_wallet_200", amount: 200, price: "₹200" },
+  { productId: "add_money_to_wallet_500", amount: 500, price: "₹500" },
 ];
 
 class GooglePlayBillingService {
@@ -32,17 +38,13 @@ class GooglePlayBillingService {
   // Initialize Google Play Billing
   async initialize(): Promise<void> {
     try {
-      // Mock initialization - replace with actual react-native-iap initialization
-      console.log('Initializing Google Play Billing...');
-      
-      // Actual implementation would be:
-      // await initConnection();
-      
+      await initConnection();
+
       this.isInitialized = true;
-      console.log('Google Play Billing initialized successfully');
+      console.log("Google Play Billing initialized successfully");
     } catch (error) {
-      console.error('Failed to initialize Google Play Billing:', error);
-      throw new Error('Failed to initialize Google Play Billing');
+      console.error("Failed to initialize Google Play Billing:", error);
+      throw new Error("Failed to initialize Google Play Billing");
     }
   }
 
@@ -53,28 +55,18 @@ class GooglePlayBillingService {
     }
 
     try {
-      // Mock products - replace with actual product fetching
-      const mockProducts: BillingProduct[] = WALLET_PRODUCTS.map(product => ({
-        productId: product.productId,
-        price: product.price,
-        currency: 'INR',
-        title: `Wallet Recharge ${product.price}`,
-        description: `Add ${product.price} to your wallet`
-      }));
-
-      return mockProducts;
-
-      // Actual implementation would be:
-      // const products = await getProducts({ skus: WALLET_PRODUCTS.map(p => p.productId) });
-      // return products;
+      const products = await getProducts({
+        skus: WALLET_PRODUCTS.map((p) => p.productId),
+      });
+      return products;
     } catch (error) {
-      console.error('Failed to get products:', error);
-      throw new Error('Failed to get billing products');
+      console.error("Failed to get products:", error);
+      throw new Error("Failed to get billing products");
     }
   }
 
   // Purchase a product
-  async purchaseProduct(productId: string, orderId: string): Promise<PurchaseResult> {
+  async purchaseProduct(productId: string): Promise<PurchaseResult> {
     if (!this.isInitialized) {
       await this.initialize();
     }
@@ -82,53 +74,46 @@ class GooglePlayBillingService {
     try {
       console.log(`Initiating purchase for product: ${productId}`);
 
-      // Mock purchase - replace with actual purchase
-      return new Promise((resolve, reject) => {
-        setTimeout(() => {
-          if (Math.random() > 0.1) { // 90% success rate for demo
-            resolve({
-              orderId: orderId,
-              purchaseToken: `gpa.${Date.now()}.${Math.random().toString(36).substr(2, 9)}`,
-              signature: `google_play_sig_${Date.now()}`,
-              productId: productId,
-              transactionDate: Date.now()
-            });
-          } else {
-            reject(new Error('Purchase was cancelled or failed'));
-          }
-        }, 2000);
-      });
+      const purchaseResult = await requestPurchase({ sku: productId });
 
-      // Actual implementation would be:
-      // const purchase = await requestPurchase({ sku: productId });
-      // return {
-      //   orderId: orderId,
-      //   purchaseToken: purchase.purchaseToken,
-      //   signature: purchase.signature,
-      //   productId: purchase.productId,
-      //   transactionDate: purchase.transactionDate
-      // };
+      let purchase: any;
+      if (Array.isArray(purchaseResult)) {
+        purchase = purchaseResult[0];
+      } else if (purchaseResult && typeof purchaseResult === "object") {
+        purchase = purchaseResult;
+      } else {
+        throw new Error("No purchase result returned");
+      }
+
+      return {
+        orderId: purchase.orderId,
+        purchaseToken: purchase.purchaseToken,
+        signature: purchase.signature,
+        productId: purchase.productId,
+        transactionDate: purchase.transactionDate,
+      };
     } catch (error) {
-      console.error('Purchase failed:', error);
-      throw new Error('Purchase failed');
+      console.error("Purchase failed:", error);
+      throw new Error("Purchase failed");
     }
   }
 
   // Get product ID for amount
   getProductIdForAmount(amount: number): string {
-    const product = WALLET_PRODUCTS.find(p => p.amount === amount);
+    console.log(`Getting product ID for amount: ${amount}`);
+    const product = WALLET_PRODUCTS.find((p) => p.amount === amount);
+    console.log(`Found product:`, product);
     return product ? product.productId : `wallet_recharge_${amount}`;
   }
 
   // Cleanup
   async cleanup(): Promise<void> {
     try {
-      // Actual implementation would be:
-      // await endConnection();
+      await endConnection();
       this.isInitialized = false;
-      console.log('Google Play Billing connection closed');
+      console.log("Google Play Billing connection closed");
     } catch (error) {
-      console.error('Failed to cleanup Google Play Billing:', error);
+      console.error("Failed to cleanup Google Play Billing:", error);
     }
   }
 }

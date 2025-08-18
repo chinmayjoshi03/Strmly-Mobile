@@ -384,6 +384,15 @@ export default function PublicProfilePageWithId() {
     }
   }, []);
 
+  const openLink = (url: string) => {
+    if (!url.startsWith("http://") && !url.startsWith("https://")) {
+      url = "https://" + url; // default to https
+    }
+    Linking.openURL(url).catch((err) =>
+      console.error("Failed to open URL:", err)
+    );
+  };
+
   const renderGridItem = ({ item }: { item: any }) => (
     <TouchableOpacity
       className="relative aspect-[9/16] flex-1 rounded-sm overflow-hidden"
@@ -605,7 +614,7 @@ export default function PublicProfilePageWithId() {
                               .snapchat && (
                               <TouchableOpacity
                                 onPress={() =>
-                                  Linking.openURL(
+                                  openLink(
                                     userData.userDetails.social_media_links
                                       .snapchat
                                   )
@@ -622,7 +631,7 @@ export default function PublicProfilePageWithId() {
                               .instagram && (
                               <TouchableOpacity
                                 onPress={() =>
-                                  Linking.openURL(
+                                  openLink(
                                     userData.userDetails.social_media_links
                                       .instagram
                                   )
@@ -638,7 +647,7 @@ export default function PublicProfilePageWithId() {
                               .youtube && (
                               <TouchableOpacity
                                 onPress={() =>
-                                  Linking.openURL(
+                                  openLink(
                                     userData.userDetails.social_media_links
                                       .youtube
                                   )
@@ -654,7 +663,7 @@ export default function PublicProfilePageWithId() {
                               .facebook && (
                               <TouchableOpacity
                                 onPress={() =>
-                                  Linking.openURL(
+                                  openLink(
                                     userData.userDetails.social_media_links
                                       .facebook
                                   )
@@ -673,7 +682,7 @@ export default function PublicProfilePageWithId() {
                               .twitter && (
                               <TouchableOpacity
                                 onPress={() =>
-                                  Linking.openURL(
+                                  openLink(
                                     userData.userDetails.social_media_links
                                       .twitter
                                   )
@@ -822,14 +831,18 @@ export default function PublicProfilePageWithId() {
               data={currentVideoList}
               keyExtractor={(item) => item._id}
               renderItem={({ item, index }) => (
-                <VideoPlayer
-                  key={`${item._id}-${index === currentVideoIndex}`}
-                  videoData={item}
-                  isActive={index === currentVideoIndex}
-                  showCommentsModal={showCommentsModal}
-                  setShowCommentsModal={setShowCommentsModal}
-                  onStatsUpdate={(stats) => handleStatsUpdate(item._id, stats)}
-                />
+                <SafeAreaView>
+                  <VideoPlayer
+                    key={`${item._id}-${index === currentVideoIndex}`}
+                    videoData={item}
+                    isActive={index === currentVideoIndex}
+                    showCommentsModal={showCommentsModal}
+                    setShowCommentsModal={setShowCommentsModal}
+                    onStatsUpdate={(stats) =>
+                      handleStatsUpdate(item._id, stats)
+                    }
+                  />
+                </SafeAreaView>
               )}
               initialScrollIndex={currentVideoIndex}
               getItemLayout={(_, index) => ({
