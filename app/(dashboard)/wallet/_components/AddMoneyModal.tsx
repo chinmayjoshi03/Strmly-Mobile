@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+
 import {
   View,
   Text,
@@ -18,6 +19,7 @@ interface AddMoneyModalProps {
   onClose: () => void;
   onSuccess: (amount: number) => void;
   onCreateOrder: (amount: number) => Promise<any>;
+
   onVerifyPayment: (
     orderId: string,
     paymentId: string,
@@ -29,13 +31,14 @@ interface AddMoneyModalProps {
 
 const quickAmounts = [10, 50, 100, 200, 500];
 
+
 const AddMoneyModal: React.FC<AddMoneyModalProps> = ({
   visible,
   onClose,
   onSuccess,
   onCreateOrder,
   onVerifyPayment,
-  onError,
+  onError
 }) => {
   const [amount, setAmount] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);

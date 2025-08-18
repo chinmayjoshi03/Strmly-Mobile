@@ -35,6 +35,8 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 const { height } = Dimensions.get("screen");
 
+const { height } = Dimensions.get("screen");
+
 export default function PublicCommunityPage() {
   const [activeTab, setActiveTab] = useState<string>("videos");
   const [communityData, setCommunityData] = useState<any>(null);
