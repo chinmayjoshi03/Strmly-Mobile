@@ -87,6 +87,7 @@ const VideosFeed: React.FC = () => {
       // console.log(json.recommendations.length);
       setPage(targetPage + 1); // increment only once
     } catch (err: any) {
+      console.log(err);
       setError(err.message || "Something went wrong");
     } finally {
       setLoading(false);
