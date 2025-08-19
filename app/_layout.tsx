@@ -4,7 +4,8 @@ import { Dimensions, useColorScheme } from "react-native";
 import "../global.css";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
-const {height} = Dimensions.get('window')
+
+const { height } = Dimensions.get('window');
 
 export default function RootLayout() {
   const colorScheme = useColorScheme() ?? "dark";
