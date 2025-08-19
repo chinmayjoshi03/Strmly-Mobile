@@ -57,8 +57,8 @@ const Interests = () => {
           Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
-          interests: [...Interests, ...Interests2],
-          type: Type,
+          interest1 : Interests,
+          interest2 : Interests2,
         }),
       });
 
