@@ -88,13 +88,23 @@ const SignIn = () => {
       setAlert("Login successful!");
       setShowAlert(() => true);
       setNeedButton(false);
-      setTimeout(
-        () =>
-          navigation.reset({
-            routes: [{ name: "(tabs)" }],
-          }),
-        1000
-      );
+      if(data.user.is_onboarded){
+        setTimeout(
+          () =>
+            navigation.reset({
+              routes: [{ name: "(tabs)" }],
+            }),
+          1000
+        );
+      } else{
+        setTimeout(
+          () =>
+            navigation.reset({
+              routes: [{ name: "(InterestsSection)/Interests" }],
+            }),
+          1000
+        );
+      }
     } catch (error: any) {
       console.error("Login Error", error);
       setAlert("Something went wrong");
@@ -208,17 +218,23 @@ const SignIn = () => {
         {isLoading && <ActivityIndicator className="size-5" />}
         <Text className="text-lg font-semibold">Sign in</Text>
       </TouchableOpacity>
-      <Link href={"/(auth)/ForgotPassword"} className="text-white mt-8">
-        <ThemedText style={Signinstyles.Text16M}>
-          Forgotten password?
-        </ThemedText>
-      </Link>
+      <View className="">
+        <Link href={"/(auth)/ForgotPassword"} className="text-white mt-8">
+          <ThemedText style={Signinstyles.Text16M}>
+            Forgot password?
+          </ThemedText>
+        </Link>
+
+        <Link href={"/Profile/VerifyEmail"} className="text-white mt-8">
+          <ThemedText style={{...Signinstyles.Text16M, color: '#3b82f6'}}>Verify Email?</ThemedText>
+        </Link>
+      </View>
     </>
   );
 
   const renderLink = () => (
     <Link
-      className="mt-14"
+      className="mt-4"
       href={"/(auth)/Sign-up"}
       style={Signinstyles.Text16R}
     >
@@ -234,7 +250,7 @@ const SignIn = () => {
       {renderTitle()}
       {renderWelcomeText()}
       {useEmail ? renderEmailForm() : renderSocialOptions()}
-      {!useEmail && renderLink()}
+      {useEmail && renderLink()}
 
       {/* 🔔 Modal overlays the screen */}
       <ModalMessage

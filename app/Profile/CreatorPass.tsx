@@ -9,7 +9,7 @@ import {
   Modal,
   StatusBar,
 } from "react-native";
-import { useRouter } from "expo-router";
+import { Link, useRouter } from "expo-router";
 import { X } from "lucide-react-native";
 import { useAuthStore } from "@/store/useAuthStore";
 import { updateCreatorPassPrice, getUserProfile } from "@/api/user/userActions";
@@ -133,8 +133,12 @@ export default function CreatorPassPage() {
 
           <Text className="text-gray-400 text-sm text-center leading-6 mt-4" style={{ fontFamily: 'Poppins' }}>
             Once activated, you will not be able to delete your account until all active subscriptions have expired. You may stop new purchases by turning off the Creator Pass, but you must wait for all current subscriptions to end before account deletion is allowed. By continuing, you agree to follow and accept all our{' '}
-            <Text className="text-blue-400 underline">Terms of Use</Text> and{' '}
-            <Text className="text-blue-400 underline">Privacy Policy</Text>.
+            <Link href={'https://strmly.com/legal/terms'} className="text-blue-400 underline">
+              <Text className="text-blue-400 underline">Terms of Use</Text>
+            </Link> and{' '}
+            <Link href={'https://strmly.com/legal/privacy'} className="text-blue-400 underline">
+              <Text className="text-blue-400 underline">Privacy Policy</Text>
+            </Link>.
           </Text>
         </View>
       </View>
