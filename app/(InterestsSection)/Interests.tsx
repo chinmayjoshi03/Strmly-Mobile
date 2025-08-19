@@ -49,6 +49,7 @@ const Interests = () => {
     if (!token || Interests.length !== 3) return;
 
     setIsSubmitting(true);
+    console.log("Submitting interests:", Interests, Interests2);
     try {
       const response = await fetch(`${BACKEND_API_URL}/user/interests`, {
         method: "PUT",
@@ -57,8 +58,10 @@ const Interests = () => {
           Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
+
           interest1 : Interests,
           interest2 : Interests2,
+
         }),
       });
 

@@ -30,7 +30,7 @@ import BottomNavBar from "@/components/BottomNavBar";
 import { getProfilePhotoUrl } from "@/utils/profileUtils";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-const { height } = Dimensions.get("screen");
+const { height } = Dimensions.get("window");
 
 export default function PublicProfilePageWithId() {
   const [activeTab, setActiveTab] = useState("long");
@@ -249,7 +249,7 @@ export default function PublicProfilePageWithId() {
       console.log("reshare videos", data);
     } catch (error) {
       console.log(error);
-      Alert.alert("An unknown error occurred.");
+      // Alert.alert("An unknown error occurred.");
       // Alert.alert(
       //   "Error",
       //   error instanceof Error
@@ -437,7 +437,7 @@ export default function PublicProfilePageWithId() {
   );
 
   return (
-    <ThemedView style={{ height }}>
+    <ThemedView style={{ height, flex: 1 }}>
       <SafeAreaView>
         <FlatList
           data={videos}
@@ -474,7 +474,7 @@ export default function PublicProfilePageWithId() {
                       <ActivityIndicator size="large" color="#F1C40F" />
                     </View>
                   ) : (
-                    <View className="max-w-4xl -mt-28 relative mx-6">
+                    <View className="max-w-4xl -mt-32 relative mx-6">
                       <View className="flex flex-col items-center md:flex-row md:items-end space-y-4 md:space-y-0 md:space-x-4">
                         <View className="items-center">
                           <View className="size-24 border-white border rounded-full overflow-hidden">
@@ -805,6 +805,14 @@ export default function PublicProfilePageWithId() {
                     {isLoadingVideos && (
                       <View className="w-full h-96 flex-1 items-center justify-center mt-20">
                         <ActivityIndicator size="large" color="white" />
+                      </View>
+                    )}
+
+                    {videos.length === 0 && !isLoadingVideos && (
+                      <View className="items-center h-20 justify-center">
+                        <Text className="text-white text-xl text-center">
+                          No videos found
+                        </Text>
                       </View>
                     )}
                   </View>
