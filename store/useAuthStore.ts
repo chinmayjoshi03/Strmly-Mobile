@@ -13,7 +13,7 @@ type User = {
   username?: string;
   bio?: string;
   dob?: string;
-  isOnboarded?: boolean;
+  is_onboarded?: boolean;
   isVerified?: boolean;
   location?: string;
   website?: string;
@@ -83,20 +83,25 @@ export const useAuthStore = create<AuthStore>()(
           token,
           user: user || null,
           isLoggedIn: true,
-          isOnboarded: user?.isOnboarded || false,
+          isOnboarded: user?.is_onboarded || false,
         });
       },
 
       logout: () => {
-        set({ user: null, token: null, isLoggedIn: false });
+        set({ user: null, token: null, isLoggedIn: false, isOnboarded: false });
       },
 
       setUser: (user: User) => {
-        set({ user, isLoggedIn: true });
+        set({
+          user,
+          isLoggedIn: true,
+          isOnboarded: user?.is_onboarded || false,
+        });
       },
       updateUser: (updates) => {
         set((state) => ({
           user: state.user ? { ...state.user, ...updates } : null,
+          isOnboarded: state.user?.is_onboarded || false,
         }));
       },
     }),

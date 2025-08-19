@@ -79,7 +79,7 @@ const SignUp = () => {
 
         console.log("Signed in:", data);
 
-        router.push("/Profile/CreateProfile"); // Navigate after signup
+        router.replace("/Profile/CreateProfile"); // Navigate after signup
       } else if (result.type === "dismiss") {
         console.log("User dismissed Google login");
       } else {

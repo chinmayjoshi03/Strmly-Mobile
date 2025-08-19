@@ -27,6 +27,7 @@ import Constants from "expo-constants";
 import VideoPlayer from "@/app/(dashboard)/long/_components/VideoPlayer";
 import BottomNavBar from "@/components/BottomNavBar";
 import { communityActions } from "@/api/community/communityActions";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function PersonalCommunityPage() {
   const [activeTab, setActiveTab] = useState("videos");
@@ -630,13 +631,15 @@ export default function PersonalCommunityPage() {
             data={currentVideoList}
             keyExtractor={(item) => item._id}
             renderItem={({ item, index }) => (
-              <VideoPlayer
-                key={`${item._id}-${index === currentVideoIndex}`}
-                videoData={item}
-                isActive={index === currentVideoIndex}
-                showCommentsModal={showCommentsModal}
-                setShowCommentsModal={setShowCommentsModal}
-              />
+              <SafeAreaView>
+                <VideoPlayer
+                  key={`${item._id}-${index === currentVideoIndex}`}
+                  videoData={item}
+                  isActive={index === currentVideoIndex}
+                  showCommentsModal={showCommentsModal}
+                  setShowCommentsModal={setShowCommentsModal}
+                />
+              </SafeAreaView>
             )}
             initialScrollIndex={currentVideoIndex}
             getItemLayout={(_, index) => ({

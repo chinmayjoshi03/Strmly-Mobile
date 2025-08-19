@@ -13,7 +13,8 @@ export default function RootLayout() {
 
   return (
     <SafeAreaProvider>
-      <SafeAreaView style={{ flex: 1 }} edges={[]}>
+      <SafeAreaView style={{height, flex: 1}} edges={["bottom"]}>
+      {/* <SafeAreaView style={{ flex: 1 }} edges={[]}> */}
         <GestureHandlerRootView style={{ flex: 1 }}>
           <Stack
             screenOptions={{

@@ -55,7 +55,7 @@ import { useEffect, useState } from "react";
 import { View, ActivityIndicator, Text } from "react-native";
 
 export default function Index() {
-  const { token, isLoggedIn, user, isOnboarded, hasHydrated } = useAuthStore();
+  const { token, isLoggedIn, user, hasHydrated } = useAuthStore();
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -100,7 +100,7 @@ export default function Index() {
   }
 
   // Redirect based on authentication status
-  if (token && isLoggedIn && !user?.isOnboarded) {
+  if (token && isLoggedIn && !user?.is_onboarded) {
     console.log("✅ User not completed Onboarding, redirecting to Onboarding");
     return <Redirect href="/Interests" />;
   }

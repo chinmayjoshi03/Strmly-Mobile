@@ -51,7 +51,6 @@ const WalletPage = () => {
 
   // Handle withdrawal request
   const handleWithdrawalRequest = () => {
-    console.log('💰 Navigating to withdrawal screen');
     router.push('/(payments)/Video/Video-Gifting?mode=withdraw');
   };
 

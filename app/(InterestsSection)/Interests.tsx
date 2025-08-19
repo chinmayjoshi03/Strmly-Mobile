@@ -17,6 +17,8 @@ import Constants from "expo-constants";
 import { router } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
 import { BlurView } from "expo-blur";
+import { set } from "lodash";
+import ModalMessage from "@/components/AuthModalMessage";
 
 const Interests = () => {
   const [Step, setStep] = useState(1);
@@ -26,6 +28,10 @@ const Interests = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { token, updateUser } = useAuthStore();
   const BACKEND_API_URL = Constants.expoConfig?.extra?.BACKEND_API_URL;
+
+  const [needButton, setNeedButton] = useState(false);
+  const [showAlert, setShowAlert] = useState(false);
+  const [alert, setAlert] = useState("");
 
   const [fontsLoaded] = useFonts({
     "Poppins-Regular": require("../../assets/fonts/poppins/Poppins-Regular.ttf"),
@@ -63,9 +69,11 @@ const Interests = () => {
       }
 
       // Success - navigate to next screen or show success message
-      updateUser({ isOnboarded: true });
+      updateUser({ is_onboarded: true });
 
-      Alert.alert("Success", "Your interests have been updated successfully!");
+      setAlert("Your interests have been updated successfully!");
+      setNeedButton(true);
+      setShowAlert(true);
       router.replace("/(tabs)/home");
     } catch (error: unknown) {
       const message =
@@ -462,6 +470,13 @@ const Interests = () => {
             )}
           </TouchableOpacity>
         </View>
+
+        <ModalMessage
+          visible={showAlert}
+          text={alert}
+          needCloseButton={needButton}
+          onClose={() => setShowAlert(false)}
+        />
       </ThemedView>
     );
   }
