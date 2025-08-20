@@ -136,6 +136,7 @@ export const useComments = ({ videoId }: UseCommentsProps) => {
       downvotes: 0,
       user: {
         id: 'current_user',
+        username: 'you',
         name: 'You',
         avatar: 'https://api.dicebear.com/7.x/identicon/svg?seed=you'
       },

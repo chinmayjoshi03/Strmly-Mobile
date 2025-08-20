@@ -120,9 +120,9 @@ export default function PublicProfilePageWithId() {
   useEffect(() => {
     if (!id) return;
 
-    const fetchUserVideos = async (page = 1) => {
-      if (activeTab == "repost") return;
+    if (activeTab === "repost" || activeTab == "liked") return;
 
+    const fetchUserVideos = async (page = 1) => {
       setIsLoadingVideos(true);
       try {
         const response = await fetch(
@@ -227,6 +227,42 @@ export default function PublicProfilePageWithId() {
     }, [token, id, router])
   );
 
+  const fetchUserLikedVideos = async () => {
+    setIsLoadingVideos(true);
+    setVideos([]); // Clear previous videos
+    try {
+      const response = await fetch(
+        `${BACKEND_API_URL}/user/profile/${id}/liked-videos`,
+        {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || "Failed to fetch user liked videos");
+      }
+
+      setVideos(data.data);
+      console.log("Liked videos", data.data);
+    } catch (err) {
+      console.error("Error fetching user liked videos:", err);
+      Alert.alert("An unknown error occurred.");
+      // Alert.alert(
+      //   "Error",
+      //   err instanceof Error
+      //     ? err.message
+      //     : "An unknown error occurred while fetching videos."
+      // );
+    } finally {
+      setIsLoadingVideos(false);
+    }
+  };
+
   const fetchUserReshareVideos = async () => {
     if (!id && !token && activeTab !== "repost") return;
 
@@ -245,8 +281,8 @@ export default function PublicProfilePageWithId() {
         throw new Error(data.message || "Failed to fetch user reshare videos");
       }
 
-      setVideos(data.reshares);
-      console.log("reshare videos", data);
+      setVideos(data.enriched_reshares);
+      console.log("reshare videos", data.enriched_reshares);
     } catch (error) {
       console.log(error);
       // Alert.alert("An unknown error occurred.");
@@ -398,33 +434,9 @@ export default function PublicProfilePageWithId() {
       className="relative aspect-[9/16] flex-1 rounded-sm overflow-hidden"
       onPress={() => navigateToVideoPlayer(item, videos)}
     >
-      {activeTab === "repost" ? (
-        item?.long_video?.thumbnailUrl !== "" ? (
-          <Image
-            source={{ uri: item?.long_video?.thumbnailUrl }}
-            alt="video thumbnail"
-            className="w-full h-full object-cover"
-          />
-        ) : thumbnails[item?.long_video._id] ? (
-          <Image
-            source={{ uri: thumbnails[item?.long_video?._id] }}
-            alt="video thumbnail"
-            className="w-full h-full object-cover"
-          />
-        ) : (
-          <View className="w-full h-full flex items-center justify-center">
-            <Text className="text-white text-xs">Loading...</Text>
-          </View>
-        )
-      ) : item.thumbnailUrl !== "" ? (
+      {item.thumbnailUrl !== "" ? (
         <Image
           source={{ uri: item.thumbnailUrl }}
-          alt="video thumbnail"
-          className="w-full h-full object-cover"
-        />
-      ) : thumbnails[item._id] ? (
-        <Image
-          source={{ uri: thumbnails[item._id] }}
           alt="video thumbnail"
           className="w-full h-full object-cover"
         />
@@ -463,6 +475,7 @@ export default function PublicProfilePageWithId() {
                     <View className="h-48 relative">
                       <ProfileTopbar
                         hashtag={false}
+                        isMore={false}
                         name={userData?.userDetails?.username}
                       />
                     </View>
@@ -767,7 +780,7 @@ export default function PublicProfilePageWithId() {
 
                   {/* Tabs */}
                   <View className="mt-6">
-                    <View className="flex-1 flex-row justify-around items-center">
+                    {/* <View className="flex-1 flex-row justify-around items-center">
                       <TouchableOpacity
                         className={`pb-4 flex-1 items-center justify-center`}
                         onPress={() => setActiveTab("long")}
@@ -793,14 +806,17 @@ export default function PublicProfilePageWithId() {
 
                       <TouchableOpacity
                         className={`pb-4 flex-1 items-center justify-center`}
-                        onPress={() => setActiveTab("liked")}
+                        onPress={() => {
+                          setActiveTab("liked");
+                          fetchUserLikedVideos();
+                        }}
                       >
                         <HeartIcon
                           color={activeTab === "liked" ? "white" : "gray"}
                           fill={activeTab === "liked" ? "white" : ""}
                         />
                       </TouchableOpacity>
-                    </View>
+                    </View> */}
 
                     {isLoadingVideos && (
                       <View className="w-full h-96 flex-1 items-center justify-center mt-20">

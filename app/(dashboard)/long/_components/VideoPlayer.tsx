@@ -1,5 +1,12 @@
-import React, { useEffect, useRef } from "react";
-import { View, Dimensions, Pressable, Image, StyleSheet } from "react-native";
+import React, { useEffect, useRef, useState } from "react";
+import {
+  View,
+  Dimensions,
+  Pressable,
+  Image,
+  StyleSheet,
+  ActivityIndicator,
+} from "react-native";
 import { useVideoPlayer, VideoView } from "expo-video";
 import {
   usePlayerStore,
@@ -32,7 +39,7 @@ type Props = {
     shares?: number;
     comments?: number;
   }) => void;
-  containerHeight?: number; // Add containerHeight prop
+  containerHeight?: number;
 };
 
 const VideoPlayer = ({
@@ -42,7 +49,7 @@ const VideoPlayer = ({
   setShowCommentsModal,
   onEpisodeChange,
   onStatsUpdate,
-  containerHeight, // Use containerHeight prop
+  containerHeight,
 }: Props) => {
   const {
     isGifted,
@@ -62,36 +69,63 @@ const VideoPlayer = ({
   const { _updateStatus } = usePlayerStore.getState();
   const isMutedFromStore = usePlayerStore((state) => state.isMuted);
 
-  // Create refs for tracking component state
+  const [isReady, setIsReady] = useState(false);
+  const [isBuffering, setIsBuffering] = useState(false);
+
   const mountedRef = useRef(true);
   const statusListenerRef = useRef<any>(null);
-  const prevUrlRef = useRef<string | null>(null);
 
-  // Use containerHeight if provided, otherwise fall back to screen height
   const VIDEO_HEIGHT = containerHeight || screenHeight;
   const isFocused = useIsFocused();
 
-  // FIX: Move the conditional check after hooks but handle gracefully
   const player = useVideoPlayer(videoData?.videoUrl || "", (p) => {
     p.loop = true;
     p.muted = isMutedFromStore;
   });
 
   useEffect(() => {
-    if (isActive) {
-      player.play();
-      setActivePlayer(player);
-      usePlayerStore.getState().smartPlay();
-    }
-  }, []);
-
-  // Track component mount state
-  useEffect(() => {
     mountedRef.current = true;
     return () => {
       mountedRef.current = false;
     };
   }, []);
+
+  // useEffect(() => {
+  //   const readySub = player.addListener("readyForDisplay", () => {
+  //     setIsReady(true);
+  //   });
+
+  //   const bufferSub = player.addListener("statusChange", ({ status }) => {
+  //     setIsBuffering(status === "");
+  //   });
+
+  //   return () => {
+  //     readySub.remove();
+  //     bufferSub.remove();
+  //   };
+  // }, [player]);
+
+  useEffect(() => {
+    const statusSub = player.addListener("statusChange", ({ status }) => {
+      setIsReady(status === "readyToPlay");
+      setIsBuffering(status === "loading");
+    });
+
+    return () => {
+      statusSub.remove();
+    };
+  }, [player]);
+
+  useEffect(() => {
+    if (isReady && isActive && isFocused && !isGifted) {
+      player.muted = isMutedFromStore;
+      player.play();
+      setActivePlayer(player);
+      usePlayerStore.getState().smartPlay();
+    } else {
+      player.pause();
+    }
+  }, [isReady, isActive, isFocused, isGifted, isMutedFromStore]);
 
   useEffect(() => {
     if (isGifted) {
@@ -103,19 +137,15 @@ const VideoPlayer = ({
 
   useEffect(() => {
     if (!isFocused) {
-      // Screen is not active → pause & mute
       player.pause();
       player.muted = true;
     } else if (isActive) {
-      // Screen is back & this video is active → play with store mute state
       player.muted = isMutedFromStore;
       player.play();
     }
   }, [isFocused, isActive, player, isMutedFromStore]);
 
-  // Optimized lifecycle management
   useEffect(() => {
-    // Don't proceed if no video URL
     if (!videoData?.videoUrl) return;
 
     const handleStatus = (payload: any) => {
@@ -125,55 +155,39 @@ const VideoPlayer = ({
     };
 
     const statusSubscription = player.addListener("statusChange", handleStatus);
-
-    // 👇 Add this for continuous position updates
     const timeSub = player.addListener("timeUpdate", handleStatus);
 
     if (isActive) {
-      // This video is visible and should play
       setActivePlayer(player);
-      // Use the smart play function to handle audio interaction logic
-      const { smartPlay } = usePlayerStore.getState();
-      smartPlay();
+      usePlayerStore.getState().smartPlay();
     } else {
-      // This video is not visible, pause but don't reset time
       player.pause();
-      player.muted = isMutedFromStore; // Ensure mute state is consistent
+      player.muted = isMutedFromStore;
     }
 
-    // Cleanup function
     return () => {
-      // Always remove the listener
       statusSubscription.remove();
       timeSub.remove();
-      // If this was the active player, clear the global reference
       if (isActive) {
         clearActivePlayer();
       }
     };
   }, [isActive, player, _updateStatus, videoData?.videoUrl]);
 
-  // Final cleanup on unmount
   useEffect(() => {
     return () => {
       mountedRef.current = false;
-
       if (statusListenerRef.current) {
         statusListenerRef.current.remove();
       }
-
-      // Use setTimeout to avoid blocking the UI thread during cleanup
       setTimeout(() => {
         try {
           player.replaceAsync(null);
-        } catch (error) {
-          // Ignore cleanup errors
-        }
+        } catch (error) {}
       }, 0);
     };
   }, [player]);
 
-  // Dynamic styles that use the calculated VIDEO_HEIGHT
   const dynamicStyles = StyleSheet.create({
     container: {
       height: VIDEO_HEIGHT,
@@ -183,21 +197,51 @@ const VideoPlayer = ({
       width: "100%",
       height: "100%",
     },
+    thumbnail: {
+      position: "absolute",
+      width: "100%",
+      height: "100%",
+      resizeMode: "cover",
+    },
+    spinner: {
+      position: "absolute",
+      top: "50%",
+      left: "50%",
+      marginLeft: -20,
+      marginTop: -20,
+    },
   });
 
-  // Render empty container if no video URL
   if (!videoData?.videoUrl) {
     return <View style={dynamicStyles.container} />;
   }
 
   return (
     <View style={dynamicStyles.container}>
+      {!isReady && videoData.thumbnailUrl && (
+        <View className="relative">
+          <Image
+            source={{ uri: videoData.thumbnailUrl }}
+            style={dynamicStyles.thumbnail}
+          />
+          <ActivityIndicator size="large" color="white" className="absolute w-full top-96" />
+        </View>
+      )}
+
       <VideoView
         player={player}
         nativeControls={false}
         style={dynamicStyles.video}
         contentFit="cover"
       />
+
+      {isBuffering && (
+        <ActivityIndicator
+          size="large"
+          color="white"
+          style={dynamicStyles.spinner}
+        />
+      )}
 
       <VideoControls
         videoData={videoData}
@@ -206,31 +250,16 @@ const VideoPlayer = ({
         onStatsUpdate={onStatsUpdate}
       />
 
-      <View
-        className="absolute left-0 right-0 z-10 px-2"
-        style={{ bottom: 42.5 }}
-      >
+      {/* Uncomment if needed */}
+      {/* <View className="absolute left-0 right-0 z-10 px-2" style={{ bottom: 42.5 }}>
         <VideoProgressBar
           player={player}
           isActive={isActive}
           videoId={videoData._id}
-          duration={
-            videoData.duration ||
-            videoData.access?.freeRange?.display_till_time ||
-            0
-          }
-          access={
-            videoData.access || {
-              isPlayable: true,
-              freeRange: { start_time: 0, display_till_time: 0 },
-              isPurchased: false,
-              accessType: "free",
-              price: 0,
-            }
-          }
+          duration={videoData.duration || 0}
+          access={videoData.access}
         />
-      </View>
-
+      </View> */}
 
       <View className="z-10 absolute top-10 left-5">
         <Pressable onPress={() => router.push("/(dashboard)/wallet")}>
@@ -282,8 +311,6 @@ const VideoPlayer = ({
           onClose={() => setShowCommentsModal(false)}
           videoId={videoData._id}
           onPressUsername={(userId) => {
-            // Navigate to user profile
-            console.log("Navigate to user profile:", userId);
             try {
               router.push(`/(dashboard)/profile/public/${userId}`);
             } catch (error) {
@@ -291,12 +318,9 @@ const VideoPlayer = ({
             }
           }}
           onPressTip={(commentId) => {
-            // Open tip modal for comment
             console.log("Open tip modal for comment:", commentId);
-            // You can implement tip modal logic here
           }}
           onCommentAdded={() => {
-            // Update comment count when a new comment is added
             if (onStatsUpdate) {
               const newCommentCount = (videoData.comments?.length || 0) + 1;
               onStatsUpdate({ comments: newCommentCount });

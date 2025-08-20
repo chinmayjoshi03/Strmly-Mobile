@@ -234,8 +234,8 @@ export default function PersonalProfilePage() {
         throw new Error(data.message || "Failed to fetch user reshare videos");
       }
 
-      setVideos(data.reshares);
-      console.log("reshare videos", data.reshares[0].long_video.thumbnailUrl);
+      setVideos(data.enriched_reshares);
+      // console.log("reshare videos", data.enriched_reshares.length);
     } catch (error) {
       console.log(error);
       // Alert.alert(
@@ -287,10 +287,10 @@ export default function PersonalProfilePage() {
         console.log("item", item);
       }}
     >
-      {item.thumbnailUrl !== "" || item?.long_video?.thumbnailUrl !== "" ? (
+      {item.thumbnailUrl !== "" ? (
         <Image
           source={{
-            uri: `${item.thumbnailUrl ? item.thumbnailUrl : item.long_video.thumbnailUrl}`,
+            uri: `${item.thumbnailUrl}`,
           }}
           alt="video thumbnail"
           className="w-full h-full object-cover"
@@ -515,7 +515,7 @@ export default function PersonalProfilePage() {
               )}
 
               {/* Tabs */}
-              <View className="mt-6 border-b border-gray-700">
+              {/* <View className="mt-6 border-b border-gray-700">
                 <View className="flex-1 flex-row justify-around items-center">
                   <TouchableOpacity
                     className={`pb-4 flex-1 items-center justify-center`}
@@ -549,7 +549,7 @@ export default function PersonalProfilePage() {
                     />
                   </TouchableOpacity>
                 </View>
-              </View>
+              </View> */}
 
               {isLoadingVideos && (
                 <View className="w-full h-96 flex-1 items-center justify-center mt-20">

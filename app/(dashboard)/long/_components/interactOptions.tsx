@@ -95,11 +95,6 @@ const InteractOptions = ({
       if (onLikeUpdate) {
         onLikeUpdate(like, isLikedVideo);
       }
-      
-      // Update parent component with new stats
-      if (onLikeUpdate) {
-        onLikeUpdate(like, isLikedVideo);
-      }
     } catch (err) {
       console.log(err);
       setLike(() => prevLikeCount);
@@ -112,7 +107,6 @@ const InteractOptions = ({
       if (!token || !videoId) {
         return;
       }
-      console.log(videoId);
 
       try {
         const response = await fetch(
@@ -131,7 +125,7 @@ const InteractOptions = ({
           throw new Error("Failed while checking video like status");
 
         const data = await response.json();
-        console.log("check like", data);
+        console.log("check like", data, creator.username, videoId);
         setLike(data.likes);
         setIsLikedVideo(data.isLiked);
       } catch (err) {
