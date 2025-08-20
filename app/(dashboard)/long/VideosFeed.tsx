@@ -239,7 +239,7 @@ const VideosFeed: React.FC = () => {
           scrollEnabled={!showCommentsModal}
           onViewableItemsChanged={onViewableItemsChanged}
           viewabilityConfig={{ itemVisiblePercentThreshold: 80 }}
-          snapToInterval={VIDEO_HEIGHT}
+          // snapToInterval={VIDEO_HEIGHT}
           initialNumToRender={3}
           maxToRenderPerBatch={3}
           windowSize={5}
