@@ -22,6 +22,7 @@ import { useWallet } from "./_components/useWallet";
 import { useAuthStore } from "@/store/useAuthStore";
 import { useDashboard } from "../profile/_components/useDashboard";
 import BottomNavBar from "@/components/BottomNavBar";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 const { height } = Dimensions.get("screen");
 
@@ -42,7 +43,10 @@ const WalletPage = () => {
   } = useWallet(token || "");
 
   // Get revenue data from dashboard to ensure consistency
-  const { revenueBreakdown, loading: dashboardLoading } = useDashboard(token || "", "revenue");
+  const { revenueBreakdown, loading: dashboardLoading } = useDashboard(
+    token || "",
+    "revenue"
+  );
 
   const [isOpenTBalance, setIsOpenTotalBalance] = useState<boolean>(false);
   const [isOpenWBalance, setIsOpenWalletBalance] = useState<boolean>(false);
@@ -51,7 +55,7 @@ const WalletPage = () => {
 
   // Handle withdrawal request
   const handleWithdrawalRequest = () => {
-    router.push('/(payments)/Video/Video-Gifting?mode=withdraw');
+    router.push("/(payments)/Video/Video-Gifting?mode=withdraw");
   };
 
   // Show error alert when error occurs
@@ -67,13 +71,13 @@ const WalletPage = () => {
         height,
         backgroundColor: showSuccessModal ? "#B0B0B0BB" : "black",
       }}
-      className="relative gap-8 py-14 px-4"
+      className="relative gap-8 py-4 px-4"
     >
       {showSuccessModal && (
         <Modal transparent visible={showSuccessModal} animationType="fade">
           <TouchableWithoutFeedback onPress={() => setShowSuccessModal(false)}>
             <View className="flex-1 bg-transparent bg-opacity-80 bottom-60 items-center justify-end px-5 right-0">
-              <TouchableWithoutFeedback onPress={() => { }}>
+              <TouchableWithoutFeedback onPress={() => {}}>
                 <View className="bg-[#1E1E1E] p-6 rounded-xl">
                   <Text className="text-white text-base text-center mb-2 font-semibold">
                     Your withdrawal request of ₹500 has been successfully
@@ -100,9 +104,9 @@ const WalletPage = () => {
           )}
         </View>
       ) : (
-        <>
+        <SafeAreaView>
           <CommonTopBar />
-          <View className="gap-5">
+          <View className="gap-5 mt-5">
             {/* Card 1 */}
             <View className="bg-[#B0B0B033] p-4 rounded-xl h-[91px]">
               <Pressable onPress={() => setIsOpenTotalBalance(!isOpenTBalance)}>
@@ -140,7 +144,9 @@ const WalletPage = () => {
 
               {/* Card 3 */}
               <Pressable
-                onPress={() => router.push("/(dashboard)/profile/Dashboard?tab=revenue")}
+                onPress={() =>
+                  router.push("/(dashboard)/profile/Dashboard?tab=revenue")
+                }
                 className="flex-1"
               >
                 <View className="bg-[#B0B0B033] flex-1 justify-center gap-2 items-center h-full rounded-xl p-4">
@@ -149,7 +155,8 @@ const WalletPage = () => {
                     <ActivityIndicator size="small" color="#fff" />
                   ) : (
                     <Text className="text-[28px] text-white">
-                      ₹ {revenueBreakdown?.estimateRevenue?.toFixed(2) || "0.00"}
+                      ₹{" "}
+                      {revenueBreakdown?.estimateRevenue?.toFixed(2) || "0.00"}
                     </Text>
                   )}
                 </View>
@@ -202,7 +209,7 @@ const WalletPage = () => {
             )}
           </View>
 
-          <View className="flex justify-center h-full">
+          <View className="absolute w-full top-[200%] h-full">
             <WalletButtons
               onWithdraw={handleWithdrawalRequest}
               onCreateOrder={createLoadOrder}
@@ -211,13 +218,11 @@ const WalletPage = () => {
               walletBalance={walletData?.balance || 0}
             />
           </View>
-        </>
+        </SafeAreaView>
       )}
 
       {/* Bottom Navigation Bar */}
-      {!isOpenTBalance && !isOpenWBalance && !isOpenRevenue && (
-        <BottomNavBar />
-      )}
+      {!isOpenTBalance && !isOpenWBalance && !isOpenRevenue && <BottomNavBar />}
     </ThemedView>
   );
 };
