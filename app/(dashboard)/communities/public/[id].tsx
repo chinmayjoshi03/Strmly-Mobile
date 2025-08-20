@@ -33,8 +33,7 @@ import { useGiftingStore } from "@/store/useGiftingStore";
 import { getProfilePhotoUrl } from "@/utils/profileUtils";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-const { height } = Dimensions.get("screen");
-
+const { height } = Dimensions.get("window");
 
 
 export default function PublicCommunityPage() {
@@ -468,131 +467,164 @@ export default function PublicCommunityPage() {
   );
 
   return (
-    <ThemedView style={{ height, paddingTop: 10 }}>
+    <ThemedView style={{ height, flex: 1 }}>
       {isLoading ? (
         <View className="flex-1 items-center justify-center">
           <ActivityIndicator size="large" color="white" />
         </View>
       ) : (
-        <FlatList
-          ListHeaderComponent={
-            <View className="max-w-4xl -mt-28 relative mx-6 pt-28">
-              <View className="items-center justify-center gap-4 h-fit w-full mt-6">
-                <Image
-                  source={{
-                    uri: getProfilePhotoUrl(
-                      communityData?.profile_photo,
-                      "community"
-                    ),
-                  }}
-                  style={{
-                    width: 80,
-                    height: 80,
-                    borderRadius: 40,
-                    borderWidth: 2,
-                    borderColor: "white",
-                    resizeMode: "cover",
-                  }}
+        <SafeAreaView>
+          <FlatList
+            ListHeaderComponent={
+              <View className="max-w-4xl -mt-24 relative mx-6 pt-24">
+                <ProfileTopbar
+                  isMore={false}
+                  name={communityData?.name}
+                  hashtag={false}
                 />
-                <Text className="text-white text-center text-sm">
-                  {communityData?.founder &&
-                    `By @${communityData?.founder.username}`}
-                </Text>
-                {/* {profileData.isPrivate && (
+                <View className="items-center justify-center gap-4 h-fit w-full mt-6">
+                  <Image
+                    source={{
+                      uri: getProfilePhotoUrl(
+                        communityData?.profile_photo,
+                        "community"
+                      ),
+                    }}
+                    style={{
+                      width: 80,
+                      height: 80,
+                      borderRadius: 40,
+                      borderWidth: 2,
+                      borderColor: "white",
+                      resizeMode: "cover",
+                    }}
+                  />
+                  <Text className="text-white text-center text-sm">
+                    {communityData?.founder &&
+                      `By @${communityData?.founder.username}`}
+                  </Text>
+                  {/* {profileData.isPrivate && (
                       <Text className="ml-2 px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
                         Private
                       </Text>
                     )} */}
-              </View>
+                </View>
 
-              {/* Section Navigation */}
-              <View className="mt-6 flex-row justify-around items-center border-gray-800">
-                <TouchableOpacity
-                  className={`flex flex-col gap-1 items-center pb-4 flex-1 ${activeTab === "followers" ? "border-b-2 border-white" : ""}`}
-                  onPress={() => {
-                    router.push({
-                      pathname: "/(communities)/CommunitySections",
-                      params: {
-                        communityId: id,
-                        communityName: communityData?.name,
-                        section: "followers",
-                      },
-                    } as any);
-                  }}
-                >
-                  <Text className="font-bold text-lg text-white">
-                    {communityData?.followers?.length || 0}
-                  </Text>
-                  <Text
-                    className={`text-md ${activeTab === "followers" ? "text-white" : "text-gray-400"}`}
+                {/* Section Navigation */}
+                <View className="mt-6 flex-row justify-around items-center border-gray-800">
+                  <TouchableOpacity
+                    className={`flex flex-col gap-1 items-center pb-4 flex-1 ${activeTab === "followers" ? "border-b-2 border-white" : ""}`}
+                    onPress={() => {
+                      router.push({
+                        pathname: "/(communities)/CommunitySections",
+                        params: {
+                          communityId: id,
+                          communityName: communityData?.name,
+                          section: "followers",
+                        },
+                      } as any);
+                    }}
                   >
-                    Followers
-                  </Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  className={`flex flex-col gap-1 items-center pb-4 flex-1 ${activeTab === "creators" ? "border-b-2 border-white" : ""}`}
-                  onPress={() => {
-                    router.push({
-                      pathname: "/(communities)/CommunitySections",
-                      params: {
-                        communityId: id,
-                        communityName: communityData?.name,
-                        section: "creators",
-                      },
-                    } as any);
-                  }}
-                >
-                  <Text className="font-bold text-lg text-white">
-                    {communityData?.creators?.length || 0}
-                  </Text>
-                  <Text
-                    className={`text-md ${activeTab === "creators" ? "text-white" : "text-gray-400"}`}
+                    <Text className="font-bold text-lg text-white">
+                      {communityData?.followers?.length || 0}
+                    </Text>
+                    <Text
+                      className={`text-md ${activeTab === "followers" ? "text-white" : "text-gray-400"}`}
+                    >
+                      Followers
+                    </Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    className={`flex flex-col gap-1 items-center pb-4 flex-1 ${activeTab === "creators" ? "border-b-2 border-white" : ""}`}
+                    onPress={() => {
+                      router.push({
+                        pathname: "/(communities)/CommunitySections",
+                        params: {
+                          communityId: id,
+                          communityName: communityData?.name,
+                          section: "creators",
+                        },
+                      } as any);
+                    }}
                   >
+                    <Text className="font-bold text-lg text-white">
+                      {communityData?.creators?.length || 0}
+                    </Text>
                     <Text
                       className={`text-md ${activeTab === "creators" ? "text-white" : "text-gray-400"}`}
                     >
-                      Creators
+                      <Text
+                        className={`text-md ${activeTab === "creators" ? "text-white" : "text-gray-400"}`}
+                      >
+                        Creators
+                      </Text>
                     </Text>
-                  </Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  className={`flex flex-col gap-1 items-center pb-4 flex-1 ${activeTab === "videos" ? "border-b-2 border-white" : ""}`}
-                  onPress={() => handleSectionChange("videos")}
-                >
-                  <Text className="font-bold text-lg text-white">
-                    {videos.length || 0}
-                  </Text>
-                  <Text
-                    className={`text-md ${activeTab === "videos" ? "text-white" : "text-gray-400"}`}
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    className={`flex flex-col gap-1 items-center pb-4 flex-1 ${activeTab === "videos" ? "border-b-2 border-white" : ""}`}
+                    onPress={() => handleSectionChange("videos")}
                   >
-                    Videos
-                  </Text>
-                </TouchableOpacity>
-              </View>
-
-              {/* Buttons */}
-              <View className="flex flex-row w-full items-center justify-center gap-2 mt-5 md:mt-0">
-                <TouchableOpacity
-                  onPress={followCommunity}
-                  className="flex-1 px-4 py-2 rounded-xl bg-transparent border border-gray-400"
-                >
-                  <Text className="text-white text-center">
-                    {!isFollowingCommunity ? "Follow" : "Following"}
-                  </Text>
-                </TouchableOpacity>
-
-                {communityData?.community_fee_type !== "free" &&
-                  !hasCommunityPass && (
-                    <TouchableOpacity
-                      onPress={() =>
-                        router.push({
-                          pathname:
-                            "/(dashboard)/PurchasePass/PurchaseCommPass/[id]",
-                          params: { id: id },
-                        })
-                      }
-                      className="rounded-xl overflow-hidden"
+                    <Text className="font-bold text-lg text-white">
+                      {videos.length || 0}
+                    </Text>
+                    <Text
+                      className={`text-md ${activeTab === "videos" ? "text-white" : "text-gray-400"}`}
                     >
+                      Videos
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+
+                {/* Buttons */}
+                <View className="flex flex-row w-full items-center justify-center gap-2 mt-5 md:mt-0">
+                  <TouchableOpacity
+                    onPress={followCommunity}
+                    className="flex-1 px-4 py-2 rounded-xl bg-transparent border border-gray-400"
+                  >
+                    <Text className="text-white text-center">
+                      {!isFollowingCommunity ? "Follow" : "Following"}
+                    </Text>
+                  </TouchableOpacity>
+
+                  {communityData?.community_fee_type !== "free" &&
+                    !hasCommunityPass && (
+                      <TouchableOpacity
+                        onPress={() =>
+                          router.push({
+                            pathname:
+                              "/(dashboard)/PurchasePass/PurchaseCommPass/[id]",
+                            params: { id: id },
+                          })
+                        }
+                        className="rounded-xl overflow-hidden"
+                      >
+                        <LinearGradient
+                          colors={[
+                            "#4400FFA6",
+                            "#FFFFFF",
+                            "#FF00004D",
+                            "#FFFFFF",
+                          ]}
+                          start={{ x: 0, y: 0 }}
+                          end={{ x: 1, y: 1 }}
+                          className="p-[1px] rounded-xl flex-1"
+                        >
+                          <View className="flex-1 px-4 py-2 rounded-xl bg-black items-center justify-center">
+                            <View className="flex-row items-center justify-center">
+                              <Text className="text-white">Join at </Text>
+                              <IndianRupee color={"white"} size={13} />
+                              <Text className="text-white text-center">
+                                {communityData?.community_fee_amount}
+                                /month
+                              </Text>
+                            </View>
+                          </View>
+                        </LinearGradient>
+                      </TouchableOpacity>
+                    )}
+
+                  {hasCommunityPass && (
+                    <TouchableOpacity className="rounded-xl overflow-hidden">
                       <LinearGradient
                         colors={[
                           "#4400FFA6",
@@ -604,111 +636,90 @@ export default function PublicCommunityPage() {
                         end={{ x: 1, y: 1 }}
                         className="p-[1px] rounded-xl flex-1"
                       >
-                        <View className="flex-1 px-4 py-2 rounded-xl bg-black items-center justify-center">
-                          <View className="flex-row items-center justify-center">
-                            <Text className="text-white">Join at </Text>
-                            <IndianRupee color={"white"} size={13} />
-                            <Text className="text-white text-center">
-                              {communityData?.community_fee_amount}
-                              /month
+                        <View className="flex-1 px-4 rounded-xl bg-black items-center justify-center">
+                          <View className="items-center justify-center">
+                            <Text className="text-white text-lg text-center">
+                              Purchased
                             </Text>
                           </View>
                         </View>
                       </LinearGradient>
                     </TouchableOpacity>
                   )}
+                </View>
 
-                {hasCommunityPass && (
-                  <TouchableOpacity className="rounded-xl overflow-hidden">
-                    <LinearGradient
-                      colors={["#4400FFA6", "#FFFFFF", "#FF00004D", "#FFFFFF"]}
-                      start={{ x: 0, y: 0 }}
-                      end={{ x: 1, y: 1 }}
-                      className="p-[1px] rounded-xl flex-1"
-                    >
-                      <View className="flex-1 px-4 rounded-xl bg-black items-center justify-center">
-                        <View className="items-center justify-center">
-                          <Text className="text-white text-lg text-center">
-                            Purchased
-                          </Text>
-                        </View>
-                      </View>
-                    </LinearGradient>
-                  </TouchableOpacity>
+                {/* Bio */}
+                {communityData?.bio && (
+                  <View className="mt-6 flex flex-col items-center justify-center px-4">
+                    <Text className="text-gray-400 text-xs text-center">
+                      {communityData?.bio}
+                    </Text>
+                  </View>
+                )}
+
+                {/* Video Type Tabs - Only show when videos section is active */}
+                {activeTab === "videos" && (
+                  <View className="mt-4 border-gray-700">
+                    <View className="flex flex-row justify-around items-center">
+                      <TouchableOpacity
+                        className={`pb-4 flex-1 items-center justify-center border-b-2 ${videoType === "long" ? "border-white" : "border-transparent"}`}
+                        onPress={() => setVideoType("long")}
+                      >
+                        <PaperclipIcon
+                          color={videoType === "long" ? "white" : "gray"}
+                        />
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        className={`pb-4 flex-1 items-center justify-center border-b-2 ${videoType === "liked" ? "border-white" : "border-transparent"}`}
+                        onPress={() => setVideoType("liked")}
+                      >
+                        <HeartIcon
+                          color={videoType === "liked" ? "white" : "gray"}
+                          fill={videoType === "liked" ? "white" : "transparent"}
+                        />
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                )}
+
+                {/* Search Bar - Only show for followers and creators */}
+                {(activeTab === "followers" || activeTab === "creators") && (
+                  <View className="mt-4 px-4">
+                    <View className="bg-gray-800 rounded-lg px-4 py-3 flex-row items-center">
+                      <Text className="text-gray-400 flex-1">Search...</Text>
+                    </View>
+                  </View>
                 )}
               </View>
-
-              {/* Bio */}
-              {communityData?.bio && (
-                <View className="mt-6 flex flex-col items-center justify-center px-4">
-                  <Text className="text-gray-400 text-xs text-center">
-                    {communityData?.bio}
+            }
+            data={activeTab === "videos" ? (isLoadingVideos ? [] : videos) : []}
+            key={`${activeTab}-${videoType}`}
+            keyExtractor={(item) => item._id}
+            renderItem={videoType === "long" ? renderVideoItem : renderGridItem}
+            numColumns={activeTab === "videos" && videoType === "liked" ? 3 : 1}
+            columnWrapperStyle={
+              activeTab === "videos" && videoType === "liked"
+                ? { justifyContent: "space-between" }
+                : undefined
+            }
+            ListEmptyComponent={
+              activeTab === "videos" && isLoadingVideos ? (
+                <View className="flex-1 h-64 items-center justify-center">
+                  <ActivityIndicator size="large" color="white" />
+                </View>
+              ) : activeTab === "videos" ? (
+                <View className="flex-1 h-64 items-center justify-center">
+                  <Video size={48} color="gray" />
+                  <Text className="text-gray-400 text-center mt-4">
+                    {`No ${videoType} videos yet`}
                   </Text>
                 </View>
-              )}
-
-              {/* Video Type Tabs - Only show when videos section is active */}
-              {activeTab === "videos" && (
-                <View className="mt-4 border-gray-700">
-                  <View className="flex flex-row justify-around items-center">
-                    <TouchableOpacity
-                      className={`pb-4 flex-1 items-center justify-center border-b-2 ${videoType === "long" ? "border-white" : "border-transparent"}`}
-                      onPress={() => setVideoType("long")}
-                    >
-                      <PaperclipIcon
-                        color={videoType === "long" ? "white" : "gray"}
-                      />
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      className={`pb-4 flex-1 items-center justify-center border-b-2 ${videoType === "liked" ? "border-white" : "border-transparent"}`}
-                      onPress={() => setVideoType("liked")}
-                    >
-                      <HeartIcon
-                        color={videoType === "liked" ? "white" : "gray"}
-                        fill={videoType === "liked" ? "white" : "transparent"}
-                      />
-                    </TouchableOpacity>
-                  </View>
-                </View>
-              )}
-
-              {/* Search Bar - Only show for followers and creators */}
-              {(activeTab === "followers" || activeTab === "creators") && (
-                <View className="mt-4 px-4">
-                  <View className="bg-gray-800 rounded-lg px-4 py-3 flex-row items-center">
-                    <Text className="text-gray-400 flex-1">Search...</Text>
-                  </View>
-                </View>
-              )}
-            </View>
-          }
-          data={activeTab === "videos" ? (isLoadingVideos ? [] : videos) : []}
-          key={`${activeTab}-${videoType}`}
-          keyExtractor={(item) => item._id}
-          renderItem={videoType === "long" ? renderVideoItem : renderGridItem}
-          numColumns={activeTab === "videos" && videoType === "liked" ? 3 : 1}
-          columnWrapperStyle={
-            activeTab === "videos" && videoType === "liked"
-              ? { justifyContent: "space-between" }
-              : undefined
-          }
-          ListEmptyComponent={
-            activeTab === "videos" && isLoadingVideos ? (
-              <View className="flex-1 h-64 items-center justify-center">
-                <ActivityIndicator size="large" color="white" />
-              </View>
-            ) : activeTab === "videos" ? (
-              <View className="flex-1 h-64 items-center justify-center">
-                <Video size={48} color="gray" />
-                <Text className="text-gray-400 text-center mt-4">
-                  {`No ${videoType} videos yet`}
-                </Text>
-              </View>
-            ) : null
-          }
-          contentContainerStyle={{ paddingBottom: 30, paddingHorizontal: 4 }}
-          showsVerticalScrollIndicator={false}
-        />
+              ) : null
+            }
+            contentContainerStyle={{ paddingBottom: 30, paddingHorizontal: 4 }}
+            showsVerticalScrollIndicator={false}
+          />
+        </SafeAreaView>
       )}
 
       {/* Integrated Video Player Modal */}

@@ -71,7 +71,12 @@ const VideoProgressBar = ({
         },
         body: JSON.stringify({ videoId }),
       });
-      console.error("Video saved to history", await res.json());
+      const data = await res.json();
+      if (!res.ok) {
+        console.error(data.message || "Failed to save video to history");
+        return;
+      }
+      console.log("Video saved to history:", data.message);
     } catch (err) {
       console.error("Failed to save history:", err);
     }
@@ -89,6 +94,10 @@ const VideoProgressBar = ({
         },
       });
       const data = await res.json();
+      if (!res.ok) {
+        console.error(data.message || "Failed to increment video count");
+        return;
+      }
       console.log(data.message);
     } catch (err) {
       console.error("Failed to increment views:", err);

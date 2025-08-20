@@ -156,13 +156,21 @@ const SignUp = () => {
         <Link className="text-blue-500" href={"https://strmly.com/legal/privacy"}> Privacy Policy.</Link>
       </ThemedText>
 
-      <Link
+      {/* <Link
         href={"/(auth)/Sign-in"}
         className="mt-14"
         style={Signinstyles.Text16R}
       >
         Already have an account?
         <ThemedText style={Signinstyles.Text16M}> Sign in</ThemedText>
+      </Link> */}
+
+      <Link
+        href={"/(auth)/ForgotPassword"}
+        className="mt-14"
+        style={Signinstyles.Text16R}
+      >
+        <ThemedText style={Signinstyles.Text16M}> Forgot Password?</ThemedText>
       </Link>
     </ThemedView>
   );

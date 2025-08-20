@@ -6,6 +6,7 @@ import {
   Linking,
   Alert,
   ActivityIndicator,
+  Dimensions,
 } from "react-native";
 import React, { useEffect, useState } from "react";
 import ThemedView from "@/components/ThemedView";
@@ -17,6 +18,9 @@ import { useMonetizationStore } from "@/store/useMonetizationStore";
 import { router, useNavigation } from "expo-router";
 import Constants from "expo-constants";
 import { NativeStackNavigationProp } from "react-native-screens/lib/typescript/native-stack/types";
+import { SafeAreaView } from "react-native-safe-area-context";
+
+const { height } = Dimensions.get("window");
 
 const Setting = () => {
   const { logout, token } = useAuthStore();
@@ -188,86 +192,88 @@ By submitting this request, you confirm that you understand and agree to our`,
   };
 
   return (
-    <ThemedView className="flex-1 pt-10">
-      <View>
-        <ProfileTopbar name="Setting" isMore={false} hashtag={false} />
-      </View>
-
-      <View className="mt-14 items-start mx-5 gap-5 w-full">
-        {/* Monetization Toggle */}
-        <View className="flex-row items-center justify-between w-full">
-          <Text className="text-white text-lg">
-            Activate comment monetization
-          </Text>
-          {isMonetizationLoading ? (
-            <ActivityIndicator className="size-6 mr-6" />
-          ) : (
-            <Pressable
-              onPress={() => openModal(modalTypes.monetization)}
-              className="mr-6"
-            >
-              <Image
-                source={
-                  monetizationStatus?.comment_monetization_status
-                    ? require("../../assets/images/switch-green.png")
-                    : require("../../assets/images/switch.png")
-                }
-                className="size-6"
-              />
-            </Pressable>
-          )}
+    <ThemedView style={{ height, flex: 1 }}>
+      <SafeAreaView>
+        <View>
+          <ProfileTopbar name="Setting" isMore={false} hashtag={false} />
         </View>
 
-        {/* Action Buttons */}
-        <Pressable
-          onPress={() => openModal(modalTypes.support)}
-          className="w-full"
-        >
-          <Text className="text-white text-lg">Contact and Support</Text>
-        </Pressable>
+        <View className="mt-14 items-start mx-5 gap-5 w-full">
+          {/* Monetization Toggle */}
+          <View className="flex-row items-center justify-between w-full">
+            <Text className="text-white text-lg">
+              Activate comment monetization
+            </Text>
+            {isMonetizationLoading ? (
+              <ActivityIndicator className="size-6 mr-6" />
+            ) : (
+              <Pressable
+                onPress={() => openModal(modalTypes.monetization)}
+                className="mr-6"
+              >
+                <Image
+                  source={
+                    monetizationStatus?.comment_monetization_status
+                      ? require("../../assets/images/switch-green.png")
+                      : require("../../assets/images/switch.png")
+                  }
+                  className="size-6"
+                />
+              </Pressable>
+            )}
+          </View>
 
-        <Pressable
-          onPress={() => openURL("https://www.strmly.com/legal/privacy")}
-          className="w-full"
-        >
-          <Text className="text-white text-lg">Privacy Policy</Text>
-        </Pressable>
+          {/* Action Buttons */}
+          <Pressable
+            onPress={() => openModal(modalTypes.support)}
+            className="w-full"
+          >
+            <Text className="text-white text-lg">Contact and Support</Text>
+          </Pressable>
 
-        <Pressable
-          onPress={() => openURL("https://www.strmly.com/legal/terms")}
-          className="w-full"
-        >
-          <Text className="text-white text-lg">Term of Use</Text>
-        </Pressable>
+          <Pressable
+            onPress={() => openURL("https://www.strmly.com/legal/privacy")}
+            className="w-full"
+          >
+            <Text className="text-white text-lg">Privacy Policy</Text>
+          </Pressable>
 
-        <Pressable
-          onPress={() => openModal(modalTypes.logout)}
-          className="w-full"
-        >
-          <Text className="text-white text-lg">Logout</Text>
-        </Pressable>
+          <Pressable
+            onPress={() => openURL("https://www.strmly.com/legal/terms")}
+            className="w-full"
+          >
+            <Text className="text-white text-lg">Term of Use</Text>
+          </Pressable>
 
-        <Pressable
-          onPress={() => openModal(modalTypes.delete)}
-          className="w-full"
-        >
-          <Text className="text-red-500 text-lg">Delete Account</Text>
-        </Pressable>
-      </View>
+          <Pressable
+            onPress={() => openModal(modalTypes.logout)}
+            className="w-full"
+          >
+            <Text className="text-white text-lg">Logout</Text>
+          </Pressable>
 
-      <ActionModal
-        isVisible={modalConfig.isVisible}
-        onClose={closeModal}
-        title={modalConfig.title}
-        specialText={modalConfig.specialText}
-        useButtons={modalConfig.useButtons}
-        primaryButtonText={modalConfig.primaryButtonText}
-        onPrimaryButtonPress={modalConfig.onPrimaryButtonPress}
-        secondaryButtonText={modalConfig.secondaryButtonText}
-        onSecondaryButtonPress={closeModal}
-        info={modalConfig.info}
-        confirmRequest={modalConfig.confirmRequest}
-      />
+          <Pressable
+            onPress={() => openModal(modalTypes.delete)}
+            className="w-full"
+          >
+            <Text className="text-red-500 text-lg">Delete Account</Text>
+          </Pressable>
+        </View>
+
+        <ActionModal
+          isVisible={modalConfig.isVisible}
+          onClose={closeModal}
+          title={modalConfig.title}
+          specialText={modalConfig.specialText}
+          useButtons={modalConfig.useButtons}
+          primaryButtonText={modalConfig.primaryButtonText}
+          onPrimaryButtonPress={modalConfig.onPrimaryButtonPress}
+          secondaryButtonText={modalConfig.secondaryButtonText}
+          onSecondaryButtonPress={closeModal}
+          info={modalConfig.info}
+          confirmRequest={modalConfig.confirmRequest}
+        />
+      </SafeAreaView>
     </ThemedView>
   );
 };
