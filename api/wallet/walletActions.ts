@@ -43,7 +43,8 @@ export interface WithdrawalRequest {
 // Wallet Load APIs
 export const getWalletDetails = async (token: string) => {
   try {
-    const res = await fetch(`${API_BASE_URL}/wallet`, {
+    console.log('Fetching wallet details with token:', token?.substring(0, 10) + '...');
+    const res = await fetch(`${API_BASE_URL}/wallet/`, {
       method: "GET",
       headers: {
         Authorization: `Bearer ${token}`,

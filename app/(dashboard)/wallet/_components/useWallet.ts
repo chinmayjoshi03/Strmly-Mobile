@@ -27,11 +27,11 @@ export const useWallet = (token: string) => {
   // Fetch wallet details
   const fetchWalletDetails = async () => {
     try {
+      console.log('hitting....', token)
       setIsLoading(true);
       setError(null);
-      console.log('Fetching wallet details with token:', token?.substring(0, 10) + '...');
       const response = await getWalletDetails(token);
-      console.log('Wallet details response:', response);
+      console.log('hitting....')
       setWalletData(response.wallet);
     } catch (err: any) {
       console.error('Error fetching wallet details:', err);

@@ -61,7 +61,7 @@ const VideosFeed: React.FC = () => {
     try {
       console.log("calling...");
       const res = await fetch(
-        `${BACKEND_API_URL}/recommendations/videos?page=${targetPage}&limit=${limit}`,
+        `${BACKEND_API_URL}/recommendations/videos?page=${targetPage}`, //recommendations/videos
         {
           method: "GET",
           headers: {
@@ -72,8 +72,16 @@ const VideosFeed: React.FC = () => {
       );
       if (!res.ok) throw new Error("Failed to fetch videos");
       const json = await res.json();
+      
       // if (json.data.length < limit) setHasMore(false);
-      // setVideos((prev) => [...prev, ...json.data]);
+
+      // setVideos((prev) => {
+      //   const existingIds = new Set(prev.map((v) => v._id));
+      //   const uniqueNew = json.data.filter(
+      //     (v: { _id: string }) => !existingIds.has(v._id)
+      //   );
+      //   return [...prev, ...uniqueNew];
+      // });
 
       setVideos((prev) => {
         const existingIds = new Set(prev.map((v) => v._id));
@@ -84,7 +92,7 @@ const VideosFeed: React.FC = () => {
       });
 
       if (json.recommendations.length < limit) setHasMore(false);
-      // console.log(json.recommendations.length);
+      console.log(json.recommendations.length, "recommendations.length");
       setPage(targetPage + 1); // increment only once
     } catch (err: any) {
       console.log(err);
@@ -113,7 +121,7 @@ const VideosFeed: React.FC = () => {
         setVisibleIndex(currentIndex);
 
         // Prefetch when 2 items left
-        // if (currentIndex >= videos.length - 3 && hasMore && !isFetchingMore) {
+        // if (currentIndex === videos.length - 2 && hasMore && !isFetchingMore) {
         //   fetchTrendingVideos();
         // }
       }
@@ -125,10 +133,6 @@ const VideosFeed: React.FC = () => {
   // This prevents creating a new render function on every parent render.
   const renderItem = useCallback(
     ({ item, index }: { item: VideoItemType; index: number }) => (
-      // <VideoItem
-      //   video={item}
-      //   isActive={index === visibleIndex}
-      // />
       <VideoPlayer
         videoData={item}
         isActive={index === visibleIndex}
@@ -180,11 +184,11 @@ const VideosFeed: React.FC = () => {
             className="justify-center items-center px-4"
           >
             <Text className="text-white text-center mb-4">
-              Failed to fetch videos
+              Oops something went wrong!
             </Text>
-            <Text className="text-red-400 text-center text-sm mb-4">
+            {/* <Text className="text-red-400 text-center text-sm mb-4">
               {error}
-            </Text>
+            </Text> */}
             <Pressable
               onPress={() => {
                 setLoading(() => true);
@@ -235,6 +239,7 @@ const VideosFeed: React.FC = () => {
           scrollEnabled={!showCommentsModal}
           onViewableItemsChanged={onViewableItemsChanged}
           viewabilityConfig={{ itemVisiblePercentThreshold: 80 }}
+          // snapToInterval={VIDEO_HEIGHT}
           initialNumToRender={3}
           maxToRenderPerBatch={3}
           windowSize={5}

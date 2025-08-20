@@ -11,6 +11,7 @@ export interface Comment {
   downvotes: number
   user: {
     id: string
+    username: string;
     name: string
     avatar: string
   }
