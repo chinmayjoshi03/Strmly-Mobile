@@ -18,6 +18,7 @@ import {
   type CreatorPass,
 } from "./_components/usePurchasedAccess";
 import { useRoute } from "@react-navigation/native";
+import { getProfilePhotoUrl } from "@/utils/profileUtils";
 
 export default function AccessPage() {
   const [activeTab, setActiveTab] = useState<"content" | "series" | "creator">(
@@ -284,9 +285,7 @@ export default function AccessPage() {
         <View className="relative">
           <Image
             source={{
-              uri:
-                creatorPass.creator_id.profile_photo ||
-                `https://api.dicebear.com/7.x/avataaars/svg?seed=${creatorPass.creator_id.username}`,
+              uri: getProfilePhotoUrl(creatorPass.creator_id.profile_photo, "user"),
             }}
             className="w-16 h-16 rounded-full"
             resizeMode="cover"
