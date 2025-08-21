@@ -90,21 +90,6 @@ const VideoPlayer = ({
     };
   }, []);
 
-  // useEffect(() => {
-  //   const readySub = player.addListener("readyForDisplay", () => {
-  //     setIsReady(true);
-  //   });
-
-  //   const bufferSub = player.addListener("statusChange", ({ status }) => {
-  //     setIsBuffering(status === "");
-  //   });
-
-  //   return () => {
-  //     readySub.remove();
-  //     bufferSub.remove();
-  //   };
-  // }, [player]);
-
   useEffect(() => {
     const statusSub = player.addListener("statusChange", ({ status }) => {
       setIsReady(status === "readyToPlay");

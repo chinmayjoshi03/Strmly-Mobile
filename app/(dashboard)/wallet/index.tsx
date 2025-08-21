@@ -163,7 +163,7 @@ const WalletPage = () => {
               </Pressable>
             </View>
 
-            <Text className="text-white text-lg">Withdrawals request</Text>
+            {/* <Text className="text-white text-lg">Withdrawals request</Text> */}
             {withdrawals.length > 0 ? (
               withdrawals.slice(0, 3).map((withdrawal) => (
                 <View
@@ -171,13 +171,13 @@ const WalletPage = () => {
                   className="relative flex-row w-full items-center gap-3"
                 >
                   {/* Profile Picture */}
-                  <Image
+                  {/* <Image
                     source={require("../../../assets/images/bank-icon.png")}
                     className="w-12 h-12 rounded-full bg-gray-500"
-                  />
+                  /> */}
 
                   {/* User Info */}
-                  <View className="justify-center gap-1 items-start">
+                  {/* <View className="justify-center gap-1 items-start">
                     <Text className="text-sm text-white">
                       Withdraw request from wallet
                     </Text>
@@ -195,16 +195,16 @@ const WalletPage = () => {
                     <Text className="text-xs text-gray-500">
                       Status: {withdrawal.status}
                     </Text>
-                  </View>
+                  </View> */}
 
-                  <Text className="text-[#FF8D28] absolute right-0">
+                  {/* <Text className="text-[#FF8D28] absolute right-0">
                     -₹{withdrawal.amount}
-                  </Text>
+                  </Text> */}
                 </View>
               ))
             ) : (
               <Text className="text-gray-400 text-center">
-                No withdrawal requests
+                {/* No withdrawal requests */}
               </Text>
             )}
           </View>

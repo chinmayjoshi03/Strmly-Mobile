@@ -111,6 +111,7 @@ export default function CommunitySections() {
         case 'followers':
           result = await communityActions.getCommunityFollowers(token, communityId);
           setData(result.followers || []);
+          console.log(data)
           // Update count for this section
           setCounts(prev => ({ ...prev, followers: result.followers?.length || 0 }));
           break;
