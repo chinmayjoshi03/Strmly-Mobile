@@ -90,6 +90,43 @@ const VideoPlayer = ({
     };
   }, []);
 
+  // useEffect(() => {
+  //   const readySub = player.addListener("readyForDisplay", () => {
+  //     setIsReady(true);
+  //   });
+
+  //   const bufferSub = player.addListener("statusChange", ({ status }) => {
+  //     setIsBuffering(status === "");
+  //   });
+
+  //   return () => {
+  //     readySub.remove();
+  //     bufferSub.remove();
+  //   };
+  // }, [player]);
+
+  useEffect(() => {
+    const statusSub = player.addListener("statusChange", ({ status }) => {
+      setIsReady(status === "readyToPlay");
+      setIsBuffering(status === "loading");
+    });
+
+    return () => {
+      statusSub.remove();
+    };
+  }, [player]);
+
+  useEffect(() => {
+    if (isReady && isActive && isFocused && !isGifted) {
+      player.muted = isMutedFromStore;
+      player.play();
+      setActivePlayer(player);
+      usePlayerStore.getState().smartPlay();
+    } else {
+      player.pause();
+    }
+  }, [isReady, isActive, isFocused, isGifted, isMutedFromStore]);
+
   useEffect(() => {
     const statusSub = player.addListener("statusChange", ({ status }) => {
       setIsReady(status === "readyToPlay");
