@@ -18,17 +18,15 @@ import {
   PaperclipIcon,
 } from "lucide-react-native";
 import { useAuthStore } from "@/store/useAuthStore";
-import { useThumbnailsGenerate } from "@/utils/useThumbnailGenerator"; // Ensure this path is correct
 import ThemedView from "@/components/ThemedView"; // Assuming this is a basic wrapper for styling
 import ProfileTopbar from "@/components/profileTopbar"; // Assuming this is the converted ProfileTopbar
 import { LinearGradient } from "expo-linear-gradient"; // For the gradient border
 import Constants from "expo-constants";
 import { useRoute } from "@react-navigation/native";
 import { router, useFocusEffect } from "expo-router";
-import VideoPlayer from "@/app/(dashboard)/long/_components/VideoPlayer";
-import BottomNavBar from "@/components/BottomNavBar";
 import { getProfilePhotoUrl } from "@/utils/profileUtils";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useVideosStore } from "@/store/useVideosStore";
 
 const { height } = Dimensions.get("window");
 
@@ -49,80 +47,19 @@ export default function PublicProfilePageWithId() {
 
   const [isLoadingVideos, setIsLoadingVideos] = useState(false);
   const { token } = useAuthStore();
-
-  // Video player state
-  const [isVideoPlayerActive, setIsVideoPlayerActive] = useState(false);
-  const [currentVideoData, setCurrentVideoData] = useState<any>(null);
-  const [currentVideoList, setCurrentVideoList] = useState<any[]>([]);
-  const [currentVideoIndex, setCurrentVideoIndex] = useState(0);
-  const [showCommentsModal, setShowCommentsModal] = useState(false);
-
-  // Handle stats updates
-  const handleStatsUpdate = useCallback(
-    (
-      videoId: string,
-      stats: {
-        likes?: number;
-        gifts?: number;
-        shares?: number;
-        comments?: number;
-      }
-    ) => {
-      setCurrentVideoList((prevList) =>
-        prevList.map((video) =>
-          video._id === videoId ? { ...video, ...stats } : video
-        )
-      );
-
-      // Also update the main videos list if the video exists there
-      setVideos((prevVideos) =>
-        prevVideos.map((video) =>
-          video._id === videoId ? { ...video, ...stats } : video
-        )
-      );
-    },
-    []
-  );
+  const { setVideosInZustand } = useVideosStore();
 
   const BACKEND_API_URL = Constants.expoConfig?.extra?.BACKEND_API_URL;
 
   const route = useRoute();
   const { id } = route.params as { id: string };
 
-  // Handle back button press
-  useEffect(() => {
-    const backAction = () => {
-      if (isVideoPlayerActive) {
-        closeVideoPlayer();
-        return true; // Prevent default back action
-      }
-      return false; // Allow default back action
-    };
-
-    const backHandler = BackHandler.addEventListener(
-      "hardwareBackPress",
-      backAction
-    );
-    return () => backHandler.remove();
-  }, [isVideoPlayerActive]);
-
-  const thumbnails = useThumbnailsGenerate(
-    useMemo(
-      () =>
-        videos.map((video) => ({
-          id: video._id,
-          url: video.videoUrl,
-        })),
-      [videos]
-    )
-  );
-
   useEffect(() => {
     if (!id) return;
 
-    const fetchUserVideos = async (page = 1) => {
-      if (activeTab == "repost") return;
+    if (activeTab === "repost" || activeTab == "liked") return;
 
+    const fetchUserVideos = async (page = 1) => {
       setIsLoadingVideos(true);
       try {
         const response = await fetch(
@@ -142,6 +79,7 @@ export default function PublicProfilePageWithId() {
         }
 
         setVideos(data.videos);
+        setVideosInZustand(data.videos);
       } catch (err) {
         console.error("Error fetching user videos:", err);
         Alert.alert("An unknown error occurred.");
@@ -227,6 +165,43 @@ export default function PublicProfilePageWithId() {
     }, [token, id, router])
   );
 
+  const fetchUserLikedVideos = async () => {
+    setIsLoadingVideos(true);
+    setVideos([]); // Clear previous videos
+    try {
+      const response = await fetch(
+        `${BACKEND_API_URL}/user/profile/${id}/liked-videos`,
+        {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || "Failed to fetch user liked videos");
+      }
+
+      setVideos(data.data);
+      setVideosInZustand(data.data);
+      console.log("Liked videos", data.data);
+    } catch (err) {
+      console.error("Error fetching user liked videos:", err);
+      Alert.alert("An unknown error occurred.");
+      // Alert.alert(
+      //   "Error",
+      //   err instanceof Error
+      //     ? err.message
+      //     : "An unknown error occurred while fetching videos."
+      // );
+    } finally {
+      setIsLoadingVideos(false);
+    }
+  };
+
   const fetchUserReshareVideos = async () => {
     if (!id && !token && activeTab !== "repost") return;
 
@@ -245,8 +220,9 @@ export default function PublicProfilePageWithId() {
         throw new Error(data.message || "Failed to fetch user reshare videos");
       }
 
-      setVideos(data.reshares);
-      console.log("reshare videos", data);
+      setVideos(data.enriched_reshares);
+      setVideosInZustand(data.enriched_reshares);
+      console.log("reshare videos", data.enriched_reshares);
     } catch (error) {
       console.log(error);
       // Alert.alert("An unknown error occurred.");
@@ -354,36 +330,6 @@ export default function PublicProfilePageWithId() {
     }, [id, token])
   );
 
-  // Video player functions
-  const navigateToVideoPlayer = (videoData: any, allVideos: any[]) => {
-    console.log(
-      "🎬 Opening video player for:",
-      videoData.title || videoData.name
-    );
-    const currentIndex = allVideos.findIndex(
-      (video) => video._id === videoData._id
-    );
-
-    setCurrentVideoData(videoData);
-    setCurrentVideoList(allVideos);
-    setCurrentVideoIndex(currentIndex >= 0 ? currentIndex : 0);
-    setIsVideoPlayerActive(true);
-  };
-
-  const closeVideoPlayer = () => {
-    setIsVideoPlayerActive(false);
-    setCurrentVideoData(null);
-    setCurrentVideoList([]);
-    setCurrentVideoIndex(0);
-    setShowCommentsModal(false);
-  };
-
-  const onViewableItemsChanged = useCallback(({ viewableItems }: any) => {
-    if (viewableItems.length > 0) {
-      setCurrentVideoIndex(viewableItems[0].index);
-    }
-  }, []);
-
   const openLink = (url: string) => {
     if (!url.startsWith("http://") && !url.startsWith("https://")) {
       url = "https://" + url; // default to https
@@ -396,35 +342,11 @@ export default function PublicProfilePageWithId() {
   const renderGridItem = ({ item }: { item: any }) => (
     <TouchableOpacity
       className="relative aspect-[9/16] flex-1 rounded-sm overflow-hidden"
-      onPress={() => navigateToVideoPlayer(item, videos)}
+      onPress={() => router.push("/(dashboard)/long/GlobalVideoPlayer")}
     >
-      {activeTab === "repost" ? (
-        item?.long_video?.thumbnailUrl !== "" ? (
-          <Image
-            source={{ uri: item?.long_video?.thumbnailUrl }}
-            alt="video thumbnail"
-            className="w-full h-full object-cover"
-          />
-        ) : thumbnails[item?.long_video._id] ? (
-          <Image
-            source={{ uri: thumbnails[item?.long_video?._id] }}
-            alt="video thumbnail"
-            className="w-full h-full object-cover"
-          />
-        ) : (
-          <View className="w-full h-full flex items-center justify-center">
-            <Text className="text-white text-xs">Loading...</Text>
-          </View>
-        )
-      ) : item.thumbnailUrl !== "" ? (
+      {item.thumbnailUrl !== "" ? (
         <Image
           source={{ uri: item.thumbnailUrl }}
-          alt="video thumbnail"
-          className="w-full h-full object-cover"
-        />
-      ) : thumbnails[item._id] ? (
-        <Image
-          source={{ uri: thumbnails[item._id] }}
           alt="video thumbnail"
           className="w-full h-full object-cover"
         />
@@ -463,6 +385,7 @@ export default function PublicProfilePageWithId() {
                     <View className="h-48 relative">
                       <ProfileTopbar
                         hashtag={false}
+                        isMore={false}
                         name={userData?.userDetails?.username}
                       />
                     </View>
@@ -767,7 +690,7 @@ export default function PublicProfilePageWithId() {
 
                   {/* Tabs */}
                   <View className="mt-6">
-                    <View className="flex-1 flex-row justify-around items-center">
+                    {/* <View className="flex-1 flex-row justify-around items-center">
                       <TouchableOpacity
                         className={`pb-4 flex-1 items-center justify-center`}
                         onPress={() => setActiveTab("long")}
@@ -793,14 +716,17 @@ export default function PublicProfilePageWithId() {
 
                       <TouchableOpacity
                         className={`pb-4 flex-1 items-center justify-center`}
-                        onPress={() => setActiveTab("liked")}
+                        onPress={() => {
+                          setActiveTab("liked");
+                          fetchUserLikedVideos();
+                        }}
                       >
                         <HeartIcon
                           color={activeTab === "liked" ? "white" : "gray"}
                           fill={activeTab === "liked" ? "white" : ""}
                         />
                       </TouchableOpacity>
-                    </View>
+                    </View> */}
 
                     {isLoadingVideos && (
                       <View className="w-full h-96 flex-1 items-center justify-center mt-20">
@@ -821,56 +747,6 @@ export default function PublicProfilePageWithId() {
             </>
           }
         />
-
-        {/* Integrated Video Player */}
-        {isVideoPlayerActive && currentVideoData && (
-          <View
-            style={{
-              position: "absolute",
-              top: 0,
-              left: 0,
-              right: 0,
-              bottom: 0,
-              backgroundColor: "black",
-              zIndex: 1000,
-            }}
-          >
-            <FlatList
-              data={currentVideoList}
-              keyExtractor={(item) => item._id}
-              renderItem={({ item, index }) => (
-                <SafeAreaView>
-                  <VideoPlayer
-                    key={`${item._id}-${index === currentVideoIndex}`}
-                    videoData={item}
-                    isActive={index === currentVideoIndex}
-                    showCommentsModal={showCommentsModal}
-                    setShowCommentsModal={setShowCommentsModal}
-                    onStatsUpdate={(stats) =>
-                      handleStatsUpdate(item._id, stats)
-                    }
-                  />
-                </SafeAreaView>
-              )}
-              initialScrollIndex={currentVideoIndex}
-              getItemLayout={(_, index) => ({
-                length: Dimensions.get("window").height,
-                offset: Dimensions.get("window").height * index,
-                index,
-              })}
-              pagingEnabled
-              onViewableItemsChanged={onViewableItemsChanged}
-              viewabilityConfig={{ itemVisiblePercentThreshold: 80 }}
-              decelerationRate="fast"
-              showsVerticalScrollIndicator={false}
-              snapToInterval={Dimensions.get("window").height}
-              snapToAlignment="start"
-            />
-
-            {/* Bottom Navigation Bar in Video Player */}
-            <BottomNavBar />
-          </View>
-        )}
       </SafeAreaView>
     </ThemedView>
   );
