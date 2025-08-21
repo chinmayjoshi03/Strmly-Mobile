@@ -24,8 +24,8 @@ import ThemedView from "@/components/ThemedView";
 import ProfileTopbar from "@/components/profileTopbar";
 import { LinearGradient } from "expo-linear-gradient";
 import Constants from "expo-constants";
-import VideoPlayer from "@/app/(dashboard)/long/_components/VideoPlayer";
-import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { useVideosStore } from "@/store/useVideosStore";
 
 const { height } = Dimensions.get("window");
 // Note: testVideos, api, toast, and format are not directly used in the final render
@@ -41,15 +41,9 @@ export default function PersonalProfilePage() {
   const [isError, setIsError] = useState<string | null>(null);
   const [isLoadingVideos, setIsLoadingVideos] = useState(false);
 
-  // Video player state
-  const [isVideoPlayerActive, setIsVideoPlayerActive] = useState(false);
-  const [currentVideoData, setCurrentVideoData] = useState<any>(null);
-  const [currentVideoList, setCurrentVideoList] = useState<any[]>([]);
-  const [currentVideoIndex, setCurrentVideoIndex] = useState(0);
-  const [showCommentsModal, setShowCommentsModal] = useState(false);
-  const [refreshKey, setRefreshKey] = useState(0);
-
   const { token, user } = useAuthStore();
+  const { setVideosInZustand } = useVideosStore();
+
   const router = useRouter();
 
   // Derive logged-in state from token
@@ -119,6 +113,7 @@ export default function PersonalProfilePage() {
           }
 
           setVideos(data.videos);
+          setVideosInZustand(data.videos);
         } catch (err) {
           console.error("Error fetching user videos:", err);
           Alert.alert(
@@ -137,23 +132,6 @@ export default function PersonalProfilePage() {
       }
     }, [isLoggedIn, router, token, activeTab])
   );
-
-  // Handle back button press
-  useEffect(() => {
-    const backAction = () => {
-      if (isVideoPlayerActive) {
-        closeVideoPlayer();
-        return true; // Prevent default back action
-      }
-      return false; // Allow default back action
-    };
-
-    const backHandler = BackHandler.addEventListener(
-      "hardwareBackPress",
-      backAction
-    );
-    return () => backHandler.remove();
-  }, [isVideoPlayerActive]);
 
   useFocusEffect(
     useCallback(() => {
@@ -249,41 +227,14 @@ export default function PersonalProfilePage() {
     }
   };
 
-  // Video player functions
-  const navigateToVideoPlayer = (videoData: any, allVideos: any[]) => {
-    console.log(
-      "🎬 Opening video player for:",
-      videoData.title || videoData.name
-    );
-    const currentIndex = allVideos.findIndex(
-      (video) => video._id === videoData._id
-    );
-
-    setCurrentVideoData(videoData);
-    setCurrentVideoList(allVideos);
-    setCurrentVideoIndex(currentIndex >= 0 ? currentIndex : 0);
-    setIsVideoPlayerActive(true);
-  };
-
-  const closeVideoPlayer = () => {
-    setIsVideoPlayerActive(false);
-    setCurrentVideoData(null);
-    setCurrentVideoList([]);
-    setCurrentVideoIndex(0);
-    setShowCommentsModal(false);
-  };
-
-  const onViewableItemsChanged = useCallback(({ viewableItems }: any) => {
-    if (viewableItems.length > 0) {
-      setCurrentVideoIndex(viewableItems[0].index);
-    }
-  }, []);
 
   const renderGridItem = ({ item }: { item: any }) => (
     <TouchableOpacity
       className="relative aspect-[9/16] flex-1 rounded-sm overflow-hidden"
       onPress={() => {
-        navigateToVideoPlayer(item, videos);
+        router.push({
+          pathname: '/(dashboard)/long/GlobalVideoPlayer'
+        })
         console.log("item", item);
       }}
     >
@@ -567,50 +518,6 @@ export default function PersonalProfilePage() {
             </>
           }
         />
-
-        {/* Integrated Video Player */}
-        {isVideoPlayerActive && currentVideoData && (
-          <View
-            style={{
-              position: "absolute",
-              top: 0,
-              left: 0,
-              right: 0,
-              bottom: 0,
-              backgroundColor: "black",
-              zIndex: 1000,
-            }}
-          >
-            <FlatList
-              data={currentVideoList}
-              keyExtractor={(item) => item._id}
-              renderItem={({ item, index }) => (
-                <SafeAreaView>
-                  <VideoPlayer
-                  key={`${item._id}-${index === currentVideoIndex}`}
-                  videoData={item}
-                  isActive={index === currentVideoIndex}
-                  showCommentsModal={showCommentsModal}
-                  setShowCommentsModal={setShowCommentsModal}
-                />
-                </SafeAreaView>
-              )}
-              initialScrollIndex={currentVideoIndex}
-              getItemLayout={(_, index) => ({
-                length: Dimensions.get("window").height,
-                offset: Dimensions.get("window").height * index,
-                index,
-              })}
-              pagingEnabled
-              onViewableItemsChanged={onViewableItemsChanged}
-              viewabilityConfig={{ itemVisiblePercentThreshold: 80 }}
-              decelerationRate="fast"
-              showsVerticalScrollIndicator={false}
-              snapToInterval={Dimensions.get("window").height}
-              snapToAlignment="start"
-            />
-          </View>
-        )}
       </SafeAreaView>
     </ThemedView>
   );

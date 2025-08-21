@@ -11,7 +11,7 @@ export interface Transaction {
   status?: string;
   from?: string;
   to?: string;
-  category?: string;
+  category: string;
 }
 
 export interface Gift {

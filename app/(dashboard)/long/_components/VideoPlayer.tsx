@@ -128,6 +128,28 @@ const VideoPlayer = ({
   }, [isReady, isActive, isFocused, isGifted, isMutedFromStore]);
 
   useEffect(() => {
+    const statusSub = player.addListener("statusChange", ({ status }) => {
+      setIsReady(status === "readyToPlay");
+      setIsBuffering(status === "loading");
+    });
+
+    return () => {
+      statusSub.remove();
+    };
+  }, [player]);
+
+  useEffect(() => {
+    if (isReady && isActive && isFocused && !isGifted) {
+      player.muted = isMutedFromStore;
+      player.play();
+      setActivePlayer(player);
+      usePlayerStore.getState().smartPlay();
+    } else {
+      player.pause();
+    }
+  }, [isReady, isActive, isFocused, isGifted, isMutedFromStore]);
+
+  useEffect(() => {
     if (isGifted) {
       player.pause();
     } else {
