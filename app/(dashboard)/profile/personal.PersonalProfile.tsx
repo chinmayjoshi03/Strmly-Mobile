@@ -99,7 +99,6 @@ export default function PersonalProfilePage() {
         if (!response.ok) {
           throw new Error(data.message || "Failed to fetch user videos");
         }
-
         setVideos(data.videos);
       } catch (err) {
         console.error("Error fetching user videos:", err);
@@ -215,6 +214,7 @@ export default function PersonalProfilePage() {
           pathname: "/(dashboard)/long/GlobalVideoPlayer",
           params: { startIndex: index.toString() },
         });
+
         console.log("item", item);
       }}
     >

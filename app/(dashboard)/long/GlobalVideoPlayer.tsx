@@ -10,6 +10,7 @@ import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 import ThemedView from "@/components/ThemedView";
 import { CONFIG } from "@/Constants/config";
 import { VideoItemType } from "@/types/VideosType";
+
 import { Link, router, useLocalSearchParams } from "expo-router";
 import VideoPlayer from "./_components/VideoPlayer";
 import { useVideosStore } from "@/store/useVideosStore";
@@ -28,6 +29,7 @@ const { height: screenHeight } = Dimensions.get("window");
 const VIDEO_HEIGHT = screenHeight;
 
 const GlobalVideoPlayer: React.FC = () => {
+
   const { startIndex } = useLocalSearchParams<{ startIndex?: string }>();
 
   const [videos, setVideos] = useState<VideoItemType[]>([]);
@@ -36,6 +38,7 @@ const GlobalVideoPlayer: React.FC = () => {
   const [visibleIndex, setVisibleIndex] = useState(
     startIndex ? parseInt(startIndex) : 0
   );
+
   const [showCommentsModal, setShowCommentsModal] = useState(false);
 
   const { storedVideos } = useVideosStore();
@@ -59,6 +62,7 @@ const GlobalVideoPlayer: React.FC = () => {
       setVideos(storedVideos);
       setLoading(false);
     }
+
   }, [storedVideos]);
 
   // OPTIMIZATION 1: Stabilize the onViewableItemsChanged callback
