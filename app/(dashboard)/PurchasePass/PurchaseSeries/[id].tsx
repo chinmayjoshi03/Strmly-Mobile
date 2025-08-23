@@ -177,7 +177,7 @@ const SeriesAccess = () => {
             <TouchableOpacity
               onPress={() => {
                 initiateSeries(seriesData);
-                router.push(
+                router.replace(
                   `/(payments)/SeriesPassBuy/${seriesData?.created_by?._id}`
                 );
               }}

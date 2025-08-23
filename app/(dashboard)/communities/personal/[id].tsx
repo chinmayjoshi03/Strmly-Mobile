@@ -28,6 +28,7 @@ import VideoPlayer from "@/app/(dashboard)/long/_components/VideoPlayer";
 import BottomNavBar from "@/components/BottomNavBar";
 import { communityActions } from "@/api/community/communityActions";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useVideosStore } from "@/store/useVideosStore";
 
 export default function PersonalCommunityPage() {
   const [activeTab, setActiveTab] = useState("videos");
@@ -54,19 +55,9 @@ export default function PersonalCommunityPage() {
   const router = useRouter();
   const params = useLocalSearchParams();
   const id = params.id as string;
+  const { setVideosInZustand } = useVideosStore();
 
   const BACKEND_API_URL = Constants.expoConfig?.extra?.BACKEND_API_URL;
-
-  const thumbnails = useThumbnailsGenerate(
-    useMemo(
-      () =>
-        videos.map((video) => ({
-          id: video._id,
-          url: video.videoUrl,
-        })),
-      [videos]
-    )
-  );
 
   useEffect(() => {
     const fetchUserVideos = async () => {
@@ -91,6 +82,7 @@ export default function PersonalCommunityPage() {
         }
 
         setVideos(data.videos || []);
+        setVideosInZustand(data.videos || []);
       } catch (err) {
         console.error("Error fetching community videos:", err);
         setVideos([]);
@@ -221,61 +213,20 @@ export default function PersonalCommunityPage() {
     }
   };
 
-  // Video player functions
-  const navigateToVideoPlayer = (videoData: any, allVideos: any[]) => {
-    console.log(
-      "🎬 Opening video player for:",
-      videoData.title || videoData.name
-    );
-    const currentIndex = allVideos.findIndex(
-      (video) => video._id === videoData._id
-    );
-
-    setCurrentVideoData(videoData);
-    setCurrentVideoList(allVideos);
-    setCurrentVideoIndex(currentIndex >= 0 ? currentIndex : 0);
-    setIsVideoPlayerActive(true);
-  };
-
-  const closeVideoPlayer = () => {
-    setIsVideoPlayerActive(false);
-    setCurrentVideoData(null);
-    setCurrentVideoList([]);
-    setCurrentVideoIndex(0);
-    setShowCommentsModal(false);
-  };
-
-  // Handle back button press
-  useEffect(() => {
-    const backAction = () => {
-      if (isVideoPlayerActive) {
-        closeVideoPlayer();
-        return true;
-      }
-      return false;
-    };
-
-    const backHandler = BackHandler.addEventListener(
-      "hardwareBackPress",
-      backAction
-    );
-    return () => backHandler.remove();
-  }, [isVideoPlayerActive]);
-
   // Render functions for videos - consistent thumbnail format
-  const renderVideoItem = ({ item }: { item: any }) => (
+  const renderVideoItem = ({ item, index }: { item: any; index: number }) => (
     <TouchableOpacity
       className="relative aspect-[9/16] w-full rounded-lg overflow-hidden mb-3"
-      onPress={() => navigateToVideoPlayer(item, videos)}
+      onPress={() =>
+        router.push({
+          pathname: "/(dashboard)/long/GlobalVideoPlayer",
+          params: { startIndex: index.toString() },
+        })
+      }
     >
       {item.thumbnailUrl ? (
         <Image
           source={{ uri: item.thumbnailUrl }}
-          className="w-full h-full object-cover"
-        />
-      ) : thumbnails[item._id] ? (
-        <Image
-          source={{ uri: thumbnails[item._id] }}
           className="w-full h-full object-cover"
         />
       ) : (
@@ -322,19 +273,19 @@ export default function PersonalCommunityPage() {
     </TouchableOpacity>
   );
 
-  const renderGridItem = ({ item }: { item: any }) => (
+  const renderGridItem = ({ item, index }: { item: any; index: number }) => (
     <TouchableOpacity
       className="relative aspect-[9/16] flex-1 rounded-lg overflow-hidden m-1"
-      onPress={() => navigateToVideoPlayer(item, videos)}
+      onPress={() =>
+        router.push({
+          pathname: "/(dashboard)/long/GlobalVideoPlayer",
+          params: { startIndex: index.toString() },
+        })
+      }
     >
       {item.thumbnailUrl ? (
         <Image
           source={{ uri: item.thumbnailUrl }}
-          className="w-full h-full object-cover"
-        />
-      ) : thumbnails[item._id] ? (
-        <Image
-          source={{ uri: thumbnails[item._id] }}
           className="w-full h-full object-cover"
         />
       ) : (
@@ -501,7 +452,11 @@ export default function PersonalCommunityPage() {
                 </TouchableOpacity>
 
                 <TouchableOpacity
-                  onPress={() => router.push("/(demo)/CommunityAnalyticsDemo")}
+                  onPress={() =>
+                    router.push(
+                      "/(dashboard)/communities/public/CommunityAnalytics"
+                    )
+                  }
                   className="flex-1 px-4 py-2 rounded-xl bg-transparent border border-gray-400"
                 >
                   <Text className="text-white text-center">View Analytics</Text>
@@ -527,7 +482,7 @@ export default function PersonalCommunityPage() {
                         color={videoType === "long" ? "white" : "gray"}
                       />
                     </TouchableOpacity>
-                    <TouchableOpacity
+                    {/* <TouchableOpacity
                       className={`pb-4 flex-1 items-center justify-center border-b-2 ${videoType === "series" ? "border-white" : "border-transparent"}`}
                       onPress={() => setVideoType("series")}
                     >
@@ -535,7 +490,7 @@ export default function PersonalCommunityPage() {
                         color={videoType === "series" ? "white" : "gray"}
                         fill={videoType === "series" ? "white" : "transparent"}
                       />
-                    </TouchableOpacity>
+                    </TouchableOpacity> */}
                   </View>
                 </View>
               )}
@@ -613,57 +568,6 @@ export default function PersonalCommunityPage() {
           showsVerticalScrollIndicator={false}
         />
       )}
-
-      {/* Integrated Video Player Modal */}
-      {isVideoPlayerActive && currentVideoData && (
-        <View
-          style={{
-            position: "absolute",
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            backgroundColor: "black",
-            zIndex: 1000,
-          }}
-        >
-          <FlatList
-            data={currentVideoList}
-            keyExtractor={(item) => item._id}
-            renderItem={({ item, index }) => (
-              <SafeAreaView>
-                <VideoPlayer
-                  key={`${item._id}-${index === currentVideoIndex}`}
-                  videoData={item}
-                  isActive={index === currentVideoIndex}
-                  showCommentsModal={showCommentsModal}
-                  setShowCommentsModal={setShowCommentsModal}
-                />
-              </SafeAreaView>
-            )}
-            initialScrollIndex={currentVideoIndex}
-            getItemLayout={(_, index) => ({
-              length: Dimensions.get("window").height,
-              offset: Dimensions.get("window").height * index,
-              index,
-            })}
-            pagingEnabled
-            onViewableItemsChanged={({ viewableItems }) => {
-              if (viewableItems.length > 0) {
-                setCurrentVideoIndex(viewableItems[0].index);
-              }
-            }}
-            viewabilityConfig={{ itemVisiblePercentThreshold: 80 }}
-            decelerationRate="fast"
-            showsVerticalScrollIndicator={false}
-            snapToInterval={Dimensions.get("window").height}
-            snapToAlignment="start"
-          />
-        </View>
-      )}
-
-      {/* Bottom Navigation Bar */}
-      {!isVideoPlayerActive && <BottomNavBar />}
     </ThemedView>
   );
 }

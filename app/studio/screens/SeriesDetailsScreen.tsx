@@ -386,6 +386,7 @@ const SeriesDetailsScreen: React.FC<SeriesDetailsScreenProps> = ({
             keyExtractor={(item) => item._id}
             renderItem={({ item, index }) => (
               <VideoPlayer
+                isGlobalPlayer={true}
                 key={`${item._id}-${index === currentVideoIndex}`}
                 videoData={item}
                 isActive={index === currentVideoIndex}

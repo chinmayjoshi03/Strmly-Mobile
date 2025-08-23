@@ -18,20 +18,17 @@ import {
 } from "lucide-react-native";
 
 import { useAuthStore } from "@/store/useAuthStore";
-import { useThumbnailsGenerate } from "@/utils/useThumbnailGenerator";
 import ThemedView from "@/components/ThemedView";
 import ProfileTopbar from "@/components/profileTopbar";
 import { LinearGradient } from "expo-linear-gradient";
 import Constants from "expo-constants";
 import { useRoute } from "@react-navigation/native";
 import { useFocusEffect, useRouter } from "expo-router";
-import VideoPlayer from "@/app/(dashboard)/long/_components/VideoPlayer";
-import BottomNavBar from "@/components/BottomNavBar";
-import { communityActions } from "@/api/community/communityActions";
 import CommunityPassBuyMessage from "./CommPassBuyMessage";
 import { useGiftingStore } from "@/store/useGiftingStore";
 import { getProfilePhotoUrl } from "@/utils/profileUtils";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useVideosStore } from "@/store/useVideosStore";
 
 const { height } = Dimensions.get("window");
 
@@ -46,16 +43,11 @@ export default function PublicCommunityPage() {
 
   const [hasCommunityPass, setHasCommunityPass] = useState<boolean>(false);
 
-  // Video player state
-  const [isVideoPlayerActive, setIsVideoPlayerActive] = useState(false);
-  const [currentVideoData, setCurrentVideoData] = useState<any>(null);
-  const [currentVideoList, setCurrentVideoList] = useState<any[]>([]);
-  const [currentVideoIndex, setCurrentVideoIndex] = useState(0);
-  const [showCommentsModal, setShowCommentsModal] = useState(false);
-
   const [videoType, setVideoType] = useState("long");
 
   const { token, user } = useAuthStore();
+  const { setVideosInZustand } = useVideosStore();
+
   const {
     isPurchasedCommunityPass,
     clearCommunityPassData,
@@ -70,17 +62,6 @@ export default function PublicCommunityPage() {
   // const id = "6890586c8039a7684646c364";
 
   const BACKEND_API_URL = Constants.expoConfig?.extra?.BACKEND_API_URL;
-
-  const thumbnails = useThumbnailsGenerate(
-    useMemo(
-      () =>
-        videos.map((video) => ({
-          id: video._id,
-          url: video.videoUrl,
-        })),
-      [videos]
-    )
-  );
 
   useEffect(() => {
     const fetchUserVideos = async () => {
@@ -106,6 +87,7 @@ export default function PublicCommunityPage() {
         }
         console.log("✅ Videos fetched:", data.videos?.length || 0);
         setVideos(data.videos || []);
+        setVideosInZustand(data.videos || []);
       } catch (err) {
         console.error("❌ Error fetching community videos:", err);
         setVideos([]);
@@ -135,6 +117,7 @@ export default function PublicCommunityPage() {
         }
         console.log("✅ Like Videos fetched:", data.videos?.length || 0);
         setVideos(data.videos || []);
+        setVideosInZustand(data.videos || []);
       } catch (err) {
         console.error("❌ Error fetching community like videos:", err);
         setVideos([]);
@@ -151,23 +134,6 @@ export default function PublicCommunityPage() {
       }
     }
   }, [activeTab, videoType, token, id, BACKEND_API_URL]);
-
-  // Handle back button press
-  useEffect(() => {
-    const backAction = () => {
-      if (isVideoPlayerActive) {
-        closeVideoPlayer();
-        return true;
-      }
-      return false;
-    };
-
-    const backHandler = BackHandler.addEventListener(
-      "hardwareBackPress",
-      backAction
-    );
-    return () => backHandler.remove();
-  }, [isVideoPlayerActive]);
 
   useFocusEffect(
     useCallback(() => {
@@ -352,50 +318,20 @@ export default function PublicCommunityPage() {
     }
   };
 
-  // Video player functions
-  const navigateToVideoPlayer = (videoData: any, allVideos: any[]) => {
-    console.log(
-      "🎬 Opening video player for:",
-      videoData.title || videoData.name
-    );
-    const currentIndex = allVideos.findIndex(
-      (video) => video._id === videoData._id
-    );
-
-    setCurrentVideoData(videoData);
-    setCurrentVideoList(allVideos);
-    setCurrentVideoIndex(currentIndex >= 0 ? currentIndex : 0);
-    setIsVideoPlayerActive(true);
-  };
-
-  const closeVideoPlayer = () => {
-    setIsVideoPlayerActive(false);
-    setCurrentVideoData(null);
-    setCurrentVideoList([]);
-    setCurrentVideoIndex(0);
-    setShowCommentsModal(false);
-  };
-
-  const onViewableItemsChanged = useCallback(({ viewableItems }: any) => {
-    if (viewableItems.length > 0) {
-      setCurrentVideoIndex(viewableItems[0].index);
-    }
-  }, []);
-
   // Render functions for videos - consistent thumbnail format
-  const renderVideoItem = ({ item }: { item: any }) => (
+  const renderVideoItem = ({ item, index }: { item: any; index: number }) => (
     <TouchableOpacity
       className="relative aspect-[9/16] w-full rounded-lg overflow-hidden mb-3"
-      onPress={() => navigateToVideoPlayer(item, videos)}
+      onPress={() =>
+        router.push({
+          pathname: "/(dashboard)/long/GlobalVideoPlayer",
+          params: { startIndex: index.toString() },
+        })
+      }
     >
       {item.thumbnailUrl ? (
         <Image
           source={{ uri: item.thumbnailUrl }}
-          className="w-full h-full object-cover"
-        />
-      ) : thumbnails[item._id] ? (
-        <Image
-          source={{ uri: thumbnails[item._id] }}
           className="w-full h-full object-cover"
         />
       ) : (
@@ -435,19 +371,19 @@ export default function PublicCommunityPage() {
     </TouchableOpacity>
   );
 
-  const renderGridItem = ({ item }: { item: any }) => (
+  const renderGridItem = ({ item, index }: { item: any; index: number }) => (
     <TouchableOpacity
       className="relative aspect-[9/16] flex-1 rounded-lg overflow-hidden m-1"
-      onPress={() => navigateToVideoPlayer(item, videos)}
+      onPress={() =>
+        router.push({
+          pathname: "/(dashboard)/long/GlobalVideoPlayer",
+          params: { startIndex: index.toString() },
+        })
+      }
     >
       {item.thumbnailUrl ? (
         <Image
           source={{ uri: item.thumbnailUrl }}
-          className="w-full h-full object-cover"
-        />
-      ) : thumbnails[item._id] ? (
-        <Image
-          source={{ uri: thumbnails[item._id] }}
           className="w-full h-full object-cover"
         />
       ) : (
@@ -668,7 +604,7 @@ export default function PublicCommunityPage() {
                           color={videoType === "long" ? "white" : "gray"}
                         />
                       </TouchableOpacity>
-                      <TouchableOpacity
+                      {/* <TouchableOpacity
                         className={`pb-4 flex-1 items-center justify-center border-b-2 ${videoType === "liked" ? "border-white" : "border-transparent"}`}
                         onPress={() => setVideoType("liked")}
                       >
@@ -676,7 +612,7 @@ export default function PublicCommunityPage() {
                           color={videoType === "liked" ? "white" : "gray"}
                           fill={videoType === "liked" ? "white" : "transparent"}
                         />
-                      </TouchableOpacity>
+                      </TouchableOpacity> */}
                     </View>
                   </View>
                 )}
@@ -721,53 +657,6 @@ export default function PublicCommunityPage() {
         </SafeAreaView>
       )}
 
-      {/* Integrated Video Player Modal */}
-      {isVideoPlayerActive && currentVideoData && (
-        <View
-          style={{
-            position: "absolute",
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            backgroundColor: "black",
-            zIndex: 1000,
-          }}
-        >
-          <FlatList
-            data={currentVideoList}
-            keyExtractor={(item) => item._id}
-            renderItem={({ item, index }) => (
-              <SafeAreaView>
-                <VideoPlayer
-                  key={`${item._id}-${index === currentVideoIndex}`}
-                  videoData={item}
-                  isActive={index === currentVideoIndex}
-                  showCommentsModal={showCommentsModal}
-                  setShowCommentsModal={setShowCommentsModal}
-                />
-              </SafeAreaView>
-            )}
-            initialScrollIndex={currentVideoIndex}
-            getItemLayout={(_, index) => ({
-              length: Dimensions.get("window").height,
-              offset: Dimensions.get("window").height * index,
-              index,
-            })}
-            pagingEnabled
-            onViewableItemsChanged={onViewableItemsChanged}
-            viewabilityConfig={{ itemVisiblePercentThreshold: 80 }}
-            decelerationRate="fast"
-            showsVerticalScrollIndicator={false}
-            snapToInterval={Dimensions.get("window").height}
-            snapToAlignment="start"
-          />
-
-          {/* Bottom Navigation Bar for Video Player */}
-          <BottomNavBar />
-        </View>
-      )}
-
       {isPurchasedCommunityPass && (
         <CommunityPassBuyMessage
           isVisible={true}
@@ -776,9 +665,6 @@ export default function PublicCommunityPage() {
           amount={giftSuccessMessage}
         />
       )}
-
-      {/* Bottom Navigation Bar */}
-      {!isVideoPlayerActive && <BottomNavBar />}
     </ThemedView>
   );
 }
