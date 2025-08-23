@@ -2,22 +2,15 @@ import ThemedView from "@/components/ThemedView";
 import React, { useEffect, useRef, useState } from "react";
 import {
   View,
-  TextInput,
   Text,
   ActivityIndicator,
   Keyboard,
-  Platform,
   Pressable,
-  KeyboardAvoidingView,
-  TouchableWithoutFeedback,
   Animated,
-  EmitterSubscription,
-  KeyboardEvent,
   Alert,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { router, useLocalSearchParams } from "expo-router";
-import { ChevronLeft } from "lucide-react-native";
+import { router } from "expo-router";
 import { useAuthStore } from "@/store/useAuthStore";
 import Constants from "expo-constants";
 import CreatorInfo from "../Video/_components/CreatorInfo";
@@ -127,7 +120,7 @@ const SeriesPassBuy = () => {
 
   const purchasePass = async () => {
     if (!token && !id && hasSeriesAccess) {
-      console.log("hasCreatorPass", hasSeriesAccess);
+      console.log("hasSeriesAccess", hasSeriesAccess);
       return;
     }
 
@@ -142,7 +135,7 @@ const SeriesPassBuy = () => {
       return;
     }
 
-    if (user && user?.id < userData?.userDetails._id) {
+    if (user && user?.id === userData?.userDetails._id) {
       Alert.alert("You cannot pay yourself");
       return;
     }
@@ -167,12 +160,12 @@ const SeriesPassBuy = () => {
         throw new Error("Failed to provide creator pass");
       }
       const data = await response.json();
-      console.log("purchase creator pass data---------------", data);
+      console.log("purchase series pass data---------------", data);
       completeSeriesPurchasing();
       router.back();
     } catch (err) {
       console.log(err);
-      Alert.alert("An unknown error occurred while provide creator pass.");
+      Alert.alert("An unknown error occurred while provide series pass.");
     }
   };
 

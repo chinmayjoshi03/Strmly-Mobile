@@ -285,7 +285,8 @@ export default function AccessPage() {
         <View className="relative">
           <Image
             source={{
-              uri: getProfilePhotoUrl(creatorPass.creator_id.profile_photo, "user"),
+              uri:
+                getProfilePhotoUrl(creatorPass.creator_id.profile_photo, "user"),
             }}
             className="w-16 h-16 rounded-full"
             resizeMode="cover"

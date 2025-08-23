@@ -10,9 +10,11 @@ import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 import ThemedView from "@/components/ThemedView";
 import { CONFIG } from "@/Constants/config";
 import { VideoItemType } from "@/types/VideosType";
-import { Link, router } from "expo-router";
+
+import { Link, router, useLocalSearchParams } from "expo-router";
 import VideoPlayer from "./_components/VideoPlayer";
 import { useVideosStore } from "@/store/useVideosStore";
+import BottomNavBar from "@/components/BottomNavBar";
 
 export type GiftType = {
   creator: {
@@ -27,21 +29,40 @@ const { height: screenHeight } = Dimensions.get("window");
 const VIDEO_HEIGHT = screenHeight;
 
 const GlobalVideoPlayer: React.FC = () => {
+
+  const { startIndex } = useLocalSearchParams<{ startIndex?: string }>();
+
   const [videos, setVideos] = useState<VideoItemType[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [visibleIndex, setVisibleIndex] = useState(0);
+  const [visibleIndex, setVisibleIndex] = useState(
+    startIndex ? parseInt(startIndex) : 0
+  );
+
   const [showCommentsModal, setShowCommentsModal] = useState(false);
 
   const { storedVideos } = useVideosStore();
 
   const BACKEND_API_URL = CONFIG.API_BASE_URL;
 
+  const flatListRef = React.useRef<FlatList>(null);
+
+  useEffect(() => {
+    if (videos.length > 0 && startIndex) {
+      // scroll to clicked video on mount
+      flatListRef.current?.scrollToIndex({
+        index: parseInt(startIndex),
+        animated: false,
+      });
+    }
+  }, [videos, startIndex]);
+
   useEffect(() => {
     if (storedVideos.length > 0) {
       setVideos(storedVideos);
       setLoading(false);
-    } 
+    }
+
   }, [storedVideos]);
 
   // OPTIMIZATION 1: Stabilize the onViewableItemsChanged callback
@@ -60,6 +81,7 @@ const GlobalVideoPlayer: React.FC = () => {
       <VideoPlayer
         videoData={item}
         isActive={index === visibleIndex}
+        isGlobalPlayer={true}
         showCommentsModal={showCommentsModal}
         setShowCommentsModal={setShowCommentsModal}
       />
@@ -88,9 +110,7 @@ const GlobalVideoPlayer: React.FC = () => {
             className="justify-center items-center"
           >
             <ActivityIndicator size="large" color="white" />
-            <Text className="text-white mt-4">
-                Loading videos...
-            </Text>
+            <Text className="text-white mt-4">Loading videos...</Text>
           </ThemedView>
         </SafeAreaView>
       </SafeAreaProvider>
@@ -152,6 +172,7 @@ const GlobalVideoPlayer: React.FC = () => {
     <ThemedView>
       <SafeAreaView>
         <FlatList
+          ref={flatListRef}
           data={videos}
           renderItem={renderItem}
           keyExtractor={(item) => item._id}
@@ -160,9 +181,9 @@ const GlobalVideoPlayer: React.FC = () => {
           scrollEnabled={!showCommentsModal}
           onViewableItemsChanged={onViewableItemsChanged}
           viewabilityConfig={{ itemVisiblePercentThreshold: 80 }}
-          initialNumToRender={3}
-          maxToRenderPerBatch={3}
-          windowSize={5}
+          initialNumToRender={1}
+          maxToRenderPerBatch={1}
+          windowSize={3}
           showsVerticalScrollIndicator={false}
           contentInsetAdjustmentBehavior="automatic" // iOS
           contentContainerStyle={{ paddingBottom: 0 }}
@@ -173,6 +194,8 @@ const GlobalVideoPlayer: React.FC = () => {
           //   }
           // }}
         />
+
+        {/* <BottomNavBar /> */}
       </SafeAreaView>
     </ThemedView>
     // </SafeAreaProvider>

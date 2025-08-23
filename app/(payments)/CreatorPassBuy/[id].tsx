@@ -140,7 +140,7 @@ const CreatorPassBuy = () => {
       return;
     }
 
-    if (user && user?.id < userData?.userDetails?._id) {
+    if (user && user?.id == userData?.userDetails?._id) {
       Alert.alert("You cannot pay yourself");
       return;
     }

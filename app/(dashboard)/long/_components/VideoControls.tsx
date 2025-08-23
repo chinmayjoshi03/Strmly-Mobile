@@ -1,29 +1,78 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { View, Pressable, StyleSheet, ActivityIndicator } from "react-native";
 import { PlayIcon, PauseIcon } from "lucide-react-native";
 import { usePlayerStore } from "@/store/usePlayerStore";
 import InteractOptions from "./interactOptions";
 import VideoDetails from "./VideoDetails";
 import { VideoItemType } from "@/types/VideosType";
+import { VideoPlayer } from "expo-video";
+import { useFocusEffect } from "expo-router";
 
 type Props = {
+  player: VideoPlayer;
   videoData: VideoItemType;
+  isGlobalPlayer: boolean;
   setShowCommentsModal?: (visible: boolean) => void;
   onEpisodeChange?: (episodeData: any) => void;
-  onStatsUpdate?: (stats: { likes?: number; gifts?: number; shares?: number; comments?: number }) => void;
+  onStatsUpdate?: (stats: {
+    likes?: number;
+    gifts?: number;
+    shares?: number;
+    comments?: number;
+  }) => void;
 };
 
 const VideoControls = ({
+  player,
   videoData,
+  isGlobalPlayer,
   setShowCommentsModal,
   onEpisodeChange,
   onStatsUpdate,
 }: Props) => {
-  const isPlaying = usePlayerStore((state) => state.isPlaying);
-  const isBuffering = usePlayerStore((state) => state.isBuffering);
-  const togglePlayPause = usePlayerStore((state) => state.togglePlayPause);
+  const [playing, setPlaying] = useState(true);
+  const [buffering, setBuffering] = useState(false);
+
+  useFocusEffect(
+    useCallback(() => {
+      // Reset states when the component is focused
+      setPlaying(true);
+      setBuffering(false);
+    }, [])
+  );
+
+  // const isPlaying = usePlayerStore((state) => state.isPlaying);
+  // const isBuffering = usePlayerStore((state) => state.isBuffering);
+  // const togglePlayPause = usePlayerStore((state) => state.togglePlayPause);
 
   const [showPlayPauseIcon, setShowPlayPauseIcon] = useState(false);
+
+  // Subscribe to player events to keep UI in sync
+  useEffect(() => {
+    if (!player) return;
+
+    const onStatus = (status: any) => {
+      if (typeof status?.isPlaying === "boolean") setPlaying(status.isPlaying);
+      if (typeof status?.isBuffering === "boolean")
+        setBuffering(status.isBuffering);
+    };
+
+    const subStatus = player.addListener("statusChange", onStatus);
+    const subTime = player.addListener("timeUpdate", onStatus); // extra safety: some platforms only fire this
+
+    // Also try to prime initial state (in case status fired before mount)
+    try {
+      // These fields are present on the player in your codebase
+      if (typeof (player as any).currentTime === "number") {
+        // no-op, but ensures player object is ready
+      }
+    } catch {}
+
+    return () => {
+      subStatus?.remove?.();
+      subTime?.remove?.();
+    };
+  }, [player]);
 
   useEffect(() => {
     let timer: NodeJS.Timeout | number;
@@ -33,9 +82,19 @@ const VideoControls = ({
     return () => clearTimeout(timer);
   }, [showPlayPauseIcon]);
 
-  const handleTogglePlayPause = () => {
-    togglePlayPause();
-    setShowPlayPauseIcon(true);
+  const handleTogglePlayPause = async () => {
+    try {
+      if (playing) {
+        await player.pause();
+        setPlaying(false); // optimistic
+      } else {
+        await player.play();
+        setPlaying(true); // optimistic
+      }
+      setShowPlayPauseIcon(true);
+    } catch (e) {
+      console.error("play/pause error:", e);
+    }
   };
 
   return (
@@ -46,16 +105,16 @@ const VideoControls = ({
       />
       <View style={styles.iconContainer} pointerEvents="none">
         {showPlayPauseIcon &&
-          (!isPlaying ? (
+          (!playing ? (
             <PlayIcon size={40} color="white" />
           ) : (
             <PauseIcon size={40} color="white" />
           ))}
-        {isBuffering && !showPlayPauseIcon && (
+        {buffering && !showPlayPauseIcon && (
           <ActivityIndicator size="large" color="white" />
         )}
       </View>
-      <View style={styles.interact}>
+      <View style={isGlobalPlayer ? styles.interactGlobal : styles.interact}>
         <InteractOptions
           videoId={videoData._id}
           creator={videoData.created_by}
@@ -63,13 +122,19 @@ const VideoControls = ({
           gifts={videoData.gifts}
           shares={videoData.shares}
           comments={videoData.comments?.length}
-          onCommentPress={setShowCommentsModal ? () => setShowCommentsModal(true) : undefined}
-          onLikeUpdate={(newLikes, isLiked) => onStatsUpdate?.({ likes: newLikes })}
-          onShareUpdate={(newShares, isShared) => onStatsUpdate?.({ shares: newShares })}
+          onCommentPress={
+            setShowCommentsModal ? () => setShowCommentsModal(true) : undefined
+          }
+          onLikeUpdate={(newLikes, isLiked) =>
+            onStatsUpdate?.({ likes: newLikes })
+          }
+          onShareUpdate={(newShares, isShared) =>
+            onStatsUpdate?.({ shares: newShares })
+          }
           onGiftUpdate={(newGifts) => onStatsUpdate?.({ gifts: newGifts })}
         />
       </View>
-      <View style={styles.details}>
+      <View style={isGlobalPlayer ? styles.detailsGlobal : styles.details}>
         <VideoDetails
           videoId={videoData._id}
           type={videoData.type}
@@ -97,12 +162,21 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   interact: { position: "absolute", bottom: "22%", right: 10, zIndex: 5 },
+  interactGlobal: { position: "absolute", bottom: "18%", right: 10, zIndex: 5 },
   details: {
     position: "absolute",
     bottom: "2%",
     width: "100%",
     paddingHorizontal: 16,
     marginBottom: 50,
+    zIndex: 5,
+  },
+  detailsGlobal: {
+    position: "absolute",
+    bottom: "0%",
+    width: "100%",
+    paddingHorizontal: 16,
+    marginBottom: 30,
     zIndex: 5,
   },
   progressContainer: {

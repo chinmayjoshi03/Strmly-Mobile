@@ -127,8 +127,8 @@ const VideoBuy = () => {
     }
 
     if (hasVideoAccess) {
-      console.log("creator pass already purchased", hasVideoAccess);
-      Alert.alert("You already purchased creator pass");
+      console.log("Video access already purchased", hasVideoAccess);
+      Alert.alert("You already purchased Video access");
       return;
     }
 
@@ -152,9 +152,9 @@ const VideoBuy = () => {
         body: JSON.stringify({ amount: userData?.access.price }),
       });
 
-      if (!response.ok) throw new Error("Failed to provide creator pass");
+      if (!response.ok) throw new Error("Failed to provide Video access");
       const data = await response.json();
-      console.log("purchase creator pass data---------------", data);
+      console.log("purchase Video access data---------------", data);
       completeVideoAccess(userData?.access.price);
       router.back();
     } catch (err) {

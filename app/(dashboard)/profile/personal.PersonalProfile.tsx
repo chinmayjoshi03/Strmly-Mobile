@@ -17,7 +17,6 @@ import { HeartIcon, PaperclipIcon } from "lucide-react-native";
 import { useRouter } from "expo-router";
 import { useFocusEffect } from "@react-navigation/native";
 import { useAuthStore } from "@/store/useAuthStore";
-import { useThumbnailsGenerate } from "@/utils/useThumbnailGenerator";
 import { getProfilePhotoUrl } from "@/utils/profileUtils";
 
 import ThemedView from "@/components/ThemedView";
@@ -28,9 +27,6 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useVideosStore } from "@/store/useVideosStore";
 
 const { height } = Dimensions.get("window");
-// Note: testVideos, api, toast, and format are not directly used in the final render
-// but if `api` or `toast` are custom internal modules, ensure they are RN compatible.
-// `format` (from date-fns) is compatible with React Native.
 
 export default function PersonalProfilePage() {
   const [activeTab, setActiveTab] = useState("long");
@@ -50,13 +46,6 @@ export default function PersonalProfilePage() {
   const isLoggedIn = !!token;
 
   const BACKEND_API_URL = Constants.expoConfig?.extra?.BACKEND_API_URL;
-
-  const thumbnails = useThumbnailsGenerate(
-    videos.map((video) => ({
-      id: video._id,
-      url: video.videoUrl,
-    }))
-  );
 
   useFocusEffect(
     useCallback(() => {
@@ -84,74 +73,63 @@ export default function PersonalProfilePage() {
     }
   }, [user?.profile_photo, userData?.profile_photo]);
 
-  useFocusEffect(
-    React.useCallback(() => {
-      if (!token) return;
+  useEffect(() => {
+    if (!token) return;
 
-      if(activeTab === "repost"){
-        userReshareVideos();
-        return;
-      }
+    if (activeTab === "repost") {
+      userReshareVideos();
+      return;
+    }
 
-      const fetchUserVideos = async () => {
-        setIsLoadingVideos(true);
-        try {
-          const response = await fetch(
-            `${CONFIG.API_BASE_URL}/user/videos?type=${activeTab}`,
-            {
-              method: "GET",
-              headers: {
-                Authorization: `Bearer ${token}`,
-              },
-            }
-          );
-
-          const data = await response.json();
-
-          if (!response.ok) {
-            throw new Error(data.message || "Failed to fetch user videos");
+    const fetchUserVideos = async () => {
+      setIsLoadingVideos(true);
+      try {
+        const response = await fetch(
+          `${CONFIG.API_BASE_URL}/user/videos?type=${activeTab}`,
+          {
+            method: "GET",
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
           }
+        );
 
-          setVideos(data.videos);
-          setVideosInZustand(data.videos);
-        } catch (err) {
-          console.error("Error fetching user videos:", err);
-          Alert.alert(
-            "Error",
-            err instanceof Error
-              ? err.message
-              : "An unknown error occurred while fetching videos."
-          );
-        } finally {
-          setIsLoadingVideos(false);
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.message || "Failed to fetch user videos");
         }
-      };
-
-      if (token && activeTab !== 'repost') {
-        fetchUserVideos();
+        setVideos(data.videos);
+      } catch (err) {
+        console.error("Error fetching user videos:", err);
+        Alert.alert(
+          "Error",
+          err instanceof Error
+            ? err.message
+            : "An unknown error occurred while fetching videos."
+        );
+      } finally {
+        setIsLoadingVideos(false);
       }
-    }, [isLoggedIn, router, token, activeTab])
-  );
+    };
+
+    if (token && activeTab !== "repost") {
+      fetchUserVideos();
+    }
+  }, [isLoggedIn, router, token, activeTab]);
 
   useFocusEffect(
     useCallback(() => {
       const fetchUserData = async () => {
         setIsLoading(true);
         try {
-          const timestamp = new Date().getTime();
-          const response = await fetch(
-            `${CONFIG.API_BASE_URL}/user/profile-details?_=${timestamp}`,
-            {
-              method: "GET",
-              headers: {
-                Authorization: `Bearer ${token}`,
-                "Content-Type": "application/json",
-                "Cache-Control": "no-cache, no-store, must-revalidate",
-                Pragma: "no-cache",
-                Expires: "0",
-              },
-            }
-          );
+          const response = await fetch(`${CONFIG.API_BASE_URL}/user/profile`, {
+            method: "GET",
+            headers: {
+              Authorization: `Bearer ${token}`,
+              "Content-Type": "application/json",
+            },
+          });
 
           const data = await response.json();
 
@@ -227,14 +205,16 @@ export default function PersonalProfilePage() {
     }
   };
 
-
-  const renderGridItem = ({ item }: { item: any }) => (
+  const renderGridItem = ({ item, index }: { item: any; index: number }) => (
     <TouchableOpacity
       className="relative aspect-[9/16] flex-1 rounded-sm overflow-hidden"
       onPress={() => {
+        setVideosInZustand(videos);
         router.push({
-          pathname: '/(dashboard)/long/GlobalVideoPlayer'
-        })
+          pathname: "/(dashboard)/long/GlobalVideoPlayer",
+          params: { startIndex: index.toString() },
+        });
+
         console.log("item", item);
       }}
     >
@@ -243,12 +223,6 @@ export default function PersonalProfilePage() {
           source={{
             uri: `${item.thumbnailUrl}`,
           }}
-          alt="video thumbnail"
-          className="w-full h-full object-cover"
-        />
-      ) : thumbnails[item._id] ? (
-        <Image
-          source={{ uri: thumbnails[item._id] }}
           alt="video thumbnail"
           className="w-full h-full object-cover"
         />
@@ -457,8 +431,8 @@ export default function PersonalProfilePage() {
                   </View>
 
                   {/* Bio */}
-                  <View className="mt-6 flex flex-col items-center justify-center px-4">
-                    <Text className="text-gray-400 text-center text-xs">
+                  <View className="my-6 flex flex-col items-center justify-center px-4">
+                    <Text className="text-gray-400 text-center text-sm">
                       {userData?.bio}
                     </Text>
                   </View>
@@ -508,13 +482,13 @@ export default function PersonalProfilePage() {
                 </View>
               )}
 
-              {
-                videos.length === 0 && !isLoadingVideos && (
-                  <View className="items-center h-20 justify-center">
-                    <Text className="text-white text-xl text-center">No videos found</Text>
-                  </View>
-                )
-              }
+              {videos.length === 0 && !isLoadingVideos && (
+                <View className="items-center h-20 justify-center">
+                  <Text className="text-white text-xl text-center">
+                    No videos found
+                  </Text>
+                </View>
+              )}
             </>
           }
         />

@@ -171,7 +171,7 @@ const CreatorPassDemo = () => {
           end={{ x: 1, y: 1 }}
           className="rounded-full"
         >
-          <TouchableOpacity onPress={()=> router.push(`/(payments)/CreatorPassBuy/${id}`)} className="px-8 py-4 rounded-full">
+          <TouchableOpacity onPress={()=> router.replace(`/(payments)/CreatorPassBuy/${id}`)} className="px-8 py-4 rounded-full">
             <Text className="text-white text-lg font-medium">
               Join at ₹
               {userData?.userDetails?.creator_profile?.creator_pass_price}/month
