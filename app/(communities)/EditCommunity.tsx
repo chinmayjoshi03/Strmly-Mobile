@@ -9,7 +9,6 @@ import {
   Image,
   Alert,
   StatusBar,
-  ScrollViewBase,
 } from "react-native";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { ArrowLeft, ChevronDown } from "lucide-react-native";
@@ -256,216 +255,214 @@ export default function EditCommunity() {
   }
 
   return (
-    <ScrollViewBase className="flex-1 bg-black">
-      <ThemedView className="flex-1">
-        <StatusBar barStyle="light-content" backgroundColor="black" />
+    <View className="flex-1 bg-black">
+      <StatusBar barStyle="light-content" backgroundColor="black" />
 
-        {/* Header */}
-        <View
-          className="flex-row items-center justify-between px-4 py-3"
-          style={{ paddingTop: insets.top + 10 }}
+      {/* Header */}
+      <View
+        className="flex-row items-center justify-between px-4 py-3"
+        style={{ paddingTop: insets.top + 10 }}
+      >
+        <TouchableOpacity onPress={() => router.back()}>
+          <ArrowLeft size={24} color="white" />
+        </TouchableOpacity>
+        <Text
+          className="text-white text-lg font-semibold"
+          style={{ fontFamily: "Poppins" }}
         >
-          <TouchableOpacity onPress={() => router.back()}>
-            <ArrowLeft size={24} color="white" />
-          </TouchableOpacity>
-          <Text
-            className="text-white text-lg font-semibold"
-            style={{ fontFamily: "Poppins" }}
-          >
-            Edit Community
-          </Text>
-          <TouchableOpacity onPress={handleSave} disabled={saving}>
-            {saving ? (
-              <ActivityIndicator size="small" color="#fff" />
-            ) : (
-              <Text
-                className="text-white font-semibold"
-                style={{ fontFamily: "Poppins" }}
-              >
-                Save
-              </Text>
-            )}
+          Edit Community
+        </Text>
+        <TouchableOpacity onPress={handleSave} disabled={saving}>
+          {saving ? (
+            <ActivityIndicator size="small" color="#fff" />
+          ) : (
+            <Text
+              className="text-white font-semibold"
+              style={{ fontFamily: "Poppins" }}
+            >
+              Save
+            </Text>
+          )}
+        </TouchableOpacity>
+      </View>
+
+      <ScrollView className="flex-1 px-6">
+        {/* Profile Photo */}
+        <View className="items-center py-8">
+          <TouchableOpacity onPress={pickImage} className="items-center">
+            <View className="w-32 h-32 rounded-full bg-gray-600 items-center justify-center mb-4 overflow-hidden">
+              <Image
+                source={{ uri: getProfilePhotoUrl(imageUri, "community") }}
+                className="w-full h-full"
+                resizeMode="cover"
+              />
+            </View>
+            <Text
+              className="text-blue-400 text-center"
+              style={{ fontFamily: "Poppins" }}
+            >
+              Edit community picture
+            </Text>
           </TouchableOpacity>
         </View>
 
-        <ScrollView className="flex-1 px-6">
-          {/* Profile Photo */}
-          <View className="items-center py-8">
-            <TouchableOpacity onPress={pickImage} className="items-center">
-              <View className="w-32 h-32 rounded-full bg-gray-600 items-center justify-center mb-4 overflow-hidden">
-                <Image
-                  source={{ uri: getProfilePhotoUrl(imageUri, "community") }}
-                  className="w-full h-full"
-                  resizeMode="cover"
-                />
-              </View>
-              <Text
-                className="text-blue-400 text-center"
-                style={{ fontFamily: "Poppins" }}
-              >
-                Edit community picture
-              </Text>
-            </TouchableOpacity>
-          </View>
+        {/* Community Name */}
+        <View className="mb-8">
+          <Text
+            className="text-white text-base mb-2"
+            style={{ fontFamily: "Poppins" }}
+          >
+            Community name
+          </Text>
+          <TextInput
+            className="text-gray-400 text-base"
+            placeholder="Add name"
+            placeholderTextColor="#666"
+            value={name}
+            onChangeText={setName}
+            style={{ fontFamily: "Poppins" }}
+          />
+          <View className="h-px bg-gray-600 mt-2" />
+        </View>
 
-          {/* Community Name */}
-          <View className="mb-8">
+        {/* Bio */}
+        <View className="mb-8">
+          <Text
+            className="text-white text-base mb-2"
+            style={{ fontFamily: "Poppins" }}
+          >
+            Bio
+          </Text>
+          <TextInput
+            className="text-gray-400 text-base"
+            placeholder="Add bio"
+            placeholderTextColor="#666"
+            value={bio}
+            onChangeText={setBio}
+            style={{ fontFamily: "Poppins" }}
+          />
+          <View className="h-px bg-gray-600 mt-2" />
+        </View>
+
+        {/* Access */}
+        <View className="mb-8 relative">
+          <Text
+            className="text-white text-base mb-2"
+            style={{ fontFamily: "Poppins" }}
+          >
+            Access
+          </Text>
+          <TouchableOpacity
+            onPress={() => setShowAccessDropdown(!showAccessDropdown)}
+            className="flex-row items-center justify-between"
+          >
+            <Text
+              className="text-gray-400 text-base"
+              style={{ fontFamily: "Poppins" }}
+            >
+              {accessType === "free" ? "Free" : "Paid"}
+            </Text>
+            <ChevronDown size={20} color="#666" />
+          </TouchableOpacity>
+          <View className="h-px bg-gray-600 mt-2" />
+
+          {/* Access Dropdown */}
+          {showAccessDropdown && (
+            <View className="absolute top-16 left-0 right-0 bg-gray-800 rounded-lg border border-gray-600 z-10">
+              <TouchableOpacity
+                onPress={() => {
+                  setAccessType("free");
+                  setShowAccessDropdown(false);
+                }}
+                className="px-4 py-3 border-b border-gray-700"
+              >
+                <Text
+                  className="text-white text-base"
+                  style={{ fontFamily: "Poppins" }}
+                >
+                  Free
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => {
+                  setAccessType("paid");
+                  setShowAccessDropdown(false);
+                }}
+                className="px-4 py-3"
+              >
+                <Text
+                  className="text-white text-base"
+                  style={{ fontFamily: "Poppins" }}
+                >
+                  Paid
+                </Text>
+              </TouchableOpacity>
+            </View>
+          )}
+        </View>
+
+        {/* Creator Strength and Community Fee */}
+        <View className="flex-row justify-between mb-8">
+          <View className="flex-1 mr-4">
+            <Text
+              className="text-white text-base"
+              style={{ fontFamily: "Poppins" }}
+            >
+              Creator
+            </Text>
             <Text
               className="text-white text-base mb-2"
               style={{ fontFamily: "Poppins" }}
             >
-              Community name
+              strength
             </Text>
             <TextInput
-              className="text-gray-400 text-base"
-              placeholder="Add name"
+              className="text-gray-400 text-2xl"
+              placeholder="500"
               placeholderTextColor="#666"
-              value={name}
-              onChangeText={setName}
+              keyboardType="numeric"
+              value={creatorStrength}
+              onChangeText={setCreatorStrength}
               style={{ fontFamily: "Poppins" }}
             />
             <View className="h-px bg-gray-600 mt-2" />
           </View>
-
-          {/* Bio */}
-          <View className="mb-8">
+          <View className="flex-1 ml-4">
+            <Text
+              className="text-white text-base"
+              style={{ fontFamily: "Poppins" }}
+            >
+              Community
+            </Text>
             <Text
               className="text-white text-base mb-2"
               style={{ fontFamily: "Poppins" }}
             >
-              Bio
+              fee
             </Text>
             <TextInput
-              className="text-gray-400 text-base"
-              placeholder="Add bio"
+              className="text-gray-400 text-2xl"
+              placeholder="₹29/m"
               placeholderTextColor="#666"
-              value={bio}
-              onChangeText={setBio}
+              value={communityFee}
+              onChangeText={setCommunityFee}
               style={{ fontFamily: "Poppins" }}
             />
             <View className="h-px bg-gray-600 mt-2" />
           </View>
+        </View>
 
-          {/* Access */}
-          <View className="mb-8 relative">
-            <Text
-              className="text-white text-base mb-2"
-              style={{ fontFamily: "Poppins" }}
-            >
-              Access
-            </Text>
-            <TouchableOpacity
-              onPress={() => setShowAccessDropdown(!showAccessDropdown)}
-              className="flex-row items-center justify-between"
-            >
-              <Text
-                className="text-gray-400 text-base"
-                style={{ fontFamily: "Poppins" }}
-              >
-                {accessType === "free" ? "Free" : "Paid"}
-              </Text>
-              <ChevronDown size={20} color="#666" />
-            </TouchableOpacity>
-            <View className="h-px bg-gray-600 mt-2" />
-
-            {/* Access Dropdown */}
-            {showAccessDropdown && (
-              <View className="absolute top-16 left-0 right-0 bg-gray-800 rounded-lg border border-gray-600 z-10">
-                <TouchableOpacity
-                  onPress={() => {
-                    setAccessType("free");
-                    setShowAccessDropdown(false);
-                  }}
-                  className="px-4 py-3 border-b border-gray-700"
-                >
-                  <Text
-                    className="text-white text-base"
-                    style={{ fontFamily: "Poppins" }}
-                  >
-                    Free
-                  </Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  onPress={() => {
-                    setAccessType("paid");
-                    setShowAccessDropdown(false);
-                  }}
-                  className="px-4 py-3"
-                >
-                  <Text
-                    className="text-white text-base"
-                    style={{ fontFamily: "Poppins" }}
-                  >
-                    Paid
-                  </Text>
-                </TouchableOpacity>
-              </View>
-            )}
-          </View>
-
-          {/* Creator Strength and Community Fee */}
-          <View className="flex-row justify-between mb-8">
-            <View className="flex-1 mr-4">
-              <Text
-                className="text-white text-base"
-                style={{ fontFamily: "Poppins" }}
-              >
-                Creator
-              </Text>
-              <Text
-                className="text-white text-base mb-2"
-                style={{ fontFamily: "Poppins" }}
-              >
-                strength
-              </Text>
-              <TextInput
-                className="text-gray-400 text-2xl"
-                placeholder="500"
-                placeholderTextColor="#666"
-                keyboardType="numeric"
-                value={creatorStrength}
-                onChangeText={setCreatorStrength}
-                style={{ fontFamily: "Poppins" }}
-              />
-              <View className="h-px bg-gray-600 mt-2" />
-            </View>
-            <View className="flex-1 ml-4">
-              <Text
-                className="text-white text-base"
-                style={{ fontFamily: "Poppins" }}
-              >
-                Community
-              </Text>
-              <Text
-                className="text-white text-base mb-2"
-                style={{ fontFamily: "Poppins" }}
-              >
-                fee
-              </Text>
-              <TextInput
-                className="text-gray-400 text-2xl"
-                placeholder="₹29/m"
-                placeholderTextColor="#666"
-                value={communityFee}
-                onChangeText={setCommunityFee}
-                style={{ fontFamily: "Poppins" }}
-              />
-              <View className="h-px bg-gray-600 mt-2" />
-            </View>
-          </View>
-
-          {/* Description */}
-          <View className="mb-8">
-            <Text
-              className="text-gray-400 text-sm text-center leading-5"
-              style={{ fontFamily: "Poppins" }}
-            >
-              As the community owner, you can set a limit on how many creators
-              can join, while users can follow the community without any limit.
-            </Text>
-          </View>
-        </ScrollView>
-      </ThemedView>
-    </ScrollViewBase>
+        {/* Description */}
+        <View className="mb-8">
+          <Text
+            className="text-gray-400 text-sm text-center leading-5"
+            style={{ fontFamily: "Poppins" }}
+          >
+            As the community owner, you can set a limit on how many creators
+            can join, while users can follow the community without any limit.
+          </Text>
+        </View>
+      </ScrollView>
+    </View>
   );
 }

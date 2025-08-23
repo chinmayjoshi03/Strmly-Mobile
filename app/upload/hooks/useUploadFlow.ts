@@ -442,9 +442,7 @@ export const useUploadFlow = () => {
       }
 
       // Add timeout to prevent hanging
-      const uploadTimeout = new Promise((_, reject) => {
-        setTimeout(() => reject(new Error('Upload timeout - please check your connection and try again')), 300000); // 5 minutes
-      });
+    
 
       const uploadPromise = fetch(`${CONFIG.API_BASE_URL}/videos/upload`, {
         method: 'POST',
@@ -454,7 +452,7 @@ export const useUploadFlow = () => {
         body: directUploadFormData,
       });
 
-      const directUploadResponse = await Promise.race([uploadPromise, uploadTimeout]) as Response;
+      const directUploadResponse = await Promise.race([uploadPromise]) as Response;
 
       if (!directUploadResponse.ok) {
         let errorMessage = 'Failed to upload video';

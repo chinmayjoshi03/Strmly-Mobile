@@ -6,7 +6,7 @@ import {
   Text,
   Pressable,
 } from "react-native";
-import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
+import { SafeAreaProvider, SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import ThemedView from "@/components/ThemedView";
 import { useAuthStore } from "@/store/useAuthStore";
 import { CONFIG } from "@/Constants/config";
@@ -25,7 +25,7 @@ export type GiftType = {
 };
 
 const { height: screenHeight } = Dimensions.get("window");
-const VIDEO_HEIGHT = screenHeight;
+const BOTTOM_NAV_HEIGHT = -25; // Height of your bottom navigation
 
 const VideosFeed: React.FC = () => {
   const [videos, setVideos] = useState<VideoItemType[]>([]);
@@ -39,6 +39,10 @@ const VideosFeed: React.FC = () => {
   const [showCommentsModal, setShowCommentsModal] = useState(false);
 
   const { token, isLoggedIn } = useAuthStore();
+  const insets = useSafeAreaInsets();
+
+  // Calculate the actual video height accounting for navigation bar
+  const VIDEO_HEIGHT = screenHeight - BOTTOM_NAV_HEIGHT - insets.bottom;
 
   // If user is not logged in, redirect to sign-in
   useFocusEffect(
@@ -73,16 +77,6 @@ const VideosFeed: React.FC = () => {
       if (!res.ok) throw new Error("Failed to fetch videos");
       const json = await res.json();
       
-      // if (json.data.length < limit) setHasMore(false);
-
-      // setVideos((prev) => {
-      //   const existingIds = new Set(prev.map((v) => v._id));
-      //   const uniqueNew = json.data.filter(
-      //     (v: { _id: string }) => !existingIds.has(v._id)
-      //   );
-      //   return [...prev, ...uniqueNew];
-      // });
-
       setVideos((prev) => {
         const existingIds = new Set(prev.map((v) => v._id));
         const uniqueNew = json.recommendations.filter(
@@ -113,24 +107,17 @@ const VideosFeed: React.FC = () => {
   }, [token]);
 
   // OPTIMIZATION 1: Stabilize the onViewableItemsChanged callback
-  // This prevents FlatList from re-rendering just because the parent re-rendered.
   const onViewableItemsChanged = useCallback(
     ({ viewableItems }: any) => {
       if (viewableItems.length > 0) {
         const currentIndex = viewableItems[0].index;
         setVisibleIndex(currentIndex);
-
-        // Prefetch when 2 items left
-        // if (currentIndex === videos.length - 2 && hasMore && !isFetchingMore) {
-        //   fetchTrendingVideos();
-        // }
       }
     },
     []
   );
 
-  // OPTIMIZATION 2: Memoize the renderItem function
-  // This prevents creating a new render function on every parent render.
+  // OPTIMIZATION 2: Memoize the renderItem function with containerHeight prop
   const renderItem = useCallback(
     ({ item, index }: { item: VideoItemType; index: number }) => (
       <VideoPlayer
@@ -138,126 +125,105 @@ const VideosFeed: React.FC = () => {
         isActive={index === visibleIndex}
         showCommentsModal={showCommentsModal}
         setShowCommentsModal={setShowCommentsModal}
+        containerHeight={VIDEO_HEIGHT}
       />
     ),
-    [visibleIndex, showCommentsModal]
+    [visibleIndex, showCommentsModal, VIDEO_HEIGHT]
   );
 
-  // OPTIMIZATION 3: Use consistent VIDEO_HEIGHT for layout calculations
-  // This ensures all videos have the same height and prevents layout issues
+  // OPTIMIZATION 3: Use the adjusted VIDEO_HEIGHT for layout calculations
   const getItemLayout = useCallback(
     (_data: any, index: number) => ({
       length: VIDEO_HEIGHT,
       offset: VIDEO_HEIGHT * index,
       index,
     }),
-    [router]
+    [VIDEO_HEIGHT]
   );
 
   // Show loading while checking authentication or fetching videos
   if (loading || !token || !isLoggedIn) {
     return (
-      <SafeAreaProvider>
-        <SafeAreaView style={{ flex: 1 }} edges={["bottom"]}>
-          <ThemedView
-            style={{ height: VIDEO_HEIGHT }}
-            className="justify-center items-center"
-          >
-            <ActivityIndicator size="large" color="white" />
-            <Text className="text-white mt-4">
-              {!token || !isLoggedIn
-                ? "Checking authentication..."
-                : "Loading videos..."}
-            </Text>
-          </ThemedView>
-        </SafeAreaView>
-      </SafeAreaProvider>
+      <ThemedView
+        style={{ height: VIDEO_HEIGHT }}
+        className="justify-center items-center"
+      >
+        <ActivityIndicator size="large" color="white" />
+        <Text className="text-white mt-4">
+          {!token || !isLoggedIn
+            ? "Checking authentication..."
+            : "Loading videos..."}
+        </Text>
+      </ThemedView>
     );
   }
 
   if (error) {
     return (
-      <SafeAreaProvider>
-        <SafeAreaView style={{ flex: 1 }} edges={["bottom"]}>
-          <ThemedView
-            style={{ height: VIDEO_HEIGHT }}
-            className="justify-center items-center px-4"
-          >
-            <Text className="text-white text-center mb-4">
-              Oops something went wrong!
-            </Text>
-            {/* <Text className="text-red-400 text-center text-sm mb-4">
-              {error}
-            </Text> */}
-            <Pressable
-              onPress={() => {
-                setLoading(() => true);
-                setError(() => null);
-                fetchTrendingVideos();
-              }}
-              className="bg-blue-600 px-4 py-2 rounded"
-            >
-              <Text className="text-white">Retry</Text>
-            </Pressable>
-          </ThemedView>
-        </SafeAreaView>
-      </SafeAreaProvider>
+      <ThemedView
+        style={{ height: VIDEO_HEIGHT }}
+        className="justify-center items-center px-4"
+      >
+        <Text className="text-white text-center mb-4">
+          Oops something went wrong!
+        </Text>
+        <Pressable
+          onPress={() => {
+            setLoading(() => true);
+            setError(() => null);
+            fetchTrendingVideos();
+          }}
+          className="bg-blue-600 px-4 py-2 rounded"
+        >
+          <Text className="text-white">Retry</Text>
+        </Pressable>
+      </ThemedView>
     );
   }
 
   if (videos.length === 0) {
     return (
-      <SafeAreaProvider>
-        <SafeAreaView style={{ flex: 1 }} edges={["bottom"]}>
-          <ThemedView
-            style={{ height: VIDEO_HEIGHT }}
-            className="justify-center items-center"
-          >
-            <Text className="text-lg text-white">No Videos Available</Text>
-            <Text className="text-lg text-white">
-              Want to Upload your own{" "}
-              <Link href={"/studio"} className="text-blue-500">
-                Upload
-              </Link>
-            </Text>
-          </ThemedView>
-        </SafeAreaView>
-      </SafeAreaProvider>
+      <ThemedView
+        style={{ height: VIDEO_HEIGHT }}
+        className="justify-center items-center"
+      >
+        <Text className="text-lg text-white">No Videos Available</Text>
+        <Text className="text-lg text-white">
+          Want to Upload your own{" "}
+          <Link href={"/studio"} className="text-blue-500">
+            Upload
+          </Link>
+        </Text>
+      </ThemedView>
     );
   }
 
   return (
-    // <SafeAreaProvider>
-    <ThemedView>
-      <SafeAreaView>
-        <FlatList
-          data={videos}
-          renderItem={renderItem}
-          keyExtractor={(item) => item._id}
-          getItemLayout={getItemLayout}
-          pagingEnabled
-          scrollEnabled={!showCommentsModal}
-          onViewableItemsChanged={onViewableItemsChanged}
-          viewabilityConfig={{ itemVisiblePercentThreshold: 80 }}
-          // snapToInterval={VIDEO_HEIGHT}
-          initialNumToRender={3}
-          maxToRenderPerBatch={3}
-          windowSize={5}
-          showsVerticalScrollIndicator={false}
-          contentInsetAdjustmentBehavior="automatic" // iOS
-          contentContainerStyle={{ paddingBottom: 0 }}
-          onEndReachedThreshold={0.85}
-          onEndReached={() => fetchTrendingVideos()}
-          style={{ height: VIDEO_HEIGHT }}
-          // onScrollBeginDrag={() => {
-          //   if (showCommentsModal) {
-          //     console.log('🚫 VideosFeed: Scroll blocked - comments modal is open');
-          //   }
-          // }}
-        />
-      </SafeAreaView>
+    <ThemedView style={{ flex: 1, backgroundColor: 'black' }}>
+      <FlatList
+        data={videos}
+        renderItem={renderItem}
+        keyExtractor={(item) => item._id}
+        getItemLayout={getItemLayout}
+        pagingEnabled
+        scrollEnabled={!showCommentsModal}
+        onViewableItemsChanged={onViewableItemsChanged}
+        viewabilityConfig={{ itemVisiblePercentThreshold: 80 }}
+        snapToInterval={VIDEO_HEIGHT}
+        initialNumToRender={2}
+        maxToRenderPerBatch={2}
+        windowSize={3}
+        showsVerticalScrollIndicator={false}
+        contentInsetAdjustmentBehavior="automatic"
+        onEndReachedThreshold={0.85}
+        onEndReached={() => fetchTrendingVideos()}
+        style={{ 
+          height: VIDEO_HEIGHT,
+          flex: 1
+        }}
+        removeClippedSubviews={true}
+      />
     </ThemedView>
-    // </SafeAreaProvider>
   );
 };
 

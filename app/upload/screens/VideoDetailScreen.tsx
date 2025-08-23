@@ -141,7 +141,7 @@ const VideoDetailScreen: React.FC<VideoDetailProps> = ({
         <FormField
           label={videoFormat === 'episode' ? 'Episode Title' : 'Title'}
           value={formData.title}
-          placeholder={videoFormat === 'episode' ? 'Episode 1' : 'Bank name'}
+          placeholder={videoFormat === 'episode' ? 'Episode 1' : 'Title'}
           onChangeText={handleTitleChange}
         />
 

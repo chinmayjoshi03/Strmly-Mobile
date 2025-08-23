@@ -8,7 +8,7 @@ interface FileSelectScreenProps {
   onFileSelected: (file: any) => void;
   onBack: () => void;
   onSaveToDraft?: () => void;
-  onContinueUpload?: () => void;
+  onContinueUpload?: () => void;xx
   isEditingDraft?: boolean;
 }
 
@@ -54,12 +54,8 @@ const FileSelectScreen: React.FC<FileSelectScreenProps> = ({
       if (!result.canceled && result.assets && result.assets.length > 0) {
         const file = result.assets[0];
 
-        // Basic file validation
-        const maxSize = 500 * 1024 * 1024; // 500MB
-        if (file.size && file.size > maxSize) {
-          Alert.alert('File Too Large', 'Please select a video file smaller than 500MB');
-          return;
-        }
+     
+      
 
         console.log('✅ FileSelectScreen: Selected file:', {
           name: file.name,
