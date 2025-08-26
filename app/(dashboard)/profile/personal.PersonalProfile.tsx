@@ -236,6 +236,7 @@ export default function PersonalProfilePage() {
           pathname: "/(dashboard)/long/GlobalVideoPlayer",
           params: { startIndex: index.toString() },
         });
+
         console.log("item", item);
       }}
     >
