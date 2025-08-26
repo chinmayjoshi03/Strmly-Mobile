@@ -23,8 +23,9 @@ import { useAuthStore } from "@/store/useAuthStore";
 import { CONFIG } from "@/Constants/config";
 import VideoPlayer from "@/app/(dashboard)/long/_components/VideoPlayer";
 import { getProfilePhotoUrl } from "@/utils/profileUtils";
+import { SafeAreaView } from "react-native-safe-area-context";
 
-const { width, height: page_height } = Dimensions.get("screen");
+const { width, height: page_height } = Dimensions.get("window");
 const itemSize = width / 3;
 
 const SearchScreen: React.FC = () => {
@@ -67,9 +68,9 @@ const SearchScreen: React.FC = () => {
   });
 
   // Load trending videos on component mount
-  useEffect(() => {
-    loadTrendingVideos();
-  }, []);
+  // useEffect(() => {
+  //     loadTrendingVideos();
+  // }, []);
 
   // Handle back button press
   useEffect(() => {
@@ -385,8 +386,7 @@ const SearchScreen: React.FC = () => {
   const renderSearchResultItem = ({ item }: { item: any }) => {
     switch (selectedTab) {
       case 0:
-        return [];
-        // return renderVideoItem({ item });
+        return renderVideoItem({ item });
       case 1:
         return renderAccountItem({ item });
       case 2:
@@ -452,163 +452,145 @@ const SearchScreen: React.FC = () => {
 
   return (
     <View style={{ ...styles.container, height: page_height }}>
-      <StatusBar barStyle="light-content" backgroundColor="#000" />
+      <SafeAreaView style={{height: page_height}}>
+        <StatusBar barStyle="light-content" backgroundColor="#000" />
 
-      <TextInput
-        placeholder="Search"
-        placeholderTextColor="#ccc"
-        style={styles.searchInput}
-        value={searchQuery}
-        onChangeText={handleSearchChange}
-        autoCorrect={false}
-        autoCapitalize="none"
-      />
-
-      {/* Show tabs only when searching */}
-      {isSearchActive && (
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          style={styles.selectionTabContainer}
-          contentContainerStyle={styles.selectionTab}
-        >
-          {tabs.map((label, index) => (
-            <TouchableOpacity
-              style={[
-                styles.selectionButton,
-                selectedTab === index ? styles.selectedButton : {},
-              ]}
-              key={index}
-              onPress={() => setSelectedTab(index)}
-            >
-              <ThemedText
-                style={[
-                  styles.tab,
-                  selectedTab === index ? styles.selectedText : {},
-                ]}
-              >
-                {label}
-              </ThemedText>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
-      )}
-
-      {/* Loading indicator */}
-      {(searchLoading || trendingLoading) && (
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#fff" />
-          <Text style={styles.loadingText}>Searching...</Text>
-        </View>
-      )}
-
-      {/* Error message */}
-      {(searchError || trendingError) && (
-        <View style={styles.errorContainer}>
-          <Text style={styles.errorText}>
-            Error: {searchError || trendingError}
-          </Text>
-        </View>
-      )}
-
-      {/* Content */}
-      {!(searchLoading || trendingLoading) && (
-        <FlatList
-          data={isSearchActive ? getCurrentTabData() : []}
-          numColumns={isSearchActive && selectedTab !== 0 ? 1 : 3} // Show videos in grid (3 columns), others in list (1 column)
-          key={isSearchActive ? `search-${selectedTab}` : "default"} // Force re-render when switching modes or tabs
-          keyExtractor={(item, index) =>
-            isSearchActive
-              ? `search-${item.id || item._id || index}`
-              : `default-${item._id || index}`
-          }
-          renderItem={
-            isSearchActive ? renderSearchResultItem : renderTrendingItem
-          }
-          contentContainerStyle={[
-            isSearchActive && selectedTab !== 0
-              ? styles.searchResultsContainer
-              : styles.grid,
-            { paddingBottom: 100 },
-          ]}
-          showsVerticalScrollIndicator={false}
-          ListEmptyComponent={
-            isSearchActive ? (
-              <View style={styles.emptyContainer}>
-                <Text style={styles.emptyText}>
-                  No {tabs[selectedTab].toLowerCase()} found for "{searchQuery}"
-                </Text>
-                <Text style={styles.emptySubtext}>
-                  {selectedTab === 0 &&
-                    "Try searching for video names or descriptions"}
-                  {selectedTab === 1 && "Try searching for usernames or emails"}
-                  {selectedTab === 2 &&
-                    "Try searching for series titles, genres, or languages"}
-                </Text>
-                <View style={styles.suggestionsContainer}>
-                  <Text style={styles.suggestionsTitle}>
-                    Try searching for:
-                  </Text>
-                  {selectedTab === 0 && (
-                    <Text style={styles.suggestionText}>
-                      • Video names or descriptions
-                    </Text>
-                  )}
-                  {selectedTab === 1 && (
-                    <Text style={styles.suggestionText}>
-                      • @username or email addresses
-                    </Text>
-                  )}
-                  {selectedTab === 2 && (
-                    <Text style={styles.suggestionText}>
-                      • "Action", "Comedy", "Drama"
-                    </Text>
-                  )}
-                  {selectedTab === 2 && (
-                    <Text style={styles.suggestionText}>
-                      • "English", "Hindi", "Tamil"
-                    </Text>
-                  )}
-                </View>
-              </View>
-            ) : null
-          }
+        <TextInput
+          placeholder="Search"
+          placeholderTextColor="#ccc"
+          style={styles.searchInput}
+          value={searchQuery}
+          onChangeText={handleSearchChange}
+          autoCorrect={false}
+          autoCapitalize="none"
         />
-      )}
 
-      {/* Integrated Video Player */}
-      {isVideoPlayerActive && currentVideoData && (
-        <View style={styles.videoPlayerOverlay}>
-          <FlatList
-            data={currentVideoList}
-            keyExtractor={(item) => item._id}
-            renderItem={({ item, index }) => (
-              <VideoPlayer
-                isGlobalPlayer={true}
-                key={`${item._id}-${index === currentVideoIndex}`}
-                videoData={item}
-                isActive={index === currentVideoIndex}
-                showCommentsModal={showCommentsModal}
-                setShowCommentsModal={setShowCommentsModal}
-              />
+        {/* Show tabs only when searching */}
+        {isSearchActive && (
+                <ScrollView
+                    horizontal
+                    showsHorizontalScrollIndicator={false}
+                    style={styles.selectionTabContainer}
+                    contentContainerStyle={styles.selectionTab}
+                >
+                    {tabs.map((label, index) => (
+                        <TouchableOpacity
+                            style={[
+                                styles.selectionButton,
+                                selectedTab === index ? styles.selectedButton : {}
+                            ]}
+                            key={index}
+                            onPress={() => setSelectedTab(index)}
+                        >
+                            <ThemedText style={[
+                                styles.tab,
+                                selectedTab === index ? styles.selectedText : {}
+                            ]}>
+                                {label}
+                            </ThemedText>
+                        </TouchableOpacity>
+                    ))}
+                </ScrollView>
             )}
-            style={{ flex: 1 }}
-            getItemLayout={(_, index) => ({
-              length: Dimensions.get("screen").height,
-              offset: Dimensions.get("screen").height * index,
-              index,
-            })}
-            initialScrollIndex={currentVideoIndex}
-            pagingEnabled
-            onViewableItemsChanged={onViewableItemsChanged}
-            viewabilityConfig={{ itemVisiblePercentThreshold: 80 }}
-            decelerationRate="fast"
-            showsVerticalScrollIndicator={false}
-            snapToInterval={Dimensions.get("screen").height}
-            snapToAlignment="start"
-          />
-        </View>
-      )}
+
+        {/* Loading indicator */}
+        {(searchLoading || trendingLoading) && (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color="#fff" />
+            <Text style={styles.loadingText}>Searching...</Text>
+          </View>
+        )}
+
+        {/* Error message */}
+        {(searchError || trendingError) && (
+          <View style={styles.errorContainer}>
+            <Text style={styles.errorText}>
+              Error: {searchError || trendingError}
+            </Text>
+          </View>
+        )}
+
+        {/* Content */}
+        {!(searchLoading || trendingLoading) && (
+                <FlatList
+                    data={isSearchActive ? getCurrentTabData() : trendingVideos}
+                    numColumns={isSearchActive && selectedTab !== 0 ? 1 : 3} // Show videos in grid (3 columns), others in list (1 column)
+                    key={isSearchActive ? `search-${selectedTab}` : 'default'} // Force re-render when switching modes or tabs
+                    keyExtractor={(item, index) =>
+                        isSearchActive ? `search-${item.id || item._id || index}` : `default-${item._id || index}`
+                    }
+                    renderItem={isSearchActive ? renderSearchResultItem : renderTrendingItem}
+                    contentContainerStyle={[
+                        isSearchActive && selectedTab !== 0 ? styles.searchResultsContainer : styles.grid,
+                        { paddingBottom: 100 }
+                    ]}
+                    showsVerticalScrollIndicator={false}
+                    ListEmptyComponent={
+                        isSearchActive ? (
+                            <View style={styles.emptyContainer}>
+                                <Text style={styles.emptyText}>
+                                    No {tabs[selectedTab].toLowerCase()} found for "{searchQuery}"
+                                </Text>
+                                <Text style={styles.emptySubtext}>
+                                    {selectedTab === 0 && "Try searching for video names or descriptions"}
+                                    {selectedTab === 1 && "Try searching for usernames or emails"}
+                                    {selectedTab === 2 && "Try searching for series titles, genres, or languages"}
+                                </Text>
+                                <View style={styles.suggestionsContainer}>
+                                    <Text style={styles.suggestionsTitle}>Try searching for:</Text>
+                                    {selectedTab === 0 && (
+                                        <Text style={styles.suggestionText}>• Video names or descriptions</Text>
+                                    )}
+                                    {selectedTab === 1 && (
+                                        <Text style={styles.suggestionText}>• @username or email addresses</Text>
+                                    )}
+                                    {selectedTab === 2 && (
+                                        <Text style={styles.suggestionText}>• "Action", "Comedy", "Drama"</Text>
+                                    )}
+                                    {selectedTab === 2 && (
+                                        <Text style={styles.suggestionText}>• "English", "Hindi", "Tamil"</Text>
+                                    )}
+                                </View>
+                            </View>
+                        ) : null
+                    }
+                />
+            )}
+
+        {/* Integrated Video Player */}
+        {isVideoPlayerActive && currentVideoData && (
+          <View style={styles.videoPlayerOverlay}>
+            <FlatList
+              data={currentVideoList}
+              keyExtractor={(item) => item._id}
+              renderItem={({ item, index }) => (
+                <VideoPlayer
+                  isGlobalPlayer={false}
+                  key={`${item._id}-${index === currentVideoIndex}`}
+                  videoData={item}
+                  isActive={index === currentVideoIndex}
+                  showCommentsModal={showCommentsModal}
+                  setShowCommentsModal={setShowCommentsModal}
+                />
+              )}
+              style={{ flex: 1 }}
+              getItemLayout={(_, index) => ({
+                length: Dimensions.get("screen").height,
+                offset: Dimensions.get("screen").height * index,
+                index,
+              })}
+              initialScrollIndex={currentVideoIndex}
+              pagingEnabled
+              onViewableItemsChanged={onViewableItemsChanged}
+              viewabilityConfig={{ itemVisiblePercentThreshold: 80 }}
+              decelerationRate="fast"
+              showsVerticalScrollIndicator={false}
+              snapToInterval={Dimensions.get("screen").height}
+              snapToAlignment="start"
+            />
+          </View>
+        )}
+      </SafeAreaView>
     </View>
   );
 };
@@ -616,9 +598,8 @@ const SearchScreen: React.FC = () => {
 const styles = StyleSheet.create({
   // Container and basic layout
   container: {
-    flex: 1,
     backgroundColor: "#000",
-    paddingTop: 45,
+    paddingTop: 0,
   },
   searchInput: {
     backgroundColor: "rgba(255,255,255,0.1)",
@@ -679,7 +660,6 @@ const styles = StyleSheet.create({
   },
 
   // Loading and error states
-  // Loading and error states
   loadingContainer: {
     flex: 1,
     justifyContent: "center",
@@ -702,13 +682,9 @@ const styles = StyleSheet.create({
   },
 
   // Search results container
-
-  // Search results container
   searchResultsContainer: {
     padding: 10,
   },
-
-  // Overlay styles
 
   // Overlay styles
   trendingOverlay: {
@@ -722,8 +698,6 @@ const styles = StyleSheet.create({
     fontFamily: "Poppins-Light",
     marginTop: 2,
   },
-
-  // Empty state styles
 
   // Empty state styles
   emptyContainer: {

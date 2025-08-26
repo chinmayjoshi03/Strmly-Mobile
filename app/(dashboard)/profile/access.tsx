@@ -305,7 +305,7 @@ export default function AccessPage() {
             {"\n"}Access till {formatDate(creatorPass.end_date)}
           </Text>
         </View>
-        <TouchableOpacity
+        {/* <TouchableOpacity
           onPress={(e) => {
             e.stopPropagation(); // Prevent triggering the creator click
             handleRemoveAccess(creatorPass._id, "creator_pass");
@@ -321,7 +321,7 @@ export default function AccessPage() {
           <Text className="text-white font-medium text-sm">
             {isRemoving === creatorPass._id ? "Removing..." : "Remove"}
           </Text>
-        </TouchableOpacity>
+        </TouchableOpacity> */}
       </LinearGradient>
     </TouchableOpacity>
   );

@@ -418,7 +418,7 @@ const VideoPlayer = ({
         />
       )}
 
-      {showCommentsModal && setShowCommentsModal && (
+      {/* {showCommentsModal && setShowCommentsModal && (
         <CommentsSection
           onClose={() => setShowCommentsModal(false)}
           videoId={videoData._id}
@@ -439,7 +439,7 @@ const VideoPlayer = ({
             }
           }}
         />
-      )}
+      )} */}
     </View>
   );
 };

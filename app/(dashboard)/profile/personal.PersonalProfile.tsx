@@ -35,10 +35,12 @@ export default function PersonalProfilePage() {
 
   const [isLoading, setIsLoading] = useState(false);
   const [isError, setIsError] = useState<string | null>(null);
+  const [page, setPage] = useState(1);
   const [isLoadingVideos, setIsLoadingVideos] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
 
   const { token, user } = useAuthStore();
-  const { setVideosInZustand } = useVideosStore();
+  const { setVideosInZustand, appendVideos } = useVideosStore();
 
   const router = useRouter();
 
@@ -73,19 +75,15 @@ export default function PersonalProfilePage() {
     }
   }, [user?.profile_photo, userData?.profile_photo]);
 
-  useEffect(() => {
-    if (!token) return;
+  const fetchUserVideos = useCallback(
+    async (pageToFetch: number) => {
+      if (!token || isLoadingVideos || !hasMore) return;
 
-    if (activeTab === "repost") {
-      userReshareVideos();
-      return;
-    }
+      if (pageToFetch === 1) setIsLoadingVideos(true);
 
-    const fetchUserVideos = async () => {
-      setIsLoadingVideos(true);
       try {
         const response = await fetch(
-          `${CONFIG.API_BASE_URL}/user/videos?type=${activeTab}`,
+          `${CONFIG.API_BASE_URL}/user/videos?type=${activeTab}&page=${pageToFetch}`,
           {
             method: "GET",
             headers: {
@@ -99,7 +97,18 @@ export default function PersonalProfilePage() {
         if (!response.ok) {
           throw new Error(data.message || "Failed to fetch user videos");
         }
-        setVideos(data.videos);
+
+        if (pageToFetch === 1) {
+          setVideos(data.videos); // first page → replace
+        } else {
+          setVideos((prev) => [...prev, ...data.videos]); // next pages → append
+        }
+
+        if (data.videos.length === 0) {
+          setHasMore(false); // stop when no more videos
+        }
+
+        setPage(pageToFetch);
       } catch (err) {
         console.error("Error fetching user videos:", err);
         Alert.alert(
@@ -111,12 +120,25 @@ export default function PersonalProfilePage() {
       } finally {
         setIsLoadingVideos(false);
       }
-    };
+    },
+    [token, activeTab, isLoadingVideos, hasMore]
+  );
 
-    if (token && activeTab !== "repost") {
-      fetchUserVideos();
-    }
-  }, [isLoggedIn, router, token, activeTab]);
+  useFocusEffect(
+    useCallback(() => {
+      if (!token) return;
+
+      if (activeTab === "repost") {
+        userReshareVideos();
+        return;
+      }
+
+      setVideos([]);
+      setPage(1);
+      setHasMore(true);
+      fetchUserVideos(1);
+    }, [token, activeTab])
+  );
 
   useFocusEffect(
     useCallback(() => {
@@ -246,6 +268,8 @@ export default function PersonalProfilePage() {
           contentContainerStyle={{ paddingBottom: 30, paddingHorizontal: 0 }}
           showsVerticalScrollIndicator={false}
           nestedScrollEnabled={true}
+          onEndReached={() => fetchUserVideos(page + 1)}
+          onEndReachedThreshold={0.8}
           ListHeaderComponent={
             <>
               {!isLoading && (
@@ -316,7 +340,7 @@ export default function PersonalProfilePage() {
                       }
                     >
                       <Text className="font-bold text-lg text-white">
-                        {userData?.totalFollowers || 0}
+                        {userData?.followers.length || 0}
                       </Text>
                       <Text className="text-gray-400 text-md">Followers</Text>
                     </TouchableOpacity>
@@ -333,7 +357,7 @@ export default function PersonalProfilePage() {
                       }
                     >
                       <Text className="font-bold text-lg text-white">
-                        {userData?.totalCommunities || 0}
+                        {userData?.community.length || 0}
                       </Text>
                       <Text className="text-gray-400 text-md">Community</Text>
                     </TouchableOpacity>
@@ -350,7 +374,7 @@ export default function PersonalProfilePage() {
                       }
                     >
                       <Text className="font-bold text-lg text-white">
-                        {userData?.totalFollowing || 0}
+                        {userData?.following.length || 0}
                       </Text>
                       <Text className="text-gray-400 text-md">Followings</Text>
                     </TouchableOpacity>

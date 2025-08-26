@@ -117,6 +117,7 @@ const VideoControls = ({
       <View style={isGlobalPlayer ? styles.interactGlobal : styles.interact}>
         <InteractOptions
           videoId={videoData._id}
+          name={videoData.name}
           creator={videoData.created_by}
           likes={videoData.likes}
           gifts={videoData.gifts}
@@ -125,13 +126,13 @@ const VideoControls = ({
           onCommentPress={
             setShowCommentsModal ? () => setShowCommentsModal(true) : undefined
           }
-          onLikeUpdate={(newLikes, isLiked) =>
-            onStatsUpdate?.({ likes: newLikes })
-          }
-          onShareUpdate={(newShares, isShared) =>
-            onStatsUpdate?.({ shares: newShares })
-          }
-          onGiftUpdate={(newGifts) => onStatsUpdate?.({ gifts: newGifts })}
+          // onLikeUpdate={(newLikes, isLiked) =>
+          //   onStatsUpdate?.({ likes: newLikes })
+          // }
+          // onShareUpdate={(newShares, isShared) =>
+          //   onStatsUpdate?.({ shares: newShares })
+          // }
+          // onGiftUpdate={(newGifts) => onStatsUpdate?.({ gifts: newGifts })}
         />
       </View>
       <View style={isGlobalPlayer ? styles.detailsGlobal : styles.details}>

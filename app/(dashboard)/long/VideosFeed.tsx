@@ -78,7 +78,7 @@ const VideosFeed: React.FC = () => {
       };
     }, [token, isLoggedIn, videos.length, loading, error])
   );
-
+  
   // Component mount/unmount
   useEffect(() => {
     mountedRef.current = true;
@@ -309,7 +309,7 @@ const VideosFeed: React.FC = () => {
           viewabilityConfig={viewabilityConfig}
           initialNumToRender={1}
           maxToRenderPerBatch={1}
-          windowSize={3}
+          windowSize={1}
           removeClippedSubviews={true}
           showsVerticalScrollIndicator={false}
           contentInsetAdjustmentBehavior="automatic"

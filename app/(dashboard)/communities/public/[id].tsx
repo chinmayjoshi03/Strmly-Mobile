@@ -450,14 +450,14 @@ export default function PublicCommunityPage() {
                   <TouchableOpacity
                     className={`flex flex-col gap-1 items-center pb-4 flex-1 ${activeTab === "followers" ? "border-b-2 border-white" : ""}`}
                     onPress={() => {
-                      router.push({
-                        pathname: "/(communities)/CommunitySections",
-                        params: {
-                          communityId: id,
-                          communityName: communityData?.name,
-                          section: "followers",
-                        },
-                      } as any);
+                      // router.push({
+                      //   pathname: "/(communities)/CommunitySections",
+                      //   params: {
+                      //     communityId: id,
+                      //     communityName: communityData?.name,
+                      //     section: "followers",
+                      //   },
+                      // } as any);
                     }}
                   >
                     <Text className="font-bold text-lg text-white">
@@ -471,16 +471,16 @@ export default function PublicCommunityPage() {
                   </TouchableOpacity>
                   <TouchableOpacity
                     className={`flex flex-col gap-1 items-center pb-4 flex-1 ${activeTab === "creators" ? "border-b-2 border-white" : ""}`}
-                    onPress={() => {
-                      router.push({
-                        pathname: "/(communities)/CommunitySections",
-                        params: {
-                          communityId: id,
-                          communityName: communityData?.name,
-                          section: "creators",
-                        },
-                      } as any);
-                    }}
+                    // onPress={() => {
+                    //   router.push({
+                    //     pathname: "/(communities)/CommunitySections",
+                    //     params: {
+                    //       communityId: id,
+                    //       communityName: communityData?.name,
+                    //       section: "creators",
+                    //     },
+                    //   } as any);
+                    // }}
                   >
                     <Text className="font-bold text-lg text-white">
                       {communityData?.creators?.length || 0}

@@ -103,6 +103,7 @@ export class CommentAPI {
 
     return response.json();
   }
+  
 
   // Get replies for a comment
   static async getReplies(
@@ -112,6 +113,8 @@ export class CommentAPI {
     page: number = 1,
     limit: number = 5
   ): Promise<CommentAPIResponse> {
+     console.log('videoId:', videoId);
+  console.log('commentId:', commentId);
     const response = await fetch(
       `${CONFIG.API_BASE_URL}/interactions/videos/${videoId}/comments/${commentId}/replies?page=${page}&limit=${limit}`,
       {
@@ -123,7 +126,6 @@ export class CommentAPI {
     if (!response.ok) {
       throw new Error(`Failed to fetch replies: ${response.status}`);
     }
-
     return response.json();
   }
 

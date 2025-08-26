@@ -95,7 +95,7 @@ const UploadProgressScreen: React.FC<UploadProgressProps> = ({
             </Text>
             
             {/* Action Buttons */}
-            <View className="w-full max-w-sm space-y-3">
+            <View className="w-full max-w-sm gap-5 space-y-3">
               <TouchableOpacity
                 onPress={handleRetry}
                 className="bg-blue-600 rounded-full py-4 items-center"

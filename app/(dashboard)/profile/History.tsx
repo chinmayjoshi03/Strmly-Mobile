@@ -5,8 +5,6 @@ import {
   TouchableOpacity,
   Image,
   FlatList,
-  Dimensions,
-  BackHandler,
 } from "react-native";
 import React, { useEffect, useState } from "react";
 import ThemedView from "@/components/ThemedView";
@@ -17,54 +15,83 @@ import ProfileTopbar from "@/components/profileTopbar";
 import { VideoItemType } from "@/types/VideosType";
 import { useVideosStore } from "@/store/useVideosStore";
 
+const PAGE_LIMIT = 10;
+
 const HistoryPage = () => {
   const [videos, setVideos] = useState<VideoItemType[]>([]);
-  const [isLoadingVideos, setIsLoadingVideos] = useState(false);
-  const { isLoggedIn, token, logout } = useAuthStore();
-  const router = useRouter();
+  const [page, setPage] = useState(1);
+  const [isLoading, setIsLoading] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
+
+  const { isLoggedIn, token } = useAuthStore();
   const { setVideosInZustand } = useVideosStore();
+  const router = useRouter();
   const BACKEND_API_URL = CONFIG.API_BASE_URL;
 
-  const fetchUserHistory = async (token: string, page = 1, limit = 10) => {
-    try {
-      const response = await fetch(
-        `${BACKEND_API_URL}/user/history?page=${page}&limit=${limit}`,
-        {
-          method: "GET",
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
+  /** 🔹 Fetch History API */
+  const fetchUserHistory = useCallback(
+    async (pageNum: number) => {
+      if (!token) return [];
 
-      if (!response.ok) throw new Error("Failed to fetch history");
-
-      return await response.json();
-    } catch (error) {
-      console.error("History fetch error:", error);
-      throw error;
-    }
-  };
-
-  useEffect(() => {
-    const loadHistory = async () => {
-      if (!isLoggedIn || !token) return;
       try {
-        setIsLoadingVideos(true);
-        const res = await fetchUserHistory(token);
-        setVideos(res.videos); // This is the formatted array from backend
-        setVideosInZustand(res.videos); // Store in Zustand for global access
-      } catch (err) {
-        console.error("Failed to load history", err);
-      } finally {
-        setIsLoadingVideos(false);
+        const response = await fetch(
+          `${BACKEND_API_URL}/user/history?page=${pageNum}&limit=${PAGE_LIMIT}`,
+          {
+            method: "GET",
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
+
+        if (!response.ok) throw new Error("Failed to fetch history");
+
+        const data = await response.json();
+        return data?.videos || [];
+      } catch (error) {
+        console.error("History fetch error:", error);
+        return [];
       }
+    },
+    [token]
+  );
+
+  /** 🔹 Initial load */
+  useEffect(() => {
+    if (!isLoggedIn || !token) return;
+
+    const loadHistory = async () => {
+      setIsLoading(true);
+      const initialVideos = await fetchUserHistory(1);
+      setVideos(initialVideos);
+      setVideosInZustand(initialVideos);
+      setHasMore(initialVideos.length >= PAGE_LIMIT);
+      setIsLoading(false);
     };
 
     loadHistory();
   }, [isLoggedIn, token]);
 
-  const renderGridItem = ({ item, index }: { item: any; index: number }) => (
+  /** 🔹 Load more on scroll */
+  const loadMore = async () => {
+    if (isLoading || !hasMore) return;
+
+    const nextPage = page + 1;
+    setIsLoading(true);
+    const newVideos = await fetchUserHistory(nextPage);
+
+    if (newVideos.length > 0) {
+      setVideos((prev) => [...prev, ...newVideos]);
+      setVideosInZustand([...videos, ...newVideos]);
+      setPage(nextPage);
+    } else {
+      setHasMore(false);
+    }
+    setIsLoading(false);
+  };
+
+  /** 🔹 Render Grid Item */
+  const renderGridItem = ({ item, index }: { item: VideoItemType; index: number }) => (
     <TouchableOpacity
       className="relative aspect-[9/16] flex-1 rounded-sm overflow-hidden"
       onPress={() =>
@@ -74,15 +101,15 @@ const HistoryPage = () => {
         })
       }
     >
-      {item.thumbnailUrl != null || "" ? (
+      {item.thumbnailUrl ? (
         <Image
           source={{ uri: item.thumbnailUrl }}
-          alt="video thumbnail"
-          className="w-full h-full object-cover"
+          className="w-full h-full"
+          resizeMode="cover"
         />
       ) : (
-        <View className="w-full h-full flex items-center justify-center">
-          <Text className="text-white text-xs">Loading...</Text>
+        <View className="w-full h-full items-center justify-center bg-gray-800">
+          <Text className="text-white text-xs">No Thumbnail</Text>
         </View>
       )}
     </TouchableOpacity>
@@ -90,24 +117,35 @@ const HistoryPage = () => {
 
   return (
     <ThemedView className="flex-1 pt-5">
-      {/* Video Grid */}
-      {isLoadingVideos ? (
-        <View className="w-full h-96 flex-1 items-center justify-center mt-20">
+      <ProfileTopbar isMore={false} hashtag={false} name="History" />
+
+      {isLoading && videos.length === 0 ? (
+        // 🔹 Loader for first load
+        <View className="flex-1 items-center justify-center">
           <ActivityIndicator size="large" color="white" />
         </View>
-      ) : (
-        <View className="gap-10">
-          <ProfileTopbar isMore={false} hashtag={false} name={"History"} />
-
-          <FlatList
-            data={videos}
-            keyExtractor={(item) => item._id}
-            renderItem={renderGridItem}
-            numColumns={3}
-            contentContainerStyle={{ paddingBottom: 0, paddingHorizontal: 0 }}
-            showsVerticalScrollIndicator={false}
-          />
+      ) : videos.length === 0 ? (
+        // 🔹 Empty state
+        <View className="flex-1 items-center justify-center">
+          <Text className="text-white text-lg">No history found</Text>
         </View>
+      ) : (
+        // 🔹 Video Grid
+        <FlatList
+          data={videos}
+          keyExtractor={(item) => item._id}
+          renderItem={renderGridItem}
+          numColumns={3}
+          contentContainerStyle={{ paddingTop: 20 }}
+          showsVerticalScrollIndicator={false}
+          onEndReached={loadMore}
+          onEndReachedThreshold={0.5}
+          ListFooterComponent={
+            isLoading && videos.length > 0 ? (
+              <ActivityIndicator size="small" color="white" className="my-4" />
+            ) : null
+          }
+        />
       )}
     </ThemedView>
   );

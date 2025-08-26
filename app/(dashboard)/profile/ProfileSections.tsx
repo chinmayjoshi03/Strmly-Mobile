@@ -17,6 +17,7 @@ import ThemedView from "@/components/ThemedView";
 import { User, Community } from "@/api/profile/profileActions";
 import { useProfileSections } from "./_components/useProfileSections";
 import { getProfilePhotoUrl } from "@/utils/profileUtils";
+import { useAuthStore } from "@/store/useAuthStore";
 
 // Types are now imported from profileActions
 
@@ -25,6 +26,8 @@ export default function ProfileSections() {
   const params = useLocalSearchParams();
   const [searchQuery, setSearchQuery] = useState("");
   const insets = useSafeAreaInsets();
+
+  const { user } = useAuthStore();
 
   const userName = params.userName || "User";
   const initialSection = (params.section as any) || "followers";
@@ -122,12 +125,13 @@ export default function ProfileSections() {
     <TouchableOpacity
       key={community._id}
       className="flex-row items-center justify-between py-4 px-4"
-      onPress={() =>
+      onPress={() =>{
+        // console.log(community.founder, user?.id);
         router.push({
-          pathname: "/(communities)/CommunityDetails",
+          pathname: community?.founder._id === user?.id ? "/(dashboard)/communities/personal/[id]" : "/(dashboard)/communities/public/[id]",
           params: { id: community._id },
         })
-      }
+      }}
     >
       <View className="flex-row items-center flex-1">
         <Image
@@ -154,8 +158,8 @@ export default function ProfileSections() {
         </View>
       </View>
       <View className="flex-row items-center">
-        <View className="items-end mr-4">
-          <View className="flex-row items-center space-x-4">
+        <View className="items-center mr-4">
+          <View className="flex-row gap-2 items-center space-x-4">
             <View className="items-center">
               <Text
                 className="text-white font-bold text-sm"

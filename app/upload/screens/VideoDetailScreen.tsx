@@ -141,7 +141,7 @@ const VideoDetailScreen: React.FC<VideoDetailProps> = ({
         <FormField
           label={videoFormat === 'episode' ? 'Episode Title' : 'Title'}
           value={formData.title}
-          placeholder={videoFormat === 'episode' ? 'Episode 1' : 'Bank name'}
+          placeholder={videoFormat === 'episode' ? 'Episode 1' : 'Title'}
           onChangeText={handleTitleChange}
         />
 
@@ -155,8 +155,7 @@ const VideoDetailScreen: React.FC<VideoDetailProps> = ({
             </View>
           ) : communitiesError ? (
             <View className="bg-red-900/20 border border-red-500 rounded-lg p-4">
-              <Text className="text-red-400 text-sm">Failed to load communities</Text>
-              <Text className="text-gray-400 text-xs mt-1">Using fallback options</Text>
+              <Text className="text-red-400 text-sm">No community Available</Text>
             </View>
           ) : null}
           <Dropdown

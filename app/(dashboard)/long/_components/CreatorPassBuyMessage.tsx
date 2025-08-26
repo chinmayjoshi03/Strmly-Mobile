@@ -1,6 +1,7 @@
 import React from "react";
 import { Modal, View, Text, Pressable, StyleSheet, Image } from "react-native";
 import { useGiftingStore } from "@/store/useGiftingStore";
+import CONFIG from "@/Constants/config";
 
 type created_by = {
   _id: string;
@@ -46,9 +47,9 @@ const CreatorPassBuyMessage = ({
           <View className="rounded-full bg-gray-500">
             <Image
               source={
-                creator?.profile_photo
+                creator?.profile_photo != ""
                   ? { uri: creator?.profile_photo }
-                  : require("../../../../assets/images/user.png")
+                  : { uri: CONFIG.DEFAULT_COMMUNITY_PROFILE_PHOTO }
               }
               className="size-16 rounded-full"
             />
@@ -62,7 +63,7 @@ const CreatorPassBuyMessage = ({
 
           <Pressable style={styles.modalContainer}>
             <Text className="text-white text-lg text-center">
-              Successfully bought the Creator Pass of {creator?.username}
+              Successfully bought the Community Pass of {creator?.username}
             </Text>
           </Pressable>
 
@@ -88,7 +89,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     paddingHorizontal: 20,
-    opacity: 0.5,
+    opacity: 0.9,
   },
   modalContainer: {
     width: "100%",

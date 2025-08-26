@@ -34,15 +34,15 @@ export const useProfileSections = ({ initialSection = 'followers' }: UseProfileS
       const [followersResult, followingResult, myCommunitiesResult, joinedCommunitiesResult] = await Promise.all([
         profileActions.getUserFollowers(token),
         profileActions.getUserFollowing(token),
-        profileActions.getUserCommunities(token, 'created'),
-        profileActions.getUserCommunities(token, 'joined'),
+        profileActions.getUserCombinedCommunities(token, 'all'),
+        profileActions.getUserCommunities(token),
       ]);
 
       setCounts({
         followers: followersResult.count || 0,
         following: followingResult.count || 0,
         myCommunity: Array.isArray(myCommunitiesResult.communities) ? myCommunitiesResult.communities.length : 0,
-        community: Array.isArray(joinedCommunitiesResult.communities) ? joinedCommunitiesResult.communities.length : 0,
+        community: Array.isArray(joinedCommunitiesResult.data) ? joinedCommunitiesResult.data.length : 0,
       });
 
       setCountsLoaded(true);
@@ -50,7 +50,7 @@ export const useProfileSections = ({ initialSection = 'followers' }: UseProfileS
         followers: followersResult.count || 0,
         following: followingResult.count || 0,
         myCommunity: Array.isArray(myCommunitiesResult.communities) ? myCommunitiesResult.communities.length : 0,
-        community: Array.isArray(joinedCommunitiesResult.communities) ? joinedCommunitiesResult.communities.length : 0,
+        community: Array.isArray(joinedCommunitiesResult.data) ? joinedCommunitiesResult.data.length : 0,
       });
 
     } catch (error) {
@@ -85,7 +85,7 @@ export const useProfileSections = ({ initialSection = 'followers' }: UseProfileS
           break;
           
         case 'myCommunity':
-          result = await profileActions.getUserCommunities(token, 'created');
+          result = await profileActions.getUserCombinedCommunities(token, 'all');
           setData(result.communities || []);
           setCounts(prev => ({ 
             ...prev, 
@@ -94,11 +94,11 @@ export const useProfileSections = ({ initialSection = 'followers' }: UseProfileS
           break;
           
         case 'community':
-          result = await profileActions.getUserCommunities(token, 'joined');
-          setData(result.communities || []);
+          result = await profileActions.getUserCommunities(token);
+          setData(result.data || []);
           setCounts(prev => ({ 
             ...prev, 
-            community: Array.isArray(result.communities) ? result.communities.length : 0 
+            community: Array.isArray(result.data) ? result.data.length : 0 
           }));
           break;
       }

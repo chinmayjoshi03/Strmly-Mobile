@@ -212,7 +212,7 @@ export default function PersonalCommunityPage() {
       {!isLoading && (
         <View className="h-48 relative">
           <ProfileTopbar
-            isMore={true}
+            isMore={false}
             hashtag={true}
             name={communityData?.name || profileData.name}
           />
