@@ -10,6 +10,7 @@ import {
 } from "react-native";
 import React, { useCallback, useEffect, useState } from "react";
 import {
+  ArrowUpRightFromSquare,
   ChevronDownIcon,
   Hash,
   PlusSquare,
@@ -113,50 +114,52 @@ const VideoDetails = ({
     if (episode_number) setSelectedEpisodeIndex(episode_number);
   }, [episode_number]);
 
-  useEffect(() => {
-    const hasAccessPass = async () => {
-      const accessId = series && series.price != 0 ? series._id : videoId;
-      try {
-        const response = await fetch(
-          `${BACKEND_API_URL}/user/has-user-access/${accessId}`,
-          {
-            method: "GET",
-            headers: {
-              Authorization: `Bearer ${token}`,
-              "Content-Type": "application/json",
-            },
+  useFocusEffect(
+    useCallback(() => {
+      const hasAccessPass = async () => {
+        const accessId = series && series.price != 0 ? series._id : videoId;
+        try {
+          const response = await fetch(
+            `${BACKEND_API_URL}/user/has-user-access/${accessId}`,
+            {
+              method: "GET",
+              headers: {
+                Authorization: `Bearer ${token}`,
+                "Content-Type": "application/json",
+              },
+            }
+          );
+
+          const data = await response.json();
+
+          if (!response.ok) {
+            throw new Error(data.message || "Failed to fetch video access");
           }
-        );
 
-        const data = await response.json();
-
-        if (!response.ok) {
-          throw new Error(data.message || "Failed to fetch video access");
+          console.log(
+            "has access pass",
+            data.data?.accessData && data.data?.accessData.content_type
+          );
+          setHasAccessPass(
+            data.data?.accessData ? data.data.accessData.content_type : null
+          );
+        } catch (error) {
+          console.log(error);
+          Alert.alert(
+            "Error",
+            error instanceof Error
+              ? error.message
+              : "An unknown error occurred while checking video access."
+          );
         }
+      };
 
-        console.log(
-          "has access pass",
-          data.data?.accessData && data.data?.accessData.content_type
-        );
-        setHasAccessPass(
-          data.data?.accessData ? data.data.accessData.content_type : null
-        );
-      } catch (error) {
-        console.log(error);
-        Alert.alert(
-          "Error",
-          error instanceof Error
-            ? error.message
-            : "An unknown error occurred while checking video access."
-        );
+      if ((series?._id || videoId) && token) {
+        console.log(series);
+        hasAccessPass();
       }
-    };
-
-    if ((series?._id || videoId) && token) {
-      console.log(series);
-      hasAccessPass();
-    }
-  }, []);
+    }, [])
+  );
 
   useEffect(() => {
     const checkIfFollowCommunity = async () => {
@@ -294,7 +297,11 @@ const VideoDetails = ({
         }
       };
 
-      if (createdBy._id && token) {
+      if (
+        createdBy._id &&
+        token &&
+        creatorPass?.creator_profile.creator_pass_price !== 0
+      ) {
         hasCreatorPass();
       }
     }, [createdBy._id, token])
@@ -318,7 +325,7 @@ const VideoDetails = ({
                 </Text>
               </View>
             </Pressable>
-            <Pressable onPress={() => followCommunity()}>
+            {/* <Pressable onPress={() => followCommunity()}>
               {isFollowCommunityLoading ? (
                 <ActivityIndicator className="size-5" color="white" />
               ) : isFollowCommunity ? (
@@ -329,7 +336,7 @@ const VideoDetails = ({
                   className="size-5"
                 />
               )}
-            </Pressable>
+            </Pressable> */}
           </>
         )}
       </View>
@@ -351,7 +358,9 @@ const VideoDetails = ({
               {createdBy ? createdBy.username : ""}
             </Text>
           </Pressable>
-          <TouchableOpacity
+          {/* Need API for isFollowing */}
+
+          {/* <TouchableOpacity
             disabled={isFollowCreatorLoading}
             onPress={() => followCreator()}
             className="border border-white items-center justify-center rounded-md px-2"
@@ -363,7 +372,7 @@ const VideoDetails = ({
                 {isFollowCreator ? "Following" : "Follow"}
               </Text>
             )}
-          </TouchableOpacity>
+          </TouchableOpacity> */}
         </View>
 
         {(type !== "Free" ||
@@ -390,7 +399,7 @@ const VideoDetails = ({
       <View className="flex-row items-center justify-between relative">
         <View className="flex-row items-center gap-1">
           <Text className="text-white uppercase">{name}</Text>
-          {series !== null && (
+          {/* {series !== null && (
             <TouchableOpacity
               className="border border-white rounded-xl px-2 py-0.5"
               onPress={() => {
@@ -405,7 +414,7 @@ const VideoDetails = ({
                 <ChevronDownIcon color={"white"} size={12} />
               </View>
             </TouchableOpacity>
-          )}
+          )} */}
         </View>
 
         {/* Full Screen */}
@@ -421,6 +430,7 @@ const VideoDetails = ({
           <View className="absolute bottom-14 -right-2 rounded-xl p-2 w-80">
             {series != null &&
             series.type != "Free" &&
+            !hasCreatorPass &&
             creatorPass?.creator_profile.creator_pass_price !== 0 ? (
               <TouchableOpacity
                 className="mb-0.5"
@@ -460,13 +470,16 @@ const VideoDetails = ({
 
                 <Pressable
                   onPress={() => {
-                    series && series?.type !== "Free" && !hasCreatorPass
+                    series &&
+                    series?.type !== "Free" &&
+                    !hasCreatorPass &&
+                    !hasAccessPass
                       ? router.push({
                           pathname:
                             "/(dashboard)/PurchasePass/PurchaseSeries/[id]",
                           params: { id: series?._id },
                         })
-                      : !hasCreatorPass
+                      : !hasCreatorPass && !hasAccessPass
                         ? router.push({
                             pathname:
                               "/(dashboard)/PurchasePass/PurchaseVideo/[id]",
@@ -475,7 +488,10 @@ const VideoDetails = ({
                         : router.push({
                             pathname: "/(dashboard)/profile/access",
                             params: {
-                              routeTab: series?.type ? "series" : "content",
+                              routeTab:
+                                hasAccessPass === "series"
+                                  ? "series"
+                                  : "content",
                             },
                           });
                   }}
@@ -486,9 +502,10 @@ const VideoDetails = ({
                     <Text className="text-white text-[16px] flex-row items-center">
                       Content access
                     </Text>
-                    {hasCreatorPass ? (
+                    {hasCreatorPass || hasAccessPass ? (
                       <Text className="text-[16px] text-green-600">
-                        Active
+                        Active{" "}
+                        <ArrowUpRightFromSquare color={"green"} size={8} />
                       </Text>
                     ) : (
                       <Text className="text-white text-[16px]">
@@ -519,19 +536,29 @@ const VideoDetails = ({
                             "/(dashboard)/PurchasePass/PurchaseCreatorPass/[id]",
                           params: { id: createdBy?._id },
                         })
-                      : series && series?.type !== "Free"
+                      : series && series?.type !== "Free" && !hasAccessPass
                         ? router.push({
                             pathname:
                               "/(dashboard)/PurchasePass/PurchaseSeries/[id]",
                             params: { id: series?._id },
                           })
-                        : hasCreatorPass
-                          ? ""
-                          : router.push({
-                              pathname:
-                                "/(dashboard)/PurchasePass/PurchaseVideo/[id]",
-                              params: { id: videoId },
-                            });
+                        : hasAccessPass
+                          ? router.push({
+                              pathname: "/(dashboard)/profile/access",
+                              params: {
+                                routeTab:
+                                  hasAccessPass === "series"
+                                    ? "series"
+                                    : "content",
+                              },
+                            })
+                          : hasCreatorPass
+                            ? ""
+                            : router.push({
+                                pathname:
+                                  "/(dashboard)/PurchasePass/PurchaseVideo/[id]",
+                                params: { id: videoId },
+                              });
                   }}
                 >
                   <View
@@ -565,16 +592,18 @@ const VideoDetails = ({
                         </Text>
                         <Text className="text-white text-[16px]">
                           {series && series?.type !== "Free" ? (
-                            hasAccessPass?.toLowerCase() == "series" ||
-                            hasCreatorPass ? (
-                              <Text className="text-[16px] text-green-600">
-                                Active
+                            hasAccessPass || hasCreatorPass ? (
+                              <Text className="text-[16px] text-green-600 items-center justify-center">
+                                Active{" "}
+                                <ArrowUpRightFromSquare
+                                  color={"green"}
+                                  size={8}
+                                />
                               </Text>
                             ) : (
                               `₹${series?.price}`
                             )
-                          ) : hasAccessPass?.toLocaleLowerCase() != "video" ||
-                            hasCreatorPass ? (
+                          ) : hasAccessPass || hasCreatorPass ? (
                             <Text className="text-[16px] text-green-600">
                               Active
                             </Text>
@@ -592,7 +621,7 @@ const VideoDetails = ({
         )}
 
         {/* Episode Dropdown */}
-        {showDropdown && (
+        {/* {showDropdown && (
           <View className="absolute bottom-3.5 left-11 rounded-xl p-2 w-56">
             {series?.episodes.map((ep, idx) => (
               <TouchableOpacity
@@ -624,7 +653,7 @@ const VideoDetails = ({
               </TouchableOpacity>
             ))}
           </View>
-        )}
+        )} */}
       </View>
     </View>
   );

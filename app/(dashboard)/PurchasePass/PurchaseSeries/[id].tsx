@@ -80,7 +80,6 @@ const SeriesAccess = () => {
   return (
     <SafeAreaView
       style={{ flex: 1, backgroundColor: "black" }}
-      edges={["bottom"]}
     >
       <View className="flex-1 bg-black">
         <StatusBar barStyle="light-content" backgroundColor="#000" />

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from "react";
 import {
   View,
   Text,
@@ -10,15 +10,15 @@ import {
   RefreshControl,
   FlatList,
   Dimensions,
-  BackHandler
-} from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { CONFIG } from '@/Constants/config';
-import { useAuthStore } from '@/store/useAuthStore';
-import { router, useLocalSearchParams } from 'expo-router';
-import EpisodeList from '../components/EpisodeList';
-import VideoPlayer from '@/app/(dashboard)/long/_components/VideoPlayer';
-import Constants from 'expo-constants';
+  BackHandler,
+} from "react-native";
+import { Ionicons } from "@expo/vector-icons";
+import { CONFIG } from "@/Constants/config";
+import { useAuthStore } from "@/store/useAuthStore";
+import { router, useLocalSearchParams } from "expo-router";
+import EpisodeList from "../components/EpisodeList";
+import VideoPlayer from "@/app/(dashboard)/long/_components/VideoPlayer";
+import Constants from "expo-constants";
 
 interface SeriesDetailsScreenProps {
   seriesId?: string;
@@ -65,6 +65,8 @@ interface Episode {
   _id: string;
   name: string;
   description: string;
+  type: string;
+  amount: number;
   videoUrl: string;
   thumbnailUrl: string;
   episode_number: number;
@@ -74,20 +76,20 @@ interface Episode {
     username: string;
     email: string;
   };
-  views?: number;
-  likes?: number;
+  views: number;
+  likes: number;
+  gifts: number;
+  creatorPassDetails: any;
 }
 
 const SeriesDetailsScreen: React.FC<SeriesDetailsScreenProps> = ({
   seriesId: propSeriesId,
   onBack,
-  onAddNewEpisode
+  onAddNewEpisode,
 }) => {
   // Get parameters from route if not provided as props
   const params = useLocalSearchParams();
   const seriesId = propSeriesId || (params.seriesId as string);
-
-
 
   // Helper function for back navigation
   const handleBack = () => {
@@ -103,7 +105,9 @@ const SeriesDetailsScreen: React.FC<SeriesDetailsScreenProps> = ({
     return (
       <View className="flex-1 bg-black justify-center items-center">
         <StatusBar barStyle="light-content" backgroundColor="#000" />
-        <Text className="text-red-400 text-center mb-4">Series ID is required</Text>
+        <Text className="text-red-400 text-center mb-4">
+          Series ID is required
+        </Text>
         <TouchableOpacity
           onPress={handleBack}
           className="bg-gray-600 px-4 py-2 rounded-lg"
@@ -130,7 +134,7 @@ const SeriesDetailsScreen: React.FC<SeriesDetailsScreenProps> = ({
       const { token } = useAuthStore.getState();
 
       if (!token) {
-        setError('Authentication required');
+        setError("Authentication required");
         if (showLoadingIndicator) {
           setLoading(false);
         }
@@ -139,13 +143,16 @@ const SeriesDetailsScreen: React.FC<SeriesDetailsScreenProps> = ({
       }
 
       // Use the series by ID API to get specific series with episodes
-      const response = await fetch(`${CONFIG.API_BASE_URL}/series/${seriesId}`, {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
+      const response = await fetch(
+        `${CONFIG.API_BASE_URL}/series/${seriesId}`,
+        {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
         }
-      });
+      );
 
       const result = await response.json();
 
@@ -153,10 +160,10 @@ const SeriesDetailsScreen: React.FC<SeriesDetailsScreenProps> = ({
         setSeriesData(result.data);
         setError(null); // Clear any previous errors
       } else {
-        setError(result.error || 'Failed to fetch series details');
+        setError(result.error || "Failed to fetch series details");
       }
     } catch (error) {
-      setError('Network error occurred');
+      setError("Network error occurred");
     } finally {
       if (showLoadingIndicator) {
         setLoading(false);
@@ -179,7 +186,10 @@ const SeriesDetailsScreen: React.FC<SeriesDetailsScreenProps> = ({
       return false; // Allow default back action
     };
 
-    const backHandler = BackHandler.addEventListener('hardwareBackPress', backAction);
+    const backHandler = BackHandler.addEventListener(
+      "hardwareBackPress",
+      backAction
+    );
     return () => backHandler.remove();
   }, [isVideoPlayerActive]);
 
@@ -190,31 +200,33 @@ const SeriesDetailsScreen: React.FC<SeriesDetailsScreenProps> = ({
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
-    return date.toLocaleDateString('en-GB', {
-      day: '2-digit',
-      month: 'short',
-      year: 'numeric'
+    return date.toLocaleDateString("en-GB", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
     });
   };
 
   const formatNumber = (num: number) => {
     if (num >= 1000000) {
-      return (num / 1000000).toFixed(1) + 'M';
+      return (num / 1000000).toFixed(1) + "M";
     } else if (num >= 1000) {
-      return (num / 1000).toFixed(1) + 'K';
+      return (num / 1000).toFixed(1) + "K";
     }
     return num.toString();
   };
 
   // Video player functions
   const handleVideoPlayerOpen = (episode: Episode, allEpisodes: Episode[]) => {
-    console.log('🎬 Opening video player for episode:', episode.name);
+    console.log("🎬 Opening video player for episode:", episode.amount, episode.creatorPassDetails);
 
     // Convert episodes to video format
-    const videoList = allEpisodes.map(ep => ({
-      _id: ep._id,
+    const videoList = allEpisodes.map((ep) => ({
+      videoId: ep._id,
       name: ep.name,
       title: ep.name,
+      type: ep.type,
+      amount: ep.amount,
       videoUrl: ep.videoUrl,
       thumbnailUrl: ep.thumbnailUrl,
       description: ep.description,
@@ -223,11 +235,18 @@ const SeriesDetailsScreen: React.FC<SeriesDetailsScreenProps> = ({
       created_by: ep.created_by,
       views: ep.views || 0,
       likes: ep.likes || 0,
-      type: 'episode',
-      comments: []
+      gifts: ep.gifts || 0,
+      comments: [],
+      series: {
+        _id: seriesData?._id || "",
+        type: seriesData?.type,
+        title: seriesData?.title || "",
+        thumbnailUrl: seriesData?.episodes?.[0]?.thumbnailUrl || "",
+      },
+      creatorPassDetails: ep.creatorPassDetails || {},
     }));
 
-    const currentIndex = allEpisodes.findIndex(ep => ep._id === episode._id);
+    const currentIndex = allEpisodes.findIndex((ep) => ep._id === episode._id);
 
     setCurrentVideoData(videoList[currentIndex]);
     setCurrentVideoList(videoList);
@@ -307,7 +326,9 @@ const SeriesDetailsScreen: React.FC<SeriesDetailsScreenProps> = ({
         <TouchableOpacity onPress={handleBack}>
           <Ionicons name="chevron-back" size={24} color="white" />
         </TouchableOpacity>
-        <Text className="text-white text-xl font-medium">{seriesData.title}</Text>
+        <Text className="text-white text-xl font-medium">
+          {seriesData.title}
+        </Text>
         <View className="w-6" />
       </View>
 
@@ -328,7 +349,8 @@ const SeriesDetailsScreen: React.FC<SeriesDetailsScreenProps> = ({
           <View className="flex-row items-center justify-between mb-4">
             <View>
               <Text className="text-white text-lg font-medium">
-                Total episode: {(seriesData.total_episodes || 0).toString().padStart(2, '0')}
+                Total episode:{" "}
+                {(seriesData.total_episodes || 0).toString().padStart(2, "0")}
               </Text>
               <Text className="text-gray-400 text-sm">
                 Launch on {formatDate(seriesData.release_date)}
@@ -368,19 +390,19 @@ const SeriesDetailsScreen: React.FC<SeriesDetailsScreenProps> = ({
         <View className="h-20" />
       </ScrollView>
 
-
-
       {/* Integrated Video Player */}
       {isVideoPlayerActive && currentVideoData && (
-        <View style={{
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          backgroundColor: 'black',
-          zIndex: 1000,
-        }}>
+        <View
+          style={{
+            position: "absolute",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: "black",
+            zIndex: 1000,
+          }}
+        >
           <FlatList
             data={currentVideoList}
             keyExtractor={(item) => item._id}
@@ -396,8 +418,8 @@ const SeriesDetailsScreen: React.FC<SeriesDetailsScreenProps> = ({
             )}
             initialScrollIndex={currentVideoIndex}
             getItemLayout={(_, index) => ({
-              length: Dimensions.get('window').height,
-              offset: Dimensions.get('window').height * index,
+              length: Dimensions.get("window").height,
+              offset: Dimensions.get("window").height * index,
               index,
             })}
             pagingEnabled
@@ -405,7 +427,7 @@ const SeriesDetailsScreen: React.FC<SeriesDetailsScreenProps> = ({
             viewabilityConfig={{ itemVisiblePercentThreshold: 80 }}
             decelerationRate="fast"
             showsVerticalScrollIndicator={false}
-            snapToInterval={Dimensions.get('window').height}
+            snapToInterval={Dimensions.get("window").height}
             snapToAlignment="start"
           />
         </View>

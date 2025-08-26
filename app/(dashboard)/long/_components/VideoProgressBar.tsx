@@ -109,8 +109,8 @@ const VideoProgressBar = ({
     const percentWatched = (currentTime / duration) * 100;
     if (!hasTriggered2Percent.current && percentWatched >= 2) {
       hasTriggered2Percent.current = true;
-      // saveVideoToHistory();
-      // incrementVideoViews();
+      saveVideoToHistory();
+      incrementVideoViews();
     }
   }, [currentTime, duration, isActive]);
 
@@ -163,12 +163,13 @@ const VideoProgressBar = ({
   };
 
   // Progress %
-  const progress = duration > 0 ? currentTime / duration : 0;
+  // const progress = duration > 0 ? currentTime / duration : 0;
 
   if (duration <= 0) return null;
 
   return (
-    <View
+    <>
+      {/* <View
       style={styles.progressBarContainer}
       onLayout={handleProgressBarLayout}
     >
@@ -178,7 +179,8 @@ const VideoProgressBar = ({
         style={styles.touchArea}
         onPress={(event) => handleSeek(event.nativeEvent.locationX)}
       />
-    </View>
+    </View> */}
+    </>
   );
 };
 

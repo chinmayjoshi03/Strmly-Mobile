@@ -13,6 +13,7 @@ import {
   Alert,
   ActivityIndicator,
   ScrollView,
+  Text,
 } from "react-native";
 import * as ImagePicker from "expo-image-picker";
 import { router, useFocusEffect } from "expo-router";
@@ -25,6 +26,7 @@ import {
   NETFLIX_CATEGORIES,
   ContentType,
 } from "@/Constants/contentCategories";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 const EditProfilePage: React.FC = () => {
   const [fontsLoaded] = useFonts({
@@ -348,300 +350,318 @@ const EditProfilePage: React.FC = () => {
 
   return (
     <ThemedView style={EditProfile.container}>
-      <ScrollView
-        contentContainerStyle={{ paddingBottom: 20 }}
-        showsVerticalScrollIndicator={false}
-        style={{ flex: 1 }}
-      >
-        {/* Top Bar */}
-        <View style={EditProfile.CreateCommunityTopBar}>
+      <SafeAreaView className="h-full">
+        <ScrollView
+          contentContainerStyle={{ paddingBottom: 0 }}
+          showsVerticalScrollIndicator={false}
+          style={{ flex: 1 }}
+        >
+          {/* Top Bar */}
+          <View style={EditProfile.CreateCommunityTopBar}>
+            <TouchableOpacity
+              onPress={() => router.back()}
+              style={EditProfile.BackIcon}
+            >
+              <Image
+                style={{ width: 14, height: 20 }}
+                source={require("../../assets/images/back.png")}
+              />
+            </TouchableOpacity>
+            <ThemedText style={EditProfile.TopBarTitle}>
+              {name || user?.username || "Edit Profile"}
+            </ThemedText>
+            <TouchableOpacity onPress={handleSave} disabled={saving}>
+              {saving ? (
+                <ActivityIndicator size="small" color="#007AFF" />
+              ) : (
+                <ThemedText style={EditProfile.SaveText}>Save</ThemedText>
+              )}
+            </TouchableOpacity>
+          </View>
+
+          {/* Image picker */}
           <TouchableOpacity
-            onPress={() => router.back()}
-            style={EditProfile.BackIcon}
+            style={{ alignItems: "center" }}
+            onPress={pickImage}
           >
             <Image
-              style={{ width: 20, height: 20 }}
-              source={require("../../assets/images/back.png")}
+              source={
+                imageUri
+                  ? { uri: imageUri }
+                  : require("../../assets/images/user.png")
+              }
+              style={EditProfile.CommunityAvatar}
             />
+            <Text style={EditProfile.RightTab}>Edit profile picture</Text>
           </TouchableOpacity>
-          <ThemedText style={EditProfile.TopBarTitle}>
-            {name || user?.username || "Edit Profile"}
-          </ThemedText>
-          <TouchableOpacity onPress={handleSave} disabled={saving}>
-            {saving ? (
-              <ActivityIndicator size="small" color="#007AFF" />
-            ) : (
-              <ThemedText style={EditProfile.SaveText}>Save</ThemedText>
-            )}
-          </TouchableOpacity>
-        </View>
 
-        {/* Image picker */}
-        <TouchableOpacity style={{ alignItems: "center" }} onPress={pickImage}>
-          <Image
-            source={
-              imageUri
-                ? { uri: imageUri }
-                : require("../../assets/images/user.png")
-            }
-            style={EditProfile.CommunityAvatar}
-          />
-          <ThemedText style={EditProfile.RightTab}>
-            Edit profile picture
-          </ThemedText>
-        </TouchableOpacity>
-
-        {/* Inputs */}
-        <View style={EditProfile.InfoContainer}>
-          <View style={EditProfile.InfoFrame}>
-            <ThemedText style={EditProfile.InfoLabel}>Name</ThemedText>
-            <TextInput
-              placeholder="Add name"
-              placeholderTextColor="#B0B0B0"
-              style={EditProfile.TextLabel}
-              value={name}
-              onChangeText={setName}
-            />
-          </View>
-
-          <View style={EditProfile.InfoFrame}>
-            <ThemedText style={EditProfile.InfoLabel}>Username</ThemedText>
-            <TextInput
-              placeholder="Add username"
-              placeholderTextColor="#B0B0B0"
-              style={EditProfile.TextLabel}
-              value={username}
-              onChangeText={setUsername}
-            />
-          </View>
-
-          <View style={EditProfile.InfoFrame}>
-            <ThemedText style={EditProfile.InfoLabel}>Bio</ThemedText>
-            <TextInput
-              placeholder="Add bio"
-              placeholderTextColor="#B0B0B0"
-              style={EditProfile.TextLabel}
-              value={bio}
-              onChangeText={setBio}
-            />
-          </View>
-
-          {/* Gender & Content Interest */}
-          <View style={EditProfile.TwoFieldRow}>
-            <View style={EditProfile.HalfField}>
-              <ThemedText style={EditProfile.InfoLabel}>Gender</ThemedText>
-              {renderDropdownField("Gender", gender, "Select gender", "gender")}
+          {/* Inputs */}
+          <View style={EditProfile.InfoContainer}>
+            <View style={EditProfile.InfoFrame}>
+              <ThemedText style={EditProfile.InfoLabel}>Name</ThemedText>
+              <TextInput
+                placeholder="Add name"
+                placeholderTextColor="#B0B0B0"
+                style={EditProfile.TextLabel}
+                value={name}
+                onChangeText={setName}
+              />
             </View>
 
-            <View style={EditProfile.HalfField}>
-              <ThemedText style={EditProfile.InfoLabel}>Platform</ThemedText>
-              {renderDropdownField(
-                "Platform",
-                contentInterest,
-                "Select platform",
-                "contentInterest"
-              )}
+            <View style={EditProfile.InfoFrame}>
+              <ThemedText style={EditProfile.InfoLabel}>Username</ThemedText>
+              <TextInput
+                placeholder="Add username"
+                placeholderTextColor="#B0B0B0"
+                style={EditProfile.TextLabel}
+                value={username}
+                onChangeText={setUsername}
+              />
             </View>
-          </View>
 
-          {/* Interest 1 (YouTube) & Interest 2 (Netflix) */}
-          <View style={EditProfile.InfoFrame}>
-            <ThemedText style={EditProfile.InfoLabel}>Interest 1 </ThemedText>
-            {renderDropdownField(
-              "Interest 1",
-              interest1.length > 0 ? interest1.join(", ") : "",
-              "Select YouTube interests",
-              "interest1"
-            )}
-            {interest1.length > 0 && (
-              <View
-                style={{ marginTop: 8, flexDirection: "row", flexWrap: "wrap" }}
-              >
-                {interest1.map((item, index) => (
-                  <View
-                    key={index}
-                    style={{
-                      backgroundColor: "#333",
-                      padding: 4,
-                      margin: 2,
-                      borderRadius: 4,
-                    }}
-                  >
-                    <ThemedText style={{ color: "#fff", fontSize: 12 }}>
-                      {item}
-                    </ThemedText>
-                  </View>
-                ))}
-              </View>
-            )}
-          </View>
+            <View style={EditProfile.InfoFrame}>
+              <ThemedText style={EditProfile.InfoLabel}>Bio</ThemedText>
+              <TextInput
+                placeholder="Add bio"
+                placeholderTextColor="#B0B0B0"
+                style={EditProfile.TextLabel}
+                value={bio}
+                onChangeText={setBio}
+              />
+            </View>
 
-          <View style={EditProfile.InfoFrame}>
-            <ThemedText style={EditProfile.InfoLabel}>Interest 2 </ThemedText>
-            {renderDropdownField(
-              "Interest 2",
-              interest2.length > 0 ? interest2.join(", ") : "",
-              "Select Netflix interests",
-              "interest2"
-            )}
-            {interest2.length > 0 && (
-              <View
-                style={{ marginTop: 8, flexDirection: "row", flexWrap: "wrap" }}
-              >
-                {interest2.map((item, index) => (
-                  <View
-                    key={index}
-                    style={{
-                      backgroundColor: "#333",
-                      padding: 4,
-                      margin: 2,
-                      borderRadius: 4,
-                    }}
-                  >
-                    <ThemedText style={{ color: "#fff", fontSize: 12 }}>
-                      {item}
-                    </ThemedText>
-                  </View>
-                ))}
-              </View>
-            )}
-          </View>
-
-          {/* Dropdown Modal (shared) */}
-          <Modal transparent animationType="fade" visible={visible}>
-            <TouchableOpacity
-              style={EditProfile.overlay}
-              onPress={() => setVisible(false)}
-            >
-              <View style={EditProfile.dropdownBox}>
-                {dropdownType === "interest1" ||
-                dropdownType === "interest2" ? (
-                  // Multi-select for interests
-                  <>
-                    <View
-                      style={{
-                        padding: 10,
-                        borderBottomWidth: 1,
-                        borderBottomColor: "#333",
-                      }}
-                    >
-                      <ThemedText style={{ color: "#fff", fontWeight: "bold" }}>
-                        {dropdownType === "interest1"
-                          ? "YouTube Interests (Select up to 3)"
-                          : "Netflix Interests (Select up to 3)"}
-                      </ThemedText>
-                      <ThemedText style={{ color: "#888", fontSize: 12 }}>
-                        {dropdownType === "interest1"
-                          ? `${interest1.length}/3 selected`
-                          : `${interest2.length}/3 selected`}
-                      </ThemedText>
-                    </View>
-                    {getDropdownOptions().map((item) => {
-                      const isSelected =
-                        dropdownType === "interest1"
-                          ? interest1.includes(item)
-                          : interest2.includes(item);
-                      return (
-                        <TouchableOpacity
-                          key={item}
-                          style={[
-                            EditProfile.dropdownItem,
-                            { flexDirection: "row", alignItems: "center" },
-                          ]}
-                          onPress={() => handleSelect(item)}
-                        >
-                          <View
-                            style={{
-                              width: 20,
-                              height: 20,
-                              borderWidth: 2,
-                              borderColor: isSelected ? "#007AFF" : "#666",
-                              backgroundColor: isSelected
-                                ? "#007AFF"
-                                : "transparent",
-                              marginRight: 10,
-                              alignItems: "center",
-                              justifyContent: "center",
-                            }}
-                          >
-                            {isSelected && (
-                              <ThemedText
-                                style={{ color: "#fff", fontSize: 12 }}
-                              >
-                                ✓
-                              </ThemedText>
-                            )}
-                          </View>
-                          <ThemedText style={EditProfile.dropdownItemText}>
-                            {item}
-                          </ThemedText>
-                        </TouchableOpacity>
-                      );
-                    })}
-                    <TouchableOpacity
-                      style={[
-                        EditProfile.dropdownItem,
-                        { backgroundColor: "#007AFF", marginTop: 10 },
-                      ]}
-                      onPress={() => setVisible(false)}
-                    >
-                      <ThemedText
-                        style={[
-                          EditProfile.dropdownItemText,
-                          { textAlign: "center", fontWeight: "bold" },
-                        ]}
-                      >
-                        Done
-                      </ThemedText>
-                    </TouchableOpacity>
-                  </>
-                ) : (
-                  // Single select for other dropdowns
-                  getDropdownOptions().map((item) => (
-                    <TouchableOpacity
-                      key={item}
-                      style={EditProfile.dropdownItem}
-                      onPress={() => handleSelect(item)}
-                    >
-                      <ThemedText style={EditProfile.dropdownItemText}>
-                        {item}
-                      </ThemedText>
-                    </TouchableOpacity>
-                  ))
+            {/* Gender & Content Interest */}
+            <View style={EditProfile.TwoFieldRow}>
+              <View style={EditProfile.HalfField}>
+                <ThemedText style={EditProfile.InfoLabel}>Gender</ThemedText>
+                {renderDropdownField(
+                  "Gender",
+                  gender,
+                  "Select gender",
+                  "gender"
                 )}
               </View>
+
+              <View style={EditProfile.HalfField}>
+                <ThemedText style={EditProfile.InfoLabel}>Platform</ThemedText>
+                {renderDropdownField(
+                  "Platform",
+                  contentInterest,
+                  "Select platform",
+                  "contentInterest"
+                )}
+              </View>
+            </View>
+
+            {/* Interest 1 (YouTube) & Interest 2 (Netflix) */}
+            <View style={EditProfile.InfoFrame}>
+              <ThemedText style={EditProfile.InfoLabel}>Interest 1 </ThemedText>
+              {renderDropdownField(
+                "Interest 1",
+                interest1.length > 0 ? interest1.join(", ") : "",
+                "Select YouTube interests",
+                "interest1"
+              )}
+              {interest1.length > 0 && (
+                <View
+                  style={{
+                    marginTop: 8,
+                    flexDirection: "row",
+                    flexWrap: "wrap",
+                  }}
+                >
+                  {interest1.map((item, index) => (
+                    <View
+                      key={index}
+                      style={{
+                        backgroundColor: "#333",
+                        padding: 4,
+                        margin: 2,
+                        borderRadius: 4,
+                      }}
+                    >
+                      <ThemedText style={{ color: "#fff", fontSize: 12 }}>
+                        {item}
+                      </ThemedText>
+                    </View>
+                  ))}
+                </View>
+              )}
+            </View>
+
+            <View style={EditProfile.InfoFrame}>
+              <ThemedText style={EditProfile.InfoLabel}>Interest 2 </ThemedText>
+              {renderDropdownField(
+                "Interest 2",
+                interest2.length > 0 ? interest2.join(", ") : "",
+                "Select Netflix interests",
+                "interest2"
+              )}
+              {interest2.length > 0 && (
+                <View
+                  style={{
+                    marginTop: 8,
+                    flexDirection: "row",
+                    flexWrap: "wrap",
+                  }}
+                >
+                  {interest2.map((item, index) => (
+                    <View
+                      key={index}
+                      style={{
+                        backgroundColor: "#333",
+                        padding: 4,
+                        margin: 2,
+                        borderRadius: 4,
+                      }}
+                    >
+                      <ThemedText style={{ color: "#fff", fontSize: 12 }}>
+                        {item}
+                      </ThemedText>
+                    </View>
+                  ))}
+                </View>
+              )}
+            </View>
+
+            {/* Dropdown Modal (shared) */}
+            <Modal transparent animationType="fade" visible={visible}>
+              <TouchableOpacity
+                style={EditProfile.overlay}
+                onPress={() => setVisible(false)}
+              >
+                <View style={EditProfile.dropdownBox}>
+                  {dropdownType === "interest1" ||
+                  dropdownType === "interest2" ? (
+                    // Multi-select for interests
+                    <>
+                      <View
+                        style={{
+                          padding: 10,
+                          borderBottomWidth: 1,
+                          borderBottomColor: "#333",
+                        }}
+                      >
+                        <ThemedText
+                          style={{ color: "#fff", fontWeight: "bold" }}
+                        >
+                          {dropdownType === "interest1"
+                            ? "YouTube Interests (Select up to 3)"
+                            : "Netflix Interests (Select up to 3)"}
+                        </ThemedText>
+                        <ThemedText style={{ color: "#888", fontSize: 12 }}>
+                          {dropdownType === "interest1"
+                            ? `${interest1.length}/3 selected`
+                            : `${interest2.length}/3 selected`}
+                        </ThemedText>
+                      </View>
+                      {getDropdownOptions().map((item) => {
+                        const isSelected =
+                          dropdownType === "interest1"
+                            ? interest1.includes(item)
+                            : interest2.includes(item);
+                        return (
+                          <TouchableOpacity
+                            key={item}
+                            style={[
+                              EditProfile.dropdownItem,
+                              { flexDirection: "row", alignItems: "center" },
+                            ]}
+                            onPress={() => handleSelect(item)}
+                          >
+                            <View
+                              style={{
+                                width: 20,
+                                height: 20,
+                                borderWidth: 2,
+                                borderColor: isSelected ? "#007AFF" : "#666",
+                                backgroundColor: isSelected
+                                  ? "#007AFF"
+                                  : "transparent",
+                                marginRight: 10,
+                                alignItems: "center",
+                                justifyContent: "center",
+                              }}
+                            >
+                              {isSelected && (
+                                <ThemedText
+                                  style={{ color: "#fff", fontSize: 12 }}
+                                >
+                                  ✓
+                                </ThemedText>
+                              )}
+                            </View>
+                            <ThemedText style={EditProfile.dropdownItemText}>
+                              {item}
+                            </ThemedText>
+                          </TouchableOpacity>
+                        );
+                      })}
+                      <TouchableOpacity
+                        style={[
+                          EditProfile.dropdownItem,
+                          { backgroundColor: "#007AFF", marginTop: 10 },
+                        ]}
+                        onPress={() => setVisible(false)}
+                      >
+                        <ThemedText
+                          style={[
+                            EditProfile.dropdownItemText,
+                            { textAlign: "center", fontWeight: "bold" },
+                          ]}
+                        >
+                          Done
+                        </ThemedText>
+                      </TouchableOpacity>
+                    </>
+                  ) : (
+                    // Single select for other dropdowns
+                    getDropdownOptions().map((item) => (
+                      <TouchableOpacity
+                        key={item}
+                        style={EditProfile.dropdownItem}
+                        onPress={() => handleSelect(item)}
+                      >
+                        <ThemedText style={EditProfile.dropdownItemText}>
+                          {item}
+                        </ThemedText>
+                      </TouchableOpacity>
+                    ))
+                  )}
+                </View>
+              </TouchableOpacity>
+            </Modal>
+
+            {/* Social Media Links Button */}
+            {/* <TouchableOpacity
+              style={EditProfile.CreatorPassButton}
+              onPress={() => router.push("/Profile/SocialMediaLinks")}
+            >
+              <ThemedText style={EditProfile.CreatorPassText}>
+                Add Social Media Links
+              </ThemedText>
+            </TouchableOpacity> */}
+
+            {/* Creator Pass Button */}
+            <TouchableOpacity
+              style={EditProfile.CreatorPassButton}
+              onPress={() => router.push("/Profile/CreatorPass")}
+            >
+              <ThemedText style={EditProfile.CreatorPassText}>
+                Add "CREATOR PASS"
+              </ThemedText>
             </TouchableOpacity>
-          </Modal>
 
-          {/* Social Media Links Button */}
-          <TouchableOpacity
-            style={EditProfile.CreatorPassButton}
-            onPress={() => router.push("/Profile/SocialMediaLinks")}
-          >
-            <ThemedText style={EditProfile.CreatorPassText}>
-              Add Social Media Links
-            </ThemedText>
-          </TouchableOpacity>
-
-          {/* Creator Pass Button */}
-          <TouchableOpacity
-            style={EditProfile.CreatorPassButton}
-            onPress={() => router.push("/Profile/CreatorPass")}
-          >
-            <ThemedText style={EditProfile.CreatorPassText}>
-              Add "CREATOR PASS"
-            </ThemedText>
-          </TouchableOpacity>
-
-          {/* Extra Info */}
-          <View style={{ marginTop: 10, paddingHorizontal: 20 }}>
-            <ThemedText style={EditProfile.ExtraInfo}>
-              Unlock Creator pass for your fans. All your paid content will be
-              freely available to users who purchase your Creator Pass.
-            </ThemedText>
+            {/* Extra Info */}
+            <View style={{ marginTop: 10, paddingHorizontal: 20 }}>
+              <ThemedText style={EditProfile.ExtraInfo}>
+                Unlock Creator pass for your fans. All your paid content will be
+                freely available to users who purchase your Creator Pass.
+              </ThemedText>
+            </View>
           </View>
-        </View>
-      </ScrollView>
+        </ScrollView>
+      </SafeAreaView>
     </ThemedView>
   );
 };

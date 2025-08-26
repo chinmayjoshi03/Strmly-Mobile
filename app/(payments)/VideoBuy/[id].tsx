@@ -137,7 +137,7 @@ const VideoBuy = () => {
       return;
     }
 
-    if (user && user?.id < userData?.created_by?._id) {
+    if (user && user?.id === userData?.created_by?._id) {
       Alert.alert("You cannot pay yourself");
       return;
     }
