@@ -112,71 +112,66 @@ export default function PublicProfilePageWithId() {
     }, [id, token, activeTab])
   );
 
-  useFocusEffect(
-    useCallback(() => {
-      if (!id) return;
+  useEffect(() => {
+    if (!id) return;
 
-      const fetchUserData = async () => {
-        try {
-          const response = await fetch(
-            `${BACKEND_API_URL}/user/profile/${id}`,
-            {
-              method: "GET",
-              headers: {
-                Authorization: `Bearer ${token}`,
-                "Content-Type": "application/json",
-              },
-            }
-          );
+    const fetchUserData = async () => {
+      try {
+        const response = await fetch(`${BACKEND_API_URL}/user/profile/${id}`, {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        });
 
-          const data = await response.json();
+        const data = await response.json();
 
-          if (!response.ok) {
-            throw new Error(data.message || "Failed to fetch user profile");
-          }
-
-          setUserData(data.user);
-          setIsFollowing(data.user?.isBeingFollowed);
-          setFollowing(data.user.totalFollowers);
-          console.log("Pubic User data", data.user);
-          setUserError(null);
-          if (data.user?.tags && data.user.tags.length > 2) setShowMore(true);
-
-          // Set communities from user data
-          if (data.user?.userDetails?.my_communities) {
-            console.log(
-              "Setting communities:",
-              data.user.userDetails.my_communities
-            );
-            setCommunities(data.user.userDetails.my_communities);
-          } else {
-            console.log("No communities found in user data");
-            setCommunities([]);
-          }
-        } catch (error) {
-          console.log(error);
-          setUserError(
-            error instanceof Error
-              ? error.message
-              : "An unknown error occurred while fetching user data."
-          );
-          Alert.alert("An unknown error occurred.");
-          // Alert.alert(
-          //   "Error",
-          //   error instanceof Error
-          //     ? error.message
-          //     : "An unknown error occurred while fetching user data."
-          // );
-        } finally {
-          setIsLoading(false);
+        if (!response.ok) {
+          throw new Error(data.message || "Failed to fetch user profile");
         }
-      };
 
-      if (token && id) {
-        fetchUserData();
+        setUserData(data.user);
+        setIsFollowing(data.user?.isBeingFollowed);
+        setFollowing(data.user.totalFollowers);
+        console.log("Pubic User data", data.user);
+        setUserError(null);
+        if (data.user?.tags && data.user.tags.length > 2) setShowMore(true);
+
+        // Set communities from user data
+        if (data.user?.userDetails?.my_communities) {
+          console.log(
+            "Setting communities:",
+            data.user.userDetails.my_communities
+          );
+          setCommunities(data.user.userDetails.my_communities);
+        } else {
+          console.log("No communities found in user data");
+          setCommunities([]);
+        }
+      } catch (error) {
+        console.log(error);
+        setUserError(
+          error instanceof Error
+            ? error.message
+            : "An unknown error occurred while fetching user data."
+        );
+        Alert.alert("An unknown error occurred.");
+        // Alert.alert(
+        //   "Error",
+        //   error instanceof Error
+        //     ? error.message
+        //     : "An unknown error occurred while fetching user data."
+        // );
+      } finally {
+        setIsLoading(false);
       }
-    }, [token, id, router])
-  );
+    };
+
+    if (token && id) {
+      fetchUserData();
+    }
+  }, [token, id, router]);
 
   const fetchUserLikedVideos = async () => {
     setIsLoadingVideos(true);

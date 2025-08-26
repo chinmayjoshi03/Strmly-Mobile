@@ -6,7 +6,7 @@ import {
   Image,
   FlatList,
 } from "react-native";
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState } from "react";
 import ThemedView from "@/components/ThemedView";
 import { useRouter } from "expo-router";
 import { useAuthStore } from "@/store/useAuthStore";
