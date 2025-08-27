@@ -172,8 +172,8 @@ const Dashboard = () => {
   };
 
   return (
-    <SafeAreaView style={{ height: height, backgroundColor: 'black' }}>
-    <View className="h-full">
+    <SafeAreaView style={{ height: height, backgroundColor: 'white' }} edges={['bottom']}>
+    <View className="h-full flex-1">
       {/* Header */}
       <View className="flex-row items-center justify-between px-4 py-3">
         <TouchableOpacity onPress={() => router.back()}>

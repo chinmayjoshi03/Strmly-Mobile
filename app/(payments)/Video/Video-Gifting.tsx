@@ -30,7 +30,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useGiftingStore } from "@/store/useGiftingStore";
 import ModalMessage from "@/components/AuthModalMessage";
 
-const { height } = Dimensions.get("screen");
+const { height } = Dimensions.get("window");
 const BACKEND_API_URL = Constants.expoConfig?.extra?.BACKEND_API_URL;
 
 type GiftingData = {
@@ -497,17 +497,17 @@ const VideoContentGifting = ({
   }, [token]);
 
   return (
-    <SafeAreaView style={{ height }} edges={['bottom']}>
+    <SafeAreaView style={{ height: height }} edges={['bottom']}>
       <ThemedView style={{ height }}>
         <KeyboardAvoidingView
           style={{ flex: 1 }}
           behavior={Platform.OS === "ios" ? "padding" : "height"}
-          keyboardVerticalOffset={Platform.OS === "ios" ? 60 : 10}
+          keyboardVerticalOffset={Platform.OS === "ios" ? 60 : 50}
         >
           <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
             <View className="flex-1 justify-between px-5">
               {/* Top section */}
-              <View className="mt-14">
+              <View className="mt-5">
                 {isWithdrawMode ? (
                   <View className="flex-row items-center justify-between mb-8">
                     <Pressable onPress={() => router.back()} className="p-2">
