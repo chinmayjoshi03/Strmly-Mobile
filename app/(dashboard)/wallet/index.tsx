@@ -209,7 +209,7 @@ const WalletPage = () => {
             )}
           </View>
 
-          <View className="absolute w-full top-[200%] h-full">
+          <View className="absolute w-full top-[220%] h-full left-0">
             <WalletButtons
               onWithdraw={handleWithdrawalRequest}
               onCreateOrder={createLoadOrder}

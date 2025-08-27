@@ -368,7 +368,7 @@ const CommunityAnalytics = () => {
                         </LinearGradient>
 
                         {/* Recent Activity / Transaction History */}
-                        <View className="mb-6">
+                        {/* <View className="mb-6">
                             <Text className="text-white text-2xl font-semibold mb-4" style={{ fontFamily: 'Poppins' }}>
                                 {activeTab === 'revenue' ? 'Transaction History' : 'Recent'}
                             </Text>
@@ -440,7 +440,7 @@ const CommunityAnalytics = () => {
                                     </View>
                                 )
                             )}
-                        </View>
+                        </View> */}
                     </>
                 )}
             </ScrollView>

@@ -8,6 +8,7 @@ import {
   TextInput,
   Image,
   StatusBar,
+  Pressable,
 } from "react-native";
 import { useRouter, useLocalSearchParams, useFocusEffect } from "expo-router";
 import { ArrowLeft, ChevronRight } from "lucide-react-native";
@@ -16,6 +17,7 @@ import ThemedView from "@/components/ThemedView";
 import { User, Community } from "@/api/profile/profileActions";
 import { useProfileSections } from "./_components/useProfileSections";
 import { getProfilePhotoUrl } from "@/utils/profileUtils";
+import { useAuthStore } from "@/store/useAuthStore";
 
 // Types are now imported from profileActions
 
@@ -24,6 +26,8 @@ export default function ProfileSections() {
   const params = useLocalSearchParams();
   const [searchQuery, setSearchQuery] = useState("");
   const insets = useSafeAreaInsets();
+
+  const { user } = useAuthStore();
 
   const userName = params.userName || "User";
   const initialSection = (params.section as any) || "followers";
@@ -61,63 +65,73 @@ export default function ProfileSections() {
   const filteredData = searchData(searchQuery);
 
   const renderUserItem = (user: User) => (
-    <View
-      key={user._id}
-      className="flex-row items-center justify-between py-4 px-4"
+    <Pressable
+      onPress={() =>
+        router.push({
+          pathname: "/(dashboard)/profile/public/[id]",
+          params: { id: user._id },
+        })
+      }
     >
-      <View className="flex-row items-center flex-1">
-        <Image
-          source={{ uri: getProfilePhotoUrl(user.profile_photo, "user") }}
-          className="w-12 h-12 rounded-full mr-3"
-        />
-        <View className="flex-1">
+      <View
+        key={user._id}
+        className="flex-row items-center justify-between py-4 px-4"
+      >
+        <View className="flex-row items-center flex-1">
+          <Image
+            source={{ uri: getProfilePhotoUrl(user.profile_photo, "user") }}
+            className="w-12 h-12 rounded-full mr-3"
+          />
+          <View className="flex-1">
+            <Text
+              className="text-white font-semibold text-base"
+              style={{ fontFamily: "Poppins" }}
+            >
+              {user.username}
+            </Text>
+            <Text
+              className="text-gray-400 text-sm"
+              style={{ fontFamily: "Poppins" }}
+            >
+              @{user.username}
+            </Text>
+          </View>
+        </View>
+        <View className="items-end">
           <Text
-            className="text-white font-semibold text-base"
+            className="text-white font-bold text-lg"
             style={{ fontFamily: "Poppins" }}
           >
-            {user.username}
+            {user.total_followers
+              ? user.total_followers >= 1000000
+                ? `${(user.total_followers / 1000000).toFixed(1)}M`
+                : user.total_followers >= 1000
+                  ? `${(user.total_followers / 1000).toFixed(1)}K`
+                  : user.total_followers.toString()
+              : "0"}
           </Text>
           <Text
             className="text-gray-400 text-sm"
             style={{ fontFamily: "Poppins" }}
           >
-            @{user.username}
+            Followers
           </Text>
         </View>
       </View>
-      <View className="items-end">
-        <Text
-          className="text-white font-bold text-lg"
-          style={{ fontFamily: "Poppins" }}
-        >
-          {user.total_followers
-            ? user.total_followers >= 1000000
-              ? `${(user.total_followers / 1000000).toFixed(1)}M`
-              : user.total_followers >= 1000
-                ? `${(user.total_followers / 1000).toFixed(1)}K`
-                : user.total_followers.toString()
-            : "0"}
-        </Text>
-        <Text
-          className="text-gray-400 text-sm"
-          style={{ fontFamily: "Poppins" }}
-        >
-          Followers
-        </Text>
-      </View>
-    </View>
+    </Pressable>
   );
 
   const renderCommunityItem = (community: Community) => (
     <TouchableOpacity
       key={community._id}
       className="flex-row items-center justify-between py-4 px-4"
-      onPress={() =>
+      onPress={() =>{
+        // console.log(community.founder, user?.id);
         router.push({
-          pathname: "/(communities)/CommunityDetails",
+          pathname: community?.founder._id === user?.id ? "/(dashboard)/communities/personal/[id]" : "/(dashboard)/communities/public/[id]",
           params: { id: community._id },
         })
-      }
+      }}
     >
       <View className="flex-row items-center flex-1">
         <Image
@@ -144,8 +158,8 @@ export default function ProfileSections() {
         </View>
       </View>
       <View className="flex-row items-center">
-        <View className="items-end mr-4">
-          <View className="flex-row items-center space-x-4">
+        <View className="items-center mr-4">
+          <View className="flex-row gap-2 items-center space-x-4">
             <View className="items-center">
               <Text
                 className="text-white font-bold text-sm"

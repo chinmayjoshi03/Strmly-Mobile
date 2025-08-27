@@ -24,12 +24,14 @@ import SeriesPurchaseMessage from "./SeriesPurcchaseMessaage";
 import CreatorPassBuyMessage from "./CreatorPassBuyMessage";
 import VideoBuyMessage from "./VideoBuyMessage";
 import { useIsFocused } from "@react-navigation/native";
+import { Text } from "react-native";
 
 const { height: screenHeight } = Dimensions.get("window");
 
 type Props = {
   videoData: VideoItemType;
   isActive: boolean;
+  isGlobalPlayer: boolean;
   showCommentsModal?: boolean;
   setShowCommentsModal?: (show: boolean) => void;
   onEpisodeChange?: (episodeData: any) => void;
@@ -45,6 +47,7 @@ type Props = {
 const VideoPlayer = ({
   videoData,
   isActive,
+  isGlobalPlayer = false,
   showCommentsModal = false,
   setShowCommentsModal,
   onEpisodeChange,
@@ -71,17 +74,29 @@ const VideoPlayer = ({
 
   const [isReady, setIsReady] = useState(false);
   const [isBuffering, setIsBuffering] = useState(false);
+  const [playerError, setPlayerError] = useState(false);
 
   const mountedRef = useRef(true);
   const statusListenerRef = useRef<any>(null);
+  const timeListenerRef = useRef<any>(null);
+  const playerRef = useRef<any>(null);
 
   const VIDEO_HEIGHT = containerHeight || screenHeight;
   const isFocused = useIsFocused();
 
+  // Create player with proper cleanup
   const player = useVideoPlayer(videoData?.videoUrl || "", (p) => {
     p.loop = true;
     p.muted = isMutedFromStore;
   });
+
+  // Store player reference
+  useEffect(() => {
+    playerRef.current = player;
+    return () => {
+      playerRef.current = null;
+    };
+  }, [player]);
 
   useEffect(() => {
     mountedRef.current = true;
@@ -90,130 +105,182 @@ const VideoPlayer = ({
     };
   }, []);
 
-  // useEffect(() => {
-  //   const readySub = player.addListener("readyForDisplay", () => {
-  //     setIsReady(true);
-  //   });
-
-  //   const bufferSub = player.addListener("statusChange", ({ status }) => {
-  //     setIsBuffering(status === "");
-  //   });
-
-  //   return () => {
-  //     readySub.remove();
-  //     bufferSub.remove();
-  //   };
-  // }, [player]);
-
+  // Handle player status changes
   useEffect(() => {
-    const statusSub = player.addListener("statusChange", ({ status }) => {
+    if (!player || !videoData?.videoUrl) return;
+
+    const handleStatusChange = ({ status, error }: any) => {
+      if (!mountedRef.current) return;
+
       setIsReady(status === "readyToPlay");
       setIsBuffering(status === "loading");
-    });
+      setPlayerError(!!error);
+
+      if (error) {
+        console.error("Video player error:", error);
+      }
+    };
+
+    statusListenerRef.current = player.addListener(
+      "statusChange",
+      handleStatusChange
+    );
 
     return () => {
-      statusSub.remove();
+      if (statusListenerRef.current) {
+        statusListenerRef.current.remove();
+        statusListenerRef.current = null;
+      }
     };
-  }, [player]);
+  }, [player, videoData?.videoUrl]);
 
+  // Handle video playback based on focus and active state
   useEffect(() => {
-    if (isReady && isActive && isFocused && !isGifted) {
-      player.muted = isMutedFromStore;
-      player.play();
-      setActivePlayer(player);
-      usePlayerStore.getState().smartPlay();
-    } else {
-      player.pause();
+    if (!player || !videoData?.videoUrl) return;
+
+    const shouldPlay =
+      isReady && isActive && isFocused && !isGifted && !playerError;
+
+    try {
+      if (shouldPlay) {
+        player.muted = isMutedFromStore;
+        player.play();
+        setActivePlayer(player);
+        usePlayerStore.getState().smartPlay();
+      } else {
+        player.pause();
+        if (!isFocused || !isActive) {
+          clearActivePlayer();
+        }
+      }
+    } catch (error) {
+      console.error("Error controlling video playback:", error);
+      setPlayerError(true);
     }
-  }, [isReady, isActive, isFocused, isGifted, isMutedFromStore]);
+  }, [
+    isReady,
+    isActive,
+    isFocused,
+    isGifted,
+    isMutedFromStore,
+    player,
+    playerError,
+    videoData?.videoUrl,
+  ]);
 
+  // Handle gifting state
   useEffect(() => {
-    const statusSub = player.addListener("statusChange", ({ status }) => {
-      setIsReady(status === "readyToPlay");
-      setIsBuffering(status === "loading");
-    });
+    if (!player) return;
 
-    return () => {
-      statusSub.remove();
-    };
-  }, [player]);
-
-  useEffect(() => {
-    if (isReady && isActive && isFocused && !isGifted) {
-      player.muted = isMutedFromStore;
-      player.play();
-      setActivePlayer(player);
-      usePlayerStore.getState().smartPlay();
-    } else {
-      player.pause();
+    try {
+      if (isGifted) {
+        player.pause();
+      } else if (isActive && isFocused && isReady && !playerError) {
+        player.play();
+      }
+    } catch (error) {
+      console.error("Error handling gifting state:", error);
     }
-  }, [isReady, isActive, isFocused, isGifted, isMutedFromStore]);
+  }, [isGifted, player, isActive, isFocused, isReady, playerError]);
 
+  // Handle focus changes
   useEffect(() => {
-    if (isGifted) {
-      player.pause();
-    } else {
-      player.play();
+    if (!player) return;
+
+    try {
+      if (!isFocused) {
+        player.pause();
+        player.muted = true;
+        clearActivePlayer();
+      } else if (isActive && isReady && !isGifted && !playerError) {
+        player.muted = isMutedFromStore;
+        player.play();
+        setActivePlayer(player);
+        usePlayerStore.getState().smartPlay();
+      }
+    } catch (error) {
+      console.error("Error handling focus change:", error);
     }
-  }, [isGifted]);
+  }, [
+    isFocused,
+    isActive,
+    player,
+    isMutedFromStore,
+    isReady,
+    isGifted,
+    playerError,
+  ]);
 
+  // Handle player store updates
   useEffect(() => {
-    if (!isFocused) {
-      player.pause();
-      player.muted = true;
-    } else if (isActive) {
-      player.muted = isMutedFromStore;
-      player.play();
-    }
-  }, [isFocused, isActive, player, isMutedFromStore]);
-
-  useEffect(() => {
-    if (!videoData?.videoUrl) return;
+    if (!videoData?.videoUrl || !player) return;
 
     const handleStatus = (payload: any) => {
-      if (isActive) {
+      if (isActive && mountedRef.current) {
         _updateStatus(payload.status, payload.error);
       }
     };
 
-    const statusSubscription = player.addListener("statusChange", handleStatus);
-    const timeSub = player.addListener("timeUpdate", handleStatus);
-
-    if (isActive) {
-      setActivePlayer(player);
-      usePlayerStore.getState().smartPlay();
-    } else {
-      player.pause();
-      player.muted = isMutedFromStore;
-    }
+    statusListenerRef.current = player.addListener(
+      "statusChange",
+      handleStatus
+    );
+    timeListenerRef.current = player.addListener("timeUpdate", handleStatus);
 
     return () => {
-      statusSubscription.remove();
-      timeSub.remove();
-      if (isActive) {
-        clearActivePlayer();
+      if (statusListenerRef.current) {
+        statusListenerRef.current.remove();
+        statusListenerRef.current = null;
+      }
+      if (timeListenerRef.current) {
+        timeListenerRef.current.remove();
+        timeListenerRef.current = null;
       }
     };
   }, [isActive, player, _updateStatus, videoData?.videoUrl]);
 
+  // Cleanup on unmount
   useEffect(() => {
     return () => {
       mountedRef.current = false;
+
+      // Clean up listeners
       if (statusListenerRef.current) {
         statusListenerRef.current.remove();
+        statusListenerRef.current = null;
       }
-      setTimeout(() => {
+      if (timeListenerRef.current) {
+        timeListenerRef.current.remove();
+        timeListenerRef.current = null;
+      }
+
+      // Clean up player
+      if (playerRef.current) {
         try {
-          player.replaceAsync(null);
-        } catch (error) {}
-      }, 0);
+          playerRef.current.pause();
+          clearActivePlayer();
+          // Use a timeout to ensure cleanup happens after component unmounts
+          setTimeout(() => {
+            if (playerRef.current) {
+              try {
+                playerRef.current.replace("");
+              } catch (error) {
+                console.log("Player cleanup error (expected):", error);
+              }
+            }
+          }, 100);
+        } catch (error) {
+          console.log("Player cleanup error (expected):", error);
+        }
+      }
     };
-  }, [player]);
+  }, []);
 
   const dynamicStyles = StyleSheet.create({
     container: {
       height: VIDEO_HEIGHT,
       width: "100%",
+      backgroundColor: "#000",
     },
     video: {
       width: "100%",
@@ -238,24 +305,45 @@ const VideoPlayer = ({
     return <View style={dynamicStyles.container} />;
   }
 
+  if (playerError) {
+    return (
+      <View
+        style={[
+          dynamicStyles.container,
+          { justifyContent: "center", alignItems: "center" },
+        ]}
+      >
+        <Text style={{ color: "white", textAlign: "center" }}>
+          Video unavailable
+        </Text>
+      </View>
+    );
+  }
+
   return (
     <View style={dynamicStyles.container}>
-      {!isReady && videoData.thumbnailUrl && (
+      {!isReady && !isBuffering && videoData.thumbnailUrl && (
         <View className="relative">
           <Image
             source={{ uri: videoData.thumbnailUrl }}
             style={dynamicStyles.thumbnail}
           />
-          <ActivityIndicator size="large" color="white" className="absolute w-full top-96" />
+          <ActivityIndicator
+            size="large"
+            color="white"
+            className="absolute w-full top-96"
+          />
         </View>
       )}
 
-      <VideoView
-        player={player}
-        nativeControls={false}
-        style={dynamicStyles.video}
-        contentFit="cover"
-      />
+      {player && (
+        <VideoView
+          player={player}
+          nativeControls={false}
+          style={dynamicStyles.video}
+          contentFit="cover"
+        />
+      )}
 
       {isBuffering && (
         <ActivityIndicator
@@ -266,14 +354,16 @@ const VideoPlayer = ({
       )}
 
       <VideoControls
+        player={player}
         videoData={videoData}
+        isGlobalPlayer={isGlobalPlayer}
         setShowCommentsModal={setShowCommentsModal}
         onEpisodeChange={onEpisodeChange}
         onStatsUpdate={onStatsUpdate}
       />
 
       {/* Uncomment if needed */}
-      {/* <View className="absolute left-0 right-0 z-10 px-2" style={{ bottom: 42.5 }}>
+      {/* <View className="absolute left-0 right-0 z-10 px-2" style={!isGlobalPlayer ? { bottom: 42.5 } : { bottom: 0 }}>
         <VideoProgressBar
           player={player}
           isActive={isActive}
@@ -328,7 +418,7 @@ const VideoPlayer = ({
         />
       )}
 
-      {showCommentsModal && setShowCommentsModal && (
+      {/* {showCommentsModal && setShowCommentsModal && (
         <CommentsSection
           onClose={() => setShowCommentsModal(false)}
           videoId={videoData._id}
@@ -349,7 +439,7 @@ const VideoPlayer = ({
             }
           }}
         />
-      )}
+      )} */}
     </View>
   );
 };

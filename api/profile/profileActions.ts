@@ -15,6 +15,7 @@ export interface Community {
   followers?: any[];
   creators?: any[];
   founder?: {
+    _id: string;
     username: string;
     profile_photo: string;
   };
@@ -32,9 +33,14 @@ export interface FollowingResponse {
   count: number;
 }
 
-export interface CommunitiesResponse {
+export interface CombinedCommunitiesResponse {
   message: string;
   communities: Community[] | { created: Community[]; joined: Community[] };
+}
+
+export interface CommunitiesResponse {
+  message: string;
+  data: Community[] | { created: Community[]; joined: Community[] };
 }
 
 export class ProfileAPI {
@@ -98,12 +104,12 @@ export class ProfileAPI {
   }
 
   // Get user communities
-  static async getUserCommunities(
+  static async getUserCombinedCommunities(
     token: string,
     type: 'all' | 'created' | 'joined' = 'all'
-  ): Promise<CommunitiesResponse> {
+  ): Promise<CombinedCommunitiesResponse> {
     const response = await fetch(
-      `${CONFIG.API_BASE_URL}/user/communities?type=${type}`,
+      `${CONFIG.API_BASE_URL}/community/my-communities?type=${type}`,
       {
         method: 'GET',
         headers: ProfileAPI.getHeaders(token),
@@ -115,6 +121,29 @@ export class ProfileAPI {
       console.error('❌ Get communities error response:', errorText);
       throw new Error(`Failed to get communities: ${response.status} - ${errorText}`);
     }
+    console.log("Fetched Combined communities");
+
+    return response.json();
+  }
+  
+  // Get user communities
+  static async getUserCommunities(
+    token: string,
+  ): Promise<CommunitiesResponse> {
+    const response = await fetch(
+      `${CONFIG.API_BASE_URL}/user/following-communities`,
+      {
+        method: 'GET',
+        headers: ProfileAPI.getHeaders(token),
+      }
+    );
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('❌ Get communities error response:', errorText);
+      throw new Error(`Failed to get communities: ${response.status} - ${errorText}`);
+    }
+    console.log("Fetched communities");
 
     return response.json();
   }
@@ -147,6 +176,7 @@ export class ProfileAPI {
 export const profileActions = {
   getUserFollowers: ProfileAPI.getUserFollowers,
   getUserFollowing: ProfileAPI.getUserFollowing,
+  getUserCombinedCommunities: ProfileAPI.getUserCombinedCommunities,
   getUserCommunities: ProfileAPI.getUserCommunities,
   searchFollowersOrFollowing: ProfileAPI.searchFollowersOrFollowing,
 };

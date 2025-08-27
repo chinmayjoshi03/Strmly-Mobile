@@ -236,7 +236,7 @@ const CommunityAnalytics = () => {
                         </LinearGradient>
 
                         {/* Recent Activity */}
-                        <View className="mb-6">
+                        {/* <View className="mb-6">
                             <Text className="text-white text-2xl font-semibold mb-4">Recent</Text>
                             <View className="space-y-4">
                                 {recentActivity.map((activity) => (
@@ -255,7 +255,7 @@ const CommunityAnalytics = () => {
                                     </View>
                                 ))}
                             </View>
-                        </View>
+                        </View> */}
                     </>
                 )}
             </ScrollView>

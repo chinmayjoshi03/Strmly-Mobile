@@ -90,7 +90,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     paddingHorizontal: 20,
-    opacity: 0.5,
+    opacity: 0.9,
   },
   modalContainer: {
     width: "100%",

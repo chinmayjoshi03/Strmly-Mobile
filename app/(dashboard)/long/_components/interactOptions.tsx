@@ -10,6 +10,7 @@ import { useGiftingStore } from "@/store/useGiftingStore";
 type InteractOptionsProps = {
   onCommentPress?: () => void; // Callback function for comment button press - now optional
   videoId: string;
+  name: string;
   likes: number;
   gifts: number;
   shares: number;
@@ -23,7 +24,6 @@ type InteractOptionsProps = {
 
   // Callbacks to update parent component stats
 
-
   // Callbacks to update parent component stats
   onLikeUpdate?: (newLikeCount: number, isLiked: boolean) => void;
   onShareUpdate?: (newShareCount: number, isShared: boolean) => void;
@@ -33,15 +33,12 @@ type InteractOptionsProps = {
 const InteractOptions = ({
   onCommentPress,
   videoId,
+  name,
   likes,
   gifts,
   shares,
   comments,
   creator,
-
-  onLikeUpdate,
-  onShareUpdate,
-  onGiftUpdate,
 }: InteractOptionsProps) => {
   // Destructure onCommentPress from props
   const [like, setLike] = useState(0);
@@ -55,8 +52,6 @@ const InteractOptions = ({
   const { initiateGifting } = useGiftingStore();
 
   const BACKEND_API_URL = CONFIG.API_BASE_URL;
-
-  // console.log("creator", creator);
 
   const LikeVideo = async () => {
     if (!token || !videoId) {
@@ -90,11 +85,11 @@ const InteractOptions = ({
       // setLike(data.likes);
       // setIsLikedVideo(data.isLiked);
       console.log("Like video", data);
-      
+
       // Update parent component with new stats
-      if (onLikeUpdate) {
-        onLikeUpdate(like, isLikedVideo);
-      }
+      // if (onLikeUpdate) {
+      //   onLikeUpdate(like, isLikedVideo);
+      // }
     } catch (err) {
       console.log(err);
       setLike(() => prevLikeCount);
@@ -102,41 +97,44 @@ const InteractOptions = ({
     }
   };
 
-  useEffect(() => {
-    const checkIfVideoLike = async () => {
-      if (!token || !videoId) {
-        return;
+  useFocusEffect(
+    useCallback(() => {
+      const checkIfVideoLike = async () => {
+        if (!token || !videoId) {
+          return;
+        }
+
+        try {
+          console.log("checking like status for", token);
+          const response = await fetch(
+            `${BACKEND_API_URL}/interactions/like/status`,
+            {
+              method: "POST",
+              headers: {
+                Authorization: `Bearer ${token}`,
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({ videoId: videoId }),
+            }
+          );
+
+          if (!response.ok)
+            throw new Error("Failed while checking video like status");
+
+          const data = await response.json();
+          console.log("check like", data, creator.username, videoId, name);
+          setLike(data.likes);
+          setIsLikedVideo(data.isLiked);
+        } catch (err) {
+          console.log(err);
+        }
+      };
+
+      if (token && videoId) {
+        checkIfVideoLike();
       }
-
-      try {
-        const response = await fetch(
-          `${BACKEND_API_URL}/interactions/like/status`,
-          {
-            method: "POST",
-            headers: {
-              Authorization: `Bearer ${token}`,
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({ videoId: videoId }),
-          }
-        );
-
-        if (!response.ok)
-          throw new Error("Failed while checking video like status");
-
-        const data = await response.json();
-        console.log("check like", data, creator.username, videoId);
-        setLike(data.likes);
-        setIsLikedVideo(data.isLiked);
-      } catch (err) {
-        console.log(err);
-      }
-    };
-
-    if (token && videoId) {
-      checkIfVideoLike();
-    }
-  }, [token, videoId, likes]);
+    }, [token, videoId, likes])
+  );
 
   // Check video gifting
   useFocusEffect(
@@ -162,16 +160,11 @@ const InteractOptions = ({
           const data = await response.json();
           console.log("check gifting", data);
           setGifts(data.data);
-          
+
           // Update parent component with new gift count
-          if (onGiftUpdate) {
-            onGiftUpdate(data.data);
-          }
-          
-          // Update parent component with new gift count
-          if (onGiftUpdate) {
-            onGiftUpdate(data.data);
-          }
+          // if (onGiftUpdate) {
+          //   onGiftUpdate(data.data);
+          // }
         } catch (err) {
           console.log(err);
         }
@@ -228,7 +221,9 @@ const InteractOptions = ({
     const prevReshareCount = reshares;
     const prevIsReshared = isResharedVideo;
 
-    setReshares(() => prevIsReshared ? prevReshareCount - 1 : prevReshareCount + 1);
+    setReshares(() =>
+      prevIsReshared ? prevReshareCount - 1 : prevReshareCount + 1
+    );
     setIsResharedVideo(() => !prevIsReshared);
 
     try {
@@ -249,11 +244,11 @@ const InteractOptions = ({
       // setIsResharedVideo(!isResharedVideo);
       // setReshares(data.totalReshares);
       console.log("Reshare video", data);
-      
+
       // Update parent component with new stats
-      if (onShareUpdate) {
-        onShareUpdate(reshares, isResharedVideo);
-      }
+      // if (onShareUpdate) {
+      //   onShareUpdate(reshares, isResharedVideo);
+      // }
     } catch (err) {
       setReshares(() => prevReshareCount);
       setIsResharedVideo(() => prevIsReshared);
@@ -267,8 +262,8 @@ const InteractOptions = ({
   };
 
   return (
-    <View className="p-1">
-      <View className="gap-5">
+    <View className="px-1 py-5">
+      <View className="gap-5 py-10">
         <View className="items-center gap-1">
           <Pressable onPress={() => LikeVideo()}>
             <FontAwesome
@@ -281,8 +276,7 @@ const InteractOptions = ({
           <Text className="text-white text-sm">{like}</Text>
         </View>
 
-        <View className="items-center gap-1">
-          {/* Add Pressable around the comment icon */}
+        {/* <View className="items-center gap-1">
           <Pressable
             onPress={
               onCommentPress
@@ -296,9 +290,9 @@ const InteractOptions = ({
             />
           </Pressable>
           <Text className="text-white text-sm">{comments}</Text>
-        </View>
+        </View> */}
 
-        <View className="items-center gap-1">
+        {/* <View className="items-center gap-1">
           <Pressable onPress={ReshareVideo}>
             {isResharedVideo ? (
               <Image
@@ -313,7 +307,7 @@ const InteractOptions = ({
             )}
           </Pressable>
           <Text className="text-white text-sm">{reshares}</Text>
-        </View>
+        </View> */}
 
         <View className="items-center gap-1">
           <Pressable onPress={() => openGifting()}>

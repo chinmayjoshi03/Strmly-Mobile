@@ -2,22 +2,15 @@ import ThemedView from "@/components/ThemedView";
 import React, { useEffect, useRef, useState } from "react";
 import {
   View,
-  TextInput,
   Text,
   ActivityIndicator,
   Keyboard,
-  Platform,
   Pressable,
-  KeyboardAvoidingView,
-  TouchableWithoutFeedback,
   Animated,
-  EmitterSubscription,
-  KeyboardEvent,
   Alert,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { router, useLocalSearchParams } from "expo-router";
-import { ChevronLeft } from "lucide-react-native";
+import { router } from "expo-router";
 import { useAuthStore } from "@/store/useAuthStore";
 import Constants from "expo-constants";
 import CreatorInfo from "../Video/_components/CreatorInfo";
@@ -140,7 +133,7 @@ const CommunityPassBuy = () => {
       return;
     }
 
-    if (user && user?.id < userData?.founder?._id) {
+    if (user && user?.id == userData?.founder?._id) {
       Alert.alert("You cannot pay yourself");
       return;
     }

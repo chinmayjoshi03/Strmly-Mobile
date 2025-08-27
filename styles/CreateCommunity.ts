@@ -4,7 +4,7 @@ export const CreateCommunityStyle = StyleSheet.create({
     container: {
         flex: 1,
         backgroundColor: "#000",
-        paddingTop: 40,
+        paddingTop: 20,
         width: '100%',
         alignItems:'center'
     },

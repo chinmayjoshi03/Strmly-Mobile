@@ -28,6 +28,7 @@ import VideoPlayer from "@/app/(dashboard)/long/_components/VideoPlayer";
 import BottomNavBar from "@/components/BottomNavBar";
 import { communityActions } from "@/api/community/communityActions";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useVideosStore } from "@/store/useVideosStore";
 
 export default function PersonalCommunityPage() {
   const [activeTab, setActiveTab] = useState("videos");
@@ -54,19 +55,9 @@ export default function PersonalCommunityPage() {
   const router = useRouter();
   const params = useLocalSearchParams();
   const id = params.id as string;
+  const { setVideosInZustand } = useVideosStore();
 
   const BACKEND_API_URL = Constants.expoConfig?.extra?.BACKEND_API_URL;
-
-  const thumbnails = useThumbnailsGenerate(
-    useMemo(
-      () =>
-        videos.map((video) => ({
-          id: video._id,
-          url: video.videoUrl,
-        })),
-      [videos]
-    )
-  );
 
   useEffect(() => {
     const fetchUserVideos = async () => {
@@ -91,6 +82,7 @@ export default function PersonalCommunityPage() {
         }
 
         setVideos(data.videos || []);
+        setVideosInZustand(data.videos || []);
       } catch (err) {
         console.error("Error fetching community videos:", err);
         setVideos([]);
@@ -221,61 +213,20 @@ export default function PersonalCommunityPage() {
     }
   };
 
-  // Video player functions
-  const navigateToVideoPlayer = (videoData: any, allVideos: any[]) => {
-    console.log(
-      "🎬 Opening video player for:",
-      videoData.title || videoData.name
-    );
-    const currentIndex = allVideos.findIndex(
-      (video) => video._id === videoData._id
-    );
-
-    setCurrentVideoData(videoData);
-    setCurrentVideoList(allVideos);
-    setCurrentVideoIndex(currentIndex >= 0 ? currentIndex : 0);
-    setIsVideoPlayerActive(true);
-  };
-
-  const closeVideoPlayer = () => {
-    setIsVideoPlayerActive(false);
-    setCurrentVideoData(null);
-    setCurrentVideoList([]);
-    setCurrentVideoIndex(0);
-    setShowCommentsModal(false);
-  };
-
-  // Handle back button press
-  useEffect(() => {
-    const backAction = () => {
-      if (isVideoPlayerActive) {
-        closeVideoPlayer();
-        return true;
-      }
-      return false;
-    };
-
-    const backHandler = BackHandler.addEventListener(
-      "hardwareBackPress",
-      backAction
-    );
-    return () => backHandler.remove();
-  }, [isVideoPlayerActive]);
-
   // Render functions for videos - consistent thumbnail format
-  const renderVideoItem = ({ item }: { item: any }) => (
+  const renderVideoItem = ({ item, index }: { item: any; index: number }) => (
     <TouchableOpacity
       className="relative aspect-[9/16] w-full rounded-lg overflow-hidden mb-3"
-      onPress={() => navigateToVideoPlayer(item, videos)}
+      onPress={() =>
+        router.push({
+          pathname: "/(dashboard)/long/GlobalVideoPlayer",
+          params: { startIndex: index.toString() },
+        })
+      }
     >
       {item.thumbnailUrl ? (
         <Image
           source={{ uri: item.thumbnailUrl }}
-          className="w-full h-full object-cover"
-        />
-      ) : thumbnails[item._id] ? (
-        <Image
-          source={{ uri: thumbnails[item._id] }}
           className="w-full h-full object-cover"
         />
       ) : (
@@ -322,19 +273,19 @@ export default function PersonalCommunityPage() {
     </TouchableOpacity>
   );
 
-  const renderGridItem = ({ item }: { item: any }) => (
+  const renderGridItem = ({ item, index }: { item: any; index: number }) => (
     <TouchableOpacity
       className="relative aspect-[9/16] flex-1 rounded-lg overflow-hidden m-1"
-      onPress={() => navigateToVideoPlayer(item, videos)}
+      onPress={() =>
+        router.push({
+          pathname: "/(dashboard)/long/GlobalVideoPlayer",
+          params: { startIndex: index.toString() },
+        })
+      }
     >
       {item.thumbnailUrl ? (
         <Image
           source={{ uri: item.thumbnailUrl }}
-          className="w-full h-full object-cover"
-        />
-      ) : thumbnails[item._id] ? (
-        <Image
-          source={{ uri: thumbnails[item._id] }}
           className="w-full h-full object-cover"
         />
       ) : (
@@ -400,134 +351,158 @@ export default function PersonalCommunityPage() {
   };
 
   return (
-    <ThemedView className="flex-1 pt-5">
-      {/* Cover Image */}
-      {!isLoading && (
-        <View className="h-48 relative">
-          <ProfileTopbar
-            isMore={true}
-            hashtag={true}
-            name={communityData?.name}
-          />
-        </View>
-      )}
+    <ThemedView className="flex-1">
+      <SafeAreaView>
+        {/* Cover Image */}
+        {!isLoading && (
+          <View className="h-fit relative">
+            <ProfileTopbar
+              isMore={true}
+              hashtag={true}
+              name={communityData?.name}
+            />
+          </View>
+        )}
 
-      {isLoading ? (
-        <View className="flex-1 items-center justify-center">
-          <ActivityIndicator size="large" color="white" />
-        </View>
-      ) : (
-        <FlatList
-          ListHeaderComponent={
-            <View className="max-w-4xl -mt-28 relative mx-6 mb-4">
-              <View className="flex flex-col items-center md:flex-row md:items-end space-y-4 md:space-y-0 md:space-x-4">
-                <View className="relative flex-col items-center w-full">
-                  <Image
-                    source={
-                      communityData?.profile_photo
-                        ? {
-                            uri: communityData.profile_photo,
-                          }
-                        : require("../../../../assets/images/user.png")
-                    }
-                    style={{
-                      width: 80,
-                      height: 80,
-                      borderRadius: 40,
-                      borderWidth: 2,
-                      borderColor: "white",
-                      resizeMode: "cover",
-                    }}
-                  />
-                  <View className="flex flex-row items-center justify-center w-full mt-2">
-                    <Text className="text-gray-400">
-                      {communityData?.founder &&
-                        `By @${communityData?.founder.username}`}
-                    </Text>
+        {isLoading ? (
+          <View className="flex-1 items-center justify-center">
+            <ActivityIndicator size="large" color="white" />
+          </View>
+        ) : (
+          <FlatList
+            ListHeaderComponent={
+              <View className="max-w-4xl mt-6 relative mx-6 mb-4">
+                <View className="flex flex-col items-center">
+                  <View className="relative flex-col items-center w-full">
+                    <Image
+                      source={
+                        communityData?.profile_photo
+                          ? {
+                              uri: communityData.profile_photo,
+                            }
+                          : require("../../../../assets/images/user.png")
+                      }
+                      style={{
+                        width: 80,
+                        height: 80,
+                        borderRadius: 40,
+                        borderWidth: 2,
+                        borderColor: "white",
+                        resizeMode: "cover",
+                      }}
+                    />
+                    <View className="flex flex-row items-center justify-center w-full mt-2">
+                      <Text className="text-gray-400">
+                        {communityData?.founder &&
+                          `By @${communityData?.founder.username}`}
+                      </Text>
+                    </View>
                   </View>
                 </View>
-              </View>
 
-              {/* Section Navigation */}
-              <View className="mt-6 flex flex-row justify-around items-center border-b border-gray-800">
-                <TouchableOpacity
-                  className={`flex flex-col gap-1 items-center pb-4 flex-1 ${activeTab === "followers" ? "border-b-2 border-white" : ""}`}
-                  onPress={() => handleSectionChange("followers")}
-                >
-                  <Text className="font-bold text-lg text-white">
-                    {communityData?.followers?.length || 0}
-                  </Text>
-                  <Text
-                    className={`text-md ${activeTab === "followers" ? "text-white" : "text-gray-400"}`}
+                {/* Section Navigation */}
+                <View className="mt-6 flex flex-row justify-around items-center border-b border-gray-800">
+                  <TouchableOpacity
+                    className={`flex flex-col gap-1 items-center pb-4 flex-1 ${activeTab === "followers" ? "border-b-2 border-white" : ""}`}
+                    // onPress={() =>
+                    //   router.push({
+                    //     pathname: "/(communities)/CommunitySections",
+                    //     params: {
+                    //       section: "followers",
+                    //       communityId: communityData._id,
+                    //       communityName: communityData.name,
+                    //     },
+                    //   })
+                    // }
                   >
-                    Followers
-                  </Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  className={`flex flex-col gap-1 items-center pb-4 flex-1 ${activeTab === "creators" ? "border-b-2 border-white" : ""}`}
-                  onPress={() => handleSectionChange("creators")}
-                >
-                  <Text className="font-bold text-lg text-white">
-                    {communityData?.creators?.length || 0}
-                  </Text>
-                  <Text
-                    className={`text-md ${activeTab === "creators" ? "text-white" : "text-gray-400"}`}
-                  >
-                    Creators
-                  </Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  className={`flex flex-col gap-1 items-center pb-4 flex-1 ${activeTab === "videos" ? "border-b-2 border-white" : ""}`}
-                  onPress={() => handleSectionChange("videos")}
-                >
-                  <Text className="font-bold text-lg text-white">
-                    {videos.length || 0}
-                  </Text>
-                  <Text
-                    className={`text-md ${activeTab === "videos" ? "text-white" : "text-gray-400"}`}
-                  >
-                    Videos
-                  </Text>
-                </TouchableOpacity>
-              </View>
-
-              {/* Buttons */}
-              <View className="flex flex-row w-full items-center justify-center gap-2 mt-5 md:mt-0">
-                <TouchableOpacity
-                  onPress={() => router.push("/(communities)/EditCommunity")}
-                  className="flex-1 px-4 py-2 rounded-xl bg-transparent border border-gray-400"
-                >
-                  <Text className="text-white text-center">Edit Community</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  onPress={() => router.push("/(demo)/CommunityAnalyticsDemo")}
-                  className="flex-1 px-4 py-2 rounded-xl bg-transparent border border-gray-400"
-                >
-                  <Text className="text-white text-center">View Analytics</Text>
-                </TouchableOpacity>
-              </View>
-
-              {/* Bio */}
-              <View className="mt-6 flex flex-col items-center justify-center px-4">
-                <Text className="text-gray-400 text-xs text-center">
-                  {communityData?.bio}
-                </Text>
-              </View>
-
-              {/* Video Type Tabs - Only show when videos section is active */}
-              {activeTab === "videos" && (
-                <View className="mt-4 border-b border-gray-700">
-                  <View className="flex flex-row justify-around items-center">
-                    <TouchableOpacity
-                      className={`pb-4 flex-1 items-center justify-center border-b-2 ${videoType === "long" ? "border-white" : "border-transparent"}`}
-                      onPress={() => setVideoType("long")}
+                    <Text className="font-bold text-lg text-white">
+                      {communityData?.followers?.length || 0}
+                    </Text>
+                    <Text
+                      className={`text-md ${activeTab === "followers" ? "text-white" : "text-gray-400"}`}
                     >
-                      <PaperclipIcon
-                        color={videoType === "long" ? "white" : "gray"}
-                      />
-                    </TouchableOpacity>
-                    <TouchableOpacity
+                      Followers
+                    </Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    className={`flex flex-col gap-1 items-center pb-4 flex-1 ${activeTab === "creators" ? "border-b-2 border-white" : ""}`}
+                    // onPress={() => handleSectionChange("creators")}
+                  >
+                    <Text className="font-bold text-lg text-white">
+                      {communityData?.creators?.length || 0}
+                    </Text>
+                    <Text
+                      className={`text-md ${activeTab === "creators" ? "text-white" : "text-gray-400"}`}
+                    >
+                      Creators
+                    </Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    className={`flex flex-col gap-1 items-center pb-4 flex-1 ${activeTab === "videos" ? "border-b-2 border-white" : ""}`}
+                    // onPress={() => handleSectionChange("videos")}
+                  >
+                    <Text className="font-bold text-lg text-white">
+                      {videos.length || 0}
+                    </Text>
+                    <Text
+                      className={`text-md ${activeTab === "videos" ? "text-white" : "text-gray-400"}`}
+                    >
+                      Videos
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+
+                {/* Buttons */}
+                <View className="flex-row w-full items-center justify-center gap-3 mt-5 md:mt-0">
+                  <TouchableOpacity
+                    onPress={() =>
+                      router.push({
+                        pathname: "/(communities)/EditCommunity",
+                        params: { communityId: communityData._id },
+                      })
+                    }
+                    className="flex-1 px-4 py-2 rounded-xl bg-transparent border border-gray-400"
+                  >
+                    <Text className="text-white text-center">
+                      Edit Community
+                    </Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    onPress={() =>
+                      router.push({
+                        pathname: "/(communities)/public/CommunityAnalytics",
+                        params: { communityId: communityData._id },
+                      })
+                    }
+                    className="flex-1 px-4 py-2 rounded-xl bg-transparent border border-gray-400"
+                  >
+                    <Text className="text-white text-center">
+                      View Analytics
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+
+                {/* Bio */}
+                <View className="mt-6 flex flex-col items-center justify-center px-4">
+                  <Text className="text-gray-400 text-xs text-center">
+                    {communityData?.bio}
+                  </Text>
+                </View>
+
+                {/* Video Type Tabs - Only show when videos section is active */}
+                {activeTab === "videos" && (
+                  <View className="mt-4 border-b border-gray-700">
+                    <View className="flex flex-row justify-around items-center">
+                      <TouchableOpacity
+                        className={`pb-4 flex-1 items-center justify-center border-b-2 ${videoType === "long" ? "border-white" : "border-transparent"}`}
+                        onPress={() => setVideoType("long")}
+                      >
+                        <PaperclipIcon
+                          color={videoType === "long" ? "white" : "gray"}
+                        />
+                      </TouchableOpacity>
+                      {/* <TouchableOpacity
                       className={`pb-4 flex-1 items-center justify-center border-b-2 ${videoType === "series" ? "border-white" : "border-transparent"}`}
                       onPress={() => setVideoType("series")}
                     >
@@ -535,135 +510,89 @@ export default function PersonalCommunityPage() {
                         color={videoType === "series" ? "white" : "gray"}
                         fill={videoType === "series" ? "white" : "transparent"}
                       />
-                    </TouchableOpacity>
+                    </TouchableOpacity> */}
+                    </View>
                   </View>
-                </View>
-              )}
+                )}
 
-              {/* Search Bar - Only show for followers and creators */}
-              {(activeTab === "followers" || activeTab === "creators") && (
-                <View className="mt-4 px-4">
-                  <View className="bg-gray-800 rounded-lg px-4 py-3 flex-row items-center">
-                    <Text className="text-gray-400 flex-1">Search...</Text>
+                {/* Search Bar - Only show for followers and creators */}
+                {(activeTab === "followers" || activeTab === "creators") && (
+                  <View className="mt-4 px-4">
+                    <View className="bg-gray-800 rounded-lg px-4 py-3 flex-row items-center">
+                      <Text className="text-gray-400 flex-1">Search...</Text>
+                    </View>
                   </View>
-                </View>
-              )}
-            </View>
-          }
-          data={(() => {
-            const data =
-              activeTab === "videos"
-                ? isLoadingVideos
-                  ? []
-                  : videos
-                : activeTab === "followers"
-                  ? isLoadingFollowers
+                )}
+              </View>
+            }
+            data={(() => {
+              const data =
+                activeTab === "videos"
+                  ? isLoadingVideos
                     ? []
-                    : followers
-                  : activeTab === "creators"
-                    ? isLoadingCreators
+                    : videos
+                  : activeTab === "followers"
+                    ? isLoadingFollowers
                       ? []
-                      : creators
-                    : [];
-            console.log(
-              `📋 Personal Community - FlatList data for ${activeTab}:`,
-              data.length,
-              "items"
-            );
-            return data;
-          })()}
-          key={`${activeTab}-${videoType}`}
-          keyExtractor={(item) => item._id}
-          renderItem={
-            activeTab === "videos"
-              ? videoType === "long"
-                ? renderVideoItem
-                : renderGridItem
-              : renderUserItem
-          }
-          numColumns={activeTab === "videos" && videoType === "series" ? 3 : 1}
-          columnWrapperStyle={
-            activeTab === "videos" && videoType === "series"
-              ? { justifyContent: "space-between" }
-              : undefined
-          }
-          ListEmptyComponent={
-            (activeTab === "videos" && isLoadingVideos) ||
-            (activeTab === "followers" && isLoadingFollowers) ||
-            (activeTab === "creators" && isLoadingCreators) ? (
-              <View className="flex-1 h-64 items-center justify-center">
-                <ActivityIndicator size="large" color="white" />
-              </View>
-            ) : (
-              <View className="flex-1 h-64 items-center justify-center">
-                {activeTab === "videos" && <Video size={48} color="gray" />}
-                {activeTab === "followers" && <Users size={48} color="gray" />}
-                {activeTab === "creators" && <Users size={48} color="gray" />}
-                <Text className="text-gray-400 text-center mt-4">
-                  {activeTab === "videos"
-                    ? `No ${videoType} videos yet`
-                    : activeTab === "followers"
-                      ? "No followers yet"
-                      : "No creators yet"}
-                </Text>
-              </View>
-            )
-          }
-          contentContainerStyle={{ paddingBottom: 30, paddingHorizontal: 4 }}
-          showsVerticalScrollIndicator={false}
-        />
-      )}
-
-      {/* Integrated Video Player Modal */}
-      {isVideoPlayerActive && currentVideoData && (
-        <View
-          style={{
-            position: "absolute",
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            backgroundColor: "black",
-            zIndex: 1000,
-          }}
-        >
-          <FlatList
-            data={currentVideoList}
+                      : followers
+                    : activeTab === "creators"
+                      ? isLoadingCreators
+                        ? []
+                        : creators
+                      : [];
+              console.log(
+                `📋 Personal Community - FlatList data for ${activeTab}:`,
+                data.length,
+                "items"
+              );
+              return data;
+            })()}
+            key={`${activeTab}-${videoType}`}
             keyExtractor={(item) => item._id}
-            renderItem={({ item, index }) => (
-              <SafeAreaView>
-                <VideoPlayer
-                  key={`${item._id}-${index === currentVideoIndex}`}
-                  videoData={item}
-                  isActive={index === currentVideoIndex}
-                  showCommentsModal={showCommentsModal}
-                  setShowCommentsModal={setShowCommentsModal}
-                />
-              </SafeAreaView>
-            )}
-            initialScrollIndex={currentVideoIndex}
-            getItemLayout={(_, index) => ({
-              length: Dimensions.get("window").height,
-              offset: Dimensions.get("window").height * index,
-              index,
-            })}
-            pagingEnabled
-            onViewableItemsChanged={({ viewableItems }) => {
-              if (viewableItems.length > 0) {
-                setCurrentVideoIndex(viewableItems[0].index);
-              }
-            }}
-            viewabilityConfig={{ itemVisiblePercentThreshold: 80 }}
-            decelerationRate="fast"
+            renderItem={
+              activeTab === "videos"
+                ? videoType === "long"
+                  ? renderVideoItem
+                  : renderGridItem
+                : renderUserItem
+            }
+            numColumns={
+              activeTab === "videos" && videoType === "series" ? 3 : 1
+            }
+            columnWrapperStyle={
+              activeTab === "videos" && videoType === "series"
+                ? { justifyContent: "space-between" }
+                : undefined
+            }
+            ListEmptyComponent={
+              (activeTab === "videos" && isLoadingVideos) ||
+              (activeTab === "followers" && isLoadingFollowers) ||
+              (activeTab === "creators" && isLoadingCreators) ? (
+                <View className="flex-1 h-64 items-center justify-center">
+                  <ActivityIndicator size="large" color="white" />
+                </View>
+              ) : (
+                <View className="flex-1 h-64 items-center justify-center">
+                  {activeTab === "videos" && <Video size={48} color="gray" />}
+                  {activeTab === "followers" && (
+                    <Users size={48} color="gray" />
+                  )}
+                  {activeTab === "creators" && <Users size={48} color="gray" />}
+                  <Text className="text-gray-400 text-center mt-4">
+                    {activeTab === "videos"
+                      ? `No ${videoType} videos yet`
+                      : activeTab === "followers"
+                        ? "No followers yet"
+                        : "No creators yet"}
+                  </Text>
+                </View>
+              )
+            }
+            contentContainerStyle={{ paddingBottom: 30, paddingHorizontal: 4 }}
             showsVerticalScrollIndicator={false}
-            snapToInterval={Dimensions.get("window").height}
-            snapToAlignment="start"
           />
-        </View>
-      )}
-
-      {/* Bottom Navigation Bar */}
-      {!isVideoPlayerActive && <BottomNavBar />}
+        )}
+      </SafeAreaView>
     </ThemedView>
   );
 }

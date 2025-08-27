@@ -18,7 +18,7 @@ import {
   Alert,
 } from "react-native";
 import CreatorInfo from "./_components/CreatorInfo";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { router, useLocalSearchParams } from "expo-router";
 import { ChevronLeft } from "lucide-react-native";
 import { useAuthStore } from "@/store/useAuthStore";
@@ -60,6 +60,8 @@ const VideoContentGifting = ({
   const isWithdrawMode = mode === "withdraw";
   const isCommentGiftMode = mode === "comment-gift";
 
+  const [handleClickAmount, setHandleClickAmount] = useState(false);
+
   const { creator, videoId, completeGifting } = useGiftingStore();
   // Use route videoId for comment gifting, prop videoId for video gifting
   const currentVideoId = isCommentGiftMode ? routeVideoId : videoId;
@@ -92,8 +94,8 @@ const VideoContentGifting = ({
 
   const keyboardHeight = useRef(new Animated.Value(0)).current;
 
-  const insets = useSafeAreaInsets();
-  const animatedBottom = useRef(new Animated.Value(insets.bottom)).current;
+  // const insets = useSafeAreaInsets();
+  // const animatedBottom = useRef(new Animated.Value(insets.bottom)).current;
 
   const { token } = useAuthStore();
 
@@ -493,13 +495,14 @@ const VideoContentGifting = ({
 
   return (
     <ThemedView style={{ height }}>
-      <KeyboardAvoidingView
+      <SafeAreaView style={{ height }}>
+        <KeyboardAvoidingView
         style={{ flex: 1 }}
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         keyboardVerticalOffset={Platform.OS === "ios" ? 60 : 0}
       >
         <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-          <View className="flex-1 justify-between pt-10 px-5">
+          <View className="flex-1 justify-between px-5">
             {/* Top section */}
             <View className="mt-5">
               {isWithdrawMode ? (
@@ -581,6 +584,7 @@ const VideoContentGifting = ({
                   <TextInput
                     value={amount}
                     onChangeText={handleAmountChange}
+                    onPress={() => setHandleClickAmount(true)}
                     keyboardType="number-pad"
                     returnKeyType={Platform.OS === "ios" ? "done" : "none"}
                     placeholder="0"
@@ -627,14 +631,15 @@ const VideoContentGifting = ({
             </View>
 
             <View></View>
+            <View></View>
             {/* Animated Bottom section */}
             <Animated.View
               style={{
                 position: "absolute",
                 left: 0,
                 right: 0,
-                bottom: Animated.add(new Animated.Value(20), animatedBottom),
-                paddingBottom: insets.bottom,
+                bottom: Animated.add(new Animated.Value(handleClickAmount ? 0 : 50), 0),
+                // paddingBottom: 10,
               }}
               className="gap-2 justify-end"
             >
@@ -700,6 +705,7 @@ const VideoContentGifting = ({
           onClose={handleCloseModalMessage}
         />
       )}
+      </SafeAreaView>
     </ThemedView>
   );
 };

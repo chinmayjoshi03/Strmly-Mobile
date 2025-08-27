@@ -79,15 +79,12 @@ export default function EditCommunity() {
       setBio(result.bio || "");
       setImageUri(result.profilePhoto);
       // Set access type based on community data if available
-      setAccessType(result.community_fee_type || "free");
-      setCreatorStrength(result.creator_limit?.toString() || "");
-      setCommunityFee(result.community_fee_amount?.toString() || "");
-      console.log("✅ Community details fetched for editing:", {
-        name: result.name,
-        community_fee_type: result.community_fee_type,
-        creator_limit: result.creator_limit,
-        community_fee_amount: result.community_fee_amount,
-      });
+      setAccessType(result.access.type || "free");
+      if (result.access.type === "paid") {
+        setCreatorStrength(result.access.strength?.toString() || "");
+        setCommunityFee(result.access.amount?.toString() || "");
+      }
+      console.log("✅ Community details fetched for editing:", result);
     } catch (error) {
       console.error("❌ Error fetching community details:", error);
       Alert.alert("Error", "Failed to load community details");
@@ -402,55 +399,57 @@ export default function EditCommunity() {
         </View>
 
         {/* Creator Strength and Community Fee */}
-        <View className="flex-row justify-between mb-8">
-          <View className="flex-1 mr-4">
-            <Text
-              className="text-white text-base"
-              style={{ fontFamily: "Poppins" }}
-            >
-              Creator
-            </Text>
-            <Text
-              className="text-white text-base mb-2"
-              style={{ fontFamily: "Poppins" }}
-            >
-              strength
-            </Text>
-            <TextInput
-              className="text-gray-400 text-2xl"
-              placeholder="500"
-              placeholderTextColor="#666"
-              keyboardType="numeric"
-              value={creatorStrength}
-              onChangeText={setCreatorStrength}
-              style={{ fontFamily: "Poppins" }}
-            />
-            <View className="h-px bg-gray-600 mt-2" />
+        {accessType === "paid" && (
+          <View className="flex-row justify-between mb-8">
+            <View className="flex-1 mr-4">
+              <Text
+                className="text-white text-base"
+                style={{ fontFamily: "Poppins" }}
+              >
+                Creator
+              </Text>
+              <Text
+                className="text-white text-base mb-2"
+                style={{ fontFamily: "Poppins" }}
+              >
+                strength
+              </Text>
+              <TextInput
+                className="text-gray-400 text-2xl"
+                placeholder="500"
+                placeholderTextColor="#666"
+                keyboardType="numeric"
+                value={creatorStrength}
+                onChangeText={setCreatorStrength}
+                style={{ fontFamily: "Poppins" }}
+              />
+              <View className="h-px bg-gray-600 mt-2" />
+            </View>
+            <View className="flex-1 ml-4">
+              <Text
+                className="text-white text-base"
+                style={{ fontFamily: "Poppins" }}
+              >
+                Community
+              </Text>
+              <Text
+                className="text-white text-base mb-2"
+                style={{ fontFamily: "Poppins" }}
+              >
+                fee
+              </Text>
+              <TextInput
+                className="text-gray-400 text-2xl"
+                placeholder="₹29/m"
+                placeholderTextColor="#666"
+                value={communityFee}
+                onChangeText={setCommunityFee}
+                style={{ fontFamily: "Poppins" }}
+              />
+              <View className="h-px bg-gray-600 mt-2" />
+            </View>
           </View>
-          <View className="flex-1 ml-4">
-            <Text
-              className="text-white text-base"
-              style={{ fontFamily: "Poppins" }}
-            >
-              Community
-            </Text>
-            <Text
-              className="text-white text-base mb-2"
-              style={{ fontFamily: "Poppins" }}
-            >
-              fee
-            </Text>
-            <TextInput
-              className="text-gray-400 text-2xl"
-              placeholder="₹29/m"
-              placeholderTextColor="#666"
-              value={communityFee}
-              onChangeText={setCommunityFee}
-              style={{ fontFamily: "Poppins" }}
-            />
-            <View className="h-px bg-gray-600 mt-2" />
-          </View>
-        </View>
+        )}
 
         {/* Description */}
         <View className="mb-8">
@@ -458,8 +457,8 @@ export default function EditCommunity() {
             className="text-gray-400 text-sm text-center leading-5"
             style={{ fontFamily: "Poppins" }}
           >
-            As the community owner, you can set a limit on how many creators
-            can join, while users can follow the community without any limit.
+            As the community owner, you can set a limit on how many creators can
+            join, while users can follow the community without any limit.
           </Text>
         </View>
       </ScrollView>

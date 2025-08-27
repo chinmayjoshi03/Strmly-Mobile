@@ -182,6 +182,7 @@ const EpisodePlayerScreen: React.FC = () => {
       <StatusBar barStyle="light-content" backgroundColor="#000" />
       
       <VideoPlayer
+      isGlobalPlayer={false}
         videoData={videoData}
         isActive={true}
         showCommentsModal={showCommentsModal}

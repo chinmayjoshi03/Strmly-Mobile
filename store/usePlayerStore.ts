@@ -2,8 +2,6 @@
 import { VideoPlayer } from "expo-video";
 import { create } from "zustand";
 
-let playerInstance: VideoPlayer | null = null;
-
 interface PlayerState {
   isPlaying: boolean;
   isMuted: boolean;
@@ -185,12 +183,35 @@ export const usePlayerStore = create<PlayerState & PlayerActions>(
       });
     },
 
-    // NEW: Smart play function
-    smartPlay: () => {
+    togglePlayPause: async () => {
+      const currentState = get();
+      if (activePlayer) {
+        try {
+          if (currentState.isPlaying) {
+            // Pause
+            await activePlayer.pause();
+            set({ isPlaying: false });
+          } else {
+            // Play
+            if (!currentState.hasUserInteractedWithAudio) {
+              activePlayer.muted = false;
+              set({
+                isMuted: false,
+                hasUserInteractedWithAudio: true,
+              });
+            }
+            await activePlayer.play();
+            set({ isPlaying: true });
+          }
+        } catch (err) {
+          console.error("togglePlayPause error:", err);
+        }
+      }
+    },
+
+    smartPlay: async () => {
       if (activePlayer) {
         const state = get();
-
-        // If user has never interacted with audio, unmute on first play action
         if (!state.hasUserInteractedWithAudio) {
           activePlayer.muted = false;
           set({
@@ -198,54 +219,22 @@ export const usePlayerStore = create<PlayerState & PlayerActions>(
             hasUserInteractedWithAudio: true,
           });
         }
-
-        activePlayer.play();
-        // Immediately update the playing state for responsive UI
+        await activePlayer.play();
         set({ isPlaying: true });
       }
     },
 
-    // NEW: Smart pause function
-    smartPause: () => {
+    smartPause: async () => {
       if (activePlayer) {
-        activePlayer.pause();
-        // Immediately update the playing state for responsive UI
+        await activePlayer.pause();
         set({ isPlaying: false });
-      }
-    },
-
-    togglePlayPause: () => {
-      const currentState = get();
-      if (activePlayer) {
-        if (currentState.isPlaying) {
-          // Currently playing, so pause it
-          activePlayer.pause();
-          set({ isPlaying: false });
-        } else {
-          // Currently paused, so play it
-          const state = get();
-
-          // If user has never interacted with audio, unmute on first play action
-          if (!state.hasUserInteractedWithAudio) {
-            activePlayer.muted = false;
-            set({
-              isMuted: false,
-              hasUserInteractedWithAudio: true,
-              isPlaying: true,
-            });
-          } else {
-            set({ isPlaying: true });
-          }
-
-          activePlayer.play();
-        }
       }
     },
   })
 );
 
 // Helper functions to manage the single active player
-export const setActivePlayer = (player: import("expo-video").VideoPlayer) => {
+export const setActivePlayer = (player: VideoPlayer) => {
   activePlayer = player;
 };
 

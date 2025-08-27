@@ -1,16 +1,26 @@
-import React, { useState, useCallback } from 'react';
-import { View, Text, TouchableOpacity, Image, Alert, FlatList, Dimensions } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { router } from 'expo-router';
-import DropdownMenu from './DropdownMenu';
-import { useDeleteActions } from '../hooks/useDeleteActions';
-import VideoPlayer from '@/app/(dashboard)/long/_components/VideoPlayer';
-import Constants from 'expo-constants';
+import React, { useState, useCallback } from "react";
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  Image,
+  Alert,
+  FlatList,
+  Dimensions,
+} from "react-native";
+import { Ionicons } from "@expo/vector-icons";
+import { router } from "expo-router";
+import DropdownMenu from "./DropdownMenu";
+import { useDeleteActions } from "../hooks/useDeleteActions";
+import VideoPlayer from "@/app/(dashboard)/long/_components/VideoPlayer";
+import Constants from "expo-constants";
 
 interface Episode {
   _id: string;
   name: string;
   description: string;
+  type: string;
+  amount: number;
   videoUrl: string;
   thumbnailUrl: string;
   episode_number: number;
@@ -20,8 +30,10 @@ interface Episode {
     username: string;
     email: string;
   };
-  views?: number;
-  likes?: number;
+  views: number;
+  likes: number;
+  gifts: number;
+  creatorPassDetails: any;
 }
 
 interface EpisodeListProps {
@@ -39,14 +51,14 @@ const EpisodeList: React.FC<EpisodeListProps> = ({
   seriesId,
   onEpisodePress,
   onEpisodeDeleted,
-  onVideoPlayerOpen
+  onVideoPlayerOpen,
 }) => {
   const { deleteEpisode, confirmDelete } = useDeleteActions();
   const formatNumber = (num: number) => {
     if (num >= 1000000) {
-      return (num / 1000000).toFixed(1) + 'M';
+      return (num / 1000000).toFixed(1) + "M";
     } else if (num >= 1000) {
-      return (num / 1000).toFixed(1) + 'K';
+      return (num / 1000).toFixed(1) + "K";
     }
     return num.toString();
   };
@@ -60,31 +72,34 @@ const EpisodeList: React.FC<EpisodeListProps> = ({
     } else {
       // Fallback to old navigation if no callback provided
       router.push({
-        pathname: '/studio/episode-player/[id]',
-        params: { 
+        pathname: "/studio/episode-player/[id]",
+        params: {
           id: episode._id,
           seriesTitle: seriesTitle,
           episodeNumber: episode.episode_number.toString(),
           seasonNumber: episode.season_number.toString(),
-          episodeName: episode.name
-        }
+          episodeName: episode.name,
+        },
       });
     }
   };
 
-  const handleDeleteEpisode = async (episodeId: string, episodeName: string) => {
-    confirmDelete('episode', episodeName, async () => {
+  const handleDeleteEpisode = async (
+    episodeId: string,
+    episodeName: string
+  ) => {
+    confirmDelete("episode", episodeName, async () => {
       try {
         await deleteEpisode(seriesId, episodeId);
         if (onEpisodeDeleted) {
           onEpisodeDeleted(); // Refresh the episodes list
         }
       } catch (error) {
-        console.error('Failed to delete episode:', error);
+        console.error("Failed to delete episode:", error);
         Alert.alert(
-          'Delete Failed',
-          `Failed to delete episode "${episodeName}". ${error instanceof Error ? error.message : 'Please try again.'}`,
-          [{ text: 'OK' }]
+          "Delete Failed",
+          `Failed to delete episode "${episodeName}". ${error instanceof Error ? error.message : "Please try again."}`,
+          [{ text: "OK" }]
         );
       }
     });
@@ -121,10 +136,14 @@ const EpisodeList: React.FC<EpisodeListProps> = ({
                 />
               ) : (
                 <View className="w-full h-full items-center justify-center">
-                  <Ionicons name="play-circle-outline" size={24} color="#9CA3AF" />
+                  <Ionicons
+                    name="play-circle-outline"
+                    size={24}
+                    color="#9CA3AF"
+                  />
                 </View>
               )}
-              
+
               {/* Play overlay */}
               <View className="absolute inset-0 items-center justify-center">
                 <View className="bg-black bg-opacity-60 rounded-full p-1">
@@ -135,14 +154,17 @@ const EpisodeList: React.FC<EpisodeListProps> = ({
 
             {/* Episode Info */}
             <View className="flex-1">
-              <Text className="text-white text-base font-medium mb-1" numberOfLines={1}>
+              <Text
+                className="text-white text-base font-medium mb-1"
+                numberOfLines={1}
+              >
                 Episode {episode.episode_number}: {episode.name}
               </Text>
               <Text className="text-gray-400 text-sm mb-1" numberOfLines={1}>
                 Season {episode.season_number}
               </Text>
               <Text className="text-gray-500 text-xs" numberOfLines={1}>
-                By @{episode.created_by?.username || 'Unknown'}
+                By @{episode.created_by?.username || "Unknown"}
               </Text>
             </View>
 
@@ -165,10 +187,10 @@ const EpisodeList: React.FC<EpisodeListProps> = ({
             <DropdownMenu
               options={[
                 {
-                  id: 'delete',
-                  label: 'Delete',
-                  icon: 'trash-outline',
-                  color: '#EF4444',
+                  id: "delete",
+                  label: "Delete",
+                  icon: "trash-outline",
+                  color: "#EF4444",
                   onPress: () => handleDeleteEpisode(episode._id, episode.name),
                 },
               ]}
@@ -176,8 +198,6 @@ const EpisodeList: React.FC<EpisodeListProps> = ({
           </TouchableOpacity>
         ))}
       </View>
-
-
     </>
   );
 };

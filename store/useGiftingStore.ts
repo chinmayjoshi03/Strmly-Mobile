@@ -61,6 +61,8 @@ export const useGiftingStore = create<GiftingState>((set) => ({
   videoId: null,
 
   initiateGifting: (creator, videoId) => {
+    useGiftingStore.getState().clearGiftingData();
+
     set({
       creator,
       videoId,
@@ -71,6 +73,8 @@ export const useGiftingStore = create<GiftingState>((set) => ({
   },
 
   initiateVideoAccess: (creator, videoName, videoId) => {
+    useGiftingStore.getState().clearVideoAccessData();
+
     set({
       creator,
       videoName,
@@ -82,6 +86,8 @@ export const useGiftingStore = create<GiftingState>((set) => ({
   },
 
   initiateCreatorPass: (creator) => {
+    useGiftingStore.getState().clearPassData();
+
     set({
       creator,
       hasFetched: false,
@@ -91,15 +97,19 @@ export const useGiftingStore = create<GiftingState>((set) => ({
   },
 
   initiateCommunityPass: (creator) => {
+    useGiftingStore.getState().clearCommunityPassData();
+
     set({
       creator,
       hasFetched: false,
-      isPurchasedPass: false,
+      isPurchasedCommunityPass: false,
       giftSuccessMessage: null,
     });
   },
 
   initiateSeries: (series: series) => {
+    useGiftingStore.getState().clearSeriesData();
+
     set({
       series,
       hasFetched: false,

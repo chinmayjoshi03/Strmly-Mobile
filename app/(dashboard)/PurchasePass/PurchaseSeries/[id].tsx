@@ -80,7 +80,6 @@ const SeriesAccess = () => {
   return (
     <SafeAreaView
       style={{ flex: 1, backgroundColor: "black" }}
-      edges={["bottom"]}
     >
       <View className="flex-1 bg-black">
         <StatusBar barStyle="light-content" backgroundColor="#000" />
@@ -177,7 +176,7 @@ const SeriesAccess = () => {
             <TouchableOpacity
               onPress={() => {
                 initiateSeries(seriesData);
-                router.push(
+                router.replace(
                   `/(payments)/SeriesPassBuy/${seriesData?.created_by?._id}`
                 );
               }}

@@ -4,7 +4,7 @@ export const EditProfile = StyleSheet.create({
     container: {
         flex: 1,
         backgroundColor: "#000",
-        paddingTop: 40,
+        paddingTop: 0,
         width: '100%',
     },
     CreateCommunityTopBar: {
@@ -32,7 +32,8 @@ export const EditProfile = StyleSheet.create({
         // textAlign: 'right',
         fontFamily: 'Poppins-Medium',
         fontSize: 16,
-        color:'#0088FF'
+        color:'#0088FF',
+        textAlign: 'center'
     },
     InfoContainer: {
         width: '100%',

@@ -1,10 +1,11 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import {
   FlatList,
   Dimensions,
   ActivityIndicator,
   Text,
   Pressable,
+  View,
 } from "react-native";
 import { SafeAreaProvider, SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import ThemedView from "@/components/ThemedView";
@@ -13,7 +14,7 @@ import { CONFIG } from "@/Constants/config";
 import { VideoItemType } from "@/types/VideosType";
 import { Link, router, useFocusEffect } from "expo-router";
 import VideoPlayer from "./_components/VideoPlayer";
-import VideoItem from "./VideoItem";
+import { clearActivePlayer } from "@/store/usePlayerStore";
 
 export type GiftType = {
   creator: {
@@ -37,24 +38,58 @@ const VideosFeed: React.FC = () => {
   const [hasMore, setHasMore] = useState(true);
   const [isFetchingMore, setIsFetchingMore] = useState(false);
   const [showCommentsModal, setShowCommentsModal] = useState(false);
+  const [isScreenFocused, setIsScreenFocused] = useState(true);
 
   const { token, isLoggedIn } = useAuthStore();
-  const insets = useSafeAreaInsets();
-
-  // Calculate the actual video height accounting for navigation bar
-  const VIDEO_HEIGHT = screenHeight - BOTTOM_NAV_HEIGHT - insets.bottom;
-
-  // If user is not logged in, redirect to sign-in
-  useFocusEffect(
-    useCallback(() => {
-      if (!token || !isLoggedIn) {
-        router.replace("/(auth)/Sign-up");
-        return;
-      }
-    }, [token, isLoggedIn])
-  );
+  const flatListRef = useRef<FlatList>(null);
+  const mountedRef = useRef(true);
 
   const BACKEND_API_URL = CONFIG.API_BASE_URL;
+
+  // Handle screen focus
+  useFocusEffect(
+    useCallback(() => {
+      // Small delay to prevent rapid focus changes
+      const focusTimeout = setTimeout(() => {
+        setIsScreenFocused(true);
+        
+        // If user is not logged in, redirect to sign-in
+        if (!token || !isLoggedIn) {
+          router.replace("/(auth)/Sign-up");
+          return;
+        }
+
+        // Re-initialize if videos are empty and we should have data
+        if (videos.length === 0 && !loading && !error) {
+          setLoading(true);
+          setPage(1);
+          setHasMore(true);
+          fetchTrendingVideos(1);
+        }
+      }, 100);
+
+      return () => {
+        clearTimeout(focusTimeout);
+        setIsScreenFocused(false);
+        // Clear any active players when leaving the screen with delay
+        setTimeout(() => {
+          clearActivePlayer();
+        }, 200);
+      };
+    }, [token, isLoggedIn, videos.length, loading, error])
+  );
+  
+  // Component mount/unmount
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+      // Delayed cleanup to prevent surface detachment issues
+      setTimeout(() => {
+        clearActivePlayer();
+      }, 300);
+    };
+  }, []);
 
   const fetchTrendingVideos = async (nextPage?: number) => {
     const targetPage = nextPage ?? page;
@@ -63,9 +98,9 @@ const VideosFeed: React.FC = () => {
 
     setIsFetchingMore(true);
     try {
-      console.log("calling...");
+      console.log("Fetching videos for page:", targetPage);
       const res = await fetch(
-        `${BACKEND_API_URL}/recommendations/videos?page=${targetPage}`, //recommendations/videos
+        `${BACKEND_API_URL}/recommendations/videos?page=${targetPage}`,
         {
           method: "GET",
           headers: {
@@ -74,75 +109,129 @@ const VideosFeed: React.FC = () => {
           },
         }
       );
+      
       if (!res.ok) throw new Error("Failed to fetch videos");
       const json = await res.json();
       
+      if (!mountedRef.current) return;
+
       setVideos((prev) => {
-        const existingIds = new Set(prev.map((v) => v._id));
-        const uniqueNew = json.recommendations.filter(
-          (v: { _id: string }) => !existingIds.has(v._id)
-        );
-        return [...prev, ...uniqueNew];
+        // For page 1, replace all videos. For subsequent pages, append.
+        if (targetPage === 1) {
+          return json.recommendations || [];
+        } else {
+          const existingIds = new Set(prev.map((v) => v._id));
+          const uniqueNew = (json.recommendations || []).filter(
+            (v: { _id: string }) => !existingIds.has(v._id)
+          );
+          return [...prev, ...uniqueNew];
+        }
       });
 
-      if (json.recommendations.length < limit) setHasMore(false);
-      console.log(json.recommendations.length, "recommendations.length");
-      setPage(targetPage + 1); // increment only once
+      if ((json.recommendations || []).length < limit) {
+        setHasMore(false);
+      }
+      
+      console.log(`Loaded ${json.recommendations?.length || 0} videos for page ${targetPage}`);
+      
+      // Only increment page if we're not refreshing (targetPage === 1)
+      if (targetPage !== 1) {
+        setPage(targetPage + 1);
+      } else {
+        setPage(2);
+        setVisibleIndex(0); // Reset visible index on refresh
+      }
+      
     } catch (err: any) {
-      console.log(err);
-      setError(err.message || "Something went wrong");
+      console.error("Error fetching videos:", err);
+      if (mountedRef.current) {
+        setError(err.message || "Something went wrong");
+      }
     } finally {
-      setLoading(false);
-      setIsFetchingMore(false);
+      if (mountedRef.current) {
+        setLoading(false);
+        setIsFetchingMore(false);
+      }
     }
   };
 
+  // Initial load
   useEffect(() => {
-    if (token) {
-      fetchTrendingVideos(page);
-    } else {
+    if (token && isLoggedIn) {
+      fetchTrendingVideos(1);
+    } else if (!token || !isLoggedIn) {
       setError("Please log in to view videos");
       setLoading(false);
     }
-  }, [token]);
+  }, [token, isLoggedIn]);
 
-  // OPTIMIZATION 1: Stabilize the onViewableItemsChanged callback
+  // Handle viewable items change
   const onViewableItemsChanged = useCallback(
     ({ viewableItems }: any) => {
-      if (viewableItems.length > 0) {
+      if (viewableItems.length > 0 && isScreenFocused) {
         const currentIndex = viewableItems[0].index;
-        setVisibleIndex(currentIndex);
+        if (currentIndex !== visibleIndex) {
+          setVisibleIndex(currentIndex);
+        }
+
+        // Prefetch when approaching end
+        if (currentIndex === videos.length - 2 && hasMore && !isFetchingMore) {
+          fetchTrendingVideos();
+        }
       }
     },
-    []
+    [visibleIndex, videos.length, hasMore, isFetchingMore, isScreenFocused]
   );
 
-  // OPTIMIZATION 2: Memoize the renderItem function with containerHeight prop
+  // Stable viewability config
+  const viewabilityConfig = useRef({
+    itemVisiblePercentThreshold: 80,
+    minimumViewTime: 100,
+  }).current;
+
+  // Memoize render item
   const renderItem = useCallback(
     ({ item, index }: { item: VideoItemType; index: number }) => (
       <VideoPlayer
+        isGlobalPlayer={false}
         videoData={item}
-        isActive={index === visibleIndex}
+        isActive={index === visibleIndex && isScreenFocused}
         showCommentsModal={showCommentsModal}
         setShowCommentsModal={setShowCommentsModal}
         containerHeight={VIDEO_HEIGHT}
       />
     ),
-    [visibleIndex, showCommentsModal, VIDEO_HEIGHT]
+    [visibleIndex, showCommentsModal, isScreenFocused]
   );
 
-  // OPTIMIZATION 3: Use the adjusted VIDEO_HEIGHT for layout calculations
+  // Stable getItemLayout
   const getItemLayout = useCallback(
     (_data: any, index: number) => ({
       length: VIDEO_HEIGHT,
       offset: VIDEO_HEIGHT * index,
       index,
     }),
-    [VIDEO_HEIGHT]
+    []
+  );
+
+  // Handle refresh
+  const handleRefresh = useCallback(() => {
+    setLoading(true);
+    setError(null);
+    setPage(1);
+    setHasMore(true);
+    setVisibleIndex(0);
+    fetchTrendingVideos(1);
+  }, []);
+
+  // Stable key extractor
+  const keyExtractor = useCallback(
+    (item: VideoItemType, index: number) => `${item._id}-${index}`,
+    []
   );
 
   // Show loading while checking authentication or fetching videos
-  if (loading || !token || !isLoggedIn) {
+  if (loading && videos.length === 0) {
     return (
       <ThemedView
         style={{ height: VIDEO_HEIGHT }}
@@ -158,26 +247,26 @@ const VideosFeed: React.FC = () => {
     );
   }
 
-  if (error) {
+  if (error && videos.length === 0) {
     return (
-      <ThemedView
-        style={{ height: VIDEO_HEIGHT }}
-        className="justify-center items-center px-4"
-      >
-        <Text className="text-white text-center mb-4">
-          Oops something went wrong!
-        </Text>
-        <Pressable
-          onPress={() => {
-            setLoading(() => true);
-            setError(() => null);
-            fetchTrendingVideos();
-          }}
-          className="bg-blue-600 px-4 py-2 rounded"
-        >
-          <Text className="text-white">Retry</Text>
-        </Pressable>
-      </ThemedView>
+      <SafeAreaProvider>
+        <SafeAreaView style={{ flex: 1 }} edges={["bottom"]}>
+          <ThemedView
+            style={{ height: VIDEO_HEIGHT }}
+            className="justify-center items-center px-4"
+          >
+            <Text className="text-white text-center mb-4">
+              Oops something went wrong!
+            </Text>
+            <Pressable
+              onPress={handleRefresh}
+              className="bg-blue-600 px-4 py-2 rounded"
+            >
+              <Text className="text-white">Retry</Text>
+            </Pressable>
+          </ThemedView>
+        </SafeAreaView>
+      </SafeAreaProvider>
     );
   }
 
@@ -199,30 +288,45 @@ const VideosFeed: React.FC = () => {
   }
 
   return (
-    <ThemedView style={{ flex: 1, backgroundColor: 'black' }}>
-      <FlatList
-        data={videos}
-        renderItem={renderItem}
-        keyExtractor={(item) => item._id}
-        getItemLayout={getItemLayout}
-        pagingEnabled
-        scrollEnabled={!showCommentsModal}
-        onViewableItemsChanged={onViewableItemsChanged}
-        viewabilityConfig={{ itemVisiblePercentThreshold: 80 }}
-        snapToInterval={VIDEO_HEIGHT}
-        initialNumToRender={2}
-        maxToRenderPerBatch={2}
-        windowSize={3}
-        showsVerticalScrollIndicator={false}
-        contentInsetAdjustmentBehavior="automatic"
-        onEndReachedThreshold={0.85}
-        onEndReached={() => fetchTrendingVideos()}
-        style={{ 
-          height: VIDEO_HEIGHT,
-          flex: 1
-        }}
-        removeClippedSubviews={true}
-      />
+    <ThemedView>
+      <SafeAreaView>
+        <FlatList
+          ref={flatListRef}
+          data={videos}
+          renderItem={renderItem}
+          keyExtractor={keyExtractor}
+          getItemLayout={getItemLayout}
+          pagingEnabled
+          scrollEnabled={!showCommentsModal}
+          onViewableItemsChanged={onViewableItemsChanged}
+          viewabilityConfig={viewabilityConfig}
+          initialNumToRender={1}
+          maxToRenderPerBatch={1}
+          windowSize={1}
+          removeClippedSubviews={true}
+          showsVerticalScrollIndicator={false}
+          contentInsetAdjustmentBehavior="automatic"
+          // onEndReachedThreshold={0.8}
+          // onEndReached={() => {
+          //   if (hasMore && !isFetchingMore && isScreenFocused) {
+          //     fetchTrendingVideos();
+          //   }
+          // }}
+          style={{ height: VIDEO_HEIGHT }}
+          maintainVisibleContentPosition={{
+            minIndexForVisible: 0,
+            autoscrollToTopThreshold: 10,
+          }}
+          // Add loading indicator at the bottom
+          ListFooterComponent={
+            isFetchingMore ? (
+              <View style={{ padding: 20, alignItems: 'center' }}>
+                <ActivityIndicator size="small" color="white" />
+              </View>
+            ) : null
+          }
+        />
+      </SafeAreaView>
     </ThemedView>
   );
 };
