@@ -8,7 +8,7 @@ interface FileSelectScreenProps {
   onFileSelected: (file: any) => void;
   onBack: () => void;
   onSaveToDraft?: () => void;
-  onContinueUpload?: () => void;xx
+  onContinueUpload?: () => void;
   isEditingDraft?: boolean;
 }
 
@@ -401,4 +401,6 @@ const styles = StyleSheet.create({
 });
 
 export default FileSelectScreen;
+
+
 

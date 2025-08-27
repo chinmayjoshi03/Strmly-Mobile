@@ -1,468 +1,649 @@
+import ThemedText from "@/components/ThemedText";
+import ThemedView from "@/components/ThemedView";
+import { EditProfile } from "@/styles/EditProfile";
+import { useFonts } from "expo-font";
 import React, { useState, useEffect } from "react";
+
 import {
-  View,
-  Text,
+  Image,
+  Modal,
+  TextInput,
   TouchableOpacity,
+  View,
+  Alert,
   ActivityIndicator,
   ScrollView,
-  TextInput,
-  Image,
-  Alert,
-  StatusBar,
 } from "react-native";
-import { useRouter, useLocalSearchParams } from "expo-router";
-import { ArrowLeft, ChevronDown } from "lucide-react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import * as ImagePicker from "expo-image-picker";
+import { router, useFocusEffect } from "expo-router";
+
 import { useAuthStore } from "@/store/useAuthStore";
 import { getProfilePhotoUrl } from "@/utils/profileUtils";
-import ThemedView from "@/components/ThemedView";
-import { communityActions } from "@/api/community/communityActions";
-import * as ImagePicker from "expo-image-picker";
+import { getUserProfile, updateUserProfile } from "@/api/user/userActions";
+import {
+  YOUTUBE_CATEGORIES,
+  NETFLIX_CATEGORIES,
+  ContentType,
+} from "@/Constants/contentCategories";
 
-interface CommunityDetails {
-  communityId: string;
-  name: string;
-  bio: string;
-  profilePhoto: string;
-  community_fee_type?: "free" | "paid";
-  community_fee_amount?: number;
-  community_fee_description?: string;
-  creator_limit?: number;
-}
+const EditProfilePage: React.FC = () => {
+  const [fontsLoaded] = useFonts({
+    "Poppins-Regular": require("../../assets/fonts/poppins/Poppins-Regular.ttf"),
+    "Poppins-Bold": require("../../assets/fonts/poppins/Poppins-Bold.ttf"),
+    "Poppins-SemiBold": require("../../assets/fonts/poppins/Poppins-SemiBold.ttf"),
+    "Poppins-Medium": require("../../assets/fonts/poppins/Poppins-Medium.ttf"),
+    "Poppins-Light": require("../../assets/fonts/poppins/Poppins-Light.ttf"),
+    "Inter-Light": require("../../assets/fonts/inter/Inter-Light.ttf"),
+    "Inter-Regular": require("../../assets/fonts/inter/Inter-Regular.ttf"),
+    "Inter-SemiBold": require("../../assets/fonts/inter/Inter-SemiBold.ttf"),
+    "Inter-Bold": require("../../assets/fonts/inter/Inter-Bold.ttf"),
+    "Inter-ExtraBold": require("../../assets/fonts/inter/Inter-ExtraBold.ttf"),
+    "Poppins-ExtraLight": require("../../assets/fonts/poppins/Poppins-ExtraLight.ttf"),
+  });
 
-export default function EditCommunity() {
-  const router = useRouter();
-  const params = useLocalSearchParams();
-  const { token } = useAuthStore();
-  const insets = useSafeAreaInsets();
+  // Auth store
+  const { token, user, updateUser } = useAuthStore();
 
-  const [community, setCommunity] = useState<CommunityDetails | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
+  // Form states
   const [name, setName] = useState("");
+  const [username, setUsername] = useState("");
   const [bio, setBio] = useState("");
   const [imageUri, setImageUri] = useState<string | null>(null);
-  const [accessType, setAccessType] = useState<"free" | "paid">("free");
-  const [showAccessDropdown, setShowAccessDropdown] = useState(false);
-  const [creatorStrength, setCreatorStrength] = useState("");
-  const [communityFee, setCommunityFee] = useState("");
 
-  const communityId = params.communityId as string;
+  // Dropdown states
+  const [visible, setVisible] = useState(false);
+  const [dropdownType, setDropdownType] = useState<
+    "gender" | "interest1" | "interest2" | "contentInterest"
+  >("gender");
+  const [gender, setGender] = useState("");
+  const [contentInterest, setContentInterest] = useState("");
+  const [interest1, setInterest1] = useState<string[]>([]); // YouTube interests (up to 3)
+  const [interest2, setInterest2] = useState<string[]>([]); // Netflix interests (up to 3)
 
+  // Loading states
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+
+  // Options for dropdowns
+  const genderOptions = ["Male", "Female", "Other"];
+  const contentInterestOptions = ["YouTube", "Netflix"];
+  const youtubeInterestOptions = YOUTUBE_CATEGORIES;
+  const netflixInterestOptions = NETFLIX_CATEGORIES;
+
+  // Load user profile data on mount
+  // Load user profile data on mount
   useEffect(() => {
-    if (communityId && token) {
-      fetchCommunityDetails();
-    }
-  }, [communityId, token]);
+    loadUserProfile();
+  }, []);
 
-  const fetchCommunityDetails = async () => {
-    if (!communityId) {
-      Alert.alert("Error", "Community ID is required");
-      router.back();
-      return;
-    }
+  // Refresh profile data when screen comes into focus
+  useFocusEffect(
+    React.useCallback(() => {
+      console.log("🔄 EditProfile screen focused, refreshing profile data");
+      loadUserProfile();
+    }, [])
+  );
 
-    if (!token) {
-      Alert.alert("Error", "Authentication required");
-      router.back();
-      return;
-    }
+  // Sync with auth store when user data changes
+  useEffect(() => {
+    if (user && user.profile_photo) {
+      console.log("🔄 Auth store profile photo changed:", user.profile_photo);
+      console.log("📸 Current imageUri:", imageUri);
 
-    setLoading(true);
+      // Update imageUri if the auth store has a different profile photo
+      // This happens after a successful profile update
+      if (user.profile_photo !== imageUri) {
+        console.log("📸 Updating imageUri with auth store profile photo");
+        setImageUri(user.profile_photo);
+      }
+    }
+  }, [user?.profile_photo]);
+
+  const loadUserProfile = async () => {
+    if (!token) return;
+
     try {
-      const result = await communityActions.getCommunityDetails(
-        token,
-        communityId
-      );
-      setCommunity(result);
-      setName(result.name);
-      setBio(result.bio || "");
-      setImageUri(result.profilePhoto);
-      // Set access type based on community data if available
-      setAccessType(result.community_fee_type || "free");
-      setCreatorStrength(result.creator_limit?.toString() || "");
-      setCommunityFee(result.community_fee_amount?.toString() || "");
-      console.log("✅ Community details fetched for editing:", {
-        name: result.name,
-        community_fee_type: result.community_fee_type,
-        creator_limit: result.creator_limit,
-        community_fee_amount: result.community_fee_amount,
-      });
+      setLoading(true);
+      const profileData = await getUserProfile(token);
+
+      if (profileData.user) {
+        console.log("🔄 Loading user profile data:", {
+          interest1: profileData.user.interest1,
+          interest2: profileData.user.interest2,
+          gender: profileData.user.gender,
+          content_interests: profileData.user.content_interests,
+        });
+
+        setName(profileData.user.username || "");
+        setUsername(profileData.user.username || "");
+        setBio(profileData.user.bio || "");
+
+        // Always update imageUri with the latest profile photo from API
+        setImageUri(profileData.user.profile_photo || null);
+
+        // Set gender and content interests
+        setGender(profileData.user.gender || "");
+        setContentInterest(profileData.user.content_interests || "");
+
+        // Reset interests first
+        setInterest1([]);
+        setInterest2([]);
+
+        // Set interests if available - split between YouTube and Netflix
+        if (profileData.user.interest1) {
+          try {
+            // Handle both array and string formats
+            const interest1Data =
+              typeof profileData.user.interest1 === "string"
+                ? JSON.parse(profileData.user.interest1)
+                : profileData.user.interest1;
+
+            if (Array.isArray(interest1Data) && interest1Data.length > 0) {
+              setInterest1(interest1Data);
+              console.log("✅ Loaded Interest 1:", interest1Data);
+            }
+          } catch (error) {
+            console.error("❌ Error parsing interest1:", error);
+          }
+        }
+
+        if (profileData.user.interest2) {
+          try {
+            // Handle both array and string formats
+            const interest2Data =
+              typeof profileData.user.interest2 === "string"
+                ? JSON.parse(profileData.user.interest2)
+                : profileData.user.interest2;
+
+            if (Array.isArray(interest2Data) && interest2Data.length > 0) {
+              setInterest2(interest2Data);
+              console.log("✅ Loaded Interest 2:", interest2Data);
+            }
+          } catch (error) {
+            console.error("❌ Error parsing interest2:", error);
+          }
+        }
+      }
     } catch (error) {
-      console.error("❌ Error fetching community details:", error);
-      Alert.alert("Error", "Failed to load community details");
-      router.back();
+      console.error("Error loading profile:", error);
+      Alert.alert("Error", "Failed to load profile data");
     } finally {
       setLoading(false);
     }
   };
 
+  const handleSelect = (value: string) => {
+    switch (dropdownType) {
+      case "gender":
+        setGender(value);
+        setVisible(false);
+        break;
+      case "contentInterest":
+        setContentInterest(value);
+        setVisible(false);
+        break;
+      case "interest1":
+        // Handle YouTube interests (up to 3)
+        if (interest1.includes(value)) {
+          // Remove if already selected
+          setInterest1(interest1.filter((item) => item !== value));
+        } else if (interest1.length < 3) {
+          // Add if less than 3 selected
+          setInterest1([...interest1, value]);
+        } else {
+          Alert.alert(
+            "Maximum Reached",
+            "You can only select up to 3 YouTube interests."
+          );
+        }
+        break;
+      case "interest2":
+        // Handle Netflix interests (up to 3)
+        if (interest2.includes(value)) {
+          // Remove if already selected
+          setInterest2(interest2.filter((item) => item !== value));
+        } else if (interest2.length < 3) {
+          // Add if less than 3 selected
+          setInterest2([...interest2, value]);
+        } else {
+          Alert.alert(
+            "Maximum Reached",
+            "You can only select up to 3 Netflix interests."
+          );
+        }
+        break;
+    }
+  };
+
+  const openDropdown = (
+    type: "gender" | "interest1" | "interest2" | "contentInterest"
+  ) => {
+    setDropdownType(type);
+    setVisible(true);
+  };
+
+  const getDropdownOptions = () => {
+    switch (dropdownType) {
+      case "gender":
+        return genderOptions;
+      case "contentInterest":
+        return contentInterestOptions;
+      case "interest1":
+        // Return YouTube categories for Interest 1
+        return youtubeInterestOptions;
+      case "interest2":
+        // Return Netflix categories for Interest 2
+        return netflixInterestOptions;
+      default:
+        return [];
+    }
+  };
+
+  const getCurrentValue = () => {
+    switch (dropdownType) {
+      case "gender":
+        return gender;
+      case "contentInterest":
+        return contentInterest;
+      case "interest1":
+        return interest1.length > 0 ? interest1.join(", ") : "";
+      case "interest2":
+        return interest2.length > 0 ? interest2.join(", ") : "";
+      default:
+        return "";
+    }
+  };
+
   const pickImage = async () => {
-    try {
-      // Request permissions first
-      const permissionResult =
-        await ImagePicker.requestMediaLibraryPermissionsAsync();
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ["images"],
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.7,
+    });
 
-      if (permissionResult.granted === false) {
-        Alert.alert(
-          "Permission Required",
-          "Permission to access camera roll is required!"
-        );
-        return;
-      }
-
-      const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ["images"],
-        allowsEditing: true,
-        aspect: [1, 1],
-        quality: 0.7,
-      });
-
-      if (!result.canceled) {
-        setImageUri(result.assets[0].uri);
-        console.log("📷 Image selected:", result.assets[0].uri);
-      }
-    } catch (error) {
-      console.error("❌ Error picking image:", error);
-      Alert.alert("Error", "Failed to pick image. Please try again.");
+    if (!result.canceled) {
+      setImageUri(result.assets[0].uri);
     }
   };
 
   const handleSave = async () => {
-    if (!name.trim()) {
-      Alert.alert("Error", "Community name is required");
-      return;
-    }
-
-    if (!communityId) {
-      Alert.alert("Error", "Community ID is required");
-      return;
-    }
-
     if (!token) {
-      Alert.alert("Error", "Authentication required");
+      Alert.alert("Error", "No authentication token found");
       return;
     }
 
-    setSaving(true);
     try {
-      // Update name if changed
-      if (name !== community?.name) {
-        await communityActions.renameCommunity(token, communityId, name);
-      }
+      setSaving(true);
 
-      // Update bio if changed
-      if (bio !== community?.bio) {
-        await communityActions.updateCommunityBio(token, communityId, bio);
-      }
+      const profileData = {
+        username: username.trim(),
+        bio: bio.trim(),
+        ...(gender && { gender }),
+        ...(contentInterest && { content_interests: contentInterest }),
+        ...(interest1.length > 0 && { interest1: JSON.stringify(interest1) }),
+        ...(interest2.length > 0 && { interest2: JSON.stringify(interest2) }),
+        ...(imageUri && { profile_photo: imageUri }),
+      };
 
-      // Update profile photo if changed
-      if (imageUri && imageUri !== community?.profilePhoto) {
-        let imageFile = null;
-        if (imageUri.startsWith("file://")) {
-          const fileName = imageUri.split("/").pop()!;
-          const fileType = fileName.split(".").pop();
-          imageFile = {
-            uri: imageUri,
-            name: fileName,
-            type: `image/${fileType}`,
-          } as any;
-        }
+      const response = await updateUserProfile(token, profileData);
 
-        if (imageFile) {
-          await communityActions.updateCommunityPhoto(
-            token,
-            communityId,
-            imageFile
-          );
-        }
-      }
+      // Update the auth store with new data (use the URL from server response if available)
 
-      // Update community settings if changed
-      const settingsToUpdate: any = {};
-      let hasSettingsChanges = false;
+      // Update the auth store with new data (use the URL from server response if available)
+      const updatedProfilePhoto = response.user?.profile_photo || imageUri;
+      updateUser({
+        ...user,
+        username: username.trim(),
+        bio: bio.trim(),
+        gender: gender,
+        content_interests: contentInterest,
+        interest1: interest1,
+        interest2: interest2,
+        ...(updatedProfilePhoto && { profile_photo: updatedProfilePhoto }),
+      });
 
-      // Check creator strength
-      if (
-        creatorStrength &&
-        creatorStrength !== (community?.creator_limit?.toString() || "")
-      ) {
-        const limit = parseInt(creatorStrength);
-        if (!isNaN(limit)) {
-          settingsToUpdate.creator_limit = limit;
-          hasSettingsChanges = true;
-        }
-      }
-
-      // Check access type and fee
-      if (accessType !== (community?.community_fee_type || "free")) {
-        settingsToUpdate.community_fee_type = accessType;
-        hasSettingsChanges = true;
-
-        if (accessType === "paid" && communityFee) {
-          const amount = parseInt(communityFee);
-          if (!isNaN(amount)) {
-            settingsToUpdate.community_fee_amount = amount;
-          }
-        }
-      } else if (
-        accessType === "paid" &&
-        communityFee &&
-        communityFee !== (community?.community_fee_amount?.toString() || "")
-      ) {
-        const amount = parseInt(communityFee);
-        if (!isNaN(amount)) {
-          settingsToUpdate.community_fee_amount = amount;
-          hasSettingsChanges = true;
-        }
-      }
-
-      if (hasSettingsChanges) {
-        console.log("📝 Updating community settings:", settingsToUpdate);
-        await communityActions.updateCommunitySettings(
-          token,
-          communityId,
-          settingsToUpdate
-        );
-      }
-
-      Alert.alert("Success", "Community updated successfully!", [
-        {
-          text: "OK",
-          onPress: () => router.back(),
-        },
-      ]);
+      Alert.alert("Success", "Profile updated successfully");
+      router.back();
     } catch (error) {
-      console.error("❌ Error updating community:", error);
-      Alert.alert(
-        "Error",
-        error instanceof Error ? error.message : "Failed to update community"
-      );
+      console.error("Error updating profile:", error);
+
+      if (
+        error instanceof Error &&
+        error.message.includes("Network request failed") &&
+        imageUri
+      ) {
+        Alert.alert(
+          "Profile Updated",
+          "Your profile information was updated, but the profile photo could not be uploaded. Please try uploading the photo again.",
+          [{ text: "OK" }]
+        );
+        router.back();
+      } else {
+        Alert.alert("Error", "Failed to update profile. Please try again.");
+      }
     } finally {
       setSaving(false);
     }
   };
 
-  if (loading) {
-    return (
-      <ThemedView className="flex-1 items-center justify-center">
-        <ActivityIndicator size="large" color="#F1C40F" />
-        <Text className="text-white mt-2" style={{ fontFamily: "Poppins" }}>
-          Loading community...
-        </Text>
-      </ThemedView>
-    );
-  }
+  const renderDropdownField = (
+    label: string,
+    value: string,
+    placeholder: string,
+    dropdownKey: "gender" | "interest1" | "interest2" | "contentInterest"
+  ) => (
+    <TouchableOpacity
+      onPress={() => openDropdown(dropdownKey)}
+      style={EditProfile.dropdownTrigger}
+    >
+      <ThemedText
+        style={[EditProfile.dropdownText, { color: value ? "#fff" : "#888" }]}
+      >
+        {value || placeholder}
+      </ThemedText>
+      <ThemedText style={EditProfile.arrow}>▼</ThemedText>
+    </TouchableOpacity>
+  );
 
   return (
-    <View className="flex-1 bg-black">
-      <StatusBar barStyle="light-content" backgroundColor="black" />
-
-      {/* Header */}
-      <View
-        className="flex-row items-center justify-between px-4 py-3"
-        style={{ paddingTop: insets.top + 10 }}
+    <ThemedView style={EditProfile.container}>
+      <ScrollView
+        contentContainerStyle={{ paddingBottom: 20 }}
+        showsVerticalScrollIndicator={false}
+        style={{ flex: 1 }}
       >
-        <TouchableOpacity onPress={() => router.back()}>
-          <ArrowLeft size={24} color="white" />
-        </TouchableOpacity>
-        <Text
-          className="text-white text-lg font-semibold"
-          style={{ fontFamily: "Poppins" }}
-        >
-          Edit Community
-        </Text>
-        <TouchableOpacity onPress={handleSave} disabled={saving}>
-          {saving ? (
-            <ActivityIndicator size="small" color="#fff" />
-          ) : (
-            <Text
-              className="text-white font-semibold"
-              style={{ fontFamily: "Poppins" }}
-            >
-              Save
-            </Text>
-          )}
-        </TouchableOpacity>
-      </View>
-
-      <ScrollView className="flex-1 px-6">
-        {/* Profile Photo */}
-        <View className="items-center py-8">
-          <TouchableOpacity onPress={pickImage} className="items-center">
-            <View className="w-32 h-32 rounded-full bg-gray-600 items-center justify-center mb-4 overflow-hidden">
-              <Image
-                source={{ uri: getProfilePhotoUrl(imageUri, "community") }}
-                className="w-full h-full"
-                resizeMode="cover"
-              />
-            </View>
-            <Text
-              className="text-blue-400 text-center"
-              style={{ fontFamily: "Poppins" }}
-            >
-              Edit community picture
-            </Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* Community Name */}
-        <View className="mb-8">
-          <Text
-            className="text-white text-base mb-2"
-            style={{ fontFamily: "Poppins" }}
-          >
-            Community name
-          </Text>
-          <TextInput
-            className="text-gray-400 text-base"
-            placeholder="Add name"
-            placeholderTextColor="#666"
-            value={name}
-            onChangeText={setName}
-            style={{ fontFamily: "Poppins" }}
-          />
-          <View className="h-px bg-gray-600 mt-2" />
-        </View>
-
-        {/* Bio */}
-        <View className="mb-8">
-          <Text
-            className="text-white text-base mb-2"
-            style={{ fontFamily: "Poppins" }}
-          >
-            Bio
-          </Text>
-          <TextInput
-            className="text-gray-400 text-base"
-            placeholder="Add bio"
-            placeholderTextColor="#666"
-            value={bio}
-            onChangeText={setBio}
-            style={{ fontFamily: "Poppins" }}
-          />
-          <View className="h-px bg-gray-600 mt-2" />
-        </View>
-
-        {/* Access */}
-        <View className="mb-8 relative">
-          <Text
-            className="text-white text-base mb-2"
-            style={{ fontFamily: "Poppins" }}
-          >
-            Access
-          </Text>
+        {/* Top Bar */}
+        <View style={EditProfile.CreateCommunityTopBar}>
           <TouchableOpacity
-            onPress={() => setShowAccessDropdown(!showAccessDropdown)}
-            className="flex-row items-center justify-between"
+            onPress={() => router.back()}
+            style={EditProfile.BackIcon}
           >
-            <Text
-              className="text-gray-400 text-base"
-              style={{ fontFamily: "Poppins" }}
-            >
-              {accessType === "free" ? "Free" : "Paid"}
-            </Text>
-            <ChevronDown size={20} color="#666" />
+            <Image
+              style={{ width: 20, height: 20 }}
+              source={require("../../assets/images/back.png")}
+            />
           </TouchableOpacity>
-          <View className="h-px bg-gray-600 mt-2" />
+          <ThemedText style={EditProfile.TopBarTitle}>
+            {name || user?.username || "Edit Profile"}
+          </ThemedText>
+          <TouchableOpacity onPress={handleSave} disabled={saving}>
+            {saving ? (
+              <ActivityIndicator size="small" color="#007AFF" />
+            ) : (
+              <ThemedText style={EditProfile.SaveText}>Save</ThemedText>
+            )}
+          </TouchableOpacity>
+        </View>
 
-          {/* Access Dropdown */}
-          {showAccessDropdown && (
-            <View className="absolute top-16 left-0 right-0 bg-gray-800 rounded-lg border border-gray-600 z-10">
-              <TouchableOpacity
-                onPress={() => {
-                  setAccessType("free");
-                  setShowAccessDropdown(false);
-                }}
-                className="px-4 py-3 border-b border-gray-700"
-              >
-                <Text
-                  className="text-white text-base"
-                  style={{ fontFamily: "Poppins" }}
-                >
-                  Free
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                onPress={() => {
-                  setAccessType("paid");
-                  setShowAccessDropdown(false);
-                }}
-                className="px-4 py-3"
-              >
-                <Text
-                  className="text-white text-base"
-                  style={{ fontFamily: "Poppins" }}
-                >
-                  Paid
-                </Text>
-                </TouchableOpacity>
+        {/* Image picker */}
+        <TouchableOpacity style={{ alignItems: "center" }} onPress={pickImage}>
+          <Image
+            source={
+              imageUri
+                ? { uri: imageUri }
+                : require("../../assets/images/user.png")
+            }
+            style={EditProfile.CommunityAvatar}
+          />
+          <ThemedText style={EditProfile.RightTab}>
+            Edit profile picture
+          </ThemedText>
+        </TouchableOpacity>
+
+        {/* Inputs */}
+        <View style={EditProfile.InfoContainer}>
+          <View style={EditProfile.InfoFrame}>
+            <ThemedText style={EditProfile.InfoLabel}>Name</ThemedText>
+            <TextInput
+              placeholder="Add name"
+              placeholderTextColor="#B0B0B0"
+              style={EditProfile.TextLabel}
+              value={name}
+              onChangeText={setName}
+            />
+          </View>
+
+          <View style={EditProfile.InfoFrame}>
+            <ThemedText style={EditProfile.InfoLabel}>Username</ThemedText>
+            <TextInput
+              placeholder="Add username"
+              placeholderTextColor="#B0B0B0"
+              style={EditProfile.TextLabel}
+              value={username}
+              onChangeText={setUsername}
+            />
+          </View>
+
+          <View style={EditProfile.InfoFrame}>
+            <ThemedText style={EditProfile.InfoLabel}>Bio</ThemedText>
+            <TextInput
+              placeholder="Add bio"
+              placeholderTextColor="#B0B0B0"
+              style={EditProfile.TextLabel}
+              value={bio}
+              onChangeText={setBio}
+            />
+          </View>
+
+          {/* Gender & Content Interest */}
+          <View style={EditProfile.TwoFieldRow}>
+            <View style={EditProfile.HalfField}>
+              <ThemedText style={EditProfile.InfoLabel}>Gender</ThemedText>
+              {renderDropdownField("Gender", gender, "Select gender", "gender")}
             </View>
-          )}
-        </View>
 
-        {/* Creator Strength and Community Fee */}
-        <View className="flex-row justify-between mb-8">
-          <View className="flex-1 mr-4">
-            <Text
-              className="text-white text-base"
-              style={{ fontFamily: "Poppins" }}
-            >
-              Creator
-            </Text>
-            <Text
-              className="text-white text-base mb-2"
-              style={{ fontFamily: "Poppins" }}
-            >
-              strength
-            </Text>
-            <TextInput
-              className="text-gray-400 text-2xl"
-              placeholder="500"
-              placeholderTextColor="#666"
-              keyboardType="numeric"
-              value={creatorStrength}
-              onChangeText={setCreatorStrength}
-              style={{ fontFamily: "Poppins" }}
-            />
-            <View className="h-px bg-gray-600 mt-2" />
+            <View style={EditProfile.HalfField}>
+              <ThemedText style={EditProfile.InfoLabel}>Platform</ThemedText>
+              {renderDropdownField(
+                "Platform",
+                contentInterest,
+                "Select platform",
+                "contentInterest"
+              )}
+            </View>
           </View>
-          <View className="flex-1 ml-4">
-            <Text
-              className="text-white text-base"
-              style={{ fontFamily: "Poppins" }}
-            >
-              Community
-            </Text>
-            <Text
-              className="text-white text-base mb-2"
-              style={{ fontFamily: "Poppins" }}
-            >
-              fee
-            </Text>
-            <TextInput
-              className="text-gray-400 text-2xl"
-              placeholder="₹29/m"
-              placeholderTextColor="#666"
-              value={communityFee}
-              onChangeText={setCommunityFee}
-              style={{ fontFamily: "Poppins" }}
-            />
-            <View className="h-px bg-gray-600 mt-2" />
-          </View>
-        </View>
 
-        {/* Description */}
-        <View className="mb-8">
-          <Text
-            className="text-gray-400 text-sm text-center leading-5"
-            style={{ fontFamily: "Poppins" }}
+          {/* Interest 1 (YouTube) & Interest 2 (Netflix) */}
+          <View style={EditProfile.InfoFrame}>
+            <ThemedText style={EditProfile.InfoLabel}>Interest 1 </ThemedText>
+            {renderDropdownField(
+              "Interest 1",
+              interest1.length > 0 ? interest1.join(", ") : "",
+              "Select YouTube interests",
+              "interest1"
+            )}
+            {interest1.length > 0 && (
+              <View
+                style={{ marginTop: 8, flexDirection: "row", flexWrap: "wrap" }}
+              >
+                {interest1.map((item, index) => (
+                  <View
+                    key={index}
+                    style={{
+                      backgroundColor: "#333",
+                      padding: 4,
+                      margin: 2,
+                      borderRadius: 4,
+                    }}
+                  >
+                    <ThemedText style={{ color: "#fff", fontSize: 12 }}>
+                      {item}
+                    </ThemedText>
+                  </View>
+                ))}
+              </View>
+            )}
+          </View>
+
+          <View style={EditProfile.InfoFrame}>
+            <ThemedText style={EditProfile.InfoLabel}>Interest 2 </ThemedText>
+            {renderDropdownField(
+              "Interest 2",
+              interest2.length > 0 ? interest2.join(", ") : "",
+              "Select Netflix interests",
+              "interest2"
+            )}
+            {interest2.length > 0 && (
+              <View
+                style={{ marginTop: 8, flexDirection: "row", flexWrap: "wrap" }}
+              >
+                {interest2.map((item, index) => (
+                  <View
+                    key={index}
+                    style={{
+                      backgroundColor: "#333",
+                      padding: 4,
+                      margin: 2,
+                      borderRadius: 4,
+                    }}
+                  >
+                    <ThemedText style={{ color: "#fff", fontSize: 12 }}>
+                      {item}
+                    </ThemedText>
+                  </View>
+                ))}
+              </View>
+            )}
+          </View>
+
+          {/* Dropdown Modal (shared) */}
+          <Modal transparent animationType="fade" visible={visible}>
+            <TouchableOpacity
+              style={EditProfile.overlay}
+              onPress={() => setVisible(false)}
+            >
+              <View style={EditProfile.dropdownBox}>
+                {dropdownType === "interest1" ||
+                dropdownType === "interest2" ? (
+                  // Multi-select for interests
+                  <>
+                    <View
+                      style={{
+                        padding: 10,
+                        borderBottomWidth: 1,
+                        borderBottomColor: "#333",
+                      }}
+                    >
+                      <ThemedText style={{ color: "#fff", fontWeight: "bold" }}>
+                        {dropdownType === "interest1"
+                          ? "YouTube Interests (Select up to 3)"
+                          : "Netflix Interests (Select up to 3)"}
+                      </ThemedText>
+                      <ThemedText style={{ color: "#888", fontSize: 12 }}>
+                        {dropdownType === "interest1"
+                          ? `${interest1.length}/3 selected`
+                          : `${interest2.length}/3 selected`}
+                      </ThemedText>
+                    </View>
+                    {getDropdownOptions().map((item) => {
+                      const isSelected =
+                        dropdownType === "interest1"
+                          ? interest1.includes(item)
+                          : interest2.includes(item);
+                      return (
+                        <TouchableOpacity
+                          key={item}
+                          style={[
+                            EditProfile.dropdownItem,
+                            { flexDirection: "row", alignItems: "center" },
+                          ]}
+                          onPress={() => handleSelect(item)}
+                        >
+                          <View
+                            style={{
+                              width: 20,
+                              height: 20,
+                              borderWidth: 2,
+                              borderColor: isSelected ? "#007AFF" : "#666",
+                              backgroundColor: isSelected
+                                ? "#007AFF"
+                                : "transparent",
+                              marginRight: 10,
+                              alignItems: "center",
+                              justifyContent: "center",
+                            }}
+                          >
+                            {isSelected && (
+                              <ThemedText
+                                style={{ color: "#fff", fontSize: 12 }}
+                              >
+                                ✓
+                              </ThemedText>
+                            )}
+                          </View>
+                          <ThemedText style={EditProfile.dropdownItemText}>
+                            {item}
+                          </ThemedText>
+                        </TouchableOpacity>
+                      );
+                    })}
+                    <TouchableOpacity
+                      style={[
+                        EditProfile.dropdownItem,
+                        { backgroundColor: "#007AFF", marginTop: 10 },
+                      ]}
+                      onPress={() => setVisible(false)}
+                    >
+                      <ThemedText
+                        style={[
+                          EditProfile.dropdownItemText,
+                          { textAlign: "center", fontWeight: "bold" },
+                        ]}
+                      >
+                        Done
+                      </ThemedText>
+                    </TouchableOpacity>
+                  </>
+                ) : (
+                  // Single select for other dropdowns
+                  getDropdownOptions().map((item) => (
+                    <TouchableOpacity
+                      key={item}
+                      style={EditProfile.dropdownItem}
+                      onPress={() => handleSelect(item)}
+                    >
+                      <ThemedText style={EditProfile.dropdownItemText}>
+                        {item}
+                      </ThemedText>
+                    </TouchableOpacity>
+                  ))
+                )}
+              </View>
+            </TouchableOpacity>
+          </Modal>
+
+          {/* Social Media Links Button */}
+          <TouchableOpacity
+            style={EditProfile.CreatorPassButton}
+            onPress={() => router.push("/Profile/SocialMediaLinks")}
           >
-            As the community owner, you can set a limit on how many creators
-            can join, while users can follow the community without any limit.
-          </Text>
+            <ThemedText style={EditProfile.CreatorPassText}>
+              Add Social Media Links
+            </ThemedText>
+          </TouchableOpacity>
+
+          {/* Creator Pass Button */}
+          <TouchableOpacity
+            style={EditProfile.CreatorPassButton}
+            onPress={() => router.push("/Profile/CreatorPass")}
+          >
+            <ThemedText style={EditProfile.CreatorPassText}>
+              Add "CREATOR PASS"
+            </ThemedText>
+          </TouchableOpacity>
+
+          {/* Extra Info */}
+          <View style={{ marginTop: 10, paddingHorizontal: 20 }}>
+            <ThemedText style={EditProfile.ExtraInfo}>
+              Unlock Creator pass for your fans. All your paid content will be
+              freely available to users who purchase your Creator Pass.
+            </ThemedText>
+          </View>
         </View>
       </ScrollView>
-    </View>
+    </ThemedView>
   );
-}
+};
+
+export default EditProfilePage;

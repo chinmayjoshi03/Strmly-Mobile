@@ -440,6 +440,7 @@ export const useUploadFlow = () => {
         directUploadFormData.append('seriesId', state.selectedSeries.id);
         directUploadFormData.append('episodeNumber', '1'); // You might want to calculate this properly
       }
+      console.log('📋 Final form data for upload:', directUploadFormData);
 
       // Add timeout to prevent hanging
     
