@@ -8,6 +8,7 @@ import {
   Image,
   StatusBar,
   Alert,
+  Dimensions,
 } from "react-native";
 import { ArrowLeft, MoreVertical, Play, Film, User } from "lucide-react-native";
 import { LinearGradient } from "expo-linear-gradient";
@@ -19,6 +20,9 @@ import {
 } from "./_components/usePurchasedAccess";
 import { useRoute } from "@react-navigation/native";
 import { getProfilePhotoUrl } from "@/utils/profileUtils";
+import { SafeAreaView } from "react-native-safe-area-context";
+
+const { height } = Dimensions.get("screen");
 
 export default function AccessPage() {
   const [activeTab, setActiveTab] = useState<"content" | "series" | "creator">(
@@ -327,11 +331,12 @@ export default function AccessPage() {
   );
 
   return (
-    <View className="flex-1 bg-black">
+    <SafeAreaView style={{ height: height, backgroundColor: "black" }}>
+      <View className="flex-1 bg-black">
       <StatusBar barStyle="light-content" backgroundColor="#000000" />
 
       {/* Header */}
-      <View className="flex-row items-center justify-between px-4 pt-12 pb-4">
+      <View className="flex-row items-center justify-between px-4 pt-4 pb-4">
         <TouchableOpacity onPress={() => router.back()} className="p-2">
           <ArrowLeft size={24} color="white" />
         </TouchableOpacity>
@@ -418,5 +423,6 @@ export default function AccessPage() {
         </TouchableOpacity>
       </ScrollView>
     </View>
+    </SafeAreaView>
   );
 }

@@ -5,6 +5,7 @@ import {
   TouchableOpacity,
   Image,
   FlatList,
+  Dimensions,
 } from "react-native";
 import React, { useEffect, useState } from "react";
 import ThemedView from "@/components/ThemedView";
@@ -14,7 +15,9 @@ import { CONFIG } from "@/Constants/config";
 import ProfileTopbar from "@/components/profileTopbar";
 import { VideoItemType } from "@/types/VideosType";
 import { useVideosStore } from "@/store/useVideosStore";
+import { SafeAreaView } from "react-native-safe-area-context";
 
+const {height} = Dimensions.get("screen");
 const PAGE_LIMIT = 10;
 
 const HistoryPage = () => {
@@ -116,7 +119,8 @@ const HistoryPage = () => {
   );
 
   return (
-    <ThemedView className="flex-1 pt-5">
+    <SafeAreaView style={{height, backgroundColor: 'black'}}>
+      <ThemedView className="flex-1">
       <ProfileTopbar isMore={false} hashtag={false} name="History" />
 
       {isLoading && videos.length === 0 ? (
@@ -148,6 +152,7 @@ const HistoryPage = () => {
         />
       )}
     </ThemedView>
+    </SafeAreaView>
   );
 };
 

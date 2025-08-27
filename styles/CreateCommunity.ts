@@ -4,7 +4,7 @@ export const CreateCommunityStyle = StyleSheet.create({
     container: {
         flex: 1,
         backgroundColor: "#000",
-        paddingTop: 20,
+        paddingTop: 0,
         width: '100%',
         alignItems:'center'
     },
@@ -36,6 +36,7 @@ export const CreateCommunityStyle = StyleSheet.create({
     InfoLabel: {
         fontFamily: 'Poppins-Regular',
         fontSize: 14,
+        width: '100%',
         marginTop: 10
     },
     TextLabel: {

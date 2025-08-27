@@ -307,8 +307,8 @@ const StrmlyStudio = () => {
   }
 
   return (
-    <SafeAreaView>
-      <ThemedView style={{height: height}}>
+    <ThemedView style={{ height: height }}>
+      <SafeAreaView style={{ height }}>
         <StatusBar barStyle="light-content" backgroundColor="#000" />
 
         {/* Header */}
@@ -634,7 +634,7 @@ const StrmlyStudio = () => {
         </ScrollView>
 
         {/* Bottom Section */}
-        <View className="px-4 py-4 pb-20">
+        <View className="absolute px-4 bottom-20 left-0 right-0">
           {/* Action Button */}
           <TouchableOpacity
             className="bg-gray-200 rounded-full py-4 items-center"
@@ -652,8 +652,8 @@ const StrmlyStudio = () => {
             </Text>
           </TouchableOpacity>
         </View>
-      </ThemedView>
-    </SafeAreaView>
+      </SafeAreaView>
+    </ThemedView>
   );
 };
 

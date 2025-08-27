@@ -17,6 +17,7 @@ import CreatorInfo from "../Video/_components/CreatorInfo";
 import { useRoute } from "@react-navigation/native";
 
 import { useGiftingStore } from "@/store/useGiftingStore";
+import CONFIG from "@/Constants/config";
 
 const BACKEND_API_URL = Constants.expoConfig?.extra?.BACKEND_API_URL;
 
@@ -211,7 +212,7 @@ const CreatorPassBuy = () => {
         {/* Top section */}
         <View className="mt-5">
           <CreatorInfo
-            profile={userData?.userDetails?.profile_photo}
+            profile={userData?.userDetails?.profile_photo || CONFIG.DEFAULT_USER_PROFILE_PHOTO}
             name={userData?.userDetails?.name}
             username={userData?.userDetails?.username}
           />
@@ -233,6 +234,7 @@ const CreatorPassBuy = () => {
           )}
         </View>
 
+        <View></View>
         <View></View>
         {/* Animated Bottom section */}
         <Animated.View

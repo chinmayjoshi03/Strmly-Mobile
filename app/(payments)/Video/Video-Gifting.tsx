@@ -18,7 +18,10 @@ import {
   Alert,
 } from "react-native";
 import CreatorInfo from "./_components/CreatorInfo";
-import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
+import {
+  SafeAreaView,
+  useSafeAreaInsets,
+} from "react-native-safe-area-context";
 import { router, useLocalSearchParams } from "expo-router";
 import { ChevronLeft } from "lucide-react-native";
 import { useAuthStore } from "@/store/useAuthStore";
@@ -494,219 +497,222 @@ const VideoContentGifting = ({
   }, [token]);
 
   return (
-    <ThemedView style={{ height }}>
-      <SafeAreaView style={{ height }}>
+    <SafeAreaView style={{ height }} edges={['bottom']}>
+      <ThemedView style={{ height }}>
         <KeyboardAvoidingView
-        style={{ flex: 1 }}
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
-        keyboardVerticalOffset={Platform.OS === "ios" ? 60 : 0}
-      >
-        <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-          <View className="flex-1 justify-between px-5">
-            {/* Top section */}
-            <View className="mt-5">
-              {isWithdrawMode ? (
-                <View className="flex-row items-center justify-between mb-8">
-                  <Pressable onPress={() => router.back()} className="p-2">
-                    <ChevronLeft size={28} color="white" />
-                  </Pressable>
-                  <Text className="text-white text-xl font-semibold">
-                    Withdraw from account
-                  </Text>
-                  <View className="w-8" />
-                </View>
-              ) : isCommentGiftMode ? (
-                <View className="flex-row items-center justify-between mb-8">
-                  <Pressable onPress={() => router.back()} className="p-2">
-                    <ChevronLeft size={28} color="white" />
-                  </Pressable>
-                  <Text className="text-white text-xl font-semibold">
-                    Gift Comment
-                  </Text>
-                  <View className="w-8" />
-                </View>
-              ) : (
-                creator && (
-                  <CreatorInfo
-                    profile={creator?.profile_photo}
-                    name={creator?.name}
-                    username={creator?.username}
-                  />
-                )
-              )}
-
-              {/* Show creator info for comment gifting */}
-              {isCommentGiftMode && (
-                <View className="items-center mb-6">
-                  <View className="w-16 h-16 rounded-full bg-gray-600 mb-3 overflow-hidden">
-                    {creatorPhoto ? (
-                      <Image
-                        source={{ uri: creatorPhoto as string }}
-                        className="w-full h-full"
-                      />
-                    ) : (
-                      <View className="w-full h-full bg-gray-600 items-center justify-center">
-                        <Text className="text-white text-lg">
-                          {(creatorName as string)?.charAt(0) || "U"}
-                        </Text>
-                      </View>
-                    )}
-                  </View>
-                  <Text className="text-white text-lg font-semibold">
-                    {creatorName || "Anonymous User"}
-                  </Text>
-                  <Text className="text-gray-400 text-sm">
-                    @{creatorUsername || "user"}
-                  </Text>
-                </View>
-              )}
-            </View>
-
-            {/* Middle section */}
-            <View className="items-center">
-              {isWithdrawMode && step === 1 ? (
-                <View className="flex-row items-center absolute -top-20">
-                  <Text className="text-xl text-white">Your UPI: </Text>
-                  <TextInput
-                    value={userUPI}
-                    onChangeText={handleUpiChange}
-                    keyboardType="default"
-                    returnKeyType={Platform.OS === "ios" ? "done" : "none"}
-                    placeholder="xxxxxxx584@ibl"
-                    placeholderTextColor="#666"
-                    className="text-xl border-b border-blue-700 text-white placeholder:text-gray-500 font-semibold px-1 items-center justify-center"
-                    style={{ minWidth: 100, textAlign: "center" }}
-                  />
-                </View>
-              ) : (
-                <View className="flex-row items-center justify-center">
-                  <Text className="text-4xl text-white">₹</Text>
-                  <TextInput
-                    value={amount}
-                    onChangeText={handleAmountChange}
-                    onPress={() => setHandleClickAmount(true)}
-                    keyboardType="number-pad"
-                    returnKeyType={Platform.OS === "ios" ? "done" : "none"}
-                    placeholder="0"
-                    placeholderTextColor="#666"
-                    className="text-3xl text-white placeholder:text-gray-500 font-semibold items-center justify-center"
-                    style={{ minWidth: 100, textAlign: "center" }}
-                  />
-                </View>
-              )}
-
-              {/* Error Message */}
-              {error && (
-                <View className="mt-4">
-                  <Text className="text-red-400 text-sm text-center">
-                    {error}
-                  </Text>
-                  {error.includes("setup bank") && (
-                    <Pressable
-                      onPress={() => {
-                        console.log("🔧 Manual navigation to bank setup");
-                        router.push("/(payments)/BankSetup");
-                      }}
-                      className="mt-2 p-2 bg-blue-600 rounded"
-                    >
-                      <Text className="text-white text-center text-sm">
-                        Setup Bank Account
-                      </Text>
+          style={{ flex: 1 }}
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+          keyboardVerticalOffset={Platform.OS === "ios" ? 60 : 10}
+        >
+          <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+            <View className="flex-1 justify-between px-5">
+              {/* Top section */}
+              <View className="mt-14">
+                {isWithdrawMode ? (
+                  <View className="flex-row items-center justify-between mb-8">
+                    <Pressable onPress={() => router.back()} className="p-2">
+                      <ChevronLeft size={28} color="white" />
                     </Pressable>
-                  )}
-                </View>
-              )}
-
-              {/* Success Message */}
-              {successMessage && (
-                <View className="mt-4 p-4 bg-green-600 rounded-lg">
-                  <Text className="text-white text-sm text-center">
-                    {successMessage}
-                  </Text>
-                  <Text className="text-green-200 text-xs text-center mt-1">
-                    Returning to comments...
-                  </Text>
-                </View>
-              )}
-            </View>
-
-            <View></View>
-            <View></View>
-            {/* Animated Bottom section */}
-            <Animated.View
-              style={{
-                position: "absolute",
-                left: 0,
-                right: 0,
-                bottom: Animated.add(new Animated.Value(handleClickAmount ? 0 : 50), 0),
-                // paddingBottom: 10,
-              }}
-              className="gap-2 justify-end"
-            >
-              <Pressable
-                disabled={
-                  loading ||
-                  (step === 1
-                    ? userUPI.length < 13 || !userUPI.includes("@")
-                    : !amount || parseInt(amount) <= 0) ||
-                  successMessage !== null
-                }
-                onPress={step === 1 ? handleUpdateUPI : handleProceed}
-                className={`p-4 rounded-lg items-center justify-center ${
-                  loading ||
-                  (step === 1
-                    ? userUPI.length < 13 || !userUPI.includes("@")
-                    : !amount || parseInt(amount) <= 0) ||
-                  successMessage !== null
-                    ? "bg-gray-600"
-                    : "bg-[#008A3C]"
-                }`}
-              >
-                {loading ? (
-                  <ActivityIndicator color="#fff" />
+                    <Text className="text-white text-xl font-semibold">
+                      Withdraw from account
+                    </Text>
+                    <View className="w-8" />
+                  </View>
+                ) : isCommentGiftMode ? (
+                  <View className="flex-row items-center justify-between mb-8">
+                    <Pressable onPress={() => router.back()} className="p-2">
+                      <ChevronLeft size={28} color="white" />
+                    </Pressable>
+                    <Text className="text-white text-xl font-semibold">
+                      Gift Comment
+                    </Text>
+                    <View className="w-8" />
+                  </View>
                 ) : (
-                  <Text className="text-white text-base font-semibold">
-                    {isWithdrawMode
-                      ? step === 1
-                        ? "Update and continue"
-                        : "Withdraw"
-                      : isCommentGiftMode
-                        ? "Send Gift"
-                        : "Proceed"}
-                  </Text>
+                  creator && (
+                    <CreatorInfo
+                      profile={creator?.profile_photo}
+                      name={creator?.name}
+                      username={creator?.username}
+                    />
+                  )
                 )}
-              </Pressable>
 
-              <View className="items-center justify-center mt-1">
-                <Text className="text-white text-sm">
-                  {isWithdrawMode ? "Current balance" : "Total balance"} ₹
-                  {walletInfo.balance?.toFixed(2) || "0.00"}
-                </Text>
+                {/* Show creator info for comment gifting */}
+                {isCommentGiftMode && (
+                  <View className="items-center mb-6">
+                    <View className="w-16 h-16 rounded-full bg-gray-600 mb-3 overflow-hidden">
+                      {creatorPhoto ? (
+                        <Image
+                          source={{ uri: creatorPhoto as string }}
+                          className="w-full h-full"
+                        />
+                      ) : (
+                        <View className="w-full h-full bg-gray-600 items-center justify-center">
+                          <Text className="text-white text-lg">
+                            {(creatorName as string)?.charAt(0) || "U"}
+                          </Text>
+                        </View>
+                      )}
+                    </View>
+                    <Text className="text-white text-lg font-semibold">
+                      {creatorName || "Anonymous User"}
+                    </Text>
+                    <Text className="text-gray-400 text-sm">
+                      @{creatorUsername || "user"}
+                    </Text>
+                  </View>
+                )}
               </View>
 
-              {isWithdrawMode && (
-                <View className="items-center justify-center mt-2">
-                  <Text className="text-gray-400 text-xs text-center">
-                    Minimum withdrawal: ₹100{"\n"}
-                    Processing time: 3-7 working days
+              {/* Middle section */}
+              <View className="items-center">
+                {isWithdrawMode && step === 1 ? (
+                  <View className="flex-row items-center absolute -top-20">
+                    <Text className="text-xl text-white">Your UPI: </Text>
+                    <TextInput
+                      value={userUPI}
+                      onChangeText={handleUpiChange}
+                      keyboardType="default"
+                      returnKeyType={Platform.OS === "ios" ? "done" : "none"}
+                      placeholder="xxxxxxx584@ibl"
+                      placeholderTextColor="#666"
+                      className="text-xl border-b border-blue-700 text-white placeholder:text-gray-500 font-semibold px-1 items-center justify-center"
+                      style={{ minWidth: 100, textAlign: "center" }}
+                    />
+                  </View>
+                ) : (
+                  <View className="flex-row items-center justify-center">
+                    <Text className="text-4xl text-white">₹</Text>
+                    <TextInput
+                      value={amount}
+                      onChangeText={handleAmountChange}
+                      onPress={() => setHandleClickAmount(true)}
+                      keyboardType="number-pad"
+                      returnKeyType={Platform.OS === "ios" ? "done" : "none"}
+                      placeholder="0"
+                      placeholderTextColor="#666"
+                      className="text-3xl text-white placeholder:text-gray-500 font-semibold items-center justify-center"
+                      style={{ minWidth: 100, textAlign: "center" }}
+                    />
+                  </View>
+                )}
+
+                {/* Error Message */}
+                {error && (
+                  <View className="mt-4">
+                    <Text className="text-red-400 text-sm text-center">
+                      {error}
+                    </Text>
+                    {error.includes("setup bank") && (
+                      <Pressable
+                        onPress={() => {
+                          console.log("🔧 Manual navigation to bank setup");
+                          router.push("/(payments)/BankSetup");
+                        }}
+                        className="mt-2 p-2 bg-blue-600 rounded"
+                      >
+                        <Text className="text-white text-center text-sm">
+                          Setup Bank Account
+                        </Text>
+                      </Pressable>
+                    )}
+                  </View>
+                )}
+
+                {/* Success Message */}
+                {successMessage && (
+                  <View className="mt-4 p-4 bg-green-600 rounded-lg">
+                    <Text className="text-white text-sm text-center">
+                      {successMessage}
+                    </Text>
+                    <Text className="text-green-200 text-xs text-center mt-1">
+                      Returning to comments...
+                    </Text>
+                  </View>
+                )}
+              </View>
+
+              <View></View>
+              <View></View>
+              {/* Animated Bottom section */}
+              <Animated.View
+                style={{
+                  position: "absolute",
+                  left: 0,
+                  right: 0,
+                  bottom: Animated.add(
+                    new Animated.Value(handleClickAmount ? 0 : 50),
+                    0
+                  ),
+                  // paddingBottom: 10,
+                }}
+                className="gap-2 justify-end"
+              >
+                <Pressable
+                  disabled={
+                    loading ||
+                    (step === 1
+                      ? userUPI.length < 13 || !userUPI.includes("@")
+                      : !amount || parseInt(amount) <= 0) ||
+                    successMessage !== null
+                  }
+                  onPress={step === 1 ? handleUpdateUPI : handleProceed}
+                  className={`p-4 rounded-lg items-center justify-center ${
+                    loading ||
+                    (step === 1
+                      ? userUPI.length < 13 || !userUPI.includes("@")
+                      : !amount || parseInt(amount) <= 0) ||
+                    successMessage !== null
+                      ? "bg-gray-600"
+                      : "bg-[#008A3C]"
+                  }`}
+                >
+                  {loading ? (
+                    <ActivityIndicator color="#fff" />
+                  ) : (
+                    <Text className="text-white text-base font-semibold">
+                      {isWithdrawMode
+                        ? step === 1
+                          ? "Update and continue"
+                          : "Withdraw"
+                        : isCommentGiftMode
+                          ? "Send Gift"
+                          : "Proceed"}
+                    </Text>
+                  )}
+                </Pressable>
+
+                <View className="items-center justify-center mt-1">
+                  <Text className="text-white text-sm">
+                    {isWithdrawMode ? "Current balance" : "Total balance"} ₹
+                    {walletInfo.balance?.toFixed(2) || "0.00"}
                   </Text>
                 </View>
-              )}
-            </Animated.View>
-          </View>
-        </TouchableWithoutFeedback>
-      </KeyboardAvoidingView>
 
-      {isWithdrawalComplete && (
-        <ModalMessage
-          visible={isWithdrawalComplete}
-          text={isWithdrawalCompleteMessage || ""}
-          needCloseButton={true}
-          onClose={handleCloseModalMessage}
-        />
-      )}
-      </SafeAreaView>
-    </ThemedView>
+                {isWithdrawMode && (
+                  <View className="items-center justify-center mt-2">
+                    <Text className="text-gray-400 text-xs text-center">
+                      Minimum withdrawal: ₹100{"\n"}
+                      Processing time: 3-7 working days
+                    </Text>
+                  </View>
+                )}
+              </Animated.View>
+            </View>
+          </TouchableWithoutFeedback>
+        </KeyboardAvoidingView>
+
+        {isWithdrawalComplete && (
+          <ModalMessage
+            visible={isWithdrawalComplete}
+            text={isWithdrawalCompleteMessage || ""}
+            needCloseButton={true}
+            onClose={handleCloseModalMessage}
+          />
+        )}
+      </ThemedView>
+    </SafeAreaView>
   );
 };
 
