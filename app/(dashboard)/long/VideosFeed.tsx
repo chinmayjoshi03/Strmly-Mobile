@@ -28,6 +28,9 @@ export type GiftType = {
 const { height: screenHeight } = Dimensions.get("window");
 const BOTTOM_NAV_HEIGHT = -25; // Height of your bottom navigation
 
+// Define the height for each video item (adjust as needed)
+const VIDEO_HEIGHT = screenHeight + BOTTOM_NAV_HEIGHT;
+
 const VideosFeed: React.FC = () => {
   const [videos, setVideos] = useState<VideoItemType[]>([]);
   const [loading, setLoading] = useState(true);
