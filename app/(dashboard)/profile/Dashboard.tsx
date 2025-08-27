@@ -7,6 +7,7 @@ import {
   ActivityIndicator,
   Image,
   Alert,
+  Dimensions,
 } from "react-native";
 import { ChevronLeft, ChevronDown } from "lucide-react-native";
 import { LinearGradient } from "expo-linear-gradient";
@@ -16,6 +17,9 @@ import { useDashboard } from "./_components/useDashboard";
 
 import { useTransactionHistory } from "../wallet/_components/useTransactionHistory";
 import { getProfilePhotoUrl } from "@/utils/profileUtils";
+import { SafeAreaView } from "react-native-safe-area-context";
+
+const {height} = Dimensions.get("screen");
 
 interface DashboardStats {
   totalViews: number;
@@ -168,9 +172,10 @@ const Dashboard = () => {
   };
 
   return (
-    <View className="flex-1 bg-black">
+    <SafeAreaView style={{ height: height, backgroundColor: 'white' }} edges={['bottom']}>
+    <View className="h-full flex-1">
       {/* Header */}
-      <View className="flex-row items-center justify-between px-4 py-3 mt-12">
+      <View className="flex-row items-center justify-between px-4 py-3">
         <TouchableOpacity onPress={() => router.back()}>
           <ChevronLeft size={24} color="white" />
         </TouchableOpacity>
@@ -374,7 +379,7 @@ const Dashboard = () => {
                       {stats ? formatNumber(stats.totalLikes) : "0"}
                     </Text>
                   </View>
-                  <View className="flex-row justify-between items-center">
+                  {/* <View className="flex-row justify-between items-center">
                     <Text
                       className="text-gray-400 text-base"
                       style={{ fontFamily: "Inter" }}
@@ -387,8 +392,8 @@ const Dashboard = () => {
                     >
                       {stats ? formatNumber(stats.totalComments) : "0"}
                     </Text>
-                  </View>
-                  <View className="flex-row justify-between items-center">
+                  </View> */}
+                  {/* <View className="flex-row justify-between items-center">
                     <Text
                       className="text-gray-400 text-base"
                       style={{ fontFamily: "Inter" }}
@@ -401,8 +406,8 @@ const Dashboard = () => {
                     >
                       {stats ? formatNumber(stats.totalReposts) : "0"}
                     </Text>
-                  </View>
-                  <View className="flex-row justify-between items-center">
+                  </View> */}
+                  {/* <View className="flex-row justify-between items-center">
                     <Text
                       className="text-gray-400 text-base"
                       style={{ fontFamily: "Inter" }}
@@ -415,7 +420,7 @@ const Dashboard = () => {
                     >
                       {stats ? formatNumber(stats.totalWatchTime) : "0"}
                     </Text>
-                  </View>
+                  </View> */}
                   <View className="flex-row justify-between items-center">
                     <Text
                       className="text-gray-400 text-base"
@@ -511,6 +516,7 @@ const Dashboard = () => {
         )}
       </ScrollView>
     </View>
+    </SafeAreaView>
   );
 };
 

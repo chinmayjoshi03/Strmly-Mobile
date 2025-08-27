@@ -6,7 +6,7 @@ export default {
     slug: "strmly",
     scheme: "strmly",
     owner: "strmly-technologies",
-    version: "1.0.0",
+    version: "1.0.1",
     orientation: "portrait",
     icon: "./assets/images/logo2.png",
     userInterfaceStyle: "dark",
@@ -16,6 +16,7 @@ export default {
       supportsTablet: true
     },
     android: {
+      versionCode: 2,
       adaptiveIcon: {
         foregroundImage: "./assets/images/logo2.png",
         backgroundColor: "#000"
@@ -34,7 +35,7 @@ export default {
       [
         "expo-splash-screen",
         {
-          image: "./assets/images/logo.png",
+          image: "./assets/images/logo2.png",
           imageWidth: 200,
           resizeMode: "contain",
           backgroundColor: "#000"
@@ -59,7 +60,8 @@ export default {
       typedRoutes: true
     },
     extra: {
-      BACKEND_API_URL: process.env.EXPO_PUBLIC_BACKEND_API_URL,
+      BACKEND_API_URL: process.env.BACKEND_API_URL,
+      EXPO_PUBLIC_BACKEND_API_URL: process.env.EXPO_PUBLIC_BACKEND_API_URL,
       googleClientIdAndroid: process.env.GOOGLE_CLIENT_ID_ANDROID,
       googleClientIdIOS: process.env.GOOGLE_CLIENT_ID_IOS,
       googleClientIdWeb: process.env.GOOGLE_CLIENT_ID_WEB,

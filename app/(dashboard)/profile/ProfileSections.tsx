@@ -9,15 +9,18 @@ import {
   Image,
   StatusBar,
   Pressable,
+  Dimensions,
 } from "react-native";
 import { useRouter, useLocalSearchParams, useFocusEffect } from "expo-router";
 import { ArrowLeft, ChevronRight } from "lucide-react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import ThemedView from "@/components/ThemedView";
 import { User, Community } from "@/api/profile/profileActions";
 import { useProfileSections } from "./_components/useProfileSections";
 import { getProfilePhotoUrl } from "@/utils/profileUtils";
 import { useAuthStore } from "@/store/useAuthStore";
+
+const { height } = Dimensions.get("window");
 
 // Types are now imported from profileActions
 
@@ -209,6 +212,7 @@ export default function ProfileSections() {
 
   return (
     <ThemedView className="flex-1">
+      <SafeAreaView style={{ height: height }}>
       <StatusBar barStyle="light-content" backgroundColor="black" />
 
       {/* Header with proper spacing from status bar */}
@@ -356,7 +360,7 @@ export default function ProfileSections() {
 
       {/* Create Community Button (only for My Community tab) */}
       {activeSection === "myCommunity" && (
-        <View className="px-4 pb-5">
+        <View className="absolute bottom-5 left-0 right-0 px-4">
           <TouchableOpacity
             className="bg-white rounded-full py-4"
             onPress={() => router.push("/(communities)/CreateCommunityPage")}
@@ -370,6 +374,7 @@ export default function ProfileSections() {
           </TouchableOpacity>
         </View>
       )}
+      </SafeAreaView>
     </ThemedView>
   );
 }

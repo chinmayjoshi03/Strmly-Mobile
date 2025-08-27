@@ -46,6 +46,7 @@ const TotalWalletHistory = ({ closeTBalance }: any) => {
     "series_purchase",
     "video_gift",
     "creator_pass_purchase",
+    "community_fee",
     "comment_gift"
   ];
 
@@ -63,7 +64,7 @@ const TotalWalletHistory = ({ closeTBalance }: any) => {
   };
 
   return (
-    <View className="absolute -top-2 gap-5 w-full">
+    <View className="absolute flex-1 top-0 gap-5 w-full">
       <SafeAreaView>
         <View className="w-full flex-row items-center justify-between">
           <TouchableOpacity
@@ -112,7 +113,7 @@ const TotalWalletHistory = ({ closeTBalance }: any) => {
                 <View className="flex-row items-center gap-3 flex-1">
                   {/* Icon based on transaction type */}
                   {item.category == "video_purchase" ||
-                  item.category == "series_purchase" ? (
+                  item.category == "series_purchase" || item.category == 'community_fee' ? (
                     <Pressable
                       onPress={() => console.log("Transaction pressed", item)}
                     >
