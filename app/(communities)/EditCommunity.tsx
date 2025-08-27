@@ -79,10 +79,10 @@ export default function EditCommunity() {
       setBio(result.bio || "");
       setImageUri(result.profilePhoto);
       // Set access type based on community data if available
-      setAccessType(result.access.type || "free");
-      if (result.access.type === "paid") {
-        setCreatorStrength(result.access.strength?.toString() || "");
-        setCommunityFee(result.access.amount?.toString() || "");
+      setAccessType(result.community_fee_type || "free");
+      if (result.community_fee_type === "paid") {
+        setCreatorStrength(result.creator_limit?.toString() || "");
+        setCommunityFee(result.community_fee_amount?.toString() || "");
       }
       console.log("✅ Community details fetched for editing:", result);
     } catch (error) {
@@ -253,59 +253,26 @@ export default function EditCommunity() {
 
   return (
     <ScrollView className="flex-1 h-full bg-black">
-      <View className="flex-1">
-        <StatusBar barStyle="light-content" backgroundColor="black" />
+      <StatusBar barStyle="light-content" backgroundColor="black" />
 
-        {/* Header */}
-        <View
-          className="flex-row items-center justify-between px-4 py-3"
-          style={{ paddingTop: insets.top + 10 }}
+      {/* Header */}
+      <View
+        className="flex-row items-center justify-between px-4 py-3"
+        style={{ paddingTop: insets.top + 10 }}
+      >
+        <TouchableOpacity onPress={() => router.back()}>
+          <ArrowLeft size={24} color="white" />
+        </TouchableOpacity>
+        <Text
+          className="text-white text-lg font-semibold"
+          style={{ fontFamily: "Poppins" }}
         >
-          <TouchableOpacity onPress={() => router.back()}>
-            <ArrowLeft size={24} color="white" />
-          </TouchableOpacity>
-          <Text
-            className="text-white text-lg font-semibold"
-            style={{ fontFamily: "Poppins" }}
-          >
-            Edit Community
-          </Text>
-          <TouchableOpacity onPress={handleSave} disabled={saving}>
-            {saving ? (
-              <ActivityIndicator size="small" color="#fff" />
-            ) : (
-              <Text
-                className="text-white font-semibold"
-                style={{ fontFamily: "Poppins" }}
-              >
-                Save
-              </Text>
-            )}
-          </TouchableOpacity>
-        </View>
-
-        {/* Profile Photo */}
-        <View className="items-center py-8">
-          <TouchableOpacity onPress={pickImage} className="items-center">
-            <View className="w-32 h-32 rounded-full bg-gray-600 items-center justify-center mb-4 overflow-hidden">
-              <Image
-                source={{ uri: getProfilePhotoUrl(imageUri, "community") }}
-                className="w-full h-full"
-                resizeMode="cover"
-              />
-            </View>
-            <Text
-              className="text-blue-400 text-center"
-              style={{ fontFamily: "Poppins" }}
-            >
-              Edit community picture
-            </Text>
-          </TouchableOpacity>
-        </View>
-
-        <View className="px-4">
-          {/* Community Name */}
-          <View className="mb-8">
+          Edit Community
+        </Text>
+        <TouchableOpacity onPress={handleSave} disabled={saving}>
+          {saving ? (
+            <ActivityIndicator size="small" color="#fff" />
+          ) : (
             <Text
               className="text-white font-semibold"
               style={{ fontFamily: "Poppins" }}
@@ -316,7 +283,7 @@ export default function EditCommunity() {
         </TouchableOpacity>
       </View>
 
-      <ScrollView className="flex-1 px-6">
+      <View className="px-6">
         {/* Profile Photo */}
         <View className="items-center py-8">
           <TouchableOpacity onPress={pickImage} className="items-center">
@@ -431,59 +398,58 @@ export default function EditCommunity() {
           )}
         </View>
 
-          {/* Creator Strength and Community Fee */}
-          {accessType === "paid" && (
-            <View className="flex-row justify-between mb-8">
-              <View className="flex-1 mr-4">
-                <Text
-                  className="text-white text-base"
-                  style={{ fontFamily: "Poppins" }}
-                >
-                  Creator
-                </Text>
-                <Text
-                  className="text-white text-base mb-2"
-                  style={{ fontFamily: "Poppins" }}
-                >
-                  strength
-                </Text>
-                <TextInput
-                  className="text-gray-400 text-2xl"
-                  placeholder="500"
-                  placeholderTextColor="#666"
-                  keyboardType="numeric"
-                  value={creatorStrength}
-                  onChangeText={setCreatorStrength}
-                  style={{ fontFamily: "Poppins" }}
-                />
-                <View className="h-px bg-gray-600 mt-2" />
-              </View>
-              <View className="flex-1 ml-4">
-                <Text
-                  className="text-white text-base"
-                  style={{ fontFamily: "Poppins" }}
-                >
-                  Community
-                </Text>
-                <Text
-                  className="text-white text-base mb-2"
-                  style={{ fontFamily: "Poppins" }}
-                >
-                  fee
-                </Text>
-                <TextInput
-                  className="text-gray-400 text-2xl"
-                  placeholder="₹29/m"
-                  placeholderTextColor="#666"
-                  value={communityFee}
-                  onChangeText={setCommunityFee}
-                  style={{ fontFamily: "Poppins" }}
-                />
-                <View className="h-px bg-gray-600 mt-2" />
-              </View>
+        {/* Creator Strength and Community Fee */}
+        {accessType === "paid" && (
+          <View className="flex-row justify-between mb-8">
+            <View className="flex-1 mr-4">
+              <Text
+                className="text-white text-base"
+                style={{ fontFamily: "Poppins" }}
+              >
+                Creator
+              </Text>
+              <Text
+                className="text-white text-base mb-2"
+                style={{ fontFamily: "Poppins" }}
+              >
+                strength
+              </Text>
+              <TextInput
+                className="text-gray-400 text-2xl"
+                placeholder="500"
+                placeholderTextColor="#666"
+                keyboardType="numeric"
+                value={creatorStrength}
+                onChangeText={setCreatorStrength}
+                style={{ fontFamily: "Poppins" }}
+              />
+              <View className="h-px bg-gray-600 mt-2" />
             </View>
-          )}
-        </View>
+            <View className="flex-1 ml-4">
+              <Text
+                className="text-white text-base"
+                style={{ fontFamily: "Poppins" }}
+              >
+                Community
+              </Text>
+              <Text
+                className="text-white text-base mb-2"
+                style={{ fontFamily: "Poppins" }}
+              >
+                fee
+              </Text>
+              <TextInput
+                className="text-gray-400 text-2xl"
+                placeholder="₹29/m"
+                placeholderTextColor="#666"
+                value={communityFee}
+                onChangeText={setCommunityFee}
+                style={{ fontFamily: "Poppins" }}
+              />
+              <View className="h-px bg-gray-600 mt-2" />
+            </View>
+          </View>
+        )}
 
         {/* Description */}
         <View className="mb-8">
