@@ -307,7 +307,7 @@ export class CommunityAPI {
     const response = await fetch(
       `${CONFIG.API_BASE_URL}/community/update-settings`,
       {
-        method: 'PUT',
+        method: 'POST',
         headers: CommunityAPI.getHeaders(token),
         body: JSON.stringify({ communityId, ...settings }),
       }

@@ -365,7 +365,7 @@ export default function PersonalCommunityPage() {
         )}
 
         {isLoading ? (
-          <View className="flex-1 items-center justify-center">
+          <View className="absolute left-0 right-0 h-96 items-center justify-center">
             <ActivityIndicator size="large" color="white" />
           </View>
         ) : (
