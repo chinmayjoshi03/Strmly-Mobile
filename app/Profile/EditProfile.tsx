@@ -367,7 +367,7 @@ const EditProfilePage: React.FC = () => {
                 source={require("../../assets/images/back.png")}
               />
             </TouchableOpacity>
-            <ThemedText style={EditProfile.TopBarTitle}>
+            <ThemedText style={EditProfile.TopBarTitle} className="pl-4">
               {name || user?.username || "Edit Profile"}
             </ThemedText>
             <TouchableOpacity onPress={handleSave} disabled={saving}>
@@ -381,7 +381,7 @@ const EditProfilePage: React.FC = () => {
 
           {/* Image picker */}
           <TouchableOpacity
-            style={{ alignItems: "center" }}
+            style={{ alignItems: "center", width: "100%" }}
             onPress={pickImage}
           >
             <Image
@@ -392,7 +392,7 @@ const EditProfilePage: React.FC = () => {
               }
               style={EditProfile.CommunityAvatar}
             />
-            <Text style={EditProfile.RightTab}>Edit profile picture</Text>
+            <Text style={EditProfile.RightTab}>Edit profile</Text>
           </TouchableOpacity>
 
           {/* Inputs */}

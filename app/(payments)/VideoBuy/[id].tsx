@@ -228,6 +228,7 @@ const VideoBuy = () => {
         </View>
 
         <View></View>
+        <View></View>
         {/* Animated Bottom section */}
         <Animated.View
           style={{

@@ -49,7 +49,7 @@ const CreatorPassBuyMessage = ({
               source={
                 creator?.profile_photo != ""
                   ? { uri: creator?.profile_photo }
-                  : { uri: CONFIG.DEFAULT_COMMUNITY_PROFILE_PHOTO }
+                  : { uri: CONFIG.DEFAULT_USER_PROFILE_PHOTO }
               }
               className="size-16 rounded-full"
             />

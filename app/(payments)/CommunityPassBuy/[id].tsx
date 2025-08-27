@@ -16,6 +16,7 @@ import Constants from "expo-constants";
 import CreatorInfo from "../Video/_components/CreatorInfo";
 import { useRoute } from "@react-navigation/native";
 import { useGiftingStore } from "@/store/useGiftingStore";
+import CONFIG from "@/Constants/config";
 
 const BACKEND_API_URL = Constants.expoConfig?.extra?.BACKEND_API_URL;
 
@@ -207,7 +208,7 @@ const CommunityPassBuy = () => {
         {/* Top section */}
         <View className="mt-5">
           <CreatorInfo
-            profile={userData?.founder?.profile_photo}
+            profile={userData?.founder?.profile_photo || CONFIG.DEFAULT_COMMUNITY_PROFILE_PHOTO}
             name={userData?.founder?.name}
             username={userData?.founder?.username}
           />
@@ -229,6 +230,7 @@ const CommunityPassBuy = () => {
           )}
         </View>
 
+        <View></View>
         <View></View>
         {/* Animated Bottom section */}
         <Animated.View
