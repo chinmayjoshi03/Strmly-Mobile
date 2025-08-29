@@ -284,39 +284,7 @@ export default function EditCommunity() {
           </TouchableOpacity>
         </View>
 
-        {/* Profile Photo */}
-        <View className="items-center py-8">
-          <TouchableOpacity onPress={pickImage} className="items-center">
-            <View className="w-32 h-32 rounded-full bg-gray-600 items-center justify-center mb-4 overflow-hidden">
-              <Image
-                source={{ uri: getProfilePhotoUrl(imageUri, "community") }}
-                className="w-full h-full"
-                resizeMode="cover"
-              />
-            </View>
-            <Text
-              className="text-blue-400 text-center"
-              style={{ fontFamily: "Poppins" }}
-            >
-              Edit community picture
-            </Text>
-          </TouchableOpacity>
-        </View>
-
         <View className="px-4">
-          {/* Community Name */}
-          <View className="mb-8">
-            <Text
-              className="text-white font-semibold"
-              style={{ fontFamily: "Poppins" }}
-            >
-              Save
-            </Text>
-          )}
-        </TouchableOpacity>
-      </View>
-
-      <ScrollView className="flex-1 px-6">
         {/* Profile Photo */}
         <View className="items-center py-8">
           <TouchableOpacity onPress={pickImage} className="items-center">

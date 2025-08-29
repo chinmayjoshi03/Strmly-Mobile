@@ -276,7 +276,7 @@ const InteractOptions = ({
           <Text className="text-white text-sm">{like}</Text>
         </View>
 
-        {/* <View className="items-center gap-1">
+        <View className="items-center gap-1">
           <Pressable
             onPress={
               onCommentPress
@@ -290,7 +290,7 @@ const InteractOptions = ({
             />
           </Pressable>
           <Text className="text-white text-sm">{comments}</Text>
-        </View> */}
+        </View>
 
         {/* <View className="items-center gap-1">
           <Pressable onPress={ReshareVideo}>

@@ -20,8 +20,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 const {height} = Dimensions.get("screen");
 const PAGE_LIMIT = 10;
 
-const {height} = Dimensions.get("screen");
-const PAGE_LIMIT = 10;
+
 
 
 
