@@ -141,7 +141,7 @@ const CommentsSection = ({
   const handleReplyToComment = (commentId: string, userName: string) => {
     setReplyingTo(commentId);
     setReplyingToUser(userName);
-    setComment(`@${userName} `);
+   
   };
 
   const handleCancelReply = () => {
