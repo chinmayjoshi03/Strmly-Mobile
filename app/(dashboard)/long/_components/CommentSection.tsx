@@ -734,7 +734,7 @@ const CommentsSection = ({
             borderTopWidth: 1,
             borderTopColor: "#333333",
             paddingHorizontal: 20,
-            paddingVertical: 47,
+            paddingVertical: 70,
             zIndex: 1001,
           }}
         >
