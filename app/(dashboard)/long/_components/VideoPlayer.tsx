@@ -6,6 +6,7 @@ import {
   Image,
   StyleSheet,
   ActivityIndicator,
+  Alert,
 } from "react-native";
 import { useVideoPlayer, VideoView } from "expo-video";
 import {
@@ -25,8 +26,11 @@ import CreatorPassBuyMessage from "./CreatorPassBuyMessage";
 import VideoBuyMessage from "./VideoBuyMessage";
 import { useIsFocused } from "@react-navigation/native";
 import { Text } from "react-native";
+import { useAuthStore } from "@/store/useAuthStore";
+import ModalMessage from "@/components/AuthModalMessage";
+import * as ScreenOrientation from "expo-screen-orientation";
 
-const { height: screenHeight } = Dimensions.get("window");
+const { height: screenHeight, width: screenWidth } = Dimensions.get("window");
 
 type Props = {
   videoData: VideoItemType;
@@ -69,7 +73,16 @@ const VideoPlayer = ({
     clearPassData,
   } = useGiftingStore();
 
+  const [haveCreator, setHaveCreator] = useState(false);
+  const [haveAccess, setHaveAccess] = useState(false);
+  const [fetchCreator, setFetchCreator] = useState(false);
+  const [fetchAccess, setFetchAccess] = useState(false);
+  const [showPaidMessage, setShowPaidMessage] = useState(false);
+
+  const [showThumbnail, setShowThumbnail] = useState(true);
+
   const { _updateStatus } = usePlayerStore.getState();
+  const { user } = useAuthStore();
   const isMutedFromStore = usePlayerStore((state) => state.isMuted);
 
   const [isReady, setIsReady] = useState(false);
@@ -83,6 +96,17 @@ const VideoPlayer = ({
 
   const VIDEO_HEIGHT = containerHeight || screenHeight;
   const isFocused = useIsFocused();
+
+  // Comments state
+  const [localStats, setLocalStats] = useState({
+    likes: videoData.likes || 0,
+    gifts: videoData.gifts || 0,
+    shares: videoData.shares || 0,
+    comments: videoData.comments?.length || 0,
+  });
+
+  // Full screen:
+  const [showFullScreen, setShowFullScreen] = useState(false);
 
   // Create player with proper cleanup
   const player = useVideoPlayer(videoData?.videoUrl || "", (p) => {
@@ -105,9 +129,44 @@ const VideoPlayer = ({
     };
   }, []);
 
+  useEffect(() => {
+    setLocalStats({
+      likes: videoData.likes || 0,
+      gifts: videoData.gifts || 0,
+      shares: videoData.shares || 0,
+      comments: videoData.comments?.length || 0,
+    });
+  }, [
+    videoData._id,
+    videoData.likes,
+    videoData.gifts,
+    videoData.shares,
+    videoData.comments?.length,
+  ]);
+
   // Handle player status changes
   useEffect(() => {
     if (!player || !videoData?.videoUrl) return;
+
+    if (videoData.created_by._id !== user?.id && videoData.amount !== 0) {
+      if (fetchAccess && fetchCreator) {
+        if (
+          (!haveCreator &&
+            (videoData.amount != 0 ||
+              (videoData.series && videoData.series.type !== "free"))) ||
+          !haveAccess
+        ) {
+          if (!haveCreator && !haveAccess) {
+            setShowPaidMessage(true);
+            setShowThumbnail(true);
+            return;
+          }
+        }
+      } else {
+        return;
+      }
+    }
+    console.log("video name", videoData.name, haveAccess, haveCreator);
 
     const handleStatusChange = ({ status, error }: any) => {
       if (!mountedRef.current) return;
@@ -132,22 +191,43 @@ const VideoPlayer = ({
         statusListenerRef.current = null;
       }
     };
-  }, [player, videoData?.videoUrl]);
+  }, [
+    player,
+    videoData?.videoUrl,
+    haveCreator,
+    haveAccess,
+    fetchAccess,
+    fetchCreator,
+    videoData.amount,
+  ]);
 
   // Handle video playback based on focus and active state
   useEffect(() => {
     if (!player || !videoData?.videoUrl) return;
+    if (!fetchCreator || !fetchAccess) return;
 
     const shouldPlay =
       isReady && isActive && isFocused && !isGifted && !playerError;
 
+    console.log(
+      "Should play?",
+      shouldPlay,
+      isReady,
+      isActive,
+      isFocused,
+      isGifted,
+      playerError
+    );
+
     try {
       if (shouldPlay) {
+        console.log("should Playing video");
         player.muted = isMutedFromStore;
         player.play();
         setActivePlayer(player);
         usePlayerStore.getState().smartPlay();
       } else {
+        console.log("should not Play video");
         player.pause();
         if (!isFocused || !isActive) {
           clearActivePlayer();
@@ -166,6 +246,11 @@ const VideoPlayer = ({
     player,
     playerError,
     videoData?.videoUrl,
+    fetchAccess,
+    fetchCreator,
+    haveAccess,
+    haveCreator,
+    videoData.amount,
   ]);
 
   // Handle gifting state
@@ -181,7 +266,16 @@ const VideoPlayer = ({
     } catch (error) {
       console.error("Error handling gifting state:", error);
     }
-  }, [isGifted, player, isActive, isFocused, isReady, playerError]);
+  }, [
+    isGifted,
+    player,
+    isActive,
+    isFocused,
+    isReady,
+    playerError,
+    haveAccess,
+    haveCreator,
+  ]);
 
   // Handle focus changes
   useEffect(() => {
@@ -209,6 +303,8 @@ const VideoPlayer = ({
     isReady,
     isGifted,
     playerError,
+    haveAccess,
+    haveCreator,
   ]);
 
   // Handle player store updates
@@ -237,7 +333,35 @@ const VideoPlayer = ({
         timeListenerRef.current = null;
       }
     };
-  }, [isActive, player, _updateStatus, videoData?.videoUrl]);
+  }, [
+    isActive,
+    player,
+    _updateStatus,
+    videoData?.videoUrl,
+    haveAccess,
+    haveCreator,
+    fetchAccess,
+    fetchCreator,
+    videoData.amount,
+  ]);
+
+  // FIX: Handle local stats updates
+  const handleStatsUpdate = (stats: {
+    likes?: number;
+    gifts?: number;
+    shares?: number;
+    comments?: number;
+  }) => {
+    setLocalStats((prev) => ({
+      ...prev,
+      ...stats,
+    }));
+
+    // Also call the parent callback
+    if (onStatsUpdate) {
+      onStatsUpdate(stats);
+    }
+  };
 
   // Cleanup on unmount
   useEffect(() => {
@@ -276,9 +400,29 @@ const VideoPlayer = ({
     };
   }, []);
 
+  const onToggleFullScreen = async () => {
+    try {
+      if (showFullScreen) {
+        // Exit fullscreen → back to portrait
+        await ScreenOrientation.lockAsync(
+          ScreenOrientation.OrientationLock.PORTRAIT_UP
+        );
+        setShowFullScreen(false);
+      } else {
+        // Enter fullscreen → landscape
+        await ScreenOrientation.lockAsync(
+          ScreenOrientation.OrientationLock.LANDSCAPE
+        );
+        setShowFullScreen(true);
+      }
+    } catch (err) {
+      console.error("Orientation toggle error:", err);
+    }
+  };
+
   const dynamicStyles = StyleSheet.create({
     container: {
-      height: VIDEO_HEIGHT,
+      height: showFullScreen ? screenWidth : VIDEO_HEIGHT,
       width: "100%",
       backgroundColor: "#000",
     },
@@ -287,13 +431,11 @@ const VideoPlayer = ({
       height: "100%",
     },
     thumbnail: {
-      position: "absolute",
       width: "100%",
       height: "100%",
       resizeMode: "cover",
     },
     spinner: {
-      position: "absolute",
       top: "50%",
       left: "50%",
       marginLeft: -20,
@@ -322,27 +464,38 @@ const VideoPlayer = ({
 
   return (
     <View style={dynamicStyles.container}>
-      {!isReady && !isBuffering && videoData.thumbnailUrl && (
+      {!isReady && showThumbnail && (
         <View className="relative">
           <Image
             source={{ uri: videoData.thumbnailUrl }}
             style={dynamicStyles.thumbnail}
           />
-          <ActivityIndicator
-            size="large"
-            color="white"
-            className="absolute w-full top-96"
-          />
+          {showPaidMessage && (
+            <ModalMessage
+              visible={true}
+              text={`Access Denied
+You do not have permission to view this video.`}
+              needCloseButton={true}
+              onClose={() => setShowPaidMessage(false)}
+            />
+          )}
         </View>
       )}
 
-      {player && (
+      {player && (haveCreator || haveAccess || videoData.amount === 0) ? (
         <VideoView
           player={player}
           nativeControls={false}
           style={dynamicStyles.video}
           contentFit="cover"
         />
+      ) : (
+        <View className="relative">
+          <Image
+            source={{ uri: videoData.thumbnailUrl }}
+            style={dynamicStyles.thumbnail}
+          />
+        </View>
       )}
 
       {isBuffering && (
@@ -354,15 +507,28 @@ const VideoPlayer = ({
       )}
 
       <VideoControls
+        haveCreatorPass={haveCreator}
+        haveAccessPass={haveAccess}
+        fetchCreator={setFetchCreator}
+        fetchAccess={setFetchAccess}
+        haveCreator={setHaveCreator}
+        haveAccess={setHaveAccess}
         player={player}
-        videoData={videoData}
+        videoData={{
+          ...videoData,
+          // FIX: Pass local stats instead of original videoData stats
+          likes: localStats.likes,
+          gifts: localStats.gifts,
+          shares: localStats.shares,
+          comments: { length: localStats.comments }, // Maintain the structure expected by VideoControls
+        }}
         isGlobalPlayer={isGlobalPlayer}
         setShowCommentsModal={setShowCommentsModal}
         onEpisodeChange={onEpisodeChange}
-        onStatsUpdate={onStatsUpdate}
+        onToggleFullScreen={onToggleFullScreen}
+        onStatsUpdate={handleStatsUpdate}
       />
 
-      {/* Uncomment if needed */}
       {/* <View className="absolute left-0 right-0 z-10 px-2" style={!isGlobalPlayer ? { bottom: 42.5 } : { bottom: 0 }}>
         <VideoProgressBar
           player={player}
@@ -433,8 +599,16 @@ const VideoPlayer = ({
             console.log("Open tip modal for comment:", commentId);
           }}
           onCommentAdded={() => {
+            // FIX: Increment local comment count immediately
+            const newCommentCount = localStats.comments + 1;
+
+            setLocalStats((prev) => ({
+              ...prev,
+              comments: newCommentCount,
+            }));
+
+            // Update the parent's stats
             if (onStatsUpdate) {
-              const newCommentCount = (videoData.comments?.length || 0) + 1;
               onStatsUpdate({ comments: newCommentCount });
             }
           }}

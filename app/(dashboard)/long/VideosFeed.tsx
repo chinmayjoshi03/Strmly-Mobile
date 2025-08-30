@@ -15,6 +15,7 @@ import { VideoItemType } from "@/types/VideosType";
 import { Link, router, useFocusEffect } from "expo-router";
 import VideoPlayer from "./_components/VideoPlayer";
 import { clearActivePlayer } from "@/store/usePlayerStore";
+import { useVideosStore } from "@/store/useVideosStore";
 
 export type GiftType = {
   creator: {
@@ -44,6 +45,7 @@ const VideosFeed: React.FC = () => {
   const [isScreenFocused, setIsScreenFocused] = useState(true);
 
   const { token, isLoggedIn } = useAuthStore();
+  const {setVideoType} = useVideosStore();
   const flatListRef = useRef<FlatList>(null);
   const mountedRef = useRef(true);
 
@@ -55,7 +57,7 @@ const VideosFeed: React.FC = () => {
       // Small delay to prevent rapid focus changes
       const focusTimeout = setTimeout(() => {
         setIsScreenFocused(true);
-        
+        setVideoType(null);
         // If user is not logged in, redirect to sign-in
         if (!token || !isLoggedIn) {
           router.replace("/(auth)/Sign-up");
@@ -81,7 +83,7 @@ const VideosFeed: React.FC = () => {
       };
     }, [token, isLoggedIn, videos.length, loading, error])
   );
-  
+
   // Component mount/unmount
   useEffect(() => {
     mountedRef.current = true;
@@ -112,10 +114,10 @@ const VideosFeed: React.FC = () => {
           },
         }
       );
-      
+
       if (!res.ok) throw new Error("Failed to fetch videos");
       const json = await res.json();
-      
+
       if (!mountedRef.current) return;
 
       setVideos((prev) => {
@@ -134,9 +136,11 @@ const VideosFeed: React.FC = () => {
       if ((json.recommendations || []).length < limit) {
         setHasMore(false);
       }
-      
-      console.log(`Loaded ${json.recommendations?.length || 0} videos for page ${targetPage}`);
-      
+
+      console.log(
+        `Loaded ${json.recommendations?.length || 0} videos for page ${targetPage}`
+      );
+
       // Only increment page if we're not refreshing (targetPage === 1)
       if (targetPage !== 1) {
         setPage(targetPage + 1);
@@ -144,7 +148,6 @@ const VideosFeed: React.FC = () => {
         setPage(2);
         setVisibleIndex(0); // Reset visible index on refresh
       }
-      
     } catch (err: any) {
       console.error("Error fetching videos:", err);
       if (mountedRef.current) {
@@ -189,7 +192,7 @@ const VideosFeed: React.FC = () => {
   // Stable viewability config
   const viewabilityConfig = useRef({
     itemVisiblePercentThreshold: 80,
-    minimumViewTime: 100,
+    minimumViewTime: 200,
   }).current;
 
   // Memoize render item
@@ -234,7 +237,7 @@ const VideosFeed: React.FC = () => {
   );
 
   // Show loading while checking authentication or fetching videos
-  if (loading && videos.length === 0) {
+  if (loading && isFetchingMore) {
     return (
       <ThemedView
         style={{ height: VIDEO_HEIGHT }}
@@ -291,8 +294,8 @@ const VideosFeed: React.FC = () => {
   }
 
   return (
-    <ThemedView>
-      <SafeAreaView>
+    <SafeAreaView style={{ flex: 1, backgroundColor: "black" }}>
+      <ThemedView>
         <FlatList
           ref={flatListRef}
           data={videos}
@@ -323,14 +326,14 @@ const VideosFeed: React.FC = () => {
           // Add loading indicator at the bottom
           ListFooterComponent={
             isFetchingMore ? (
-              <View style={{ padding: 20, alignItems: 'center' }}>
+              <View style={{ padding: 20, alignItems: "center" }}>
                 <ActivityIndicator size="small" color="white" />
               </View>
             ) : null
           }
         />
-      </SafeAreaView>
-    </ThemedView>
+      </ThemedView>
+    </SafeAreaView>
   );
 };
 
