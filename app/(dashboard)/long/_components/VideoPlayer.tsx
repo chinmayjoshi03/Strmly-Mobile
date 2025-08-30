@@ -75,6 +75,14 @@ const VideoPlayer = ({
   const [isReady, setIsReady] = useState(false);
   const [isBuffering, setIsBuffering] = useState(false);
   const [playerError, setPlayerError] = useState(false);
+  
+  // FIX: Add local state for stats to enable instant updates
+  const [localStats, setLocalStats] = useState({
+    likes: videoData.likes || 0,
+    gifts: videoData.gifts || 0,
+    shares: videoData.shares || 0,
+    comments: videoData.comments?.length || 0,
+  });
 
   const mountedRef = useRef(true);
   const statusListenerRef = useRef<any>(null);
@@ -83,6 +91,16 @@ const VideoPlayer = ({
 
   const VIDEO_HEIGHT = containerHeight || screenHeight;
   const isFocused = useIsFocused();
+
+  // FIX: Update local stats when videoData changes (e.g., when switching videos)
+  useEffect(() => {
+    setLocalStats({
+      likes: videoData.likes || 0,
+      gifts: videoData.gifts || 0,
+      shares: videoData.shares || 0,
+      comments: videoData.comments?.length || 0,
+    });
+  }, [videoData._id, videoData.likes, videoData.gifts, videoData.shares, videoData.comments?.length]);
 
   // Create player with proper cleanup
   const player = useVideoPlayer(videoData?.videoUrl || "", (p) => {
@@ -276,6 +294,24 @@ const VideoPlayer = ({
     };
   }, []);
 
+  // FIX: Handle local stats updates
+  const handleStatsUpdate = (stats: {
+    likes?: number;
+    gifts?: number;
+    shares?: number;
+    comments?: number;
+  }) => {
+    setLocalStats(prev => ({
+      ...prev,
+      ...stats,
+    }));
+    
+    // Also call the parent callback
+    if (onStatsUpdate) {
+      onStatsUpdate(stats);
+    }
+  };
+
   const dynamicStyles = StyleSheet.create({
     container: {
       height: VIDEO_HEIGHT,
@@ -355,11 +391,18 @@ const VideoPlayer = ({
 
       <VideoControls
         player={player}
-        videoData={videoData}
+        videoData={{
+          ...videoData,
+          // FIX: Pass local stats instead of original videoData stats
+          likes: localStats.likes,
+          gifts: localStats.gifts,
+          shares: localStats.shares,
+          comments: { length: localStats.comments }, // Maintain the structure expected by VideoControls
+        }}
         isGlobalPlayer={isGlobalPlayer}
         setShowCommentsModal={setShowCommentsModal}
         onEpisodeChange={onEpisodeChange}
-        onStatsUpdate={onStatsUpdate}
+        onStatsUpdate={handleStatsUpdate}
       />
 
       {/* Uncomment if needed */}
@@ -433,8 +476,16 @@ const VideoPlayer = ({
             console.log("Open tip modal for comment:", commentId);
           }}
           onCommentAdded={() => {
+            // FIX: Increment local comment count immediately
+            const newCommentCount = localStats.comments + 1;
+            
+            setLocalStats(prev => ({
+              ...prev,
+              comments: newCommentCount,
+            }));
+            
+            // Update the parent's stats
             if (onStatsUpdate) {
-              const newCommentCount = (videoData.comments?.length || 0) + 1;
               onStatsUpdate({ comments: newCommentCount });
             }
           }}

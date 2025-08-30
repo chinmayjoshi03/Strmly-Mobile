@@ -304,15 +304,6 @@ const InteractOptions = ({
     router.push("/(payments)/Video/Video-Gifting");
   };
 
-  // FIX: Add function to handle comment updates from CommentSection
-  const handleCommentAdded = useCallback(() => {
-    const newCount = commentCount + 1;
-    setCommentCount(newCount);
-    if (onCommentUpdate) {
-      onCommentUpdate(newCount);
-    }
-  }, [commentCount, onCommentUpdate]);
-
   // FIX: Enhanced comment press handler
   const handleCommentPress = useCallback(() => {
     if (onCommentPress) {

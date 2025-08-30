@@ -126,6 +126,12 @@ const VideoControls = ({
           onCommentPress={
             setShowCommentsModal ? () => setShowCommentsModal(true) : undefined
           }
+          onCommentUpdate={(newCount) => {
+    // Update the video data and notify parent
+    if (onStatsUpdate) {
+      onStatsUpdate({ comments: newCount });
+    }
+  }}
           // onLikeUpdate={(newLikes, isLiked) =>
           //   onStatsUpdate?.({ likes: newLikes })
           // }
