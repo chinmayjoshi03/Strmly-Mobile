@@ -116,13 +116,9 @@ const VideoPlayer = ({
     });
   }, [videoData._id, videoData.likes, videoData.gifts, videoData.shares, videoData.comments?.length]);
 
-  // Comments state
-  const [localStats, setLocalStats] = useState({
-    likes: videoData.likes || 0,
-    gifts: videoData.gifts || 0,
-    shares: videoData.shares || 0,
-    comments: videoData.comments?.length || 0,
-  });
+
+
+
 
   // Full screen:
   const [showFullScreen, setShowFullScreen] = useState(false);
@@ -421,6 +417,25 @@ const VideoPlayer = ({
   }, []);
 
 
+
+  // // FIX: Handle local stats updates
+  // const handleStatsUpdate = (stats: {
+  //   likes?: number;
+  //   gifts?: number;
+  //   shares?: number;
+  //   comments?: number;
+  // }) => {
+  //   setLocalStats(prev => ({
+  //     ...prev,
+  //     ...stats,
+  //   }));
+    
+  //   // Also call the parent callback
+  //   if (onStatsUpdate) {
+  //     onStatsUpdate(stats);
+  //   }
+  // }
+
   // FIX: Handle local stats updates
   const handleStatsUpdate = (stats: {
     likes?: number;
@@ -436,6 +451,7 @@ const VideoPlayer = ({
     // Also call the parent callback
     if (onStatsUpdate) {
       onStatsUpdate(stats);
+
 
   const onToggleFullScreen = async () => {
     try {
@@ -463,6 +479,8 @@ const VideoPlayer = ({
       height: showFullScreen ? screenWidth : VIDEO_HEIGHT,
       width: "100%",
       backgroundColor: "#000",
+      overflow: "hidden", // Prevent content bleeding
+      position: "relative", // Ensure proper positioning
     },
     video: {
       width: "100%",
