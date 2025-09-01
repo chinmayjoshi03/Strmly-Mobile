@@ -88,6 +88,14 @@ const VideoPlayer = ({
   const [isReady, setIsReady] = useState(false);
   const [isBuffering, setIsBuffering] = useState(false);
   const [playerError, setPlayerError] = useState(false);
+  
+  // FIX: Add local state for stats to enable instant updates
+  const [localStats, setLocalStats] = useState({
+    likes: videoData.likes || 0,
+    gifts: videoData.gifts || 0,
+    shares: videoData.shares || 0,
+    comments: videoData.comments?.length || 0,
+  });
 
   const mountedRef = useRef(true);
   const statusListenerRef = useRef<any>(null);
@@ -96,6 +104,17 @@ const VideoPlayer = ({
 
   const VIDEO_HEIGHT = containerHeight || screenHeight;
   const isFocused = useIsFocused();
+
+
+  // FIX: Update local stats when videoData changes (e.g., when switching videos)
+  useEffect(() => {
+    setLocalStats({
+      likes: videoData.likes || 0,
+      gifts: videoData.gifts || 0,
+      shares: videoData.shares || 0,
+      comments: videoData.comments?.length || 0,
+    });
+  }, [videoData._id, videoData.likes, videoData.gifts, videoData.shares, videoData.comments?.length]);
 
   // Comments state
   const [localStats, setLocalStats] = useState({
@@ -107,6 +126,7 @@ const VideoPlayer = ({
 
   // Full screen:
   const [showFullScreen, setShowFullScreen] = useState(false);
+
 
   // Create player with proper cleanup
   const player = useVideoPlayer(videoData?.videoUrl || "", (p) => {
@@ -400,6 +420,23 @@ const VideoPlayer = ({
     };
   }, []);
 
+
+  // FIX: Handle local stats updates
+  const handleStatsUpdate = (stats: {
+    likes?: number;
+    gifts?: number;
+    shares?: number;
+    comments?: number;
+  }) => {
+    setLocalStats(prev => ({
+      ...prev,
+      ...stats,
+    }));
+    
+    // Also call the parent callback
+    if (onStatsUpdate) {
+      onStatsUpdate(stats);
+
   const onToggleFullScreen = async () => {
     try {
       if (showFullScreen) {
@@ -417,6 +454,7 @@ const VideoPlayer = ({
       }
     } catch (err) {
       console.error("Orientation toggle error:", err);
+
     }
   };
 
@@ -525,7 +563,10 @@ You do not have permission to view this video.`}
         isGlobalPlayer={isGlobalPlayer}
         setShowCommentsModal={setShowCommentsModal}
         onEpisodeChange={onEpisodeChange}
+
+
         onToggleFullScreen={onToggleFullScreen}
+
         onStatsUpdate={handleStatsUpdate}
       />
 
@@ -602,10 +643,15 @@ You do not have permission to view this video.`}
             // FIX: Increment local comment count immediately
             const newCommentCount = localStats.comments + 1;
 
-            setLocalStats((prev) => ({
+            
+            setLocalStats(prev => ({
               ...prev,
               comments: newCommentCount,
             }));
+            
+
+
+        
 
             // Update the parent's stats
             if (onStatsUpdate) {

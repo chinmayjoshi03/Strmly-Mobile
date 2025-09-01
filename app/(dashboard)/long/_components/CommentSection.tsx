@@ -163,7 +163,8 @@ const CommentsSection = ({
 
   const handleReplyToComment = (commentId: string, userName: string) => {
     setReplyingTo(commentId);
-    setReplyingToUser(userName);   
+    setReplyingToUser(userName);
+    handleOpenKeyboardInput();
   };
 
   const handleCancelReply = () => {

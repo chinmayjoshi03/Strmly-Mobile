@@ -161,10 +161,16 @@ const VideoControls = ({
             setShowCommentsModal ? () => setShowCommentsModal(true) : undefined
           }
           onCommentUpdate={(newCount) => {
-            if (onStatsUpdate) {
-              onStatsUpdate({ comments: newCount });
-            }
-          }}
+
+    // Update the video data and notify parent
+    if (onStatsUpdate) {
+      onStatsUpdate({ comments: newCount });
+    }
+  }}
+          // onLikeUpdate={(newLikes, isLiked) =>
+          //   onStatsUpdate?.({ likes: newLikes })
+          // }
+
           // onShareUpdate={(newShares, isShared) =>
           //   onStatsUpdate?.({ shares: newShares })
           // }
