@@ -475,8 +475,8 @@ const VideoContentGifting = ({
   // Wallet data is automatically fetched by useWallet hook
 
   return (
-    <SafeAreaView style={{ height: height }} edges={['bottom']}>
-      <ThemedView style={{ height }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: "black" }}>
+      <ThemedView style={{ flex: 1 }}>
         <KeyboardAvoidingView
           style={{ flex: 1 }}
           behavior={Platform.OS === "ios" ? "padding" : "height"}
