@@ -82,26 +82,6 @@ export default function TabLayout() {
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: '#ffffff',
-        tabBarInactiveTintColor: '#666666',
-        tabBarStyle: {
-          backgroundColor: '#000000',
-          borderTopWidth: 0,
-          height: 50,
-          paddingBottom: 0,
-          paddingTop: 0,
-          paddingHorizontal: 0,
-          marginBottom: 0,
-          elevation: 8, // Android shadow
-          shadowColor: '#000', // iOS shadow
-          shadowOffset: { width: 0, height: -2 },
-          shadowOpacity: 0.1,
-          shadowRadius: 4,
-          position: 'absolute',
-          bottom: 0,
-          left: 0,
-          right: 0,
-        },
         tabBarActiveTintColor: "#ffffff",
         tabBarInactiveTintColor: "#666666",
         tabBarStyle: isLandscape

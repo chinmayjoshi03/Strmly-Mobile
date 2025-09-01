@@ -44,12 +44,14 @@ type GiftingData = {
   setIsWantToGift?: (value: boolean) => void;
   setIsGifted?: (value: boolean) => void;
   giftMessage?: string;
+  onGiftSuccess?: () => void;
 };
 
 const VideoContentGifting = ({
   setIsWantToGift,
   setIsGifted,
   giftMessage,
+  onGiftSuccess,
 }: GiftingData) => {
   const {
     mode,
@@ -68,6 +70,14 @@ const VideoContentGifting = ({
   const { creator, videoId, completeGifting } = useGiftingStore();
   // Use route videoId for comment gifting, prop videoId for video gifting
   const currentVideoId = isCommentGiftMode ? routeVideoId : videoId;
+
+  // For comment gifting, construct creator object from route parameters
+  const currentCreator = isCommentGiftMode ? {
+    _id: creatorId as string,
+    username: creatorUsername as string,
+    name: creatorName as string,
+    profile_photo: creatorPhoto as string,
+  } : creator;
 
 
   const [amount, setAmount] = useState("");
@@ -129,7 +139,7 @@ const VideoContentGifting = ({
     }
 
     // Check if user is trying to gift to themselves
-    if (user?.id === creator?._id) {
+    if (user?.id === currentCreator?._id) {
       setError("You cannot gift to your own video");
       return;
     }
@@ -213,7 +223,23 @@ const VideoContentGifting = ({
     }
 
     try {
+      const requestBody = {
+        commentId: commentId as string,
+        videoId: currentVideoId as string,
+        videoType: "long",
+        amount: giftAmount,
+        giftNote: `Gift of ₹${giftAmount}`,
+      };
 
+      console.log("🚀 Making gift-comment API call:", {
+        url: `${BACKEND_API_URL}/interactions/gift-comment`,
+        method: "POST",
+        body: requestBody,
+        headers: {
+          Authorization: `Bearer ${token?.substring(0, 20)}...`,
+          "Content-Type": "application/json",
+        }
+      });
 
       // Use direct API call with correct URL format
       const response = await fetch(
@@ -224,19 +250,18 @@ const VideoContentGifting = ({
             Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({
-            commentId: commentId as string,
-            videoId: currentVideoId as string,
-            videoType: "long",
-            amount: giftAmount,
-            giftNote: `Gift of ₹${giftAmount}`,
-          }),
+          body: JSON.stringify(requestBody),
         }
       );
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error || "Failed to send gift");
+        console.error("❌ API Error Response:", {
+          status: response.status,
+          statusText: response.statusText,
+          errorData
+        });
+        throw new Error(errorData.error || errorData.message || `HTTP ${response.status}: ${response.statusText}`);
       }
 
       const data = await response.json();
@@ -251,6 +276,11 @@ const VideoContentGifting = ({
       // Refresh wallet data
       fetchWalletDetails();
       
+      // Call success callback to refresh comments
+      if (onGiftSuccess) {
+        onGiftSuccess();
+      }
+      
       // Auto-navigate back after 2 seconds
       setTimeout(() => {
         router.back();
@@ -259,7 +289,15 @@ const VideoContentGifting = ({
       console.error("❌ Comment gift error:", err);
 
       // Provide more user-friendly error messages
-      if (err.message === "Comment not monetized") {
+      if (err.message === "Invalid or expired token") {
+        setError(
+          "Your session has expired. Please close this screen and try again. If the problem persists, please log out and log back in."
+        );
+        // Optionally, you could automatically log out the user here:
+        // const { logout } = useAuthStore.getState();
+        // logout();
+        // router.replace('/(auth)/Sign-in');
+      } else if (err.message === "Comment author has disabled comment monetization" || err.message === "Comment not monetized") {
         setError(
           "This comment cannot receive gifts. The creator may not have enabled comment monetization for this content."
         );
@@ -408,8 +446,8 @@ const VideoContentGifting = ({
       isWithdrawMode,
       isCommentGiftMode,
       amount,
-      videoId,
-      creator,
+      videoId: currentVideoId,
+      creator: currentCreator,
     });
 
     setLoading(true);
@@ -507,11 +545,11 @@ const VideoContentGifting = ({
                     <View className="w-8" />
                   </View>
                 ) : (
-                  creator && (
+                  currentCreator && (
                     <CreatorInfo
-                      profile={creator?.profile_photo}
-                      name={creator?.name}
-                      username={creator?.username}
+                      profile={currentCreator?.profile_photo}
+                      name={currentCreator?.name}
+                      username={currentCreator?.username}
                     />
                   )
                 )}

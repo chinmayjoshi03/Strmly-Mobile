@@ -14,6 +14,7 @@ import {
   KeyboardAvoidingView,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useFocusEffect } from "@react-navigation/native";
 import { MaterialIcons } from "@expo/vector-icons";
 import { useComments } from "./useComments";
 import { Comment } from "@/types/Comments";
@@ -73,7 +74,15 @@ const CommentsSection = ({
     if (videoId) fetchComments();
   }, [videoId, fetchComments]);
 
-  // Debug logging for monetization (reduced)
+  // Refresh comments every time the modal is opened
+  useEffect(() => {
+    if (videoId) {
+      console.log('💰 CommentSection opened - refreshing comments to get latest gift counts');
+      fetchComments();
+    }
+  }, [videoId, fetchComments]);
+
+  // Debug logging for monetization and gift counts
   useEffect(() => {
     if (comments.length > 0) {
       console.log("💰 Comment Monetization Status:", {
@@ -81,6 +90,15 @@ const CommentsSection = ({
         commentsCount: comments.length,
         monetizedComments: comments.filter((c) => c.is_monetized).length,
       });
+      
+      // Debug gift counts
+      console.log("💰 Comment Gift Counts:", comments.map(c => ({
+        id: c._id,
+        content: c.content?.substring(0, 20) + "...",
+        gifts: c.gifts,
+        donations: c.donations,
+        user: c.user?.name
+      })));
     }
   }, [commentMonetizationEnabled, comments]);
 
