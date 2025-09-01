@@ -317,6 +317,8 @@ const VideoPlayer = ({
       height: VIDEO_HEIGHT,
       width: "100%",
       backgroundColor: "#000",
+      overflow: "hidden", // Prevent content bleeding
+      position: "relative", // Ensure proper positioning
     },
     video: {
       width: "100%",

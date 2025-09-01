@@ -11,6 +11,7 @@ import {
   Alert,
   Keyboard,
   Platform,
+  KeyboardAvoidingView,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { MaterialIcons } from "@expo/vector-icons";
@@ -30,7 +31,7 @@ interface CommentsSectionProps {
 
 const { height: SCREEN_HEIGHT } = Dimensions.get("window");
 const SHEET_MAX_HEIGHT = SCREEN_HEIGHT * 0.6;
-const BOTTOM_NAV_HEIGHT = 50;
+const BOTTOM_NAV_HEIGHT = 70;
 
 const CommentsSection = ({
   onClose,
@@ -48,8 +49,9 @@ const CommentsSection = ({
   );
   const [repliesData, setRepliesData] = useState<{ [key: string]: any[] }>({});
   const [keyboardHeight, setKeyboardHeight] = useState(0);
-  const [showKeyboardInput, setShowKeyboardInput] = useState(false);
+  const [isInputFocused, setIsInputFocused] = useState(false);
   const inputRef = useRef<TextInput>(null);
+  const scrollViewRef = useRef<ScrollView>(null);
   const insets = useSafeAreaInsets();
   const { commentMonetizationEnabled, loading: monetizationLoading } =
     useMonetization(false);
@@ -86,15 +88,23 @@ const CommentsSection = ({
     const keyboardWillShowListener = Keyboard.addListener(
       Platform.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow",
       (event) => {
+        console.log("🎹 Keyboard Show Event:", {
+          height: event.endCoordinates.height,
+          screenY: event.endCoordinates.screenY,
+          platform: Platform.OS
+        });
+        // Set both keyboard height and input focused state together
         setKeyboardHeight(event.endCoordinates.height);
+        setIsInputFocused(true);
       }
     );
 
     const keyboardWillHideListener = Keyboard.addListener(
       Platform.OS === "ios" ? "keyboardWillHide" : "keyboardDidHide",
       () => {
+        console.log("🎹 Keyboard Hide Event");
         setKeyboardHeight(0);
-        setShowKeyboardInput(false);
+        setIsInputFocused(false);
       }
     );
 
@@ -104,22 +114,19 @@ const CommentsSection = ({
     };
   }, []);
 
-  const handleOpenKeyboardInput = () => {
-    setShowKeyboardInput(true);
-    // Small delay to ensure state updates first
+  const handleInputFocus = () => {
+    console.log("🎹 Input focused");
+    setIsInputFocused(true);
+    // Scroll to bottom when input is focused
     setTimeout(() => {
-      if (inputRef.current) {
-        inputRef.current.focus();
+      if (scrollViewRef.current) {
+        scrollViewRef.current.scrollToEnd({ animated: true });
       }
-    }, 50);
+    }, 100);
   };
 
-  const handleCloseKeyboardInput = () => {
-    if (inputRef.current) {
-      inputRef.current.blur();
-    }
-    setShowKeyboardInput(false);
-    Keyboard.dismiss();
+  const handleInputBlur = () => {
+    setIsInputFocused(false);
   };
 
   const handleSubmitComment = async () => {
@@ -150,8 +157,10 @@ const CommentsSection = ({
           onCommentAdded();
         }
       }
-      // Close keyboard input after successful submission
-      handleCloseKeyboardInput();
+      // Dismiss keyboard after successful submission
+      if (inputRef.current) {
+        inputRef.current.blur();
+      }
     } catch (error: any) {
       console.error("Error submitting comment:", error);
       const errorMessage = error.message || "Failed to post comment";
@@ -164,14 +173,19 @@ const CommentsSection = ({
   const handleReplyToComment = (commentId: string, userName: string) => {
     setReplyingTo(commentId);
     setReplyingToUser(userName);
-    handleOpenKeyboardInput();
+    // Focus the input to show keyboard
+    if (inputRef.current) {
+      inputRef.current.focus();
+    }
   };
 
   const handleCancelReply = () => {
     setReplyingTo(null);
     setReplyingToUser("");
     setComment("");
-    handleCloseKeyboardInput();
+    if (inputRef.current) {
+      inputRef.current.blur();
+    }
   };
 
   const handleToggleReplies = async (commentId: string) => {
@@ -533,7 +547,6 @@ const CommentsSection = ({
         bottom: 0,
         backgroundColor: "rgba(0, 0, 0, 0.6)",
         zIndex: 1000,
-        justifyContent: "flex-end",
       }}
     >
       {/* Backdrop */}
@@ -543,11 +556,13 @@ const CommentsSection = ({
           top: 0,
           left: 0,
           right: 0,
-          bottom: SHEET_MAX_HEIGHT + BOTTOM_NAV_HEIGHT,
+          bottom: 0,
         }}
         onPress={() => {
-          if (showKeyboardInput) {
-            handleCloseKeyboardInput();
+          if (isInputFocused) {
+            if (inputRef.current) {
+              inputRef.current.blur();
+            }
           } else {
             onClose();
           }
@@ -555,16 +570,28 @@ const CommentsSection = ({
         activeOpacity={1}
       />
 
-      {/* Bottom Sheet - Fixed position */}
+      {/* Bottom Sheet - Fixed positioning */}
       <View
         style={{
+          position: "absolute",
+          left: 0,
+          right: 0,
+          ...(isInputFocused && keyboardHeight > 0 ? {
+            // When keyboard is open, position so the input sits above keyboard
+            bottom: keyboardHeight + 50,
+            height: Math.min(SCREEN_HEIGHT * 0.5, SCREEN_HEIGHT - keyboardHeight - 50),
+          } : {
+            // When keyboard is closed, normal positioning
+            bottom: BOTTOM_NAV_HEIGHT,
+            height: SHEET_MAX_HEIGHT,
+          }),
           backgroundColor: "#0E0E0E",
           borderTopLeftRadius: 36,
           borderTopRightRadius: 36,
-          height: SHEET_MAX_HEIGHT,
-          marginBottom: BOTTOM_NAV_HEIGHT,
+          maxHeight: SCREEN_HEIGHT * 0.8,
         }}
       >
+
         {/* Drag handle */}
         <View
           style={{ alignItems: "center", paddingTop: 12, paddingBottom: 8 }}
@@ -588,10 +615,11 @@ const CommentsSection = ({
 
         {/* Comments List */}
         <ScrollView
+          ref={scrollViewRef}
           style={{ flex: 1 }}
-          contentContainerStyle={{ 
+          contentContainerStyle={{
             flexGrow: 1,
-            paddingBottom: showKeyboardInput ? 0 : 80
+            paddingBottom: 20
           }}
           showsVerticalScrollIndicator={false}
           bounces={true}
@@ -635,110 +663,18 @@ const CommentsSection = ({
           )}
         </ScrollView>
 
-        {/* Fixed Input Bar - Only visible when keyboard input is not shown */}
-        {!showKeyboardInput && (
-          <View
-            style={{
-              paddingHorizontal: 20,
-              paddingBottom: Math.max(insets.bottom, 16),
-              paddingTop: 16,
-              backgroundColor: "#0E0E0E",
-            }}
-          >
-            {/* Reply indicator */}
-            {replyingTo && (
-              <View
-                style={{
-                  flexDirection: "row",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                  marginBottom: 12,
-                  paddingHorizontal: 16,
-                  paddingVertical: 8,
-                  backgroundColor: "rgba(158, 158, 158, 0.1)",
-                  borderRadius: 8,
-                }}
-              >
-                <Text style={{ color: "#9E9E9E", fontSize: 14 }}>
-                  Replying to @{replyingToUser}
-                </Text>
-                <TouchableOpacity onPress={handleCancelReply}>
-                  <Text style={{ color: "#FF3B30", fontSize: 14 }}>Cancel</Text>
-                </TouchableOpacity>
-              </View>
-            )}
-
-            <TouchableOpacity
-              style={{
-                flexDirection: "row",
-                alignItems: "center",
-                backgroundColor: "#0E0E0E",
-                borderRadius: 28,
-                height: 52,
-                paddingHorizontal: 16,
-                borderWidth: 1,
-                borderColor: "#333333",
-              }}
-              onPress={comment.trim() ? handleSubmitComment : handleOpenKeyboardInput}
-            >
-              {/* Show actual comment text or placeholder */}
-              <Text
-                style={{
-                  flex: 1,
-                  color: comment.trim() ? "#FFFFFF" : "#9E9E9E",
-                  fontSize: 16,
-                }}
-                numberOfLines={1}
-              >
-                {comment.trim() || 
-                  (replyingTo ? `Reply to @${replyingToUser}...` : "Add comment...")
-                }
-              </Text>
-
-              {/* Send button */}
-              <TouchableOpacity
-                onPress={handleSubmitComment}
-                disabled={!comment.trim() || isSubmitting}
-                style={{
-                  alignItems: "center",
-                  justifyContent: "center",
-                  marginLeft: 12,
-                  minHeight: 44,
-                  minWidth: 44,
-                }}
-              >
-                {isSubmitting ? (
-                  <ActivityIndicator size="small" color="#F1C40F" />
-                ) : (
-                  <MaterialIcons
-                    name="send"
-                    size={20}
-                    color={comment.trim() ? "#F1C40F" : "#9E9E9E"}
-                  />
-                )}
-              </TouchableOpacity>
-            </TouchableOpacity>
-          </View>
-        )}
-      </View>
-
-      {/* Keyboard Input Bar - Only visible when showKeyboardInput is true */}
-      {showKeyboardInput && (
+        {/* Input Bar - Always visible at bottom */}
         <View
           style={{
-            position: "absolute",
-            bottom: keyboardHeight,
-            left: 0,
-            right: 0,
-            backgroundColor: "#0E0E0E",
-            borderTopWidth: 1,
-            borderTopColor: "#333333",
             paddingHorizontal: 20,
-            paddingVertical: 70,
-            zIndex: 1001,
+            paddingBottom: Math.max(insets.bottom, 16),
+            paddingTop: 16,
+            backgroundColor: "#0E0E0E",
+            borderTopWidth: isInputFocused ? 1 : 0,
+            borderTopColor: "#333333",
           }}
         >
-          {/* Reply indicator for keyboard input */}
+          {/* Reply indicator */}
           {replyingTo && (
             <View
               style={{
@@ -761,17 +697,17 @@ const CommentsSection = ({
             </View>
           )}
 
-          {/* Actual input field */}
+          {/* Input field */}
           <View
             style={{
               flexDirection: "row",
               alignItems: "center",
-              backgroundColor: "#1A1A1A",
+              backgroundColor: isInputFocused ? "#1A1A1A" : "#0E0E0E",
               borderRadius: 28,
               height: 52,
               paddingHorizontal: 16,
               borderWidth: 1,
-              borderColor: "#444444",
+              borderColor: isInputFocused ? "#444444" : "#333333",
             }}
           >
             <TextInput
@@ -790,7 +726,8 @@ const CommentsSection = ({
               }}
               multiline={false}
               maxLength={500}
-              autoFocus={true}
+              onFocus={handleInputFocus}
+              onBlur={handleInputBlur}
               blurOnSubmit={false}
               onSubmitEditing={handleSubmitComment}
               returnKeyType="send"
@@ -820,8 +757,9 @@ const CommentsSection = ({
             </TouchableOpacity>
           </View>
         </View>
-      )}
+      </View>
     </View>
+
   );
 };
 
