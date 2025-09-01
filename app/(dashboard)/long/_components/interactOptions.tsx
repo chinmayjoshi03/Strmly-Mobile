@@ -72,9 +72,15 @@ const InteractOptions = ({
     const newLikeCount = prevLiked ? prevLikeCount - 1 : prevLikeCount + 1;
     const newLikedState = !prevLiked;
 
+
     // Update local state immediately
     setLike(newLikeCount);
     setIsLikedVideo(newLikedState);
+
+
+
+    
+
 
     // FIX: Call parent update callback
     if (onLikeUpdate) {
@@ -252,9 +258,11 @@ const InteractOptions = ({
     const newReshareCount = prevIsReshared ? prevReshareCount - 1 : prevReshareCount + 1;
     const newReshareState = !prevIsReshared;
 
+
     // Optimistic update
     setReshares(newReshareCount);
     setIsResharedVideo(newReshareState);
+
 
     if (onShareUpdate) {
       onShareUpdate(newReshareCount, newReshareState);
@@ -303,6 +311,17 @@ const InteractOptions = ({
     initiateGifting(creator, videoId);
     router.push("/(payments)/Video/Video-Gifting");
   };
+
+
+  // FIX: Add function to handle comment updates from CommentSection
+  const handleCommentAdded = useCallback(() => {
+    const newCount = commentCount + 1;
+    setCommentCount(newCount);
+    if (onCommentUpdate) {
+      onCommentUpdate(newCount);
+    }
+  }, [commentCount, onCommentUpdate]);
+
 
   // FIX: Enhanced comment press handler
   const handleCommentPress = useCallback(() => {
