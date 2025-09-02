@@ -118,6 +118,8 @@ const VideoPlayer = ({
 
 
 
+
+
   // Full screen:
   const [showFullScreen, setShowFullScreen] = useState(false);
 
@@ -415,6 +417,7 @@ const VideoPlayer = ({
   }, []);
 
 
+
   // // FIX: Handle local stats updates
   // const handleStatsUpdate = (stats: {
   //   likes?: number;
@@ -432,6 +435,24 @@ const VideoPlayer = ({
   //     onStatsUpdate(stats);
   //   }
   // }
+
+  // FIX: Handle local stats updates
+  const handleStatsUpdate = (stats: {
+    likes?: number;
+    gifts?: number;
+    shares?: number;
+    comments?: number;
+  }) => {
+    setLocalStats(prev => ({
+      ...prev,
+      ...stats,
+    }));
+    
+    // Also call the parent callback
+    if (onStatsUpdate) {
+      onStatsUpdate(stats);
+
+
   const onToggleFullScreen = async () => {
     try {
       if (showFullScreen) {

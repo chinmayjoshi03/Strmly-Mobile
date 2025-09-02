@@ -220,10 +220,12 @@ const CommentsSection = ({
   const handleReplyToComment = (commentId: string, userName: string) => {
     setReplyingTo(commentId);
     setReplyingToUser(userName);
+
     // Focus the input to show keyboard
     if (inputRef.current) {
       inputRef.current.focus();
     }
+
   };
 
   const handleCancelReply = () => {
