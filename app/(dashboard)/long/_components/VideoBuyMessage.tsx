@@ -1,7 +1,6 @@
 import React from "react";
 import { Modal, View, Text, Pressable, StyleSheet, Image } from "react-native";
 import { GiftType } from "../VideoFeed";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useGiftingStore } from "@/store/useGiftingStore";
 import { router } from "expo-router";
 
@@ -33,17 +32,20 @@ const VideoBuyMessage = ({
         });
         onClose(false);
         clearVideoAccessData();
+        // router.push({
+        //   pathname: "/(dashboard)/long/GlobalVideoPlayer",
+        // });
       }} // Allows closing with the back button on Android
     >
       {/* Semi-transparent backdrop */}
       <Pressable
         style={styles.backdrop}
         onPress={async () => {
+          clearVideoAccessData();
+          onClose(false);
           router.push({
             pathname: "/(dashboard)/long/GlobalVideoPlayer",
           });
-          onClose(false);
-          clearVideoAccessData();
         }}
       >
         <View className="bg-black border border-gray-800 items-center justify-center rounded-2xl px-2 py-6">

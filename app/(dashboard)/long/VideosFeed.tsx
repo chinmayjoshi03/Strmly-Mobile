@@ -7,7 +7,11 @@ import {
   Pressable,
   View,
 } from "react-native";
-import { SafeAreaProvider, SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
+import {
+  SafeAreaProvider,
+  SafeAreaView,
+  useSafeAreaInsets,
+} from "react-native-safe-area-context";
 import ThemedView from "@/components/ThemedView";
 import { useAuthStore } from "@/store/useAuthStore";
 import { CONFIG } from "@/Constants/config";
@@ -16,6 +20,7 @@ import { Link, router, useFocusEffect } from "expo-router";
 import VideoPlayer from "./_components/VideoPlayer";
 import { clearActivePlayer } from "@/store/usePlayerStore";
 import { useVideosStore } from "@/store/useVideosStore";
+import { useOrientationStore } from "@/store/useOrientationStore";
 
 export type GiftType = {
   creator: {
@@ -27,7 +32,7 @@ export type GiftType = {
 };
 
 const { height: screenHeight } = Dimensions.get("window");
-const BOTTOM_NAV_HEIGHT = 50; // Height of your bottom navigation
+const BOTTOM_NAV_HEIGHT = -50; // Height of your bottom navigation
 
 // Define the height for each video item (adjust as needed)
 const VIDEO_HEIGHT = screenHeight;
@@ -45,13 +50,15 @@ const VideosFeed: React.FC = () => {
   const [isScreenFocused, setIsScreenFocused] = useState(true);
 
   const { token, isLoggedIn } = useAuthStore();
-  const {setVideoType} = useVideosStore();
+  const { setVideoType } = useVideosStore();
   const flatListRef = useRef<FlatList>(null);
   const mountedRef = useRef(true);
 
+  const { isLandscape } = useOrientationStore();
+
   const BACKEND_API_URL = CONFIG.API_BASE_URL;
 
-  // Handle screen focus
+  // Handle screen focus  // initially it's useFocusEffect
   useFocusEffect(
     useCallback(() => {
       // Small delay to prevent rapid focus changes
@@ -179,7 +186,7 @@ const VideosFeed: React.FC = () => {
         const mostVisible = viewableItems.reduce((prev: any, current: any) => {
           return (current.percent || 0) > (prev.percent || 0) ? current : prev;
         });
-        
+
         const currentIndex = mostVisible.index;
         if (currentIndex !== visibleIndex && currentIndex !== undefined) {
           setVisibleIndex(currentIndex);
@@ -195,27 +202,33 @@ const VideosFeed: React.FC = () => {
   );
 
   // Add scroll handler to ensure proper snapping
-  const onScrollEndDrag = useCallback((event: any) => {
-    const { contentOffset } = event.nativeEvent;
-    const currentIndex = Math.round(contentOffset.y / VIDEO_HEIGHT);
-    
-    // Ensure we're at the correct position
-    if (currentIndex !== visibleIndex && flatListRef.current) {
-      flatListRef.current.scrollToIndex({
-        index: Math.max(0, Math.min(currentIndex, videos.length - 1)),
-        animated: true,
-      });
-    }
-  }, [visibleIndex, videos.length]);
+  const onScrollEndDrag = useCallback(
+    (event: any) => {
+      const { contentOffset } = event.nativeEvent;
+      const currentIndex = Math.round(contentOffset.y / VIDEO_HEIGHT);
 
-  const onMomentumScrollEnd = useCallback((event: any) => {
-    const { contentOffset } = event.nativeEvent;
-    const currentIndex = Math.round(contentOffset.y / VIDEO_HEIGHT);
-    
-    if (currentIndex !== visibleIndex) {
-      setVisibleIndex(Math.max(0, Math.min(currentIndex, videos.length - 1)));
-    }
-  }, [visibleIndex, videos.length]);
+      // Ensure we're at the correct position
+      if (currentIndex !== visibleIndex && flatListRef.current) {
+        flatListRef.current.scrollToIndex({
+          index: Math.max(0, Math.min(currentIndex, videos.length - 1)),
+          animated: true,
+        });
+      }
+    },
+    [visibleIndex, videos.length]
+  );
+
+  const onMomentumScrollEnd = useCallback(
+    (event: any) => {
+      const { contentOffset } = event.nativeEvent;
+      const currentIndex = Math.round(contentOffset.y / VIDEO_HEIGHT);
+
+      if (currentIndex !== visibleIndex) {
+        setVisibleIndex(Math.max(0, Math.min(currentIndex, videos.length - 1)));
+      }
+    },
+    [visibleIndex, videos.length]
+  );
 
   // Stable viewability config - more strict to prevent bleeding
   const viewabilityConfig = useRef({
@@ -227,12 +240,14 @@ const VideosFeed: React.FC = () => {
   // Memoize render item with proper container
   const renderItem = useCallback(
     ({ item, index }: { item: VideoItemType; index: number }) => (
-      <View style={{ 
-        height: VIDEO_HEIGHT, 
-        width: '100%', 
-        overflow: 'hidden',
-        backgroundColor: '#000'
-      }}>
+      <View
+        style={{
+          height: VIDEO_HEIGHT,
+          width: "100%",
+          overflow: "hidden",
+          backgroundColor: "#000",
+        }}
+      >
         <VideoPlayer
           isGlobalPlayer={false}
           videoData={item}
@@ -275,10 +290,7 @@ const VideosFeed: React.FC = () => {
   // Show loading while checking authentication or fetching videos
   if (loading && isFetchingMore) {
     return (
-      <ThemedView
-        style={{ flex: 1 }}
-        className="justify-center items-center"
-      >
+      <ThemedView style={{ flex: 1 }} className="justify-center items-center">
         <ActivityIndicator size="large" color="white" />
         <Text className="text-white mt-4">
           {!token || !isLoggedIn
@@ -291,29 +303,30 @@ const VideosFeed: React.FC = () => {
 
   if (error && videos.length === 0) {
     return (
-      <ThemedView
-        style={{ flex: 1 }}
-        className="justify-center items-center px-4"
-      >
-        <Text className="text-white text-center mb-4">
-          Oops something went wrong!
-        </Text>
-        <Pressable
-          onPress={handleRefresh}
-          className="bg-blue-600 px-4 py-2 rounded"
-        >
-          <Text className="text-white">Retry</Text>
-        </Pressable>
-      </ThemedView>
+      <SafeAreaProvider>
+        <SafeAreaView style={{ flex: 1 }} edges={["bottom"]}>
+          <ThemedView
+            style={{ flex: 1 }}
+            className="justify-center items-center px-4"
+          >
+            <Text className="text-white text-center mb-4">
+              Oops something went wrong!
+            </Text>
+            <Pressable
+              onPress={handleRefresh}
+              className="bg-blue-600 px-4 py-2 rounded"
+            >
+              <Text className="text-white">Retry</Text>
+            </Pressable>
+          </ThemedView>
+        </SafeAreaView>
+      </SafeAreaProvider>
     );
   }
 
   if (videos.length === 0) {
     return (
-      <ThemedView
-        style={{ flex: 1 }}
-        className="justify-center items-center"
-      >
+      <ThemedView style={{ flex: 1 }} className="justify-center items-center">
         <Text className="text-lg text-white">No Videos Available</Text>
         <Text className="text-lg text-white">
           Want to Upload your own{" "}
@@ -326,44 +339,58 @@ const VideosFeed: React.FC = () => {
   }
 
   return (
-    <ThemedView style={{ flex: 1 }}>
-      <FlatList
-        ref={flatListRef}
-        data={videos}
-        renderItem={renderItem}
-        keyExtractor={keyExtractor}
-        getItemLayout={getItemLayout}
-        pagingEnabled={true}
-        scrollEnabled={!showCommentsModal}
-        onViewableItemsChanged={onViewableItemsChanged}
-        viewabilityConfig={viewabilityConfig}
-        initialNumToRender={1}
-        maxToRenderPerBatch={1}
-        windowSize={1}
-        removeClippedSubviews={false} // Disable to prevent content bleeding
-        showsVerticalScrollIndicator={false}
-        snapToInterval={VIDEO_HEIGHT}
-        snapToAlignment="start"
-        decelerationRate="fast"
-        bounces={false} // Disable bouncing to prevent content bleeding
-        scrollEventThrottle={16}
-        disableIntervalMomentum={true} // Prevent momentum scrolling past snap points
-        onScrollEndDrag={onScrollEndDrag}
-        onMomentumScrollEnd={onMomentumScrollEnd}
-        style={{ flex: 1, backgroundColor: '#000' }}
-        contentContainerStyle={{ backgroundColor: '#000' }}
-        overScrollMode="never" // Android: prevent over-scrolling
-        alwaysBounceVertical={false} // iOS: prevent bouncing
-        // Add loading indicator at the bottom
-        ListFooterComponent={
-          isFetchingMore ? (
-            <View style={{ height: VIDEO_HEIGHT, justifyContent: 'center', alignItems: 'center' }}>
-              <ActivityIndicator size="small" color="white" />
-            </View>
-          ) : null
-        }
-      />
-    </ThemedView>
+    <SafeAreaView style={{ height: VIDEO_HEIGHT, backgroundColor: "black" }}>
+      <ThemedView>
+        <FlatList
+          ref={flatListRef}
+          data={videos}
+          renderItem={renderItem}
+          keyExtractor={keyExtractor}
+          getItemLayout={getItemLayout}
+          pagingEnabled
+          scrollEnabled={!showCommentsModal && !isLandscape}
+          onViewableItemsChanged={onViewableItemsChanged}
+          viewabilityConfig={viewabilityConfig}
+          initialNumToRender={1}
+          maxToRenderPerBatch={1}
+          windowSize={1}
+          removeClippedSubviews={false} // initially true
+          showsVerticalScrollIndicator={false}
+          contentInsetAdjustmentBehavior="automatic"
+          // onEndReachedThreshold={0.8}
+          // onEndReached={() => {
+          //   if (hasMore && !isFetchingMore && isScreenFocused) {
+          //     fetchTrendingVideos();
+          //   }
+          // }}
+          style={{ height: VIDEO_HEIGHT }}
+          maintainVisibleContentPosition={{
+            minIndexForVisible: 0,
+            autoscrollToTopThreshold: 10,
+          }}
+          // Add loading indicator at the bottom
+          ListFooterComponent={
+            isFetchingMore ? (
+              <View style={{ padding: 20, alignItems: "center" }}>
+                <ActivityIndicator size="small" color="white" />
+              </View>
+            ) : null
+          }
+          // incoming changes
+          snapToInterval={VIDEO_HEIGHT}
+          snapToAlignment="start"
+          decelerationRate="fast"
+          bounces={false} // Disable bouncing to prevent content bleeding
+          scrollEventThrottle={16}
+          disableIntervalMomentum={true} // Prevent momentum scrolling past snap points
+          onScrollEndDrag={onScrollEndDrag}
+          onMomentumScrollEnd={onMomentumScrollEnd}
+          contentContainerStyle={{ backgroundColor: "#000" }}
+          overScrollMode="never" // Android: prevent over-scrolling
+          alwaysBounceVertical={false} // iOS: prevent bouncing
+        />
+      </ThemedView>
+    </SafeAreaView>
   );
 };
 
