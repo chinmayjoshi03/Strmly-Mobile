@@ -34,6 +34,35 @@ const { height: SCREEN_HEIGHT } = Dimensions.get("window");
 const SHEET_MAX_HEIGHT = SCREEN_HEIGHT * 0.6;
 const BOTTOM_NAV_HEIGHT = 70;
 
+// Helper function to format timestamp like Instagram
+const formatTimestamp = (timestamp: string | Date): string => {
+  const now = new Date();
+  const date = new Date(timestamp);
+  const diffMs = now.getTime() - date.getTime();
+  const diffSeconds = Math.floor(diffMs / 1000);
+  const diffMinutes = Math.floor(diffSeconds / 60);
+  const diffHours = Math.floor(diffMinutes / 60);
+  const diffDays = Math.floor(diffHours / 24);
+  const diffWeeks = Math.floor(diffDays / 7);
+
+  if (diffSeconds < 60) {
+    return "now";
+  } else if (diffMinutes < 60) {
+    return `${diffMinutes}m`;
+  } else if (diffHours < 24) {
+    return `${diffHours}h`;
+  } else if (diffDays < 7) {
+    return `${diffDays}d`;
+  } else if (diffWeeks < 4) {
+    return `${diffWeeks}w`;
+  } else {
+    // For older posts, show month/day
+    const month = date.getMonth() + 1;
+    const day = date.getDate();
+    return `${month}/${day}`;
+  }
+};
+
 const CommentsSection = ({
   onClose,
   videoId,
@@ -291,13 +320,18 @@ const CommentsSection = ({
           </TouchableOpacity>
 
           <View style={{ flex: 1, marginLeft: 12 }}>
-            <TouchableOpacity onPress={() => onPressUsername?.(reply.user?.id)}>
-              <Text
-                style={{ color: "#FFFFFF", fontSize: 14, fontWeight: "600" }}
-              >
-                {reply.user?.name || "Anonymous User"}
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+              <TouchableOpacity onPress={() => onPressUsername?.(reply.user?.id)}>
+                <Text
+                  style={{ color: "#FFFFFF", fontSize: 14, fontWeight: "600" }}
+                >
+                  {reply.user?.name || "Anonymous User"}
+                </Text>
+              </TouchableOpacity>
+              <Text style={{ color: "#9E9E9E", fontSize: 12 }}>
+                {formatTimestamp(reply.timestamp || reply.createdAt)}
               </Text>
-            </TouchableOpacity>
+            </View>
             <Text style={{ color: "#FFFFFF", fontSize: 16, marginTop: 2 }}>
               {reply.content || "No content"}
             </Text>
@@ -399,15 +433,20 @@ const CommentsSection = ({
             </TouchableOpacity>
 
             <View style={{ flex: 1, marginLeft: 12 }}>
-              <TouchableOpacity
-                onPress={() => onPressUsername?.(item.user?.id)}
-              >
-                <Text
-                  style={{ color: "#FFFFFF", fontSize: 14, fontWeight: "600" }}
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                <TouchableOpacity
+                  onPress={() => onPressUsername?.(item.user?.id)}
                 >
-                  {item.user?.name || "Anonymous User"}
+                  <Text
+                    style={{ color: "#FFFFFF", fontSize: 14, fontWeight: "600" }}
+                  >
+                    {item.user?.name || "Anonymous User"}
+                  </Text>
+                </TouchableOpacity>
+                <Text style={{ color: "#9E9E9E", fontSize: 12 }}>
+                  {formatTimestamp(item.timestamp || item.createdAt)}
                 </Text>
-              </TouchableOpacity>
+              </View>
               <Text style={{ color: "#FFFFFF", fontSize: 16, marginTop: 2 }}>
                 {item.content || "No content"}
               </Text>
