@@ -1304,12 +1304,10 @@ You do not have permission to view this video.`}
           }}
           onCommentAdded={() => {
             const newCommentCount = localStats.comments + 1;
-
             setLocalStats((prev) => ({
               ...prev,
               comments: newCommentCount,
             }));
-              
             if (onStatsUpdate) {
               onStatsUpdate({ comments: newCommentCount });
             }
