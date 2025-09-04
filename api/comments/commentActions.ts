@@ -20,8 +20,8 @@ const throttleRequest = async (key: string) => {
 };
 
 export interface CommentAPIResponse {
-  message: string;
-  comment?: Comment;
+  message?: string;
+  comment?: Comment | any; // Allow any for backend response mapping
   comments?: Comment[];
   replies?: reply[];
   pagination?: {
@@ -269,11 +269,35 @@ export class CommentAPI {
 
     return response.json();
   }
+
+  // Get a single comment by ID (for refreshing after gift payment)
+  static async getComment(
+    token: string,
+    commentId: string
+  ): Promise<CommentAPIResponse> {
+    const throttleKey = `comment-${commentId}`;
+    await throttleRequest(throttleKey);
+
+    const response = await fetch(
+      `${CONFIG.API_BASE_URL}/interactions/comments/${commentId}`,
+      {
+        method: 'GET',
+        headers: CommentAPI.getHeaders(token),
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error(`Failed to fetch comment: ${response.status}`);
+    }
+
+    return response.json();
+  }
 }
 
 // Convenience functions for easier usage
 export const commentActions = {
   getComments: CommentAPI.getComments,
+  getComment: CommentAPI.getComment,
   postComment: CommentAPI.postComment,
   getReplies: CommentAPI.getReplies,
   postReply: CommentAPI.postReply,

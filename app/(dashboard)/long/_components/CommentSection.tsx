@@ -11,18 +11,15 @@ import {
   Alert,
   Keyboard,
   Platform,
-  KeyboardAvoidingView,
-  KeyboardAvoidingView,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useFocusEffect } from "@react-navigation/native";
-import { useFocusEffect } from "@react-navigation/native";
 import { MaterialIcons } from "@expo/vector-icons";
 import { useComments } from "./useComments";
 import { Comment } from "@/types/Comments";
 import { useMonetization } from "./useMonetization";
-import { router } from "expo-router";
+import { router, useFocusEffect } from "expo-router";
 import { getProfilePhotoUrl } from "@/utils/profileUtils";
+import { useCallback } from "react";
 
 interface CommentsSectionProps {
   onClose: () => void;
@@ -30,6 +27,7 @@ interface CommentsSectionProps {
   onPressUsername?: (userId: string) => void;
   onPressTip?: (commentId: string) => void;
   onCommentAdded?: () => void;
+  refreshTrigger?: number; // Add prop to trigger refresh
 }
 
 const { height: SCREEN_HEIGHT } = Dimensions.get("window");
@@ -71,6 +69,7 @@ const CommentsSection = ({
   onPressUsername,
   onPressTip,
   onCommentAdded,
+  refreshTrigger,
 }: CommentsSectionProps) => {
   const [comment, setComment] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -82,10 +81,11 @@ const CommentsSection = ({
   const [repliesData, setRepliesData] = useState<{ [key: string]: any[] }>({});
   const [keyboardHeight, setKeyboardHeight] = useState(0);
   const [isInputFocused, setIsInputFocused] = useState(false);
-  const [isInputFocused, setIsInputFocused] = useState(false);
+  const [lastGiftedCommentId, setLastGiftedCommentId] = useState<string | null>(null);
+
   const inputRef = useRef<TextInput>(null);
   const scrollViewRef = useRef<ScrollView>(null);
-  const scrollViewRef = useRef<ScrollView>(null);
+
   const insets = useSafeAreaInsets();
   const { commentMonetizationEnabled, loading: monetizationLoading } =
     useMonetization(false);
@@ -101,6 +101,7 @@ const CommentsSection = ({
     fetchReplies,
     upvoteReply,
     downvoteReply,
+    refreshComment,
   } = useComments({ videoId });
 
   useEffect(() => {
@@ -115,14 +116,13 @@ const CommentsSection = ({
     }
   }, [videoId, fetchComments]);
 
-  // Debug logging for monetization and gift counts
-  // Refresh comments every time the modal is opened
+  // Refresh when refreshTrigger changes (when modal is reopened)
   useEffect(() => {
-    if (videoId) {
-      console.log('💰 CommentSection opened - refreshing comments to get latest gift counts');
+    if (videoId && refreshTrigger) {
+      console.log('💰 CommentSection refresh triggered - fetching latest comment data');
       fetchComments();
     }
-  }, [videoId, fetchComments]);
+  }, [refreshTrigger, videoId, fetchComments]);
 
   // Debug logging for monetization and gift counts
   useEffect(() => {
@@ -137,21 +137,22 @@ const CommentsSection = ({
       console.log("💰 Comment Gift Counts:", comments.map(c => ({
         id: c._id,
         content: c.content?.substring(0, 20) + "...",
-        gifts: c.gifts,
-        donations: c.donations,
-        user: c.user?.name
-      })));
-      
-      // Debug gift counts
-      console.log("💰 Comment Gift Counts:", comments.map(c => ({
-        id: c._id,
-        content: c.content?.substring(0, 20) + "...",
-        gifts: c.gifts,
         donations: c.donations,
         user: c.user?.name
       })));
     }
   }, [commentMonetizationEnabled, comments]);
+
+  // Listen for screen focus to refresh comments after returning from gift screen
+  useFocusEffect(
+    useCallback(() => {
+      if (videoId && lastGiftedCommentId) {
+        console.log('💰 Returning from gift screen, refreshing comment:', lastGiftedCommentId);
+        handleGiftSuccess(lastGiftedCommentId);
+        setLastGiftedCommentId(null); // Clear the flag
+      }
+    }, [videoId, lastGiftedCommentId])
+  );
 
   useEffect(() => {
     const keyboardWillShowListener = Keyboard.addListener(
@@ -163,14 +164,7 @@ const CommentsSection = ({
           platform: Platform.OS
         });
         // Set both keyboard height and input focused state together
-        console.log("🎹 Keyboard Show Event:", {
-          height: event.endCoordinates.height,
-          screenY: event.endCoordinates.screenY,
-          platform: Platform.OS
-        });
-        // Set both keyboard height and input focused state together
         setKeyboardHeight(event.endCoordinates.height);
-        setIsInputFocused(true);
         setIsInputFocused(true);
       }
     );
@@ -179,9 +173,7 @@ const CommentsSection = ({
       Platform.OS === "ios" ? "keyboardWillHide" : "keyboardDidHide",
       () => {
         console.log("🎹 Keyboard Hide Event");
-        console.log("🎹 Keyboard Hide Event");
         setKeyboardHeight(0);
-        setIsInputFocused(false);
         setIsInputFocused(false);
       }
     );
@@ -196,22 +188,13 @@ const CommentsSection = ({
     console.log("🎹 Input focused");
     setIsInputFocused(true);
     // Scroll to bottom when input is focused
-  const handleInputFocus = () => {
-    console.log("🎹 Input focused");
-    setIsInputFocused(true);
-    // Scroll to bottom when input is focused
     setTimeout(() => {
-      if (scrollViewRef.current) {
-        scrollViewRef.current.scrollToEnd({ animated: true });
       if (scrollViewRef.current) {
         scrollViewRef.current.scrollToEnd({ animated: true });
       }
     }, 100);
-    }, 100);
   };
 
-  const handleInputBlur = () => {
-    setIsInputFocused(false);
   const handleInputBlur = () => {
     setIsInputFocused(false);
   };
@@ -248,10 +231,6 @@ const CommentsSection = ({
       if (inputRef.current) {
         inputRef.current.blur();
       }
-      // Dismiss keyboard after successful submission
-      if (inputRef.current) {
-        inputRef.current.blur();
-      }
     } catch (error: any) {
       console.error("Error submitting comment:", error);
       const errorMessage = error.message || "Failed to post comment";
@@ -269,22 +248,12 @@ const CommentsSection = ({
     if (inputRef.current) {
       inputRef.current.focus();
     }
-
-
-    // Focus the input to show keyboard
-    if (inputRef.current) {
-      inputRef.current.focus();
-    }
-
   };
 
   const handleCancelReply = () => {
     setReplyingTo(null);
     setReplyingToUser("");
     setComment("");
-    if (inputRef.current) {
-      inputRef.current.blur();
-    }
     if (inputRef.current) {
       inputRef.current.blur();
     }
@@ -353,6 +322,17 @@ const CommentsSection = ({
       }));
     } catch (error) {
       console.error("Error downvoting reply:", error);
+    }
+  };
+
+  const handleGiftSuccess = async (commentId: string) => {
+    try {
+      console.log('💰 Gift successful, refreshing comment:', commentId);
+      await refreshComment(commentId);
+    } catch (error) {
+      console.error('❌ Error refreshing comment after gift:', error);
+      // Fallback: refresh all comments if single comment refresh fails
+      fetchComments();
     }
   };
 
@@ -521,6 +501,9 @@ const CommentsSection = ({
             {commentMonetizationEnabled && item.is_monetized && (
               <TouchableOpacity
                 onPress={() => {
+                  // Store the comment ID for refreshing when we return
+                  setLastGiftedCommentId(item._id);
+                  
                   // Navigate to VideoContentGifting with comment parameters
                   router.push({
                     pathname: "/(payments)/Video/Video-Gifting",
@@ -669,13 +652,8 @@ const CommentsSection = ({
           left: 0,
           right: 0,
           bottom: 0,
-          bottom: 0,
         }}
         onPress={() => {
-          if (isInputFocused) {
-            if (inputRef.current) {
-              inputRef.current.blur();
-            }
           if (isInputFocused) {
             if (inputRef.current) {
               inputRef.current.blur();
@@ -688,21 +666,8 @@ const CommentsSection = ({
       />
 
       {/* Bottom Sheet - Fixed positioning */}
-      {/* Bottom Sheet - Fixed positioning */}
       <View
         style={{
-          position: "absolute",
-          left: 0,
-          right: 0,
-          ...(isInputFocused && keyboardHeight > 0 ? {
-            // When keyboard is open, position so the input sits above keyboard
-            bottom: keyboardHeight + 50,
-            height: Math.min(SCREEN_HEIGHT * 0.5, SCREEN_HEIGHT - keyboardHeight - 50),
-          } : {
-            // When keyboard is closed, normal positioning
-            bottom: BOTTOM_NAV_HEIGHT,
-            height: SHEET_MAX_HEIGHT,
-          }),
           position: "absolute",
           left: 0,
           right: 0,
@@ -719,11 +684,8 @@ const CommentsSection = ({
           borderTopLeftRadius: 36,
           borderTopRightRadius: 36,
           maxHeight: SCREEN_HEIGHT * 0.8,
-          maxHeight: SCREEN_HEIGHT * 0.8,
         }}
       >
-
-
         {/* Drag handle */}
         <View
           style={{ alignItems: "center", paddingTop: 12, paddingBottom: 8 }}
@@ -748,12 +710,9 @@ const CommentsSection = ({
         {/* Comments List */}
         <ScrollView
           ref={scrollViewRef}
-          ref={scrollViewRef}
           style={{ flex: 1 }}
           contentContainerStyle={{
-          contentContainerStyle={{
             flexGrow: 1,
-            paddingBottom: 20
             paddingBottom: 20
           }}
           showsVerticalScrollIndicator={false}
@@ -806,18 +765,9 @@ const CommentsSection = ({
             paddingTop: 16,
             backgroundColor: "#0E0E0E",
             borderTopWidth: isInputFocused ? 1 : 0,
-        {/* Input Bar - Always visible at bottom */}
-        <View
-          style={{
-            paddingHorizontal: 20,
-            paddingBottom: Math.max(insets.bottom, 16),
-            paddingTop: 16,
-            backgroundColor: "#0E0E0E",
-            borderTopWidth: isInputFocused ? 1 : 0,
             borderTopColor: "#333333",
           }}
         >
-          {/* Reply indicator */}
           {/* Reply indicator */}
           {replyingTo && (
             <View
@@ -842,18 +792,15 @@ const CommentsSection = ({
           )}
 
           {/* Input field */}
-          {/* Input field */}
           <View
             style={{
               flexDirection: "row",
               alignItems: "center",
               backgroundColor: isInputFocused ? "#1A1A1A" : "#0E0E0E",
-              backgroundColor: isInputFocused ? "#1A1A1A" : "#0E0E0E",
               borderRadius: 28,
               height: 52,
               paddingHorizontal: 16,
               borderWidth: 1,
-              borderColor: isInputFocused ? "#444444" : "#333333",
               borderColor: isInputFocused ? "#444444" : "#333333",
             }}
           >
@@ -873,8 +820,6 @@ const CommentsSection = ({
               }}
               multiline={false}
               maxLength={500}
-              onFocus={handleInputFocus}
-              onBlur={handleInputBlur}
               onFocus={handleInputFocus}
               onBlur={handleInputBlur}
               blurOnSubmit={false}
@@ -907,10 +852,7 @@ const CommentsSection = ({
           </View>
         </View>
       </View>
-      </View>
     </View>
-
-
   );
 };
 

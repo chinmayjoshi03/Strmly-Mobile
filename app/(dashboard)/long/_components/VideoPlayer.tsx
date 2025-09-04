@@ -747,6 +747,9 @@ const VideoPlayer = ({
     comments: videoData.comments?.length || 0,
   });
 
+  // Comments refresh trigger
+  const [commentsRefreshTrigger, setCommentsRefreshTrigger] = useState(0);
+
   const mountedRef = useRef(true);
   const statusListenerRef = useRef<any>(null);
   const timeListenerRef = useRef<any>(null);
@@ -1101,21 +1104,22 @@ const VideoPlayer = ({
   // }
 
   // FIX: Handle local stats updates
-  const handleStatsUpdate = (stats: {
-    likes?: number;
-    gifts?: number;
-    shares?: number;
-    comments?: number;
-  }) => {
-    setLocalStats(prev => ({
-      ...prev,
-      ...stats,
-    }));
+  // const handleStatsUpdate = (stats: {
+  //   likes?: number;
+  //   gifts?: number;
+  //   shares?: number;
+  //   comments?: number;
+  // }) => {
+  //   setLocalStats(prev => ({
+  //     ...prev,
+  //     ...stats,
+  //   }));
     
-    // Also call the parent callback
-    if (onStatsUpdate) {
-      onStatsUpdate(stats);
-
+  //   // Also call the parent callback
+  //   if (onStatsUpdate) {
+  //     onStatsUpdate(stats);
+  //   }
+  // }
 
   const onToggleFullScreen = async () => {
     try {
@@ -1140,8 +1144,7 @@ const VideoPlayer = ({
       height: isLandscape ? screenWidth : VIDEO_HEIGHT,
       width: "100%",
       backgroundColor: "#000",
-      overflow: "hidden", // Prevent content bleeding
-      position: "relative", // Ensure proper positioning
+      position: "relative",
     },
     video: {
       width: "100%",
@@ -1153,6 +1156,7 @@ const VideoPlayer = ({
       resizeMode: "cover",
     },
     spinner: {
+      position: "absolute",
       top: "50%",
       left: "50%",
       marginLeft: -20,
@@ -1270,6 +1274,10 @@ You do not have permission to view this video.`}
         }}
         isGlobalPlayer={isGlobalPlayer}
         setShowCommentsModal={setShowCommentsModal}
+        onCommentsModalOpen={() => {
+          console.log('💰 Comments modal opened, triggering refresh');
+          setCommentsRefreshTrigger(prev => prev + 1);
+        }}
         onEpisodeChange={onEpisodeChange}
         onToggleFullScreen={onToggleFullScreen}
         onStatsUpdate={handleStatsUpdate}
@@ -1342,8 +1350,10 @@ You do not have permission to view this video.`}
 
       {showCommentsModal && setShowCommentsModal && (
         <CommentsSection
+          key={`comments-${videoData._id}`} // Stable key per video
           onClose={() => setShowCommentsModal(false)}
           videoId={videoData._id}
+          refreshTrigger={commentsRefreshTrigger} // Pass refresh trigger
           onPressUsername={(userId) => {
             try {
               router.push(`/(dashboard)/profile/public/${userId}`);
