@@ -465,7 +465,11 @@ export const useUploadFlow = () => {
 
         xhr.upload.onprogress = (event) => {
           if (event.lengthComputable) {
-            const percent = Math.round((event.loaded / event.total) * 100);
+            const total = event.total || fileSize; // fallback to known size
+            const percent = Math.min(
+              100,
+              Math.round((event.loaded / total) * 100)
+            );
             setState((prev) => ({ ...prev, uploadProgress: percent }));
           }
         };
@@ -511,7 +515,10 @@ export const useUploadFlow = () => {
       if (state.videoDetails.videoType === "paid") {
         metadata.amount = state.videoDetails.amount;
       }
-      if (state.videoDetails.community) {
+      if (
+        state.videoDetails.community &&
+        state.videoDetails.community !== "none"
+      ) {
         metadata.communityId = state.videoDetails.community;
       }
       if (state.videoFormat === "episode" && state.selectedSeries) {
@@ -520,7 +527,7 @@ export const useUploadFlow = () => {
       }
 
       const processResponse = await fetch(
-        `${CONFIG.API_BASE_URL}/videos/process-uploaded`,
+        `${CONFIG.API_BASE_URL}/videos/process-upload`,
         {
           method: "POST",
           headers: {
