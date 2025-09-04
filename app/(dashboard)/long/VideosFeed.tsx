@@ -336,45 +336,46 @@ const VideosFeed: React.FC = () => {
   }
 
   return (
-    <ThemedView style={{ flex: 1 }}>
-      <FlatList
-        ref={flatListRef}
-        data={videos}
-        renderItem={renderItem}
-        keyExtractor={keyExtractor}
-        getItemLayout={getItemLayout}
-        pagingEnabled={true}
-        scrollEnabled={!showCommentsModal}
-        onViewableItemsChanged={onViewableItemsChanged}
-        viewabilityConfig={viewabilityConfig}
-        initialNumToRender={1}
-        maxToRenderPerBatch={1}
-        windowSize={1}
-        removeClippedSubviews={false} // Disable to prevent content bleeding
-        showsVerticalScrollIndicator={false}
-        snapToInterval={VIDEO_HEIGHT}
-        snapToAlignment="start"
-        decelerationRate="fast"
-        bounces={false} // Disable bouncing to prevent content bleeding
-        scrollEventThrottle={16}
-        disableIntervalMomentum={true} // Prevent momentum scrolling past snap points
-        onScrollEndDrag={onScrollEndDrag}
-        onMomentumScrollEnd={onMomentumScrollEnd}
-        style={{ flex: 1, backgroundColor: '#000' }}
-        contentContainerStyle={{ backgroundColor: '#000' }}
-        overScrollMode="never" // Android: prevent over-scrolling
-        alwaysBounceVertical={false} // iOS: prevent bouncing
-        // Add loading indicator at the bottom
-        ListFooterComponent={
-          isFetchingMore ? (
-            <View style={{ height: VIDEO_HEIGHT, justifyContent: 'center', alignItems: 'center' }}>
-              <ActivityIndicator size="small" color="white" />
-            </View>
-          ) : null
-        }
-      />
-    </ThemedView>
-    <SafeAreaView style={{ flex: 1, backgroundColor: "black" }} edges={[]}>
+    <>
+      <ThemedView style={{ flex: 1 }}>
+        <FlatList
+          ref={flatListRef}
+          data={videos}
+          renderItem={renderItem}
+          keyExtractor={keyExtractor}
+          getItemLayout={getItemLayout}
+          pagingEnabled={true}
+          scrollEnabled={!showCommentsModal}
+          onViewableItemsChanged={onViewableItemsChanged}
+          viewabilityConfig={viewabilityConfig}
+          initialNumToRender={1}
+          maxToRenderPerBatch={1}
+          windowSize={1}
+          removeClippedSubviews={false} // Disable to prevent content bleeding
+          showsVerticalScrollIndicator={false}
+          snapToInterval={VIDEO_HEIGHT}
+          snapToAlignment="start"
+          decelerationRate="fast"
+          bounces={false} // Disable bouncing to prevent content bleeding
+          scrollEventThrottle={16}
+          disableIntervalMomentum={true} // Prevent momentum scrolling past snap points
+          onScrollEndDrag={onScrollEndDrag}
+          onMomentumScrollEnd={onMomentumScrollEnd}
+          style={{ flex: 1, backgroundColor: '#000' }}
+          contentContainerStyle={{ backgroundColor: '#000' }}
+          overScrollMode="never" // Android: prevent over-scrolling
+          alwaysBounceVertical={false} // iOS: prevent bouncing
+          // Add loading indicator at the bottom
+          ListFooterComponent={
+            isFetchingMore ? (
+              <View style={{ height: VIDEO_HEIGHT, justifyContent: 'center', alignItems: 'center' }}>
+                <ActivityIndicator size="small" color="white" />
+              </View>
+            ) : null
+          }
+        />
+      </ThemedView>
+      <SafeAreaView style={{ flex: 1, backgroundColor: "black" }} edges={[]}>
       {/* <ThemedView style={{flex: 1}}> */}
       <StatusBar barStyle="light-content" backgroundColor="#000" />
       
@@ -427,7 +428,7 @@ const VideosFeed: React.FC = () => {
         alwaysBounceVertical={false} // iOS: prevent bouncing
       />
     </SafeAreaView>
-    // </ThemedView>
+    </>
   );
 };
 
