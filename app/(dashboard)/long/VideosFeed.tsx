@@ -6,8 +6,13 @@ import {
   Text,
   Pressable,
   View,
+  StatusBar,
 } from "react-native";
-import { SafeAreaProvider, SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
+import {
+  SafeAreaProvider,
+  SafeAreaView,
+  useSafeAreaInsets,
+} from "react-native-safe-area-context";
 import ThemedView from "@/components/ThemedView";
 import { useAuthStore } from "@/store/useAuthStore";
 import { CONFIG } from "@/Constants/config";
@@ -16,6 +21,7 @@ import { Link, router, useFocusEffect } from "expo-router";
 import VideoPlayer from "./_components/VideoPlayer";
 import { clearActivePlayer } from "@/store/usePlayerStore";
 import { useVideosStore } from "@/store/useVideosStore";
+import { useOrientationStore } from "@/store/useOrientationStore";
 
 export type GiftType = {
   creator: {
@@ -45,13 +51,15 @@ const VideosFeed: React.FC = () => {
   const [isScreenFocused, setIsScreenFocused] = useState(true);
 
   const { token, isLoggedIn } = useAuthStore();
-  const {setVideoType} = useVideosStore();
+  const { setVideoType } = useVideosStore();
   const flatListRef = useRef<FlatList>(null);
   const mountedRef = useRef(true);
 
+  const { isLandscape } = useOrientationStore();
+
   const BACKEND_API_URL = CONFIG.API_BASE_URL;
 
-  // Handle screen focus
+  // Handle screen focus  // initially it's useFocusEffect
   useFocusEffect(
     useCallback(() => {
       // Small delay to prevent rapid focus changes
@@ -172,6 +180,7 @@ const VideosFeed: React.FC = () => {
   }, [token, isLoggedIn]);
 
   // Handle viewable items change with debouncing
+  // Handle viewable items change with debouncing
   const onViewableItemsChanged = useCallback(
     ({ viewableItems }: any) => {
       if (viewableItems.length > 0 && isScreenFocused) {
@@ -224,6 +233,7 @@ const VideosFeed: React.FC = () => {
     waitForInteraction: false,
   }).current;
 
+  // Memoize render item with proper container
   // Memoize render item with proper container
   const renderItem = useCallback(
     ({ item, index }: { item: VideoItemType; index: number }) => (
@@ -364,6 +374,60 @@ const VideosFeed: React.FC = () => {
         }
       />
     </ThemedView>
+    <SafeAreaView style={{ flex: 1, backgroundColor: "black" }} edges={[]}>
+      {/* <ThemedView style={{flex: 1}}> */}
+      <StatusBar barStyle="light-content" backgroundColor="#000" />
+      
+      <FlatList
+        ref={flatListRef}
+        data={videos}
+        renderItem={renderItem}
+        keyExtractor={keyExtractor}
+        getItemLayout={getItemLayout}
+        pagingEnabled
+        scrollEnabled={!showCommentsModal && !isLandscape}
+        onViewableItemsChanged={onViewableItemsChanged}
+        viewabilityConfig={viewabilityConfig}
+        initialNumToRender={1}
+        maxToRenderPerBatch={1}
+        windowSize={1}
+        removeClippedSubviews={false} // initially true
+        showsVerticalScrollIndicator={false}
+        contentInsetAdjustmentBehavior="automatic"
+        // onEndReachedThreshold={0.8}
+        // onEndReached={() => {
+        //   if (hasMore && !isFetchingMore && isScreenFocused) {
+        //     fetchTrendingVideos();
+        //   }
+        // }}
+        style={{ height: VIDEO_HEIGHT }}
+        maintainVisibleContentPosition={{
+          minIndexForVisible: 0,
+          autoscrollToTopThreshold: 10,
+        }}
+        // Add loading indicator at the bottom
+        ListFooterComponent={
+          isFetchingMore ? (
+            <View style={{ padding: 20, alignItems: "center" }}>
+              <ActivityIndicator size="small" color="white" />
+            </View>
+          ) : null
+        }
+        // incoming changes
+        snapToInterval={VIDEO_HEIGHT}
+        snapToAlignment="start"
+        decelerationRate="normal"
+        bounces={false} // Disable bouncing to prevent content bleeding
+        scrollEventThrottle={16}
+        disableIntervalMomentum={true} // Prevent momentum scrolling past snap points
+        onScrollEndDrag={onScrollEndDrag}
+        onMomentumScrollEnd={onMomentumScrollEnd}
+        contentContainerStyle={{ backgroundColor: "#000" }}
+        overScrollMode="never" // Android: prevent over-scrolling
+        alwaysBounceVertical={false} // iOS: prevent bouncing
+      />
+    </SafeAreaView>
+    // </ThemedView>
   );
 };
 

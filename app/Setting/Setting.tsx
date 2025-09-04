@@ -193,7 +193,7 @@ By submitting this request, you confirm that you understand and agree to our`,
 
   return (
     <ThemedView style={{ height, flex: 1 }}>
-      <SafeAreaView>
+      <SafeAreaView edges={[]}>
         <View>
           <ProfileTopbar name="Setting" isMore={false} hashtag={false} />
         </View>

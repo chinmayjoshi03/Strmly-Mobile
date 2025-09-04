@@ -12,8 +12,10 @@ import {
   Keyboard,
   Platform,
   KeyboardAvoidingView,
+  KeyboardAvoidingView,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useFocusEffect } from "@react-navigation/native";
 import { useFocusEffect } from "@react-navigation/native";
 import { MaterialIcons } from "@expo/vector-icons";
 import { useComments } from "./useComments";
@@ -80,7 +82,9 @@ const CommentsSection = ({
   const [repliesData, setRepliesData] = useState<{ [key: string]: any[] }>({});
   const [keyboardHeight, setKeyboardHeight] = useState(0);
   const [isInputFocused, setIsInputFocused] = useState(false);
+  const [isInputFocused, setIsInputFocused] = useState(false);
   const inputRef = useRef<TextInput>(null);
+  const scrollViewRef = useRef<ScrollView>(null);
   const scrollViewRef = useRef<ScrollView>(null);
   const insets = useSafeAreaInsets();
   const { commentMonetizationEnabled, loading: monetizationLoading } =
@@ -112,6 +116,15 @@ const CommentsSection = ({
   }, [videoId, fetchComments]);
 
   // Debug logging for monetization and gift counts
+  // Refresh comments every time the modal is opened
+  useEffect(() => {
+    if (videoId) {
+      console.log('💰 CommentSection opened - refreshing comments to get latest gift counts');
+      fetchComments();
+    }
+  }, [videoId, fetchComments]);
+
+  // Debug logging for monetization and gift counts
   useEffect(() => {
     if (comments.length > 0) {
       console.log("💰 Comment Monetization Status:", {
@@ -119,6 +132,15 @@ const CommentsSection = ({
         commentsCount: comments.length,
         monetizedComments: comments.filter((c) => c.is_monetized).length,
       });
+      
+      // Debug gift counts
+      console.log("💰 Comment Gift Counts:", comments.map(c => ({
+        id: c._id,
+        content: c.content?.substring(0, 20) + "...",
+        gifts: c.gifts,
+        donations: c.donations,
+        user: c.user?.name
+      })));
       
       // Debug gift counts
       console.log("💰 Comment Gift Counts:", comments.map(c => ({
@@ -141,7 +163,14 @@ const CommentsSection = ({
           platform: Platform.OS
         });
         // Set both keyboard height and input focused state together
+        console.log("🎹 Keyboard Show Event:", {
+          height: event.endCoordinates.height,
+          screenY: event.endCoordinates.screenY,
+          platform: Platform.OS
+        });
+        // Set both keyboard height and input focused state together
         setKeyboardHeight(event.endCoordinates.height);
+        setIsInputFocused(true);
         setIsInputFocused(true);
       }
     );
@@ -150,7 +179,9 @@ const CommentsSection = ({
       Platform.OS === "ios" ? "keyboardWillHide" : "keyboardDidHide",
       () => {
         console.log("🎹 Keyboard Hide Event");
+        console.log("🎹 Keyboard Hide Event");
         setKeyboardHeight(0);
+        setIsInputFocused(false);
         setIsInputFocused(false);
       }
     );
@@ -165,13 +196,22 @@ const CommentsSection = ({
     console.log("🎹 Input focused");
     setIsInputFocused(true);
     // Scroll to bottom when input is focused
+  const handleInputFocus = () => {
+    console.log("🎹 Input focused");
+    setIsInputFocused(true);
+    // Scroll to bottom when input is focused
     setTimeout(() => {
+      if (scrollViewRef.current) {
+        scrollViewRef.current.scrollToEnd({ animated: true });
       if (scrollViewRef.current) {
         scrollViewRef.current.scrollToEnd({ animated: true });
       }
     }, 100);
+    }, 100);
   };
 
+  const handleInputBlur = () => {
+    setIsInputFocused(false);
   const handleInputBlur = () => {
     setIsInputFocused(false);
   };
@@ -208,6 +248,10 @@ const CommentsSection = ({
       if (inputRef.current) {
         inputRef.current.blur();
       }
+      // Dismiss keyboard after successful submission
+      if (inputRef.current) {
+        inputRef.current.blur();
+      }
     } catch (error: any) {
       console.error("Error submitting comment:", error);
       const errorMessage = error.message || "Failed to post comment";
@@ -226,12 +270,21 @@ const CommentsSection = ({
       inputRef.current.focus();
     }
 
+
+    // Focus the input to show keyboard
+    if (inputRef.current) {
+      inputRef.current.focus();
+    }
+
   };
 
   const handleCancelReply = () => {
     setReplyingTo(null);
     setReplyingToUser("");
     setComment("");
+    if (inputRef.current) {
+      inputRef.current.blur();
+    }
     if (inputRef.current) {
       inputRef.current.blur();
     }
@@ -616,8 +669,13 @@ const CommentsSection = ({
           left: 0,
           right: 0,
           bottom: 0,
+          bottom: 0,
         }}
         onPress={() => {
+          if (isInputFocused) {
+            if (inputRef.current) {
+              inputRef.current.blur();
+            }
           if (isInputFocused) {
             if (inputRef.current) {
               inputRef.current.blur();
@@ -630,8 +688,21 @@ const CommentsSection = ({
       />
 
       {/* Bottom Sheet - Fixed positioning */}
+      {/* Bottom Sheet - Fixed positioning */}
       <View
         style={{
+          position: "absolute",
+          left: 0,
+          right: 0,
+          ...(isInputFocused && keyboardHeight > 0 ? {
+            // When keyboard is open, position so the input sits above keyboard
+            bottom: keyboardHeight + 50,
+            height: Math.min(SCREEN_HEIGHT * 0.5, SCREEN_HEIGHT - keyboardHeight - 50),
+          } : {
+            // When keyboard is closed, normal positioning
+            bottom: BOTTOM_NAV_HEIGHT,
+            height: SHEET_MAX_HEIGHT,
+          }),
           position: "absolute",
           left: 0,
           right: 0,
@@ -648,8 +719,10 @@ const CommentsSection = ({
           borderTopLeftRadius: 36,
           borderTopRightRadius: 36,
           maxHeight: SCREEN_HEIGHT * 0.8,
+          maxHeight: SCREEN_HEIGHT * 0.8,
         }}
       >
+
 
         {/* Drag handle */}
         <View
@@ -675,9 +748,12 @@ const CommentsSection = ({
         {/* Comments List */}
         <ScrollView
           ref={scrollViewRef}
+          ref={scrollViewRef}
           style={{ flex: 1 }}
           contentContainerStyle={{
+          contentContainerStyle={{
             flexGrow: 1,
+            paddingBottom: 20
             paddingBottom: 20
           }}
           showsVerticalScrollIndicator={false}
@@ -730,9 +806,18 @@ const CommentsSection = ({
             paddingTop: 16,
             backgroundColor: "#0E0E0E",
             borderTopWidth: isInputFocused ? 1 : 0,
+        {/* Input Bar - Always visible at bottom */}
+        <View
+          style={{
+            paddingHorizontal: 20,
+            paddingBottom: Math.max(insets.bottom, 16),
+            paddingTop: 16,
+            backgroundColor: "#0E0E0E",
+            borderTopWidth: isInputFocused ? 1 : 0,
             borderTopColor: "#333333",
           }}
         >
+          {/* Reply indicator */}
           {/* Reply indicator */}
           {replyingTo && (
             <View
@@ -757,15 +842,18 @@ const CommentsSection = ({
           )}
 
           {/* Input field */}
+          {/* Input field */}
           <View
             style={{
               flexDirection: "row",
               alignItems: "center",
               backgroundColor: isInputFocused ? "#1A1A1A" : "#0E0E0E",
+              backgroundColor: isInputFocused ? "#1A1A1A" : "#0E0E0E",
               borderRadius: 28,
               height: 52,
               paddingHorizontal: 16,
               borderWidth: 1,
+              borderColor: isInputFocused ? "#444444" : "#333333",
               borderColor: isInputFocused ? "#444444" : "#333333",
             }}
           >
@@ -785,6 +873,8 @@ const CommentsSection = ({
               }}
               multiline={false}
               maxLength={500}
+              onFocus={handleInputFocus}
+              onBlur={handleInputBlur}
               onFocus={handleInputFocus}
               onBlur={handleInputBlur}
               blurOnSubmit={false}
@@ -817,7 +907,9 @@ const CommentsSection = ({
           </View>
         </View>
       </View>
+      </View>
     </View>
+
 
   );
 };
