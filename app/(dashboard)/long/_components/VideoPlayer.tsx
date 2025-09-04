@@ -1096,7 +1096,7 @@ const VideoPlayer = ({
   //     ...prev,
   //     ...stats,
   //   }));
-    
+
   //   // Also call the parent callback
   //   if (onStatsUpdate) {
   //     onStatsUpdate(stats);
@@ -1114,7 +1114,7 @@ const VideoPlayer = ({
   //     ...prev,
   //     ...stats,
   //   }));
-    
+
   //   // Also call the parent callback
   //   if (onStatsUpdate) {
   //     onStatsUpdate(stats);

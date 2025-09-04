@@ -97,6 +97,15 @@ export const useComments = ({ videoId }: UseCommentsProps) => {
       }));
 
       console.log('✅ Valid comments after filtering:', validComments.length);
+      
+      // Debug: Log what we're about to set in state
+      console.log('💰 Setting comments state with gift amounts:', validComments.map((c: any) => ({
+        id: c._id,
+        content: c.content?.substring(0, 20) + "...",
+        donations: c.donations,
+        user: c.user?.name || c.user?.username
+      })));
+      
       setComments(validComments);
     } catch (err: any) {
       console.log('❌ Error fetching real comments:', err.message);
@@ -359,46 +368,7 @@ export const useComments = ({ videoId }: UseCommentsProps) => {
     }
   }, [token, videoId]);
 
-  const refreshComment = useCallback(async (commentId: string) => {
-    if (!token || !commentId) {
-      console.log('❌ Cannot refresh comment: missing token or commentId');
-      return;
-    }
 
-    try {
-      console.log('🔄 Refreshing comment:', commentId);
-      const data = await commentActions.getComment(token, commentId);
-
-      if (data?.comment) {
-        console.log('✅ Comment refreshed:', data.comment);
-        console.log('💰 Updated gift amount:', data.comment.gifts);
-        
-        // Map backend response to frontend format
-        const mappedComment = {
-          ...data.comment,
-          _id: data.comment.id || data.comment._id, // Handle both id and _id
-          donations: data.comment.gifts || data.comment.donations || 0, // Map gifts to donations
-          replies: data.comment.repliesLength || data.comment.replies || 0, // Map repliesLength to replies
-          timestamp: data.comment.createdAt || data.comment.timestamp, // Use createdAt as timestamp
-        };
-        
-        // Update the specific comment in the state
-        setComments(prev => prev.map(comment =>
-          comment._id === commentId ? {
-            ...comment,
-            ...mappedComment,
-            // Ensure is_monetized field exists
-            is_monetized: mappedComment.is_monetized !== undefined ? mappedComment.is_monetized : comment.is_monetized
-          } : comment
-        ));
-        
-        return mappedComment;
-      }
-    } catch (err: any) {
-      console.log('❌ Error refreshing comment:', err.message);
-      throw err;
-    }
-  }, [token]);
 
   return {
     comments,
@@ -412,7 +382,6 @@ export const useComments = ({ videoId }: UseCommentsProps) => {
     fetchReplies,
     upvoteReply,
     downvoteReply,
-    refreshComment,
     isConnected, // WebSocket connection status
   };
 };
