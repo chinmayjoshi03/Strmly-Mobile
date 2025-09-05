@@ -441,44 +441,6 @@ const VideoPlayer = ({
     };
   }, []);
 
-
-
-  // // FIX: Handle local stats updates
-  // const handleStatsUpdate = (stats: {
-  //   likes?: number;
-  //   gifts?: number;
-  //   shares?: number;
-  //   comments?: number;
-  // }) => {
-  //   setLocalStats(prev => ({
-  //     ...prev,
-  //     ...stats,
-  //   }));
-
-  //   // Also call the parent callback
-  //   if (onStatsUpdate) {
-  //     onStatsUpdate(stats);
-  //   }
-  // }
-
-  // FIX: Handle local stats updates
-  // const handleStatsUpdate = (stats: {
-  //   likes?: number;
-  //   gifts?: number;
-  //   shares?: number;
-  //   comments?: number;
-  // }) => {
-  //   setLocalStats(prev => ({
-  //     ...prev,
-  //     ...stats,
-  //   }));
-
-  //   // Also call the parent callback
-  //   if (onStatsUpdate) {
-  //     onStatsUpdate(stats);
-  //   }
-  // }
-
   const onToggleFullScreen = async () => {
     try {
       if (isLandscape) {
@@ -533,25 +495,6 @@ const VideoPlayer = ({
       </View>
     );
   }
-
-  //   if (showPaidMessage) {
-  //     return (
-  //       <View style={dynamicStyles.container}>
-  //         <Image
-  //           source={{ uri: videoData.thumbnailUrl }}
-  //           style={dynamicStyles.thumbnail}
-  //         />
-
-  //         <ModalMessage
-  //           visible={true}
-  //           text={`Access Denied
-  // You do not have permission to view this video.`}
-  //           needCloseButton={true}
-  //           onClose={() => setShowPaidMessage(false)}
-  //         />
-  //       </View>
-  //     );
-  //   }
 
   if (!videoData?.videoUrl) {
     return <View style={dynamicStyles.container} />;

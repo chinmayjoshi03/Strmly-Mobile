@@ -299,12 +299,8 @@ const VideosFeed: React.FC = () => {
   // Show loading while checking authentication or fetching videos
   if (loading && isFetchingMore) {
     return (
-
-      <ThemedView
-        style={{ flex: 1 }}
-        className="justify-center items-center"
-      >
-
+      <ThemedView style={{ flex: 1 }} className="justify-center items-center">
+        <StatusBar barStyle="light-content" backgroundColor="#000" />
         <ActivityIndicator size="large" color="white" />
         <Text className="text-white mt-4">
           {!token || !isLoggedIn
@@ -317,29 +313,32 @@ const VideosFeed: React.FC = () => {
 
   if (error && videos.length === 0) {
     return (
-      <ThemedView
-        style={{ flex: 1 }}
-        className="justify-center items-center px-4"
-      >
-        <Text className="text-white text-center mb-4">
-          Oops something went wrong!
-        </Text>
-        <Pressable
-          onPress={handleRefresh}
-          className="bg-blue-600 px-4 py-2 rounded"
-        >
-          <Text className="text-white">Retry</Text>
-        </Pressable>
-      </ThemedView>
+      <SafeAreaProvider>
+        <SafeAreaView style={{ flex: 1 }} edges={["bottom"]}>
+          <StatusBar barStyle="light-content" backgroundColor="#000" />
+          <ThemedView
+            style={{ flex: 1 }}
+            className="justify-center items-center px-4"
+          >
+            <Text className="text-white text-center mb-4">
+              Oops something went wrong!
+            </Text>
+            <Pressable
+              onPress={handleRefresh}
+              className="bg-blue-600 px-4 py-2 rounded"
+            >
+              <Text className="text-white">Retry</Text>
+            </Pressable>
+          </ThemedView>
+        </SafeAreaView>
+      </SafeAreaProvider>
     );
   }
 
  if (videos.length === 0) {
     return (
-      <ThemedView
-        style={{ flex: 1 }}
-        className="justify-center items-center"
-      >
+      <ThemedView style={{ flex: 1 }} className="justify-center items-center">
+        <StatusBar barStyle="light-content" backgroundColor="#000" />
         <Text className="text-lg text-white">No Videos Available</Text>
         <Text className="text-lg text-white">
           Want to Upload your own{" "}
@@ -367,14 +366,12 @@ const VideosFeed: React.FC = () => {
         viewabilityConfig={viewabilityConfig}
         initialNumToRender={1}
         maxToRenderPerBatch={1}
-
-        windowSize={3}
-
+        windowSize={1}
         removeClippedSubviews={true}
         showsVerticalScrollIndicator={false}
         snapToInterval={VIDEO_HEIGHT}
         snapToAlignment="start"
-        decelerationRate="fast"
+        decelerationRate="normal"
         bounces={false}
         scrollEventThrottle={16}
         disableIntervalMomentum={true}
