@@ -240,6 +240,7 @@ const VideoFeed: React.FC = () => {
         position: 'relative'
       }}>
         <VideoPlayer
+        isGlobalPlayer={false}
           key={item._id}
           videoData={item}
           isActive={index === visibleIndex}

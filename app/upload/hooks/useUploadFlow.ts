@@ -2,20 +2,6 @@ import { useState, useCallback } from "react";
 import { UploadFlowState, VideoFormData, FinalStageData } from "../types";
 import { Series } from "../../studio/types";
 import { CONFIG } from "../../../Constants/config";
-import { VideoPlayer } from "expo-video";
-
-export const getVideoDuration = async (uri: string): Promise<number | null> => {
-  try {
-    const player = new VideoPlayer({ uri });
-    await player.loadAsync(); // load metadata
-    const duration = player.duration ?? 0; // duration in seconds
-    await player.unloadAsync(); // clean up
-    return duration;
-  } catch (error) {
-    console.error("❌ Error getting video duration:", error);
-    return null;
-  }
-};
 
 // Interface for draft data
 interface DraftData {
@@ -58,6 +44,7 @@ const initialVideoDetails: VideoFormData = {
   format: null,
   videoType: null,
   amount: undefined,
+  thumbnail: null,
 };
 
 const initialFinalStageData: FinalStageData = {
@@ -225,6 +212,7 @@ export const useUploadFlow = () => {
       community: draftData.community?.name || null,
       format: draftData.format || null,
       videoType: draftData.type?.toLowerCase() || null,
+      thumbnail: draftData.thumbnail,
     };
 
     const mappedFinalStageData = {
@@ -465,7 +453,11 @@ export const useUploadFlow = () => {
 
         xhr.upload.onprogress = (event) => {
           if (event.lengthComputable) {
-            const percent = Math.round((event.loaded / event.total) * 100);
+            const total = event.total || fileSize; // fallback to known size
+            const percent = Math.min(
+              100,
+              Math.round((event.loaded / total) * 100)
+            );
             setState((prev) => ({ ...prev, uploadProgress: percent }));
           }
         };
@@ -511,23 +503,47 @@ export const useUploadFlow = () => {
       if (state.videoDetails.videoType === "paid") {
         metadata.amount = state.videoDetails.amount;
       }
-      if (state.videoDetails.community) {
+      if (
+        state.videoDetails.community &&
+        state.videoDetails.community !== "none"
+      ) {
         metadata.communityId = state.videoDetails.community;
       }
+
+      const formData = new FormData();
+
+      // append each metadata field separately
+      Object.entries(metadata).forEach(([key, value]) => {
+        if (value !== undefined && value !== null) {
+          formData.append(key, String(value));
+        }
+      });
+
+      // append thumbnail if exists
+      // if (state.videoDetails.thumbnail) {
+      //   formData.append("thumbnail", {
+      //     uri: state.videoDetails.thumbnail.uri,
+      //     name: state.videoDetails.thumbnail.fileName ?? "thumbnail.jpg",
+      //     type: state.videoDetails.thumbnail.mimeType ?? "image/jpeg",
+      //   } as any);
+      // }
+
       if (state.videoFormat === "episode" && state.selectedSeries) {
-        metadata.seriesId = state.selectedSeries.id;
-        metadata.episodeNumber = "1";
+        // override what metadata already set
+        formData.append("seriesId", state.selectedSeries.id.toString()); // ✅ correct
+        formData.append("episodeNumber", "1"); // ✅ correct
       }
 
+      console.log(formData);
+
       const processResponse = await fetch(
-        `${CONFIG.API_BASE_URL}/videos/process-uploaded`,
+        `${CONFIG.API_BASE_URL}/videos/process-upload`,
         {
           method: "POST",
           headers: {
             Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
           },
-          body: JSON.stringify(metadata),
+          body: formData,
         }
       );
 

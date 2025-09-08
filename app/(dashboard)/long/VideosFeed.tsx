@@ -71,6 +71,7 @@ const VideosFeed: React.FC = () => {
           router.replace("/(auth)/Sign-up");
           return;
         }
+        console.log('token: ', token);
 
         // Re-initialize if videos are empty and we should have data
         if (videos.length === 0 && !loading && !error) {
@@ -298,10 +299,12 @@ const VideosFeed: React.FC = () => {
   // Show loading while checking authentication or fetching videos
   if (loading && isFetchingMore) {
     return (
+
       <ThemedView
         style={{ flex: 1 }}
         className="justify-center items-center"
       >
+
         <ActivityIndicator size="large" color="white" />
         <Text className="text-white mt-4">
           {!token || !isLoggedIn
@@ -331,7 +334,7 @@ const VideosFeed: React.FC = () => {
     );
   }
 
-  if (videos.length === 0) {
+ if (videos.length === 0) {
     return (
       <ThemedView
         style={{ flex: 1 }}
@@ -364,7 +367,9 @@ const VideosFeed: React.FC = () => {
         viewabilityConfig={viewabilityConfig}
         initialNumToRender={1}
         maxToRenderPerBatch={1}
+
         windowSize={3}
+
         removeClippedSubviews={true}
         showsVerticalScrollIndicator={false}
         snapToInterval={VIDEO_HEIGHT}
