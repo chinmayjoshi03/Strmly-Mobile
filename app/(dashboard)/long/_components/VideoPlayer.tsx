@@ -28,6 +28,7 @@ import { useAuthStore } from "@/store/useAuthStore";
 import ModalMessage from "@/components/AuthModalMessage";
 import * as ScreenOrientation from "expo-screen-orientation";
 import { useOrientationStore } from "@/store/useOrientationStore";
+import VideoProgressBar from "./VideoProgressBar";
 
 const { height: screenHeight, width: screenWidth } = Dimensions.get("window");
 
@@ -534,25 +535,6 @@ const VideoPlayer = ({
     );
   }
 
-  //   if (showPaidMessage) {
-  //     return (
-  //       <View style={dynamicStyles.container}>
-  //         <Image
-  //           source={{ uri: videoData.thumbnailUrl }}
-  //           style={dynamicStyles.thumbnail}
-  //         />
-
-  //         <ModalMessage
-  //           visible={true}
-  //           text={`Access Denied
-  // You do not have permission to view this video.`}
-  //           needCloseButton={true}
-  //           onClose={() => setShowPaidMessage(false)}
-  //         />
-  //       </View>
-  //     );
-  //   }
-
   if (!videoData?.videoUrl) {
     return <View style={dynamicStyles.container} />;
   }
@@ -641,7 +623,7 @@ You do not have permission to view this video.`}
         onStatsUpdate={handleStatsUpdate}
       />
 
-      {/* <View className="absolute left-0 right-0 z-10 px-2" style={!isGlobalPlayer ? { bottom: 42.5 } : { bottom: 0 }}>
+      <View className="absolute left-0 right-0 z-10 px-2" style={!isGlobalPlayer ? { bottom: 42.5 } : { bottom: 10 }}>
         <VideoProgressBar
           player={player}
           isActive={isActive}
@@ -649,7 +631,7 @@ You do not have permission to view this video.`}
           duration={videoData.duration || 0}
           access={videoData.access}
         />
-      </View> */}
+      </View>
 
       {showWallet && (
         <View className={`z-10 absolute left-5 top-14`}>
