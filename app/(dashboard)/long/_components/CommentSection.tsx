@@ -760,7 +760,7 @@ const CommentsSection = ({
           right: 0,
           ...(isInputFocused && keyboardHeight > 0 ? {
             // When keyboard is open, position so the input sits above keyboard
-            bottom: keyboardHeight + 50,
+            bottom: keyboardHeight -260,
             height: Math.min(SCREEN_HEIGHT * 0.5, SCREEN_HEIGHT - keyboardHeight - 50),
           } : {
             // When keyboard is closed, normal positioning
