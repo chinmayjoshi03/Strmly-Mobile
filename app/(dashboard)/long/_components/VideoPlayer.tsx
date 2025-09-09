@@ -307,12 +307,29 @@ const VideoPlayer = ({
     videoData?.videoUrl,
   ]);
 
-  // useEffect(() => {
-  //   if (isReady && !hasSeeked) {
-  //     player.currentTime = 5;
-  //     setHasSeeked(true);
-  //   }
-  // }, [isReady, player, hasSeeked]);
+  // Handle initial seek to start time for restricted content
+  const hasSeekedToStart = useRef(false);
+  useEffect(() => {
+    if (isReady && isActive && !hasSeekedToStart.current && canPlayVideo) {
+      const startTime = videoData?.access?.freeRange?.start_time ?? 0;
+      if (startTime > 0 && !videoData?.access?.isPurchased) {
+        hasSeekedToStart.current = true;
+        player.currentTime = startTime;
+        // Ensure video plays after seeking
+        setTimeout(() => {
+          if (player && isActive && canPlayVideo) {
+            player.play();
+          }
+        }, 100);
+        console.log('Seeking to start time:', startTime, 'for video:', videoData._id, 'isPurchased:', videoData?.access?.isPurchased);
+      }
+    }
+  }, [isReady, isActive, canPlayVideo, player, videoData?.access?.freeRange?.start_time, videoData?.access?.isPurchased, videoData._id]);
+
+  // Reset seek state when video changes
+  useEffect(() => {
+    hasSeekedToStart.current = false;
+  }, [videoData._id]);
 
   // Handle gifting pause
   useEffect(() => {
@@ -456,6 +473,44 @@ const VideoPlayer = ({
       }
     };
   }, []);
+
+
+
+  // // FIX: Handle local stats updates
+  // const handleStatsUpdate = (stats: {
+  //   likes?: number;
+  //   gifts?: number;
+  //   shares?: number;
+  //   comments?: number;
+  // }) => {
+  //   setLocalStats(prev => ({
+  //     ...prev,
+  //     ...stats,
+  //   }));
+
+  //   // Also call the parent callback
+  //   if (onStatsUpdate) {
+  //     onStatsUpdate(stats);
+  //   }
+  // }
+
+  // FIX: Handle local stats updates
+  // const handleStatsUpdate = (stats: {
+  //   likes?: number;
+  //   gifts?: number;
+  //   shares?: number;
+  //   comments?: number;
+  // }) => {
+  //   setLocalStats(prev => ({
+  //     ...prev,
+  //     ...stats,
+  //   }));
+
+  //   // Also call the parent callback
+  //   if (onStatsUpdate) {
+  //     onStatsUpdate(stats);
+  //   }
+  // }
 
   const onToggleFullScreen = async () => {
     try {

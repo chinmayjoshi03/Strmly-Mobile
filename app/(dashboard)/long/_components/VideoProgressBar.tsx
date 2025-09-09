@@ -5,6 +5,8 @@ import {
   LayoutChangeEvent,
   PanResponder,
   Text,
+  Pressable,
+  Alert,
 } from "react-native";
 import { VideoPlayer } from "expo-video";
 import { useAuthStore } from "@/store/useAuthStore";
@@ -52,16 +54,32 @@ const VideoProgressBar = ({
 
   const dragTimeRef = useRef<number | null>(null);
   const progressBarContainerWidth = useRef<number>(0);
-
   const progressBarRef = useRef<View>(null);
   const [progressBarX, setProgressBarX] = useState(0);
+  const [showAccessModal, setShowAccessModal] = useState(false);
 
-  // const initialStartTime = access?.freeRange?.start_time ?? 0;
-  const initialStartTime = 0;
-  const hasSeekedInitially = useRef(false);
+  const initialStartTime = access?.freeRange?.start_time ?? 0;
+  const endTime = access?.freeRange?.display_till_time ?? duration;
+  const hasShownAccessModal = useRef(false);
+  const modalDismissed = useRef(false);
 
   const { token } = useAuthStore();
   const BACKEND_API_URL = Constants.expoConfig?.extra?.BACKEND_API_URL;
+
+  useEffect(() => {
+    console.log(
+      "freeRange start:",
+      initialStartTime,
+      "end:",
+      endTime,
+      "duration:",
+      duration,
+      "isPurchased:",
+      access?.isPurchased,
+      "for video:",
+      videoId
+    );
+  }, [initialStartTime, endTime, duration, access?.isPurchased, videoId]);
 
   // ✅ API calls (untouched)
   const saveVideoToHistory = useCallback(async () => {
@@ -123,24 +141,61 @@ const VideoProgressBar = ({
     if (!isActive) hasTriggered2Percent.current = false;
   }, [isActive]);
 
-  // ✅ Sync current time
+  // ✅ Sync current time with interval and handle end time restriction
   useEffect(() => {
     if (!isActive) return;
     const interval = setInterval(() => {
-      setCurrentTime(player.currentTime || 0);
+      const currentPlayerTime = player.currentTime || 0;
+      setCurrentTime(currentPlayerTime);
+      
+      // Check if video has reached the end time and user doesn't have access
+      if (!access?.isPurchased && endTime > 0 && currentPlayerTime >= endTime) {
+        if (!hasShownAccessModal.current && !modalDismissed.current) {
+          console.log('Video reached end time, showing access modal. Current time:', currentPlayerTime, 'End time:', endTime);
+          hasShownAccessModal.current = true;
+          player.pause();
+          setShowAccessModal(true);
+        }
+      }
     }, 250);
     return () => clearInterval(interval);
-  }, [isActive, player]);
+  }, [isActive, player, access?.isPurchased, endTime]);
 
-  // ✅ Handle initial seek
+  // Remove initial seek logic from here - let VideoPlayer handle it
+
+  // Reset modal state when video changes or becomes inactive
   useEffect(() => {
-    if (isActive && !hasSeekedInitially.current && initialStartTime > 0) {
-      hasSeekedInitially.current = true;
-      player.currentTime = initialStartTime;
-      setCurrentTime(initialStartTime);
-      player.play();
+    if (!isActive) {
+      hasShownAccessModal.current = false;
+      setShowAccessModal(false);
     }
-  }, [isActive, initialStartTime, player]);
+  }, [isActive, videoId]);
+
+  // Reset state when video changes (new videoId)
+  useEffect(() => {
+    hasShownAccessModal.current = false;
+    modalDismissed.current = false;
+    setShowAccessModal(false);
+  }, [videoId]);
+
+  // Handle access modal close
+  const handleAccessModalClose = () => {
+    setShowAccessModal(false);
+    modalDismissed.current = true; // Mark as dismissed for this video
+    
+    // If user has purchased access, restart from beginning
+    if (access?.isPurchased) {
+      player.currentTime = 0;
+      setCurrentTime(0);
+      player.play();
+      hasShownAccessModal.current = false;
+      modalDismissed.current = false; // Reset since they have access now
+    } else {
+      // If not purchased, pause the video and don't restart
+      // This allows user to scroll to next video
+      player.pause();
+    }
+  };
 
   // ✅ Layout width
   const handleProgressBarLayout = (event: LayoutChangeEvent) => {
@@ -150,7 +205,35 @@ const VideoProgressBar = ({
     });
   };
 
-  // ✅ Drag handling with PanResponder
+  // ✅ Validate seek position based on access permissions
+  const validateSeekTime = (newTimeSeconds: number): boolean => {
+    // If user has purchased access, allow any seek position
+    if (access?.isPurchased) return true;
+
+    // If user doesn't have access and tries to seek beyond end time, restrict it
+    if (endTime > 0 && newTimeSeconds > endTime) {
+      Alert.alert(
+        "Content Access Required",
+        "You need to purchase this content to access the full video.",
+        [{ text: "OK" }]
+      );
+      return false;
+    }
+
+    // If user doesn't have access and tries to seek before start time, restrict it
+    if (initialStartTime > 0 && newTimeSeconds < initialStartTime) {
+      Alert.alert(
+        "Content Access Required", 
+        "You need to purchase this content to access the full video.",
+        [{ text: "OK" }]
+      );
+      return false;
+    }
+
+    return true;
+  };
+
+  // ✅ Drag handling with PanResponder and access control
   const panResponder = useRef(
     PanResponder.create({
       onStartShouldSetPanResponder: () => true,
@@ -161,7 +244,6 @@ const VideoProgressBar = ({
 
         const relativeX = gestureState.moveX - progressBarX;
         const clampedX = Math.max(0, Math.min(containerWidth, relativeX));
-
         const seekPercentage = clampedX / containerWidth;
         const newTime = seekPercentage * duration;
 
@@ -170,10 +252,11 @@ const VideoProgressBar = ({
       },
       onPanResponderRelease: async () => {
         const finalTime = dragTimeRef.current;
-        if (finalTime != null) {
+        if (finalTime != null && validateSeekTime(finalTime)) {
           player.currentTime = finalTime;
           setCurrentTime(finalTime);
           player.play();
+          console.log("Seeking to:", finalTime, "for video:", videoId);
         }
         setIsDragging(false);
         setDragTime(null);
@@ -187,41 +270,72 @@ const VideoProgressBar = ({
 
   if (duration <= 0) return null;
 
+  // Calculate restricted progress for visual indication
+  const restrictedProgress = !access?.isPurchased && endTime > 0 ? endTime / duration : 1;
+
   return (
-    <View
-      ref={progressBarRef}
-      style={styles.progressBarContainer}
-      onLayout={handleProgressBarLayout}
-      {...panResponder.panHandlers}
-    >
-      {/* Background bar */}
-      <View style={styles.progressBarBackground} />
+    <>
+      <View
+        ref={progressBarRef}
+        style={styles.progressBarContainer}
+        onLayout={handleProgressBarLayout}
+        {...panResponder.panHandlers}
+      >
+        {/* Background bar */}
+        <View style={styles.progressBarBackground} />
+        
+        {/* Show restricted area if user doesn't have access */}
+        {!access?.isPurchased && endTime > 0 && (
+          <View 
+            style={[
+              styles.restrictedArea, 
+              { width: `${restrictedProgress * 100}%` }
+            ]} 
+          />
+        )}
 
-      {/* Filled progress */}
-      <View style={[styles.progressBar, { width: `${progress * 100}%` }]} />
+        {/* Filled progress */}
+        <View style={[styles.progressBar, { width: `${progress * 100}%` }]} />
 
-      {/* Knob (only while dragging) */}
-      {isDragging && (
-        <View
-          style={[
-            styles.knob,
-            { left: `${progress * 100}%`, marginLeft: -KNOB_SIZE / 2 },
-          ]}
-        />
-      )}
+        {/* Knob (only while dragging) */}
+        {isDragging && (
+          <View
+            style={[
+              styles.knob,
+              { left: `${progress * 100}%`, marginLeft: -KNOB_SIZE / 2 },
+            ]}
+          />
+        )}
 
-      {/* Tooltip above knob */}
-      {isDragging && dragTime != null && (
-        <View
-          style={[
-            styles.tooltip,
-            { left: `${progress * 100}%`, marginLeft: -25 },
-          ]}
-        >
-          <Text style={styles.tooltipText}>{formatTime(dragTime)}</Text>
+        {/* Tooltip above knob */}
+        {isDragging && dragTime != null && (
+          <View
+            style={[
+              styles.tooltip,
+              { left: `${progress * 100}%`, marginLeft: -25 },
+            ]}
+          >
+            <Text style={styles.tooltipText}>{formatTime(dragTime)}</Text>
+          </View>
+        )}
+      </View>
+
+      {showAccessModal && (
+        <View style={styles.accessModalOverlay}>
+          <View style={styles.accessModalContent}>
+            <Text style={styles.accessModalText}>
+              You don't have content access. Purchase this content to watch the full video.
+            </Text>
+            <Pressable
+              onPress={handleAccessModalClose}
+              style={styles.accessModalButton}
+            >
+              <Text style={styles.accessModalButtonText}>Close</Text>
+            </Pressable>
+          </View>
         </View>
       )}
-    </View>
+    </>
   );
 };
 
@@ -236,7 +350,13 @@ const styles = StyleSheet.create({
     position: "absolute",
     width: "100%",
     height: PROGRESS_BAR_HEIGHT,
-    backgroundColor: "#B0B0B0",
+    backgroundColor: "rgba(255, 255, 255, 0.3)",
+    borderRadius: 2,
+  },
+  restrictedArea: {
+    position: "absolute",
+    height: PROGRESS_BAR_HEIGHT,
+    backgroundColor: "rgba(255, 255, 0, 0.5)", // Yellow tint for free preview area
     borderRadius: 2,
   },
   progressBar: {
@@ -268,6 +388,44 @@ const styles = StyleSheet.create({
   tooltipText: {
     color: "white",
     fontSize: 12,
+  },
+  accessModalOverlay: {
+    position: "absolute",
+    top: -200,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "rgba(0, 0, 0, 0.8)",
+    zIndex: 1000,
+  },
+  accessModalContent: {
+    backgroundColor: "#1a1a1a",
+    borderRadius: 12,
+    padding: 20,
+    marginHorizontal: 20,
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "#333",
+  },
+  accessModalText: {
+    color: "white",
+    fontSize: 16,
+    textAlign: "center",
+    marginBottom: 20,
+    lineHeight: 22,
+  },
+  accessModalButton: {
+    backgroundColor: "#333",
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 8,
+  },
+  accessModalButtonText: {
+    color: "white",
+    fontSize: 16,
+    fontWeight: "600",
   },
 });
 
