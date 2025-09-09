@@ -11,7 +11,6 @@ import {
 import {
   SafeAreaProvider,
   SafeAreaView,
-  useSafeAreaInsets,
 } from "react-native-safe-area-context";
 import ThemedView from "@/components/ThemedView";
 import { useAuthStore } from "@/store/useAuthStore";
@@ -189,7 +188,7 @@ const VideosFeed: React.FC = () => {
         const mostVisible = viewableItems.reduce((prev: any, current: any) => {
           return (current.percent || 0) > (prev.percent || 0) ? current : prev;
         });
-        
+
         const currentIndex = mostVisible.index;
         if (currentIndex !== visibleIndex && currentIndex !== undefined) {
           setVisibleIndex(currentIndex);
@@ -209,7 +208,7 @@ const VideosFeed: React.FC = () => {
     const { contentOffset } = event.nativeEvent;
     const currentIndex = Math.round(contentOffset.y / VIDEO_HEIGHT);
     const clampedIndex = Math.max(0, Math.min(currentIndex, videos.length - 1));
-    
+
     // Force scroll to exact position if not aligned
     if (Math.abs(contentOffset.y - (clampedIndex * VIDEO_HEIGHT)) > 10 && flatListRef.current) {
       flatListRef.current.scrollToIndex({
@@ -217,7 +216,7 @@ const VideosFeed: React.FC = () => {
         animated: true,
       });
     }
-    
+
     if (clampedIndex !== visibleIndex) {
       setVisibleIndex(clampedIndex);
     }
@@ -227,7 +226,7 @@ const VideosFeed: React.FC = () => {
     const { contentOffset } = event.nativeEvent;
     const currentIndex = Math.round(contentOffset.y / VIDEO_HEIGHT);
     const clampedIndex = Math.max(0, Math.min(currentIndex, videos.length - 1));
-    
+
     // Force scroll to exact position if not aligned
     if (Math.abs(contentOffset.y - (clampedIndex * VIDEO_HEIGHT)) > 10 && flatListRef.current) {
       flatListRef.current.scrollToIndex({
@@ -235,7 +234,7 @@ const VideosFeed: React.FC = () => {
         animated: false,
       });
     }
-    
+
     if (clampedIndex !== visibleIndex) {
       setVisibleIndex(clampedIndex);
     }
@@ -251,9 +250,9 @@ const VideosFeed: React.FC = () => {
   // Memoize render item with proper container
   const renderItem = useCallback(
     ({ item, index }: { item: VideoItemType; index: number }) => (
-      <View style={{ 
-        height: VIDEO_HEIGHT, 
-        width: '100%', 
+      <View style={{
+        height: VIDEO_HEIGHT,
+        width: '100%',
         backgroundColor: '#000',
         position: 'relative'
       }}>
@@ -334,7 +333,7 @@ const VideosFeed: React.FC = () => {
     );
   }
 
- if (videos.length === 0) {
+  if (videos.length === 0) {
     return (
       <ThemedView
         style={{ flex: 1 }}
@@ -354,7 +353,7 @@ const VideosFeed: React.FC = () => {
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: "black" }} edges={[]}>
       <StatusBar barStyle="light-content" backgroundColor="#000" />
-      
+
       <FlatList
         ref={flatListRef}
         data={videos}

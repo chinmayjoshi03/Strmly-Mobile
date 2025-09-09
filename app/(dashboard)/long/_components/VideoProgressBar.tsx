@@ -3,6 +3,7 @@ import {
   View,
   StyleSheet,
   LayoutChangeEvent,
+  PanResponder,
   Text,
   Pressable,
   Alert,
@@ -12,6 +13,7 @@ import { useAuthStore } from "@/store/useAuthStore";
 import Constants from "expo-constants";
 
 const PROGRESS_BAR_HEIGHT = 4; // Thicker progress bar like YouTube/TikTok
+const KNOB_SIZE = 14;
 
 type AccessType = {
   isPlayable: boolean;
@@ -32,6 +34,13 @@ type Props = {
   access: AccessType;
 };
 
+const formatTime = (seconds: number) => {
+  if (!seconds || isNaN(seconds)) return "0:00";
+  const mins = Math.floor(seconds / 60);
+  const secs = Math.floor(seconds % 60);
+  return `${mins}:${secs < 10 ? "0" : ""}${secs}`;
+};
+
 const VideoProgressBar = ({
   videoId,
   player,
@@ -40,6 +49,10 @@ const VideoProgressBar = ({
   access,
 }: Props) => {
   const [currentTime, setCurrentTime] = useState(0);
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragTime, setDragTime] = useState<number | null>(null);
+
+  const dragTimeRef = useRef<number | null>(null);
   const progressBarContainerWidth = useRef<number>(0);
   const [showAccessModal, setShowAccessModal] = useState(false);
 
@@ -118,8 +131,8 @@ const VideoProgressBar = ({
     const percentWatched = (currentTime / duration) * 100;
     if (!hasTriggered2Percent.current && percentWatched >= 2) {
       hasTriggered2Percent.current = true;
-      // saveVideoToHistory();
-      // incrementVideoViews();
+      saveVideoToHistory();
+      incrementVideoViews();
     }
   }, [currentTime, duration, isActive]);
 
@@ -146,7 +159,7 @@ const VideoProgressBar = ({
     return () => clearInterval(interval);
   }, [isActive, player, access?.isPurchased, endTime]);
 
-  // ✅ Handle initial seek if freeRange applies
+  // ✅ Handle initial seek
   useEffect(() => {
     if (isActive && !hasSeekedInitially.current && initialStartTime > 0) {
       hasSeekedInitially.current = true;
@@ -194,8 +207,19 @@ const VideoProgressBar = ({
   // Layout width
   const handleProgressBarLayout = (event: LayoutChangeEvent) => {
     progressBarContainerWidth.current = event.nativeEvent.layout.width;
+    progressBarRef.current?.measure((x, y, width, height, pageX) => {
+      setProgressBarX(pageX);
+    });
   };
 
+  // ✅ Drag handling with PanResponder
+  const panResponder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onPanResponderGrant: () => setIsDragging(true),
+      onPanResponderMove: (_, gestureState) => {
+        const containerWidth = progressBarContainerWidth.current;
+        if (containerWidth <= 0) return;
   // ✅ Seek function with access restriction
   const handleSeek = (locationX: number) => {
     const containerWidth = progressBarContainerWidth.current;
@@ -224,6 +248,22 @@ const VideoProgressBar = ({
       return;
     }
 
+        dragTimeRef.current = newTime;
+        setDragTime(newTime);
+      },
+      onPanResponderRelease: async () => {
+        const finalTime = dragTimeRef.current;
+        if (finalTime != null) {
+          player.currentTime = finalTime;
+          setCurrentTime(finalTime);
+          player.play();
+        }
+        setIsDragging(false);
+        setDragTime(null);
+        dragTimeRef.current = null;
+      },
+    })
+  ).current;
     player.currentTime = newTimeSeconds;
     setCurrentTime(newTimeSeconds);
     player.play();
@@ -236,8 +276,8 @@ const VideoProgressBar = ({
     );
   };
 
-  // Progress %
-  const progress = duration > 0 ? currentTime / duration : 0;
+  const effectiveTime = isDragging && dragTime != null ? dragTime : currentTime;
+  const progress = duration > 0 ? Math.min(effectiveTime / duration, 1) : 0;
 
   if (duration <= 0) return null;
 
@@ -289,9 +329,8 @@ const VideoProgressBar = ({
 const styles = StyleSheet.create({
   progressBarContainer: {
     width: "100%",
-    height: 20,
+    height: 30,
     justifyContent: "center",
-    zIndex: 10,
     position: "relative",
   },
   progressBarBackground: {
