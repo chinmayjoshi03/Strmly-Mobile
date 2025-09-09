@@ -54,11 +54,12 @@ const VideoProgressBar = ({
 
   const dragTimeRef = useRef<number | null>(null);
   const progressBarContainerWidth = useRef<number>(0);
+  const progressBarRef = useRef<View>(null);
+  const [progressBarX, setProgressBarX] = useState(0);
   const [showAccessModal, setShowAccessModal] = useState(false);
 
   const initialStartTime = access?.freeRange?.start_time ?? 0;
   const endTime = access?.freeRange?.display_till_time ?? duration;
-  const hasSeekedInitially = useRef(false);
   const hasShownAccessModal = useRef(false);
   const modalDismissed = useRef(false);
 
@@ -80,7 +81,7 @@ const VideoProgressBar = ({
     );
   }, [initialStartTime, endTime, duration, access?.isPurchased, videoId]);
 
-  // ✅ API logic (untouched)
+  // ✅ API calls (untouched)
   const saveVideoToHistory = useCallback(async () => {
     if (!token || !videoId) return;
     try {
@@ -150,6 +151,7 @@ const VideoProgressBar = ({
       // Check if video has reached the end time and user doesn't have access
       if (!access?.isPurchased && endTime > 0 && currentPlayerTime >= endTime) {
         if (!hasShownAccessModal.current && !modalDismissed.current) {
+          console.log('Video reached end time, showing access modal. Current time:', currentPlayerTime, 'End time:', endTime);
           hasShownAccessModal.current = true;
           player.pause();
           setShowAccessModal(true);
@@ -159,15 +161,7 @@ const VideoProgressBar = ({
     return () => clearInterval(interval);
   }, [isActive, player, access?.isPurchased, endTime]);
 
-  // ✅ Handle initial seek
-  useEffect(() => {
-    if (isActive && !hasSeekedInitially.current && initialStartTime > 0) {
-      hasSeekedInitially.current = true;
-      player.currentTime = initialStartTime;
-      setCurrentTime(initialStartTime);
-      player.play();
-    }
-  }, [isActive, initialStartTime, player]);
+  // Remove initial seek logic from here - let VideoPlayer handle it
 
   // Reset modal state when video changes or becomes inactive
   useEffect(() => {
@@ -180,7 +174,6 @@ const VideoProgressBar = ({
   // Reset state when video changes (new videoId)
   useEffect(() => {
     hasShownAccessModal.current = false;
-    hasSeekedInitially.current = false;
     modalDismissed.current = false;
     setShowAccessModal(false);
   }, [videoId]);
@@ -204,7 +197,7 @@ const VideoProgressBar = ({
     }
   };
 
-  // Layout width
+  // ✅ Layout width
   const handleProgressBarLayout = (event: LayoutChangeEvent) => {
     progressBarContainerWidth.current = event.nativeEvent.layout.width;
     progressBarRef.current?.measure((x, y, width, height, pageX) => {
@@ -212,7 +205,35 @@ const VideoProgressBar = ({
     });
   };
 
-  // ✅ Drag handling with PanResponder
+  // ✅ Validate seek position based on access permissions
+  const validateSeekTime = (newTimeSeconds: number): boolean => {
+    // If user has purchased access, allow any seek position
+    if (access?.isPurchased) return true;
+
+    // If user doesn't have access and tries to seek beyond end time, restrict it
+    if (endTime > 0 && newTimeSeconds > endTime) {
+      Alert.alert(
+        "Content Access Required",
+        "You need to purchase this content to access the full video.",
+        [{ text: "OK" }]
+      );
+      return false;
+    }
+
+    // If user doesn't have access and tries to seek before start time, restrict it
+    if (initialStartTime > 0 && newTimeSeconds < initialStartTime) {
+      Alert.alert(
+        "Content Access Required", 
+        "You need to purchase this content to access the full video.",
+        [{ text: "OK" }]
+      );
+      return false;
+    }
+
+    return true;
+  };
+
+  // ✅ Drag handling with PanResponder and access control
   const panResponder = useRef(
     PanResponder.create({
       onStartShouldSetPanResponder: () => true,
@@ -220,43 +241,22 @@ const VideoProgressBar = ({
       onPanResponderMove: (_, gestureState) => {
         const containerWidth = progressBarContainerWidth.current;
         if (containerWidth <= 0) return;
-  // ✅ Seek function with access restriction
-  const handleSeek = (locationX: number) => {
-    const containerWidth = progressBarContainerWidth.current;
-    if (!duration || !player || containerWidth <= 0) return;
 
-    const seekPercentage = Math.max(0, Math.min(1, locationX / containerWidth));
-    const newTimeSeconds = seekPercentage * duration;
-
-    // If user doesn't have access and tries to seek beyond end time, restrict it
-    if (!access?.isPurchased && endTime > 0 && newTimeSeconds > endTime) {
-      Alert.alert(
-        "Content Access Required",
-        "You need to purchase this content to access the full video.",
-        [{ text: "OK" }]
-      );
-      return;
-    }
-
-    // If user doesn't have access and tries to seek before start time, restrict it
-    if (!access?.isPurchased && initialStartTime > 0 && newTimeSeconds < initialStartTime) {
-      Alert.alert(
-        "Content Access Required", 
-        "You need to purchase this content to access the full video.",
-        [{ text: "OK" }]
-      );
-      return;
-    }
+        const relativeX = gestureState.moveX - progressBarX;
+        const clampedX = Math.max(0, Math.min(containerWidth, relativeX));
+        const seekPercentage = clampedX / containerWidth;
+        const newTime = seekPercentage * duration;
 
         dragTimeRef.current = newTime;
         setDragTime(newTime);
       },
       onPanResponderRelease: async () => {
         const finalTime = dragTimeRef.current;
-        if (finalTime != null) {
+        if (finalTime != null && validateSeekTime(finalTime)) {
           player.currentTime = finalTime;
           setCurrentTime(finalTime);
           player.play();
+          console.log("Seeking to:", finalTime, "for video:", videoId);
         }
         setIsDragging(false);
         setDragTime(null);
@@ -264,17 +264,6 @@ const VideoProgressBar = ({
       },
     })
   ).current;
-    player.currentTime = newTimeSeconds;
-    setCurrentTime(newTimeSeconds);
-    player.play();
-    console.log(
-      "Seeking to:",
-      seekPercentage,
-      newTimeSeconds,
-      "for video:",
-      videoId
-    );
-  };
 
   const effectiveTime = isDragging && dragTime != null ? dragTime : currentTime;
   const progress = duration > 0 ? Math.min(effectiveTime / duration, 1) : 0;
@@ -287,10 +276,14 @@ const VideoProgressBar = ({
   return (
     <>
       <View
+        ref={progressBarRef}
         style={styles.progressBarContainer}
         onLayout={handleProgressBarLayout}
+        {...panResponder.panHandlers}
       >
+        {/* Background bar */}
         <View style={styles.progressBarBackground} />
+        
         {/* Show restricted area if user doesn't have access */}
         {!access?.isPurchased && endTime > 0 && (
           <View 
@@ -300,11 +293,31 @@ const VideoProgressBar = ({
             ]} 
           />
         )}
+
+        {/* Filled progress */}
         <View style={[styles.progressBar, { width: `${progress * 100}%` }]} />
-        <Pressable
-          style={styles.touchArea}
-          onPress={(event) => handleSeek(event.nativeEvent.locationX)}
-        />
+
+        {/* Knob (only while dragging) */}
+        {isDragging && (
+          <View
+            style={[
+              styles.knob,
+              { left: `${progress * 100}%`, marginLeft: -KNOB_SIZE / 2 },
+            ]}
+          />
+        )}
+
+        {/* Tooltip above knob */}
+        {isDragging && dragTime != null && (
+          <View
+            style={[
+              styles.tooltip,
+              { left: `${progress * 100}%`, marginLeft: -25 },
+            ]}
+          >
+            <Text style={styles.tooltipText}>{formatTime(dragTime)}</Text>
+          </View>
+        )}
       </View>
 
       {showAccessModal && (
@@ -352,12 +365,29 @@ const styles = StyleSheet.create({
     backgroundColor: "white",
     borderRadius: 2,
   },
-  touchArea: {
+  knob: {
     position: "absolute",
-    width: "100%",
-    height: 16,
-    top: -6,
-    justifyContent: "center",
+    width: KNOB_SIZE,
+    height: KNOB_SIZE,
+    borderRadius: KNOB_SIZE / 2,
+    backgroundColor: "white",
+    borderWidth: 2,
+    borderColor: "red",
+    top: (30 - KNOB_SIZE) / 2,
+    zIndex: 20,
+  },
+  tooltip: {
+    position: "absolute",
+    bottom: 25,
+    backgroundColor: "black",
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+    zIndex: 30,
+  },
+  tooltipText: {
+    color: "white",
+    fontSize: 12,
   },
   accessModalOverlay: {
     position: "absolute",
