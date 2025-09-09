@@ -74,31 +74,35 @@ export const useProfileSections = ({ initialSection = 'followers' }: UseProfileS
       switch (section) {
         case 'followers':
           result = await profileActions.getUserFollowers(token);
-          setData(result.followers || []);
+          const followers = Array.isArray(result.followers) ? result.followers : [];
+          setData(followers);
           setCounts(prev => ({ ...prev, followers: result.count || 0 }));
           break;
           
         case 'following':
           result = await profileActions.getUserFollowing(token);
-          setData(result.following || []);
+          const following = Array.isArray(result.following) ? result.following : [];
+          setData(following);
           setCounts(prev => ({ ...prev, following: result.count || 0 }));
           break;
           
         case 'myCommunity':
           result = await profileActions.getUserCombinedCommunities(token, 'all');
-          setData(result.communities || []);
+          const myCommunities = Array.isArray(result.communities) ? result.communities : [];
+          setData(myCommunities);
           setCounts(prev => ({ 
             ...prev, 
-            myCommunity: Array.isArray(result.communities) ? result.communities.length : 0 
+            myCommunity: myCommunities.length 
           }));
           break;
           
         case 'community':
           result = await profileActions.getUserCommunities(token);
-          setData(result.data || []);
+          const communities = Array.isArray(result.data) ? result.data : [];
+          setData(communities);
           setCounts(prev => ({ 
             ...prev, 
-            community: Array.isArray(result.data) ? result.data.length : 0 
+            community: communities.length 
           }));
           break;
       }
@@ -109,6 +113,7 @@ export const useProfileSections = ({ initialSection = 'followers' }: UseProfileS
       const errorMessage = error instanceof Error ? error.message : 'Failed to fetch data';
       console.error(`❌ Error fetching ${section} data:`, error);
       setError(errorMessage);
+      setData([]); // Reset data to empty array on error
       Alert.alert('Error', errorMessage);
     } finally {
       setLoading(false);
@@ -128,13 +133,18 @@ export const useProfileSections = ({ initialSection = 'followers' }: UseProfileS
     fetchAllCounts();
   }, [fetchAllCounts]);
 
-  const searchData = useCallback((query: string) => {
+  const searchData = useCallback((query: string): (User | Community)[] => {
+    // Ensure data is always an array
+    const safeData = Array.isArray(data) ? data : [];
+    
     if (!query.trim()) {
-      return data;
+      return safeData;
     }
 
     const searchTerm = query.toLowerCase();
-    return data.filter((item) => {
+    return safeData.filter((item) => {
+      if (!item) return false; // Skip null/undefined items
+      
       if (activeSection === 'followers' || activeSection === 'following') {
         const user = item as User;
         return user.username?.toLowerCase().includes(searchTerm);
