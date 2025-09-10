@@ -25,7 +25,7 @@ import CreatorPassBuyMessage from "./CreatorPassBuyMessage";
 import VideoBuyMessage from "./VideoBuyMessage";
 import { useIsFocused } from "@react-navigation/native";
 import { useAuthStore } from "@/store/useAuthStore";
-import ModalMessage from "@/components/AuthModalMessage";
+
 import * as ScreenOrientation from "expo-screen-orientation";
 import { useOrientationStore } from "@/store/useOrientationStore";
 import VideoProgressBar from "./VideoProgressBar";
@@ -136,7 +136,6 @@ const VideoPlayer = ({
   const [fetchVideoDataAccess, setFetchVideoDataAccess] = useState(false);
   const [accessChecked, setAccessChecked] = useState(false);
   const [canPlayVideo, setCanPlayVideo] = useState(false);
-  const [showPaidMessage, setShowPaidMessage] = useState(false);
 
   // Create player with proper cleanup
   const player = useVideoPlayer(videoData?.videoUrl || "", (p) => {
@@ -198,9 +197,10 @@ const VideoPlayer = ({
   // Update access if newly purchased
   useEffect(() => {
     if ((isPurchasedSeries || isVideoPurchased) && !haveAccess) {
+      console.log('VideoPlayer: Updating access due to purchase. isPurchasedSeries:', isPurchasedSeries, 'isVideoPurchased:', isVideoPurchased);
       setHaveAccess(true);
     }
-  }, [isVideoPurchased, isPurchasedSeries]);
+  }, [isVideoPurchased, isPurchasedSeries, haveAccess]);
 
   // Update creator pass if just purchased
   useEffect(() => {
@@ -226,14 +226,11 @@ const VideoPlayer = ({
     ) {
       if (!haveCreator && !haveAccess) {
         // ✅ Don't show paid message immediately - let video play the free portion first
-        setShowPaidMessage(false);
         setCanPlayVideo(true); // Allow video to play free portion
       } else {
-        setShowPaidMessage(false);
         setCanPlayVideo(true);
       }
     } else {
-      setShowPaidMessage(false);
       setCanPlayVideo(true);
     }
 
@@ -638,6 +635,8 @@ const VideoPlayer = ({
             duration={videoData.duration || 0}
             access={videoData.access}
             onInitialSeekComplete={handleInitialSeekComplete}
+            isVideoOwner={videoData.created_by._id === user?.id}
+            hasAccess={haveAccess || haveCreator}
           />
         </View>
       )}

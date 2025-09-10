@@ -33,6 +33,8 @@ type Props = {
   duration: number;
   access: AccessType;
   onInitialSeekComplete?: () => void; // Callback when initial seek is done
+  isVideoOwner?: boolean; // Whether current user owns this video
+  hasAccess?: boolean; // Whether user has access (purchased or creator pass)
 };
 
 const formatTime = (seconds: number) => {
@@ -49,6 +51,8 @@ const VideoProgressBar = ({
   duration,
   access,
   onInitialSeekComplete,
+  isVideoOwner = false,
+  hasAccess = false,
 }: Props) => {
   const [currentTime, setCurrentTime] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
@@ -73,18 +77,22 @@ const VideoProgressBar = ({
 
   useEffect(() => {
     console.log(
-      "freeRange start:",
+      "VideoProgressBar Debug - Video:",
+      videoId,
+      "| freeRange start:",
       initialStartTime,
       "end:",
       endTime,
       "duration:",
       duration,
-      "isPurchased:",
+      "| access.isPurchased:",
       access?.isPurchased,
-      "for video:",
-      videoId
+      "| hasAccess prop:",
+      hasAccess,
+      "| isVideoOwner:",
+      isVideoOwner
     );
-  }, [initialStartTime, endTime, duration, access?.isPurchased, videoId]);
+  }, [initialStartTime, endTime, duration, access?.isPurchased, hasAccess, isVideoOwner, videoId]);
 
   // ✅ Wait for video to be ready and perform initial seek
   useEffect(() => {
@@ -240,7 +248,12 @@ const VideoProgressBar = ({
       setCurrentTime(currentPlayerTime);
       
       // Check if video has reached the end time and user doesn't have access
-      if (!access?.isPurchased && endTime > 0 && currentPlayerTime >= endTime) {
+      // Don't show modal if user is the video owner
+      // Only show modal for premium videos that user doesn't have access to
+      const isPremiumVideo = endTime < duration && endTime > 0;
+      const userHasAccess = hasAccess || isVideoOwner;
+      
+      if (isPremiumVideo && !userHasAccess && currentPlayerTime >= endTime) {
         if (!hasShownAccessModal.current && !modalDismissed.current) {
           console.log('Video reached end time, showing access modal. Current time:', currentPlayerTime, 'End time:', endTime);
           hasShownAccessModal.current = true;
@@ -251,7 +264,7 @@ const VideoProgressBar = ({
     }, 250);
     
     return () => clearInterval(interval);
-  }, [isActive, player, access?.isPurchased, endTime, hasPerformedInitialSeek]);
+  }, [isActive, player, hasAccess, isVideoOwner, endTime, duration, hasPerformedInitialSeek]);
 
   // Reset modal state when video changes or becomes inactive
   useEffect(() => {
@@ -268,7 +281,7 @@ const VideoProgressBar = ({
     modalDismissed.current = true; // Mark as dismissed for this video
     
     // If user has purchased access, restart from beginning
-    if (access?.isPurchased) {
+    if (hasAccess || isVideoOwner) {
       player.currentTime = initialStartTime; // Start from the designated start time
       setCurrentTime(initialStartTime);
       player.play();
@@ -276,6 +289,7 @@ const VideoProgressBar = ({
       modalDismissed.current = false; // Reset since they have access now
     } else {
       // If not purchased, seek back to start time and pause
+      // ✅ FIX: Respect the end time boundary, don't go to full video end
       player.currentTime = initialStartTime;
       setCurrentTime(initialStartTime);
       player.pause();
@@ -292,38 +306,46 @@ const VideoProgressBar = ({
 
   // ✅ Validate seek position based on access permissions
   const validateSeekTime = (newTimeSeconds: number): boolean => {
-    // If user has purchased access, allow any seek position within start/end bounds
-    if (access?.isPurchased) {
-      // Still respect the start time boundary
+    // If user is the video owner, allow seeking anywhere
+    if (isVideoOwner) {
+      return true;
+    }
+    
+    // Determine if this is a free video (no restrictions) or premium video
+    const isFreeVideo = access?.accessType === 'free' || (initialStartTime === 0 && endTime >= duration);
+    const userHasAccess = hasAccess; // This includes video purchase or creator pass
+    
+    // For free videos: allow seeking anywhere
+    if (isFreeVideo) {
+      return true;
+    }
+    
+    // For premium videos with access (purchased or creator pass): allow seeking anywhere
+    if (userHasAccess) {
+      return true;
+    }
+    
+    // For premium videos without access: only allow seeking within free range (start_time to display_till_time)
+    if (!userHasAccess) {
+      // Check if trying to seek before start time
       if (initialStartTime > 0 && newTimeSeconds < initialStartTime) {
         Alert.alert(
-          "Invalid Position",
-          "Cannot seek before the video start time.",
+          "Content Access Required", 
+          "You need to purchase this content to access the full video.",
           [{ text: "OK" }]
         );
         return false;
       }
-      return true;
-    }
-
-    // If user doesn't have access and tries to seek beyond end time, restrict it
-    if (endTime > 0 && newTimeSeconds > endTime) {
-      Alert.alert(
-        "Content Access Required",
-        "You need to purchase this content to access the full video.",
-        [{ text: "OK" }]
-      );
-      return false;
-    }
-
-    // If user doesn't have access and tries to seek before start time, restrict it
-    if (initialStartTime > 0 && newTimeSeconds < initialStartTime) {
-      Alert.alert(
-        "Content Access Required", 
-        "You need to purchase this content to access the full video.",
-        [{ text: "OK" }]
-      );
-      return false;
+      
+      // Check if trying to seek beyond end time
+      if (endTime > 0 && endTime < duration && newTimeSeconds > endTime) {
+        Alert.alert(
+          "Content Access Required",
+          "You need to purchase this content to access the full video.",
+          [{ text: "OK" }]
+        );
+        return false;
+      }
     }
 
     return true;
@@ -375,7 +397,7 @@ const VideoProgressBar = ({
   if (duration <= 0) return null;
 
   // Calculate restricted progress for visual indication
-  const restrictedProgress = !access?.isPurchased && endTime > 0 ? endTime / duration : 1;
+  const restrictedProgress = !hasAccess && !isVideoOwner && endTime > 0 ? endTime / duration : 1;
   const startProgress = initialStartTime > 0 ? initialStartTime / duration : 0;
 
   return (
@@ -399,8 +421,8 @@ const VideoProgressBar = ({
           />
         )}
         
-        {/* Show restricted area if user doesn't have access */}
-        {!access?.isPurchased && endTime > 0 && (
+        {/* Show restricted area if user doesn't have access and it's not a free video */}
+        {!hasAccess && !isVideoOwner && endTime > 0 && endTime < duration && (
           <View 
             style={[
               styles.restrictedArea, 
@@ -562,6 +584,8 @@ export default React.memo(VideoProgressBar, (prev, next) => {
     prev.duration === next.duration &&
     prev.videoId === next.videoId &&
     prev.player === next.player &&
+    prev.isVideoOwner === next.isVideoOwner &&
+    prev.hasAccess === next.hasAccess &&
     JSON.stringify(prev.access) === JSON.stringify(next.access)
   );
 });
