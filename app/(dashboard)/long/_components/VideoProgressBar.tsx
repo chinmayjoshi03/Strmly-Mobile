@@ -71,6 +71,8 @@ const VideoProgressBar = ({
   const hasShownAccessModal = useRef(false);
   const modalDismissed = useRef(false);
   const initialSeekTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Add this near the top with other refs
+const hasUserInteracted = useRef(false);
 
   const { token } = useAuthStore();
   const BACKEND_API_URL = Constants.expoConfig?.extra?.BACKEND_API_URL;
@@ -132,6 +134,13 @@ const VideoProgressBar = ({
     // Delay the initial seek slightly to ensure video is fully ready
     initialSeekTimeout.current = setTimeout(() => {
       try {
+          if (player.currentTime !== initialStartTime && player.currentTime > 0) {
+      console.log(`User has already seeked to ${player.currentTime}s, skipping initial seek`);
+      setHasPerformedInitialSeek(true);
+      onInitialSeekComplete?.();
+      return;
+    }
+        
         console.log(`Performing initial seek to ${initialStartTime}s for video ${videoId}`);
         
         // Seek to start time
@@ -355,7 +364,9 @@ const VideoProgressBar = ({
   const panResponder = useRef(
     PanResponder.create({
       onStartShouldSetPanResponder: () => true,
-      onPanResponderGrant: () => setIsDragging(true),
+      onPanResponderGrant: () => {setIsDragging(true),
+        hasUserInteracted.current = true;
+      },
       onPanResponderMove: (_, gestureState) => {
         const containerWidth = progressBarContainerWidth.current;
         if (containerWidth <= 0) return;

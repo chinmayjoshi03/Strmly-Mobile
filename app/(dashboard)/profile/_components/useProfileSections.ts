@@ -31,31 +31,54 @@ export const useProfileSections = ({ initialSection = 'followers' }: UseProfileS
     }
 
     try {
-      const [followersResult, followingResult, myCommunitiesResult, joinedCommunitiesResult] = await Promise.all([
+      // Fetch counts individually to handle failures gracefully
+      const results = await Promise.allSettled([
         profileActions.getUserFollowers(token),
         profileActions.getUserFollowing(token),
         profileActions.getUserCombinedCommunities(token, 'all'),
         profileActions.getUserCommunities(token),
       ]);
 
+      const [followersResult, followingResult, myCommunitiesResult, joinedCommunitiesResult] = results;
+
       setCounts({
-        followers: followersResult.count || 0,
-        following: followingResult.count || 0,
-        myCommunity: Array.isArray(myCommunitiesResult.communities) ? myCommunitiesResult.communities.length : 0,
-        community: Array.isArray(joinedCommunitiesResult.data) ? joinedCommunitiesResult.data.length : 0,
+        followers: followersResult.status === 'fulfilled' ? (followersResult.value.count || 0) : 0,
+        following: followingResult.status === 'fulfilled' ? (followingResult.value.count || 0) : 0,
+        myCommunity: myCommunitiesResult.status === 'fulfilled' && Array.isArray(myCommunitiesResult.value.communities) ? myCommunitiesResult.value.communities.length : 0,
+        community: joinedCommunitiesResult.status === 'fulfilled' && Array.isArray(joinedCommunitiesResult.value.data) ? joinedCommunitiesResult.value.data.length : 0,
       });
 
       setCountsLoaded(true);
-      console.log('✅ Fetched all counts:', {
-        followers: followersResult.count || 0,
-        following: followingResult.count || 0,
-        myCommunity: Array.isArray(myCommunitiesResult.communities) ? myCommunitiesResult.communities.length : 0,
-        community: Array.isArray(joinedCommunitiesResult.data) ? joinedCommunitiesResult.data.length : 0,
+      
+      // Log any failures
+      results.forEach((result, index) => {
+        const sections = ['followers', 'following', 'myCommunity', 'community'];
+        if (result.status === 'rejected') {
+          console.error(`❌ Error fetching ${sections[index]} count:`, result.reason);
+          // Special handling for Invalid ID format errors
+          if (result.reason?.message?.includes('Invalid ID format')) {
+            console.error('🔍 Invalid ID format detected - this may indicate a JWT token issue');
+          }
+        }
+      });
+
+      console.log('✅ Fetched counts (with error handling):', {
+        followers: followersResult.status === 'fulfilled' ? (followersResult.value.count || 0) : 0,
+        following: followingResult.status === 'fulfilled' ? (followingResult.value.count || 0) : 0,
+        myCommunity: myCommunitiesResult.status === 'fulfilled' && Array.isArray(myCommunitiesResult.value.communities) ? myCommunitiesResult.value.communities.length : 0,
+        community: joinedCommunitiesResult.status === 'fulfilled' && Array.isArray(joinedCommunitiesResult.value.data) ? joinedCommunitiesResult.value.data.length : 0,
       });
 
     } catch (error) {
       console.error('❌ Error fetching counts:', error);
-      // Don't show alert for count fetching errors, just log them
+      // Set default counts on error
+      setCounts({
+        followers: 0,
+        following: 0,
+        myCommunity: 0,
+        community: 0,
+      });
+      setCountsLoaded(true);
     }
   }, [token]);
 
@@ -97,13 +120,26 @@ export const useProfileSections = ({ initialSection = 'followers' }: UseProfileS
           break;
           
         case 'community':
-          result = await profileActions.getUserCommunities(token);
-          const communities = Array.isArray(result.data) ? result.data : [];
-          setData(communities);
-          setCounts(prev => ({ 
-            ...prev, 
-            community: communities.length 
-          }));
+          try {
+            result = await profileActions.getUserCommunities(token);
+            const communities = Array.isArray(result.data) ? result.data : [];
+            setData(communities);
+            setCounts(prev => ({ 
+              ...prev, 
+              community: communities.length 
+            }));
+          } catch (communityError) {
+            console.error('❌ Error fetching user communities:', communityError);
+            // Special handling for Invalid ID format errors
+            if (communityError instanceof Error && communityError.message.includes('Invalid ID format')) {
+              console.error('🔍 Invalid ID format detected - JWT token may have invalid user ID');
+              setError('Authentication issue detected. Please try logging out and back in.');
+            } else {
+              setError('Failed to load communities');
+            }
+            setData([]);
+            setCounts(prev => ({ ...prev, community: 0 }));
+          }
           break;
       }
 

@@ -93,6 +93,8 @@ const VideoPlayer = ({
 
   // ✅ NEW: Initial seek states
   const [isInitialSeekComplete, setIsInitialSeekComplete] = useState(false);
+  // ✅ NEW: Track if this is the first time becoming active for this video
+  const [hasBeenActiveBefore, setHasBeenActiveBefore] = useState(false);
 
   // Local stats
   const [localStats, setLocalStats] = useState({
@@ -323,19 +325,25 @@ const VideoPlayer = ({
   // ✅ NEW: Reset initial seek state when video changes or becomes active
   useEffect(() => {
     setIsInitialSeekComplete(false);
+    // ✅ FIXED: Reset hasBeenActiveBefore when video changes
+    setHasBeenActiveBefore(false);
   }, [videoData._id, videoData?.access?.freeRange?.start_time]);
 
-  // ✅ NEW: Reset video to start time when becoming active again
+  // ✅ FIXED: Only reset to start time on FIRST activation, not on orientation changes
   useEffect(() => {
     if (isActive && player && videoData?.access?.freeRange?.start_time > 0) {
-      // Reset to start time when video becomes active
-      const startTime = videoData.access.freeRange.start_time;
-      if (player.currentTime !== startTime) {
-        console.log(`Resetting video ${videoData._id} to start time: ${startTime}s`);
-        player.currentTime = startTime;
+      // Only reset to start time if this is the first time becoming active for this video
+      if (!hasBeenActiveBefore) {
+        const startTime = videoData.access.freeRange.start_time;
+        if (player.currentTime !== startTime) {
+          console.log(`Initial reset of video ${videoData._id} to start time: ${startTime}s`);
+          player.currentTime = startTime;
+        }
+        setHasBeenActiveBefore(true);
       }
+      // If hasBeenActiveBefore is true, don't reset - let the user's seek position remain
     }
-  }, [isActive, player, videoData._id, videoData?.access?.freeRange?.start_time]);
+  }, [isActive, player, videoData._id, videoData?.access?.freeRange?.start_time, hasBeenActiveBefore]);
 
   // ✅ REMOVED: Old initial seek logic - now handled by VideoProgressBar
   // The old useEffect for seeking to start time is removed since VideoProgressBar handles it
