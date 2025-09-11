@@ -25,7 +25,7 @@ import CreatorPassBuyMessage from "./CreatorPassBuyMessage";
 import VideoBuyMessage from "./VideoBuyMessage";
 import { useIsFocused } from "@react-navigation/native";
 import { useAuthStore } from "@/store/useAuthStore";
-import ModalMessage from "@/components/AuthModalMessage";
+
 import * as ScreenOrientation from "expo-screen-orientation";
 import { useOrientationStore } from "@/store/useOrientationStore";
 import VideoProgressBar from "./VideoProgressBar";
@@ -89,8 +89,12 @@ const VideoPlayer = ({
 
   const [isReady, setIsReady] = useState(false);
   const [isBuffering, setIsBuffering] = useState(false);
-  // const [hasSeeked, setHasSeeked] = useState(false);
   const [playerError, setPlayerError] = useState(false);
+
+  // ✅ NEW: Initial seek states
+  const [isInitialSeekComplete, setIsInitialSeekComplete] = useState(false);
+  // ✅ NEW: Track if this is the first time becoming active for this video
+  const [hasBeenActiveBefore, setHasBeenActiveBefore] = useState(false);
 
   // Local stats
   const [localStats, setLocalStats] = useState({
@@ -134,12 +138,12 @@ const VideoPlayer = ({
   const [fetchVideoDataAccess, setFetchVideoDataAccess] = useState(false);
   const [accessChecked, setAccessChecked] = useState(false);
   const [canPlayVideo, setCanPlayVideo] = useState(false);
-  const [showPaidMessage, setShowPaidMessage] = useState(false);
 
   // Create player with proper cleanup
   const player = useVideoPlayer(videoData?.videoUrl || "", (p) => {
     p.loop = true;
     p.muted = isMutedFromStore;
+    p.playbackRate = 1.0;
   });
 
   // Awake mobile screen
@@ -195,9 +199,10 @@ const VideoPlayer = ({
   // Update access if newly purchased
   useEffect(() => {
     if ((isPurchasedSeries || isVideoPurchased) && !haveAccess) {
+      console.log('VideoPlayer: Updating access due to purchase. isPurchasedSeries:', isPurchasedSeries, 'isVideoPurchased:', isVideoPurchased);
       setHaveAccess(true);
     }
-  }, [isVideoPurchased, isPurchasedSeries]);
+  }, [isVideoPurchased, isPurchasedSeries, haveAccess]);
 
   // Update creator pass if just purchased
   useEffect(() => {
@@ -222,14 +227,12 @@ const VideoPlayer = ({
       fetchVideoDataAccess
     ) {
       if (!haveCreator && !haveAccess) {
-        setShowPaidMessage(true);
-        setCanPlayVideo(false);
+        // ✅ Don't show paid message immediately - let video play the free portion first
+        setCanPlayVideo(true); // Allow video to play free portion
       } else {
-        setShowPaidMessage(false);
         setCanPlayVideo(true);
       }
     } else {
-      setShowPaidMessage(false);
       setCanPlayVideo(true);
     }
 
@@ -265,9 +268,17 @@ const VideoPlayer = ({
     };
   }, [player, videoData?.videoUrl]);
 
-  // Handle video playback
+  // ✅ NEW: Handle initial seek completion callback
+  const handleInitialSeekComplete = () => {
+    console.log('Initial seek completed for video:', videoData._id);
+    setIsInitialSeekComplete(true);
+  };
+
+  // ✅ UPDATED: Handle video playback with initial seek logic
   useEffect(() => {
     if (!player || !videoData?.videoUrl) return;
+
+    const hasStartTime = videoData?.access?.freeRange?.start_time > 0;
 
     const shouldPlay =
       accessChecked &&
@@ -276,7 +287,9 @@ const VideoPlayer = ({
       isActive &&
       isFocused &&
       !isGifted &&
-      !playerError;
+      !playerError &&
+      // ✅ NEW: Only play if initial seek is complete (for videos with start time) or no start time
+      (!hasStartTime || isInitialSeekComplete);
 
     try {
       if (shouldPlay) {
@@ -305,31 +318,35 @@ const VideoPlayer = ({
     player,
     playerError,
     videoData?.videoUrl,
+    isInitialSeekComplete, // ✅ NEW: Include initial seek state
+    videoData?.access?.freeRange?.start_time, // ✅ NEW: Include start time
   ]);
 
-  // Handle initial seek to start time for restricted content
-  const hasSeekedToStart = useRef(false);
+  // ✅ NEW: Reset initial seek state when video changes or becomes active
   useEffect(() => {
-    if (isReady && isActive && !hasSeekedToStart.current && canPlayVideo) {
-      const startTime = videoData?.access?.freeRange?.start_time ?? 0;
-      if (startTime > 0 && !videoData?.access?.isPurchased) {
-        hasSeekedToStart.current = true;
-        player.currentTime = startTime;
-        // Ensure video plays after seeking
-        setTimeout(() => {
-          if (player && isActive && canPlayVideo) {
-            player.play();
-          }
-        }, 100);
-        console.log('Seeking to start time:', startTime, 'for video:', videoData._id, 'isPurchased:', videoData?.access?.isPurchased);
-      }
-    }
-  }, [isReady, isActive, canPlayVideo, player, videoData?.access?.freeRange?.start_time, videoData?.access?.isPurchased, videoData._id]);
+    setIsInitialSeekComplete(false);
+    // ✅ FIXED: Reset hasBeenActiveBefore when video changes
+    setHasBeenActiveBefore(false);
+  }, [videoData._id, videoData?.access?.freeRange?.start_time]);
 
-  // Reset seek state when video changes
+  // ✅ FIXED: Only reset to start time on FIRST activation, not on orientation changes
   useEffect(() => {
-    hasSeekedToStart.current = false;
-  }, [videoData._id]);
+    if (isActive && player && videoData?.access?.freeRange?.start_time > 0) {
+      // Only reset to start time if this is the first time becoming active for this video
+      if (!hasBeenActiveBefore) {
+        const startTime = videoData.access.freeRange.start_time;
+        if (player.currentTime !== startTime) {
+          console.log(`Initial reset of video ${videoData._id} to start time: ${startTime}s`);
+          player.currentTime = startTime;
+        }
+        setHasBeenActiveBefore(true);
+      }
+      // If hasBeenActiveBefore is true, don't reset - let the user's seek position remain
+    }
+  }, [isActive, player, videoData._id, videoData?.access?.freeRange?.start_time, hasBeenActiveBefore]);
+
+  // ✅ REMOVED: Old initial seek logic - now handled by VideoProgressBar
+  // The old useEffect for seeking to start time is removed since VideoProgressBar handles it
 
   // Handle gifting pause
   useEffect(() => {
@@ -343,7 +360,8 @@ const VideoPlayer = ({
         isFocused &&
         isReady &&
         !playerError &&
-        canPlayVideo
+        canPlayVideo &&
+        (!videoData?.access?.freeRange?.start_time || isInitialSeekComplete) // ✅ NEW: Check initial seek
       ) {
         player.play();
       }
@@ -358,6 +376,8 @@ const VideoPlayer = ({
     isReady,
     playerError,
     canPlayVideo,
+    isInitialSeekComplete, // ✅ NEW: Include initial seek state
+    videoData?.access?.freeRange?.start_time,
   ]);
 
   // Handle focus
@@ -374,7 +394,8 @@ const VideoPlayer = ({
         isReady &&
         !isGifted &&
         !playerError &&
-        canPlayVideo
+        canPlayVideo &&
+        (!videoData?.access?.freeRange?.start_time || isInitialSeekComplete) // ✅ NEW: Check initial seek
       ) {
         player.muted = isMutedFromStore;
         player.play();
@@ -393,6 +414,8 @@ const VideoPlayer = ({
     isGifted,
     playerError,
     canPlayVideo,
+    isInitialSeekComplete, // ✅ NEW: Include initial seek state
+    videoData?.access?.freeRange?.start_time,
   ]);
 
   // Handle player store updates
@@ -474,44 +497,6 @@ const VideoPlayer = ({
     };
   }, []);
 
-
-
-  // // FIX: Handle local stats updates
-  // const handleStatsUpdate = (stats: {
-  //   likes?: number;
-  //   gifts?: number;
-  //   shares?: number;
-  //   comments?: number;
-  // }) => {
-  //   setLocalStats(prev => ({
-  //     ...prev,
-  //     ...stats,
-  //   }));
-
-  //   // Also call the parent callback
-  //   if (onStatsUpdate) {
-  //     onStatsUpdate(stats);
-  //   }
-  // }
-
-  // FIX: Handle local stats updates
-  // const handleStatsUpdate = (stats: {
-  //   likes?: number;
-  //   gifts?: number;
-  //   shares?: number;
-  //   comments?: number;
-  // }) => {
-  //   setLocalStats(prev => ({
-  //     ...prev,
-  //     ...stats,
-  //   }));
-
-  //   // Also call the parent callback
-  //   if (onStatsUpdate) {
-  //     onStatsUpdate(stats);
-  //   }
-  // }
-
   const onToggleFullScreen = async () => {
     try {
       if (isLandscape) {
@@ -559,7 +544,6 @@ const VideoPlayer = ({
   if (!accessChecked) {
     return (
       <View style={dynamicStyles.container}>
-
         <Image
           source={{ uri: videoData.thumbnailUrl }}
           style={dynamicStyles.thumbnail}
@@ -589,26 +573,6 @@ const VideoPlayer = ({
 
   return (
     <View style={dynamicStyles.container}>
-
-      {!isReady ||
-        (accessChecked && showPaidMessage && (
-          <View className="relative">
-            <Image
-              source={{ uri: videoData.thumbnailUrl }}
-              style={dynamicStyles.thumbnail}
-            />
-            {showPaidMessage && (
-              <ModalMessage
-                visible={true}
-                text={`Access Denied
-You do not have permission to view this video.`}
-                needCloseButton={true}
-                onClose={() => setShowPaidMessage(false)}
-              />
-            )}
-          </View>
-        ))}
-
       {player && canPlayVideo ? (
         <View className="relative items-center justify-center">
           <VideoView
@@ -671,12 +635,16 @@ You do not have permission to view this video.`}
                 : { bottom: 10 }
           }
         >
+          {/* ✅ UPDATED: Pass onInitialSeekComplete callback */}
           <VideoProgressBar
             player={player}
             isActive={isActive}
             videoId={videoData._id}
             duration={videoData.duration || 0}
             access={videoData.access}
+            onInitialSeekComplete={handleInitialSeekComplete}
+            isVideoOwner={videoData.created_by._id === user?.id}
+            hasAccess={haveAccess || haveCreator}
           />
         </View>
       )}
