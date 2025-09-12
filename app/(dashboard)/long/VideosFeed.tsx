@@ -6,7 +6,6 @@ import {
   Text,
   Pressable,
   View,
-  StatusBar,
 } from "react-native";
 import {
   SafeAreaProvider,
@@ -298,12 +297,7 @@ const VideosFeed: React.FC = () => {
   // Show loading while checking authentication or fetching videos
   if (loading && isFetchingMore) {
     return (
-
-      <ThemedView
-        style={{ flex: 1 }}
-        className="justify-center items-center"
-      >
-
+      <ThemedView style={{ flex: 1 }} className="justify-center items-center">
         <ActivityIndicator size="large" color="white" />
         <Text className="text-white mt-4">
           {!token || !isLoggedIn
@@ -316,29 +310,30 @@ const VideosFeed: React.FC = () => {
 
   if (error && videos.length === 0) {
     return (
-      <ThemedView
-        style={{ flex: 1 }}
-        className="justify-center items-center px-4"
-      >
-        <Text className="text-white text-center mb-4">
-          Oops something went wrong!
-        </Text>
-        <Pressable
-          onPress={handleRefresh}
-          className="bg-blue-600 px-4 py-2 rounded"
-        >
-          <Text className="text-white">Retry</Text>
-        </Pressable>
-      </ThemedView>
+      <SafeAreaProvider>
+        <SafeAreaView style={{ flex: 1 }} edges={["bottom"]}>
+          <ThemedView
+            style={{ flex: 1 }}
+            className="justify-center items-center px-4"
+          >
+            <Text className="text-white text-center mb-4">
+              Oops something went wrong!
+            </Text>
+            <Pressable
+              onPress={handleRefresh}
+              className="bg-blue-600 px-4 py-2 rounded"
+            >
+              <Text className="text-white">Retry</Text>
+            </Pressable>
+          </ThemedView>
+        </SafeAreaView>
+      </SafeAreaProvider>
     );
   }
 
   if (videos.length === 0) {
     return (
-      <ThemedView
-        style={{ flex: 1 }}
-        className="justify-center items-center"
-      >
+      <ThemedView style={{ flex: 1 }} className="justify-center items-center">
         <Text className="text-lg text-white">No Videos Available</Text>
         <Text className="text-lg text-white">
           Want to Upload your own{" "}
@@ -352,8 +347,8 @@ const VideosFeed: React.FC = () => {
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: "black" }} edges={[]}>
-      <StatusBar barStyle="light-content" backgroundColor="#000" />
-
+      {/* <ThemedView style={{flex: 1}}> */}
+      
       <FlatList
         ref={flatListRef}
         data={videos}
