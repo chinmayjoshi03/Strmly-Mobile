@@ -201,7 +201,7 @@ const GlobalVideoPlayer: React.FC = () => {
           bounces={false}
           scrollEventThrottle={16}
           disableIntervalMomentum={true}
-          contentContainerStyle={{ backgroundColor: "#000" }}
+          contentContainerStyle={{backgroundColor: "#000"}}
           overScrollMode="never"
           alwaysBounceVertical={false}
         />

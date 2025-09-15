@@ -6,8 +6,6 @@ import {
   Text,
   Pressable,
   View,
-  StatusBar,
-  RefreshControl,
 } from "react-native";
 import {
   SafeAreaProvider,
@@ -22,6 +20,7 @@ import VideoPlayer from "./_components/VideoPlayer";
 import { clearActivePlayer } from "@/store/usePlayerStore";
 import { useVideosStore } from "@/store/useVideosStore";
 import { useOrientationStore } from "@/store/useOrientationStore";
+import { RefreshControl } from "react-native-gesture-handler";
 
 export type GiftType = {
   creator: {
@@ -33,8 +32,10 @@ export type GiftType = {
 };
 
 const { height: screenHeight } = Dimensions.get("window");
-const BOTTOM_NAV_HEIGHT = 50;
-const VIDEO_HEIGHT = screenHeight - 49;
+const BOTTOM_NAV_HEIGHT = 50; // Height of your bottom navigation
+
+// Define the height for each video item (adjust as needed)
+const VIDEO_HEIGHT = screenHeight;
 
 const VideosFeed: React.FC = () => {
   const [videos, setVideos] = useState<VideoItemType[]>([]);
@@ -171,8 +172,8 @@ const VideosFeed: React.FC = () => {
       }
     } finally {
       if (mountedRef.current) {
-        setLoading(false);
         setIsFetchingMore(false);
+        setLoading(false);
       }
     }
   };
@@ -304,12 +305,9 @@ const VideosFeed: React.FC = () => {
   );
 
   // Show loading while checking authentication or fetching videos
-  if (loading && !refreshing) {
+  if (loading && refreshing) {
     return (
-      <ThemedView
-        style={{ flex: 1 }}
-        className="justify-center items-center"
-      >
+      <ThemedView style={{ flex: 1 }} className="justify-center items-center">
         <ActivityIndicator size="large" color="white" />
         <Text className="text-white mt-4">
           {!token || !isLoggedIn
@@ -322,30 +320,31 @@ const VideosFeed: React.FC = () => {
 
   if (error && videos.length === 0) {
     return (
-      <ThemedView
-        style={{ flex: 1 }}
-        className="justify-center items-center px-4"
-      >
-        <Text className="text-white text-center mb-4">
-          Oops something went wrong!
-        </Text>
-        <Pressable
-          onPress={handleRefresh}
-          className="bg-blue-600 px-4 py-2 rounded"
-        >
-          <Text className="text-white">Retry</Text>
-        </Pressable>
-      </ThemedView>
+      <SafeAreaProvider>
+        <SafeAreaView style={{ flex: 1 }} edges={["bottom"]}>
+          <ThemedView
+            style={{ flex: 1 }}
+            className="justify-center items-center px-4"
+          >
+            <Text className="text-white text-center mb-4">
+              Oops something went wrong!
+            </Text>
+            <Pressable
+              onPress={handleRefresh}
+              className="bg-blue-600 px-4 py-2 rounded"
+            >
+              <Text className="text-white">Retry</Text>
+            </Pressable>
+          </ThemedView>
+        </SafeAreaView>
+      </SafeAreaProvider>
     );
   }
 
   if (videos.length === 0) {
     return (
-      <ThemedView
-        style={{ flex: 1 }}
-        className="justify-center items-center"
-      >
-        <Text className="text-lg text-white">No Videos Available</Text>
+      <ThemedView style={{ flex: 1 }} className="justify-center items-center">
+        <Text className="text-lg text-white">You watched all videos, no new videos Available.</Text>
         <Text className="text-lg text-white">
           Want to Upload your own{" "}
           <Link href={"/studio"} className="text-blue-500">
@@ -358,8 +357,8 @@ const VideosFeed: React.FC = () => {
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: "black" }} edges={[]}>
-      <StatusBar barStyle="light-content" backgroundColor="#000" />
-
+      {/* <ThemedView style={{flex: 1}}> */}
+      
       <FlatList
         ref={flatListRef}
         data={videos}
