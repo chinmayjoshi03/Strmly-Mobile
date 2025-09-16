@@ -12,6 +12,7 @@ import {
   ImageBackground,
   ScrollView,
   BackHandler,
+  Platform,
 } from "react-native";
 import { useFonts } from "expo-font";
 import { useRouter } from "expo-router";
@@ -623,21 +624,22 @@ const renderAccountItem = ({ item }: { item: any }) => {
 
 const styles = StyleSheet.create({
   // Container and basic layout
-  container: {
-    backgroundColor: "#000",
-    paddingTop: 0,
-  },
-  searchInput: {
-    backgroundColor: "rgba(255,255,255,0.1)",
-    color: "#fff",
-    paddingHorizontal: 15,
-    paddingVertical: 6,
-    marginHorizontal: 15,
-    marginBottom: 15,
-    borderRadius: 25,
-    fontSize: 16,
-    fontFamily: "Poppins-Regular",
-  },
+container: {
+  backgroundColor: "#000",
+  paddingTop: Platform.OS === 'ios' ? -45 : 0  // Negative padding to reduce space
+},
+searchInput: {
+  backgroundColor: "rgba(255,255,255,0.1)",
+  color: "#fff",
+  paddingHorizontal: 15,
+  paddingVertical: 6,
+  marginHorizontal: 15,
+  marginBottom: 15,
+  marginTop: Platform.OS === 'ios' ? -55 : 0,  // Add this line
+  borderRadius: 25,
+  fontSize: 16,
+  fontFamily: "Poppins-Regular",
+},
 
   // Tab selection styles
   selectionTabContainer: {

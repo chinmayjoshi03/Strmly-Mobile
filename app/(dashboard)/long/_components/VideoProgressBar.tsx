@@ -35,6 +35,7 @@ type Props = {
   onInitialSeekComplete?: () => void; // Callback when initial seek is done
   isVideoOwner?: boolean; // Whether current user owns this video
   hasAccess?: boolean; // Whether user has access (purchased or creator pass)
+  isGlobalPlayer?: boolean
 };
 
 const formatTime = (seconds: number) => {
@@ -53,6 +54,7 @@ const VideoProgressBar = ({
   onInitialSeekComplete,
   isVideoOwner = false,
   hasAccess = false,
+  isGlobalPlayer = false,
 }: Props) => {
   const [currentTime, setCurrentTime] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
@@ -465,11 +467,14 @@ const VideoProgressBar = ({
   return (
     <>
       <View
-        ref={progressBarRef}
-        style={styles.progressBarContainer}
-        onLayout={handleProgressBarLayout}
-        {...panResponder.panHandlers}
-      >
+  ref={progressBarRef}
+  style={[
+    styles.progressBarContainer,
+    isGlobalPlayer && styles.progressBarContainerGlobal // Apply conditional styling
+  ]}
+  onLayout={handleProgressBarLayout}
+  {...panResponder.panHandlers}
+>
         {/* Background bar */}
         <View style={styles.progressBarBackground} />
         
@@ -549,6 +554,10 @@ const styles = StyleSheet.create({
     height: 30,
     justifyContent: "center",
     position: "relative",
+  },
+   progressBarContainerGlobal: {
+    marginBottom: 100, // Add bottom margin only for global player
+   
   },
   progressBarBackground: {
     position: "absolute",

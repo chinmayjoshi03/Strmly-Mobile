@@ -37,7 +37,7 @@ interface CommentsSectionProps {
 
 const { height: SCREEN_HEIGHT } = Dimensions.get("window");
 const SHEET_MAX_HEIGHT = SCREEN_HEIGHT * 0.6;
-const BOTTOM_NAV_HEIGHT = 70;
+const BOTTOM_NAV_HEIGHT = Platform.OS == 'ios' ? 50 : 70;
 
 // Helper function to format timestamp like Instagram
 const formatTimestamp = (timestamp: string | Date): string => {

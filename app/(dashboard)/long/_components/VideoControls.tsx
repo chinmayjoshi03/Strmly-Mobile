@@ -11,6 +11,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useVideosStore } from "@/store/useVideosStore";
 import { useOrientationStore } from "@/store/useOrientationStore";
 
+
 type Props = {
   haveCreator: React.Dispatch<React.SetStateAction<boolean>>;
   haveCreatorPass: boolean;

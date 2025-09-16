@@ -73,13 +73,17 @@ const GlobalVideoPlayer: React.FC = () => {
     waitForInteraction: true,
   }).current;
 
-  const renderItem = useCallback(
-    ({ item, index }: { item: VideoItemType; index: number }) => {
-      if (index !== visibleIndex) {
-        return <ThemedView style={{ height: VIDEO_HEIGHT }} />;
-      }
+ const renderItem = useCallback(
+  ({ item, index }: { item: VideoItemType; index: number }) => {
+    if (index !== visibleIndex) {
+      return <ThemedView style={{ height: VIDEO_HEIGHT }} />;
+    }
 
-      return (
+    return (
+      <ThemedView style={{ 
+        height: VIDEO_HEIGHT, 
+        paddingBottom: 200 // Add bottom padding to prevent progress bar from going off-screen
+      }}>
         <VideoPlayer
           key={`video-${item._id}`}
           videoData={item}
@@ -88,10 +92,11 @@ const GlobalVideoPlayer: React.FC = () => {
           showCommentsModal={showCommentsModal}
           setShowCommentsModal={setShowCommentsModal}
         />
-      );
-    },
-    [visibleIndex, showCommentsModal]
-  );
+      </ThemedView>
+    );
+  },
+  [visibleIndex, showCommentsModal]
+);
 
   const getItemLayout = useCallback(
     (_data: any, index: number) => ({

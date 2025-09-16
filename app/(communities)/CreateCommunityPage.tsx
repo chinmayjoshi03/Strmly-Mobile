@@ -13,6 +13,7 @@ import {
   View,
   ActivityIndicator,
   ScrollView,
+  Platform,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { useAuthStore } from "@/store/useAuthStore";
@@ -174,7 +175,8 @@ const CreateCommunityPage: React.FC = () => {
 
   return (
     <ScrollView className="flex-1 bg-black">
-      <SafeAreaView>
+      <SafeAreaView style={{ flex: 1 }} 
+  edges={Platform.OS === 'ios' ? ['left', 'right', 'bottom'] : undefined}>
         <ThemedView style={CreateCommunityStyle.container}>
           <View style={CreateCommunityStyle.CreateCommunityTopBar}>
             <TouchableOpacity
