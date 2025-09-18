@@ -141,7 +141,7 @@ const VideosFeed: React.FC = () => {
       if (!mountedRef.current) return;
 
       setVideos((prev) => {
-        if (targetPage === 1) {
+        if (targetPage === 1 && (!json.data || json.data.length === 0)) {
           console.log("Replacing videos with fresh data");
           return json.data || [];
         } else {
@@ -181,6 +181,7 @@ const VideosFeed: React.FC = () => {
   useEffect(() => {
     if (token && isLoggedIn) {
       fetchTrendingVideos(1);
+      setLoading(true);
     } else if (!token || !isLoggedIn) {
       setError("Please log in to view videos");
       setLoading(false);
@@ -305,7 +306,7 @@ const VideosFeed: React.FC = () => {
   );
 
   // Show loading while checking authentication or fetching videos
-  if (loading && !refreshing) {
+  if (loading && !refreshing && videos.length === 0) {
     return (
       <ThemedView
         style={{ flex: 1 }}

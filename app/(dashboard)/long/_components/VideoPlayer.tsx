@@ -197,12 +197,27 @@ const VideoPlayer = ({
   }, [videoData.hasCreatorPassOfVideoOwner, videoData.access.isPurchased]);
 
   // Update access if newly purchased
-  useEffect(() => {
-    if ((isPurchasedSeries || isVideoPurchased) && !haveAccess) {
-      console.log('VideoPlayer: Updating access due to purchase. isPurchasedSeries:', isPurchasedSeries, 'isVideoPurchased:', isVideoPurchased);
-      setHaveAccess(true);
-    }
-  }, [isVideoPurchased, isPurchasedSeries, haveAccess]);
+// useEffect(() => {
+//   if ((isPurchasedSeries || isVideoPurchased) && !haveAccess) {
+//     console.log('VideoPlayer: Updating access due to purchase. isPurchasedSeries:', isPurchasedSeries, 'isVideoPurchased:', isVideoPurchased);
+//     setHaveAccess(true);
+//     // ✅ FIX: Reset modal state when access is granted
+//     hasShownAccessModal.current = false;
+//     modalDismissed.current = false;
+//   }
+// }, [isVideoPurchased, isPurchasedSeries, haveAccess]);
+
+useEffect(() => {
+  console.log('VideoPlayer Access Debug:', {
+    videoId: videoData._id,
+    haveAccess,
+    haveCreator, 
+    'videoData.access.isPurchased': videoData.access.isPurchased,
+    'isPurchasedSeries': isPurchasedSeries,
+    'isVideoPurchased': isVideoPurchased,
+    'combined access': haveAccess || haveCreator || videoData.access.isPurchased
+  });
+}, [haveAccess, haveCreator, videoData.access.isPurchased, isPurchasedSeries, isVideoPurchased, videoData._id]);
 
   // Update creator pass if just purchased
   useEffect(() => {
@@ -644,7 +659,7 @@ const VideoPlayer = ({
             access={videoData.access}
             onInitialSeekComplete={handleInitialSeekComplete}
             isVideoOwner={videoData.created_by._id === user?.id}
-            hasAccess={haveAccess || haveCreator}
+            hasAccess={haveAccess || haveCreator || videoData.access.isPurchased}
           />
         </View>
       )}
