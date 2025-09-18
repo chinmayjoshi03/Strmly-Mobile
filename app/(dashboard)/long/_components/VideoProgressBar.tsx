@@ -32,10 +32,12 @@ type Props = {
   isActive: boolean;
   duration: number;
   access: AccessType;
-  onInitialSeekComplete?: () => void; // Callback when initial seek is done
-  isVideoOwner?: boolean; // Whether current user owns this video
-  hasAccess?: boolean; // Whether user has access (purchased or creator pass)
+  onInitialSeekComplete?: () => void; 
+  isVideoOwner?: boolean; 
+  hasAccess?: boolean; 
   isGlobalPlayer?: boolean
+  accessVersion?: number;
+
 };
 
 const formatTime = (seconds: number) => {
@@ -55,6 +57,7 @@ const VideoProgressBar = ({
   isVideoOwner = false,
   hasAccess = false,
   isGlobalPlayer = false,
+   accessVersion = 0,
 }: Props) => {
   const [currentTime, setCurrentTime] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
@@ -188,7 +191,7 @@ const VideoProgressBar = ({
         initialSeekTimeout.current = null;
       }
     };
-  }, [videoId]);
+  }, [videoId, accessVersion]);
 
   // ✅ Component mount/unmount tracking
   useEffect(() => {

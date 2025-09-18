@@ -151,24 +151,35 @@ const VideoControls = ({
         setPlaying(true);
       }
       setShowPlayPauseIcon(true);
-
-      // every tap resets hide timer in landscape
-      if (isLandscape) {
-        resetHideTimer();
-      }
     } catch (e) {
       console.error("play/pause error:", e);
     }
   };
 
+  const handleScreenTap = () => {
+    if (isLandscape) {
+      if (showControls) {
+        // If controls are visible, toggle play/pause and reset timer
+        handleTogglePlayPause();
+      } else {
+        // If controls are hidden, just show them
+        resetHideTimer();
+      }
+    } else {
+      // In portrait mode, always toggle play/pause
+      if (haveCreatorPass || haveAccessPass || videoData.amount === 0) {
+        handleTogglePlayPause();
+      }
+    }
+  };
+
   return (
     <>
-      {(haveCreatorPass || haveAccessPass || videoData.amount === 0) && (
-        <Pressable
-          style={styles.fullScreenPressable}
-          onPress={handleTogglePlayPause}
-        />
-      )}
+      {/* Always present invisible pressable for showing controls */}
+      <Pressable
+        style={styles.fullScreenPressable}
+        onPress={handleScreenTap}
+      />
       <View style={styles.iconContainer} pointerEvents="none">
         {showPlayPauseIcon &&
           (!playing ? (

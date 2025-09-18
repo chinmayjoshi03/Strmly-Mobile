@@ -72,12 +72,17 @@ const VideoPlayer = ({
     clearSeriesData,
     clearVideoAccessData,
     clearPassData,
+    setPurchaseSuccessCallback,
+
+    isPurchasedCommunityPass,
+
   } = useGiftingStore();
 
   // Paid video states
   const [haveCreator, setHaveCreator] = useState(false);
   const [checkCreatorPass, setCheckCreatorPass] = useState(false);
   const [haveAccess, setHaveAccess] = useState(false);
+  const [accessVersion, setAccessVersion] = useState(0);
 
   const { user } = useAuthStore();
 
@@ -111,9 +116,13 @@ const VideoPlayer = ({
   const statusListenerRef = useRef<any>(null);
   const timeListenerRef = useRef<any>(null);
   const playerRef = useRef<any>(null);
+  const hasShownAccessModal = useRef(false);
+  const modalDismissed = useRef(false);
 
   const VIDEO_HEIGHT = containerHeight || screenHeight;
   const isFocused = useIsFocused();
+
+
 
   // FIX: Update local stats when videoData changes (e.g., when switching videos)
   useEffect(() => {
@@ -129,6 +138,46 @@ const VideoPlayer = ({
     videoData.gifts,
     videoData.shares,
     videoData.comments?.length,
+  ]);
+
+  useEffect(() => {
+    const handlePurchaseSuccess = () => {
+      console.log('Purchase success detected in VideoPlayer, updating access');
+
+      // Increment access version to trigger re-evaluation
+      setAccessVersion(prev => prev + 1);
+
+      // Update access states based on purchase type
+      if (isVideoPurchased) {
+        console.log('Video purchased, granting access');
+        setHaveAccess(true);
+      }
+
+      if (isPurchasedPass || isPurchasedCommunityPass) {
+        console.log('Creator pass purchased, granting creator access');
+        setHaveCreator(true);
+        setCheckCreatorPass(true);
+      }
+
+      if (isPurchasedSeries) {
+        console.log('Series purchased, granting access');
+        setHaveAccess(true);
+      }
+    };
+
+    // Set up the callback in the store
+    setPurchaseSuccessCallback(handlePurchaseSuccess);
+
+    // Cleanup function
+    return () => {
+      setPurchaseSuccessCallback(() => { });
+    };
+  }, [
+    setPurchaseSuccessCallback,
+    isVideoPurchased,
+    isPurchasedPass,
+    isPurchasedCommunityPass,
+    isPurchasedSeries
   ]);
 
   // Full screen:
@@ -197,27 +246,24 @@ const VideoPlayer = ({
   }, [videoData.hasCreatorPassOfVideoOwner, videoData.access.isPurchased]);
 
   // Update access if newly purchased
-// useEffect(() => {
-//   if ((isPurchasedSeries || isVideoPurchased) && !haveAccess) {
-//     console.log('VideoPlayer: Updating access due to purchase. isPurchasedSeries:', isPurchasedSeries, 'isVideoPurchased:', isVideoPurchased);
-//     setHaveAccess(true);
-//     // ✅ FIX: Reset modal state when access is granted
-//     hasShownAccessModal.current = false;
-//     modalDismissed.current = false;
-//   }
-// }, [isVideoPurchased, isPurchasedSeries, haveAccess]);
+  useEffect(() => {
+    if ((isPurchasedSeries || isVideoPurchased) && !haveAccess) {
+      console.log('VideoPlayer: Updating access due to purchase. isPurchasedSeries:', isPurchasedSeries, 'isVideoPurchased:', isVideoPurchased);
+      setHaveAccess(true);
+    }
+  }, [isVideoPurchased, isPurchasedSeries, haveAccess]);
 
-useEffect(() => {
-  console.log('VideoPlayer Access Debug:', {
-    videoId: videoData._id,
-    haveAccess,
-    haveCreator, 
-    'videoData.access.isPurchased': videoData.access.isPurchased,
-    'isPurchasedSeries': isPurchasedSeries,
-    'isVideoPurchased': isVideoPurchased,
-    'combined access': haveAccess || haveCreator || videoData.access.isPurchased
-  });
-}, [haveAccess, haveCreator, videoData.access.isPurchased, isPurchasedSeries, isVideoPurchased, videoData._id]);
+  useEffect(() => {
+    console.log('VideoPlayer Access Debug:', {
+      videoId: videoData._id,
+      haveAccess,
+      haveCreator,
+      'videoData.access.isPurchased': videoData.access.isPurchased,
+      'isPurchasedSeries': isPurchasedSeries,
+      'isVideoPurchased': isVideoPurchased,
+      'combined access': haveAccess || haveCreator || videoData.access.isPurchased
+    });
+  }, [haveAccess, haveCreator, videoData.access.isPurchased, isPurchasedSeries, isVideoPurchased, videoData._id]);
 
   // Update creator pass if just purchased
   useEffect(() => {
@@ -230,29 +276,57 @@ useEffect(() => {
     }
   }, [checkCreatorPass, haveCreator, videoData.hasCreatorPassOfVideoOwner]);
 
-  // ✅ Separate useEffect for access check
   useEffect(() => {
     if (!videoData || !fetchVideoDataAccess) return;
 
     setAccessChecked(false);
+
+    console.log('VideoPlayer Access Check:', {
+      videoId: videoData._id,
+      isOwner: videoData.created_by._id === user?.id,
+      amount: videoData.amount,
+      haveCreator,
+      haveAccess,
+      accessVersion, // This will trigger re-evaluation when purchases happen
+      isVideoPurchased,
+      isPurchasedSeries,
+      isPurchasedPass,
+      isPurchasedCommunityPass
+    });
 
     if (
       videoData.created_by._id !== user?.id &&
       videoData.amount !== 0 &&
       fetchVideoDataAccess
     ) {
-      if (!haveCreator && !haveAccess) {
-        // ✅ Don't show paid message immediately - let video play the free portion first
+      // Check all forms of access
+      const hasAnyAccess = haveCreator || haveAccess || isVideoPurchased || isPurchasedSeries || isPurchasedPass || isPurchasedCommunityPass;
+
+      if (!hasAnyAccess) {
+        console.log('No access found, allowing free portion play');
         setCanPlayVideo(true); // Allow video to play free portion
       } else {
+        console.log('Access granted, allowing full video play');
         setCanPlayVideo(true);
       }
     } else {
+      console.log('User owns video or video is free, allowing play');
       setCanPlayVideo(true);
     }
 
     setAccessChecked(true);
-  }, [videoData, user?.id, haveCreator, haveAccess, fetchVideoDataAccess]);
+  }, [
+    videoData,
+    user?.id,
+    haveCreator,
+    haveAccess,
+    fetchVideoDataAccess,
+    accessVersion, // Include accessVersion to trigger re-evaluation
+    isVideoPurchased,
+    isPurchasedSeries,
+    isPurchasedPass,
+    isPurchasedCommunityPass
+  ]);
 
   // Handle player status changes
   useEffect(() => {
@@ -660,6 +734,7 @@ useEffect(() => {
             onInitialSeekComplete={handleInitialSeekComplete}
             isVideoOwner={videoData.created_by._id === user?.id}
             hasAccess={haveAccess || haveCreator || videoData.access.isPurchased}
+            accessVersion={accessVersion}
           />
         </View>
       )}

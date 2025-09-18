@@ -49,6 +49,7 @@ const VideosFeed: React.FC = () => {
   const [showCommentsModal, setShowCommentsModal] = useState(false);
   const [isScreenFocused, setIsScreenFocused] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [hasAttemptedFetch, setHasAttemptedFetch] = useState(false);
 
   const { token, isLoggedIn } = useAuthStore();
   const { setVideoType } = useVideosStore();
@@ -71,10 +72,11 @@ const VideosFeed: React.FC = () => {
         }
         console.log('token: ', token);
 
-        if (videos.length === 0 && !loading && !error) {
+        if (videos.length === 0 && !loading && !error && !isFetchingMore && !hasAttemptedFetch && !refreshing) {
           setLoading(true);
           setCurrentPage(1);
           setHasMore(true);
+          setHasAttemptedFetch(true);
           fetchTrendingVideos(1);
         }
       }, 100);
@@ -141,7 +143,7 @@ const VideosFeed: React.FC = () => {
       if (!mountedRef.current) return;
 
       setVideos((prev) => {
-        if (targetPage === 1 && (!json.data || json.data.length === 0)) {
+        if (targetPage === 1) {
           console.log("Replacing videos with fresh data");
           return json.data || [];
         } else {
@@ -162,6 +164,12 @@ const VideosFeed: React.FC = () => {
         console.log("No more pages available");
         setHasMore(false);
       }
+      
+      // If first page is empty, definitely no more pages
+      if (targetPage === 1 && (!json.data || json.data.length === 0)) {
+        console.log("First page empty, no more pages");
+        setHasMore(false);
+      }
 
       console.log(`Loaded ${json.data?.length || 0} videos for page ${targetPage}`);
 
@@ -180,8 +188,9 @@ const VideosFeed: React.FC = () => {
 
   useEffect(() => {
     if (token && isLoggedIn) {
-      fetchTrendingVideos(1);
       setLoading(true);
+      setHasAttemptedFetch(true);
+      fetchTrendingVideos(1);
     } else if (!token || !isLoggedIn) {
       setError("Please log in to view videos");
       setLoading(false);
@@ -292,6 +301,7 @@ const VideosFeed: React.FC = () => {
     setCurrentPage(1); // Reset to page 1
     setHasMore(true);
     setVisibleIndex(0);
+    setHasAttemptedFetch(true); // Keep this true to prevent useFocusEffect from triggering
     
     try {
       await fetchTrendingVideos(1);
@@ -307,6 +317,7 @@ const VideosFeed: React.FC = () => {
 
   // Show loading while checking authentication or fetching videos
   if (loading && !refreshing && videos.length === 0) {
+    console.log('VideosFeed: Showing loading screen', { loading, refreshing, videosLength: videos.length, hasAttemptedFetch, error });
     return (
       <ThemedView
         style={{ flex: 1 }}
@@ -342,6 +353,7 @@ const VideosFeed: React.FC = () => {
   }
 
   if (videos.length === 0) {
+    console.log('VideosFeed: Showing no videos message', { loading, refreshing, videosLength: videos.length, hasAttemptedFetch, error });
     return (
       <ThemedView
         style={{ flex: 1 }}
