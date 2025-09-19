@@ -125,7 +125,7 @@ const VideoControls = ({
       if (typeof (player as any).currentTime === "number") {
         // no-op, but ensures player object is ready
       }
-    } catch {}
+    } catch { }
 
     return () => {
       subStatus?.remove?.();
@@ -215,9 +215,9 @@ const VideoControls = ({
             onCommentPress={
               setShowCommentsModal
                 ? () => {
-                    setShowCommentsModal(true);
-                    onCommentsModalOpen?.(); // Trigger refresh when modal opens
-                  }
+                  setShowCommentsModal(true);
+                  onCommentsModalOpen?.(); // Trigger refresh when modal opens
+                }
                 : undefined
             }
             onCommentUpdate={(newCount) => {
@@ -225,10 +225,10 @@ const VideoControls = ({
                 onStatsUpdate({ comments: newCount });
               }
             }}
-            // onShareUpdate={(newShares, isShared) =>
-            //   onStatsUpdate?.({ shares: newShares })
-            // }
-            // onGiftUpdate={(newGifts) => onStatsUpdate?.({ gifts: newGifts })}
+          // onShareUpdate={(newShares, isShared) =>
+          //   onStatsUpdate?.({ shares: newShares })
+          // }
+          // onGiftUpdate={(newGifts) => onStatsUpdate?.({ gifts: newGifts })}
           />
         </View>
       )}

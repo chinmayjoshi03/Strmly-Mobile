@@ -300,7 +300,7 @@ const VideoPlayer = ({
       fetchVideoDataAccess
     ) {
       // Check all forms of access
-      const hasAnyAccess = haveCreator || haveAccess || isVideoPurchased || isPurchasedSeries || isPurchasedPass || isPurchasedCommunityPass;
+      const hasAnyAccess = haveCreator || haveAccess || videoData.access.isPurchased || isVideoPurchased || isPurchasedSeries || isPurchasedPass || isPurchasedCommunityPass;
 
       if (!hasAnyAccess) {
         console.log('No access found, allowing free portion play');

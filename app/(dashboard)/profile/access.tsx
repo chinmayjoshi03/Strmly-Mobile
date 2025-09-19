@@ -21,6 +21,8 @@ import {
 import { useRoute } from "@react-navigation/native";
 import { getProfilePhotoUrl } from "@/utils/profileUtils";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useVideosStore } from "@/store/useVideosStore";
+import { VideoItemType } from "@/types/VideosType";
 
 const { height } = Dimensions.get("screen");
 
@@ -139,13 +141,67 @@ export default function AccessPage() {
 
   const handleAssetClick = (asset: Asset) => {
     if (asset.content_type === "video") {
-      // Navigate to video feed with the specific video
+      // Navigate to GlobalVideoPlayer with the specific video
       try {
+        // Transform asset data to VideoItemType format
+        const videoData: VideoItemType = {
+          _id: asset.content_id,
+          video: asset.asset_data.videoUrl || "",
+          videoUrl: asset.asset_data.videoUrl || "",
+          name: asset.asset_data.title || asset.asset_data.name || "Untitled",
+          title: asset.asset_data.title || asset.asset_data.name || "Untitled",
+          description: asset.asset_data.description || "",
+          thumbnailUrl: asset.asset_data.thumbnailUrl || "",
+          duration: asset.asset_data.duration || 0,
+          start_time: asset.asset_data.start_time || 0,
+          display_till_time: asset.asset_data.display_till_time || 0,
+          visibility: asset.asset_data.visibility || "public",
+          hidden_at: null,
+          likes: asset.asset_data.likes || 0,
+          gifts: asset.asset_data.gifts || 0,
+          shares: asset.asset_data.shares || 0,
+          views: asset.asset_data.views || 0,
+          amount: asset.asset_data.amount || 0,
+          hasCreatorPassOfVideoOwner: asset.asset_data.hasCreatorPassOfVideoOwner || false,
+          access: {
+            isPlayable: true,
+            freeRange: {
+              start_time: asset.asset_data.start_time || 0,
+              display_till_time: asset.asset_data.display_till_time || 0,
+            },
+            isPurchased: true,
+            accessType: "purchased",
+            price: asset.asset_data.price || 0,
+          },
+          genre: asset.asset_data.genre || "",
+          type: asset.asset_data.type || "video",
+          is_monetized: asset.asset_data.is_monetized || false,
+          language: asset.asset_data.language || "",
+          age_restriction: asset.asset_data.age_restriction || false,
+          season_number: 0,
+          is_standalone: true,
+          created_by: asset.asset_data.created_by || {
+            _id: "",
+            username: "Unknown",
+            profile_photo: "",
+          },
+          community: null,
+          is_following_creator: false,
+          creatorPassDetails: null,
+          series: null,
+          episode_number: null,
+        };
+
+        // Set the video in the store and navigate to GlobalVideoPlayer
+        const { setVideosInZustand, setVideoType } = useVideosStore.getState();
+        setVideosInZustand([videoData]);
+        setVideoType('video');
+        
         router.push({
-          pathname: "/(tabs)/home",
+          pathname: "/(dashboard)/long/GlobalVideoPlayer",
           params: {
-            videoId: asset.content_id,
-            startWithVideo: "true",
+            videoType: 'video',
+            startIndex: '0'
           },
         });
       } catch (error) {
