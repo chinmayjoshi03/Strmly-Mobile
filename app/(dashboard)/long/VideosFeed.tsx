@@ -41,7 +41,7 @@ const VideosFeed: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [visibleIndex, setVisibleIndex] = useState(0);
   const [page, setPage] = useState(1);
-  const [limit, setLimit] = useState(4);
+  const [limit, setLimit] = useState(6);
   const [hasMore, setHasMore] = useState(true);
   const [isFetchingMore, setIsFetchingMore] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
@@ -298,7 +298,10 @@ const VideosFeed: React.FC = () => {
     setRefreshing(true);
     setHasMore(true);
     setVisibleIndex(0);
-    fetchTrendingVideos(1);
+
+    fetchTrendingVideos(1).finally(() => {
+      setRefreshing(false);
+    });
   }, []);
 
   // Stable key extractor
@@ -394,6 +397,8 @@ const VideosFeed: React.FC = () => {
             minIndexForVisible: 0,
             autoscrollToTopThreshold: 10,
           }}
+          refreshing={refreshing}
+          onRefresh={handleRefresh}
           // Add loading indicator at the bottom
           ListFooterComponent={
             isFetchingMore ? (
@@ -406,7 +411,7 @@ const VideosFeed: React.FC = () => {
           snapToInterval={VIDEO_HEIGHT}
           snapToAlignment="start"
           decelerationRate="normal"
-          bounces={false} // Disable bouncing to prevent content bleeding
+          bounces={true} // Disable bouncing to prevent content bleeding
           scrollEventThrottle={16}
           disableIntervalMomentum={true} // Prevent momentum scrolling past snap points
           onScrollEndDrag={onScrollEndDrag}
