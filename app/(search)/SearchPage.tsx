@@ -626,7 +626,7 @@ const styles = StyleSheet.create({
   // Container and basic layout
 container: {
   backgroundColor: "#000",
-  paddingTop: Platform.OS === 'ios' ? -45 : 0  // Negative padding to reduce space
+  paddingTop: Platform.OS === 'ios' ? -40 : 0  // Negative padding to reduce space
 },
 searchInput: {
   backgroundColor: "rgba(255,255,255,0.1)",
@@ -635,7 +635,7 @@ searchInput: {
   paddingVertical: 6,
   marginHorizontal: 15,
   marginBottom: 15,
-  marginTop: Platform.OS === 'ios' ? -55 : 0,  // Add this line
+  marginTop: Platform.OS === 'ios' ? -35 : 0,  // Add this line
   borderRadius: 25,
   fontSize: 16,
   fontFamily: "Poppins-Regular",

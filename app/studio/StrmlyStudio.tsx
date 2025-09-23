@@ -860,25 +860,34 @@ const styles = StyleSheet.create({
   
   androidTitle: {
     fontSize: 16,
+    color: 'white',
+    fontWeight: '500',
   },
   iosTitle: {
     fontSize: 18,
+    color: 'white',
+    fontWeight: '600',
+    marginBottom: 4,
   },
- 
   androidDate: {
     fontSize: 14,
+    color: '#9ca3af',
   },
   iosDate: {
     fontSize: 16,
+    color: '#9ca3af',
+    marginBottom: 4,
   },
   genre: {
     color: '#6b7280',
   },
   androidGenre: {
     fontSize: 12,
+    color: '#6b7280',
   },
   iosGenre: {
     fontSize: 14,
+    color: '#6b7280',
   },
   episodeContainer: {
     alignItems: 'flex-end',
@@ -894,9 +903,11 @@ const styles = StyleSheet.create({
   },
   androidEpisodeLabel: {
     fontSize: 12,
+    color: '#9ca3af',
   },
   iosEpisodeLabel: {
     fontSize: 14,
+    color: '#9ca3af',
   },
   episodeCount: {
     color: 'white',
@@ -904,9 +915,13 @@ const styles = StyleSheet.create({
   },
   androidEpisodeCount: {
     fontSize: 14,
+    color: 'white',
+    fontWeight: '500',
   },
   iosEpisodeCount: {
     fontSize: 16,
+    color: 'white',
+    fontWeight: '600',
   },
   dropdownContainer: {
     justifyContent: 'center',

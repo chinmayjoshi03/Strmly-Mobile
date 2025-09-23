@@ -8,7 +8,8 @@ import {
   View,
   StatusBar,
   RefreshControl,
-  Platform
+  Platform,
+  PanResponder
 } from "react-native";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 import ThemedView from "@/components/ThemedView";
@@ -43,7 +44,7 @@ const VideosFeed: React.FC = () => {
   const [limit, setLimit] = useState(6);
   const [hasMore, setHasMore] = useState(true);
   const [isFetchingMore, setIsFetchingMore] = useState(false);
-  const [refreshing, setRefreshing] = useState(false);
+
 
   const [showCommentsModal, setShowCommentsModal] = useState(false);
   const [isScreenFocused, setIsScreenFocused] = useState(true);
@@ -147,7 +148,7 @@ const VideosFeed: React.FC = () => {
       if ((json.data || []).length < limit) {
         setHasMore(false);
       }
-      
+
       // If first page is empty, definitely no more pages
       if (targetPage === 1 && (!json.data || json.data.length === 0)) {
         console.log("First page empty, no more pages");
@@ -298,7 +299,7 @@ const VideosFeed: React.FC = () => {
   );
 
   // Handle refresh
-  const handleRefresh = useCallback(() => {
+  const handleRefresh = useCallback(async () => {
     setLoading(true);
     setError(null);
     setPage(1);
@@ -306,12 +307,12 @@ const VideosFeed: React.FC = () => {
     setHasMore(true);
     setVisibleIndex(0);
     setHasAttemptedFetch(true); // Keep this true to prevent useFocusEffect from triggering
-    
+
     try {
       await fetchTrendingVideos(1);
     } finally {
       setRefreshing(false);
-    });
+    }
   }, []);
 
   // Stable key extractor

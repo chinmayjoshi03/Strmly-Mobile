@@ -229,11 +229,7 @@ const WalletPage = () => {
             </View>
 
             {/* Bottom Navigation Bar */}
-            <View className="absolute bottom-0 left-0 right-0">
-              {!isOpenTBalance && !isOpenWBalance && !isOpenRevenue && (
-                <BottomNavBar />
-              )}
-            </View>
+           
           </>
         )}
       </ThemedView>

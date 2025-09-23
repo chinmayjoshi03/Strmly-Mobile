@@ -6,6 +6,7 @@ import {
   ScrollView,
   ActivityIndicator,
   Dimensions,
+  Platform,
 } from "react-native";
 import { ChevronLeft, ChevronDown } from "lucide-react-native";
 import { LinearGradient } from "expo-linear-gradient";
@@ -229,7 +230,9 @@ const Dashboard = () => {
               style={{ width: 380, height: 273, alignSelf: "center" }}
             >
               {/* Time Filter */}
-              <View className="flex-row justify-between items-center mb-4">
+              <View className="flex-row justify-between items-center mb-4"
+              style={{paddingRight: Platform.OS == "ios" ? 2 : 0}}
+              >
                 <Text
                   className="text-white text-lg font-medium"
                   style={{ fontFamily: "Inter" }}

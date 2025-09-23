@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { View, Pressable, StyleSheet, ActivityIndicator } from "react-native";
+import { View, Pressable, StyleSheet, ActivityIndicator, Dimensions } from "react-native";
 import { PlayIcon, PauseIcon } from "lucide-react-native";
 import { usePlayerStore } from "@/store/usePlayerStore";
 import InteractOptions from "./interactOptions";
@@ -64,7 +64,7 @@ const VideoControls = ({
   const { setVideosInZustand } = useVideosStore();
   const { isLandscape } = useOrientationStore();
   let hideTimer = React.useRef<NodeJS.Timeout | number | null>(null);
-  const insets = useSafeAreaInsets();
+
   // const scaledOffset = PixelRatio.getPixelSizeForLayoutSize(12);
   const screenHeight = Dimensions.get("window").height;
   const bottomOffset =

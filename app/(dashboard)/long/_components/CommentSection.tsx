@@ -956,6 +956,7 @@ const CommentsSection = ({
                 color: "#FFFFFF",
                 fontSize: 16,
                 paddingVertical: 0,
+                paddingBottom: Platform.OS == "ios" ? 10 : 0
               }}
               multiline={false}
               maxLength={500}
