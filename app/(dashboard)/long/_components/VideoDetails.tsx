@@ -505,6 +505,7 @@ const VideoDetails = ({
                 console.log("series id", series?._id);
                 setShowPriceDropdown((prev) => !prev);
                 setShowDropdown(false);
+                setShowBuyOption(false);
               }}
               className="border border-white rounded-md px-2"
             >
@@ -549,7 +550,7 @@ const VideoDetails = ({
         </Pressable>
 
         {/* Paid Dropdown */}
-        {showPriceDropdown && (
+        {(showPriceDropdown || showBuyOption) && (
           <View className="absolute bottom-14 -right-2 rounded-xl p-2 w-80">
             {(series != null &&
               series.type != "Free" &&
@@ -630,7 +631,7 @@ const VideoDetails = ({
                     </Text>
                     {hasCreatorPass || hasAccessPass ? (
                       <Text className="text-[16px] text-green-600">
-                        Active{" "}
+                        Active
                         <ArrowUpRightFromSquare color={"green"} size={8} />
                       </Text>
                     ) : (
@@ -721,7 +722,7 @@ const VideoDetails = ({
                           {series && series?.type !== "Free" ? (
                             hasAccessPass || hasCreatorPass ? (
                               <Text className="text-[16px] text-green-600 items-center justify-center">
-                                Active{" "}
+                                Active
                                 <ArrowUpRightFromSquare
                                   color={"green"}
                                   size={8}
@@ -732,7 +733,7 @@ const VideoDetails = ({
                             )
                           ) : hasAccessPass || hasCreatorPass ? (
                             <Text className="text-[16px] text-green-600">
-                              Active{" "}
+                              Active
                               <ArrowUpRightFromSquare
                                 color={"green"}
                                 size={8}

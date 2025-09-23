@@ -36,6 +36,7 @@ export default function AccessPage() {
   const route = useRoute();
   const { routeTab } = route.params as { routeTab: string };
   const router = useRouter();
+  const { setVideosInZustand, setVideoType } = useVideosStore();
 
   const {
     data: purchasedData,
@@ -198,6 +199,7 @@ export default function AccessPage() {
         setVideoType('video');
         
         router.push({
+          pathname: "/(dashboard)/long/GlobalVideoPlayer",
           pathname: "/(dashboard)/long/GlobalVideoPlayer",
           params: {
             videoType: 'video',
@@ -411,8 +413,10 @@ const renderAssetItem = (asset: Asset) => (
         <View className="relative">
           <Image
             source={{
-              uri:
-                getProfilePhotoUrl(creatorPass.creator_id.profile_photo, "user"),
+              uri: getProfilePhotoUrl(
+                creatorPass.creator_id.profile_photo,
+                "user"
+              ),
             }}
             className="w-16 h-16 rounded-full"
             resizeMode="cover"
@@ -453,97 +457,96 @@ const renderAssetItem = (asset: Asset) => (
   );
 
   return (
-    <SafeAreaView style={{ flex:1 , backgroundColor: "black" }} edges={[]}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: "black" }} edges={[]}>
       <View className="flex-1">
+        {/* Header */}
+        <View className="flex-row items-center justify-between px-4 pt-4 pb-4">
+          <TouchableOpacity onPress={() => router.back()} className="p-2">
+            <ArrowLeft size={24} color="white" />
+          </TouchableOpacity>
+          <Text className="text-white text-lg font-semibold">
+            Purchased Access
+          </Text>
+          <View className="w-8" />
+        </View>
 
-      {/* Header */}
-      <View className="flex-row items-center justify-between px-4 pt-4 pb-4">
-        <TouchableOpacity onPress={() => router.back()} className="p-2">
-          <ArrowLeft size={24} color="white" />
-        </TouchableOpacity>
-        <Text className="text-white text-lg font-semibold">
-          Purchased Access
-        </Text>
-        <View className="w-8" />
-      </View>
+        {/* Tabs */}
+        <View className="flex-row px-4 mb-6">
+          {renderTabButton("content", "Content")}
+          {renderTabButton("series", "Series")}
+          {renderTabButton("creator", "Creator")}
+        </View>
 
-      {/* Tabs */}
-      <View className="flex-row px-4 mb-6">
-        {renderTabButton("content", "Content")}
-        {renderTabButton("series", "Series")}
-        {renderTabButton("creator", "Creator")}
-      </View>
+        {/* Content */}
+        <ScrollView className="flex-1 px-4">
+          <TouchableOpacity
+            activeOpacity={1}
+            onPress={() => setActiveDropdown(null)}
+            className="flex-1"
+          >
+            {isLoading ? (
+              <View className="flex-1 items-center justify-center mt-20">
+                <ActivityIndicator size="large" color="#F1C40F" />
+                <Text className="text-gray-400 mt-4">
+                  Loading your purchases...
+                </Text>
+              </View>
+            ) : error ? (
+              <View className="flex-1 items-center justify-center mt-20 px-4">
+                <Text className="text-red-400 text-center mb-4">
+                  Failed to load purchased access
+                </Text>
+                <Text className="text-gray-400 text-center text-sm mb-4">
+                  {error}
+                </Text>
+                <TouchableOpacity
+                  onPress={() => window.location.reload()}
+                  className="bg-blue-600 px-4 py-2 rounded-lg"
+                >
+                  <Text className="text-white">Retry</Text>
+                </TouchableOpacity>
+              </View>
+            ) : (
+              (() => {
+                const filteredData = getFilteredData();
 
-      {/* Content */}
-      <ScrollView className="flex-1 px-4">
-        <TouchableOpacity
-          activeOpacity={1}
-          onPress={() => setActiveDropdown(null)}
-          className="flex-1"
-        >
-          {isLoading ? (
-            <View className="flex-1 items-center justify-center mt-20">
-              <ActivityIndicator size="large" color="#F1C40F" />
-              <Text className="text-gray-400 mt-4">
-                Loading your purchases...
-              </Text>
-            </View>
-          ) : error ? (
-            <View className="flex-1 items-center justify-center mt-20 px-4">
-              <Text className="text-red-400 text-center mb-4">
-                Failed to load purchased access
-              </Text>
-              <Text className="text-gray-400 text-center text-sm mb-4">
-                {error}
-              </Text>
-              <TouchableOpacity
-                onPress={() => window.location.reload()}
-                className="bg-blue-600 px-4 py-2 rounded-lg"
-              >
-                <Text className="text-white">Retry</Text>
-              </TouchableOpacity>
-            </View>
-          ) : (
-            (() => {
-              const filteredData = getFilteredData();
-
-              return filteredData.length > 0 ? (
-                filteredData.map((item: any) =>
-                  activeTab === "creator"
-                    ? renderCreatorPassItem(item)
-                    : renderAssetItem(item)
-                )
-              ) : (
-                <View className="flex-1 items-center justify-center mt-20 px-4">
-                  <View className="items-center">
-                    {activeTab === "content" && (
-                      <Play size={48} color="#6B7280" />
-                    )}
-                    {activeTab === "series" && (
-                      <Film size={48} color="#6B7280" />
-                    )}
-                    {activeTab === "creator" && (
-                      <User size={48} color="#6B7280" />
-                    )}
-                    <Text className="text-gray-400 text-center mt-4 text-lg">
-                      No purchased {activeTab} found
-                    </Text>
-                    <Text className="text-gray-500 text-center mt-2 text-sm">
-                      {activeTab === "content" &&
-                        "Purchase individual videos to see them here"}
-                      {activeTab === "series" &&
-                        "Purchase series to see them here"}
-                      {activeTab === "creator" &&
-                        "Purchase creator passes to see them here"}
-                    </Text>
+                return filteredData.length > 0 ? (
+                  filteredData.map((item: any) =>
+                    activeTab === "creator"
+                      ? renderCreatorPassItem(item)
+                      : renderAssetItem(item)
+                  )
+                ) : (
+                  <View className="flex-1 items-center justify-center mt-20 px-4">
+                    <View className="items-center">
+                      {activeTab === "content" && (
+                        <Play size={48} color="#6B7280" />
+                      )}
+                      {activeTab === "series" && (
+                        <Film size={48} color="#6B7280" />
+                      )}
+                      {activeTab === "creator" && (
+                        <User size={48} color="#6B7280" />
+                      )}
+                      <Text className="text-gray-400 text-center mt-4 text-lg">
+                        No purchased {activeTab} found
+                      </Text>
+                      <Text className="text-gray-500 text-center mt-2 text-sm">
+                        {activeTab === "content" &&
+                          "Purchase individual videos to see them here"}
+                        {activeTab === "series" &&
+                          "Purchase series to see them here"}
+                        {activeTab === "creator" &&
+                          "Purchase creator passes to see them here"}
+                      </Text>
+                    </View>
                   </View>
-                </View>
-              );
-            })()
-          )}
-        </TouchableOpacity>
-      </ScrollView>
-    </View>
+                );
+              })()
+            )}
+          </TouchableOpacity>
+        </ScrollView>
+      </View>
     </SafeAreaView>
   );
 }

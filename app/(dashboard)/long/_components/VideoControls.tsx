@@ -16,7 +16,11 @@ type Props = {
   haveCreator: React.Dispatch<React.SetStateAction<boolean>>;
   haveCreatorPass: boolean;
   haveAccessPass: boolean;
+  accessVersion: number;
+  handleInitialSeekComplete: () => void;
   showWallet: React.Dispatch<React.SetStateAction<boolean>>;
+  showBuyOption: boolean;
+  setShowBuyOption: React.Dispatch<React.SetStateAction<boolean>>;
   player: VideoPlayer;
   videoData: VideoItemType;
   isGlobalPlayer: boolean;
@@ -38,6 +42,10 @@ const VideoControls = ({
   haveCreator,
   haveCreatorPass,
   haveAccessPass,
+  accessVersion,
+  handleInitialSeekComplete,
+  showBuyOption,
+  setShowBuyOption,
   showWallet,
   player,
   videoData,
@@ -56,6 +64,18 @@ const VideoControls = ({
   const { setVideosInZustand } = useVideosStore();
   const { isLandscape } = useOrientationStore();
   let hideTimer = React.useRef<NodeJS.Timeout | number | null>(null);
+  const insets = useSafeAreaInsets();
+  // const scaledOffset = PixelRatio.getPixelSizeForLayoutSize(12);
+  const screenHeight = Dimensions.get("window").height;
+  const bottomOffset =
+    screenHeight < 700
+      ? insets.bottom != 0
+        ? insets.bottom - 16
+        : 45
+      : insets.bottom != 0
+        ? insets.bottom - 16
+        : 28;
+  console.log("bottom insets:", insets.bottom, screenHeight);
 
   useEffect(() => {
     if (wantToBuyVideo) {
@@ -175,11 +195,12 @@ const VideoControls = ({
 
   return (
     <>
-      {/* Always present invisible pressable for showing controls */}
-      <Pressable
-        style={styles.fullScreenPressable}
-        onPress={handleScreenTap}
-      />
+      {(
+        <Pressable
+          style={styles.fullScreenPressable}
+          onPress={handleTogglePlayPause}
+        />
+      )}
       <View style={styles.iconContainer} pointerEvents="none">
         {showPlayPauseIcon &&
           (!playing ? (
@@ -239,7 +260,7 @@ const VideoControls = ({
             isGlobalPlayer
               ? isLandscape
                 ? styles.detailsFullScreen
-                : styles.detailsGlobal
+                : { ...styles.detailsGlobal, bottom: bottomOffset - 10 }
               : isLandscape
                 ? styles.detailsFullScreen
                 : styles.details,
@@ -262,9 +283,40 @@ const VideoControls = ({
             community={videoData?.community}
             onToggleFullScreen={onToggleFullScreen}
             onEpisodeChange={onEpisodeChange}
+            showBuyOption={showBuyOption}
+            setShowBuyOption={setShowBuyOption}
           />
         </View>
       )}
+
+      {/* {showControls && (
+        <View
+          className={`absolute left-0 right-0 z-10`}
+          style={[
+            !isGlobalPlayer
+              ? isLandscape
+                ? { bottom: "20%" }
+                : { bottom: bottomOffset }
+              : isLandscape
+                ? { bottom: "20%" }
+                : { bottom: screenHeight > 700 ? -5 : 5 },
+          ]}
+        >
+          <VideoProgressBar
+            player={player}
+            isActive={isActive}
+            videoId={videoData._id}
+            duration={videoData.duration || 0}
+            access={videoData.access}
+            onInitialSeekComplete={handleInitialSeekComplete}
+            isVideoOwner={videoData.hasCreatorPassOfVideoOwner}
+            hasAccess={
+              haveAccessPass || haveCreatorPass || videoData.access.isPurchased
+            }
+            accessVersion={accessVersion}
+          />
+        </View>
+      )} */}
     </>
   );
 };

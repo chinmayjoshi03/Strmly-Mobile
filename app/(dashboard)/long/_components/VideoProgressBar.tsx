@@ -30,14 +30,15 @@ type Props = {
   videoId: string;
   player: VideoPlayer;
   isActive: boolean;
+  hasCreatorPassOfVideoOwner: boolean;
   duration: number;
   access: AccessType;
-  onInitialSeekComplete?: () => void; 
-  isVideoOwner?: boolean; 
-  hasAccess?: boolean; 
-  isGlobalPlayer?: boolean
+  onInitialSeekComplete?: () => void;
+  isVideoOwner?: boolean;
+  hasAccess?: boolean;
+  showBuyOption: React.Dispatch<React.SetStateAction<boolean>>;
+  isGlobalPlayer?: boolean;
   accessVersion?: number;
-
 };
 
 const formatTime = (seconds: number) => {
@@ -51,13 +52,15 @@ const VideoProgressBar = ({
   videoId,
   player,
   isActive,
+  hasCreatorPassOfVideoOwner,
   duration,
   access,
+  showBuyOption,
   onInitialSeekComplete,
   isVideoOwner = false,
   hasAccess = false,
   isGlobalPlayer = false,
-   accessVersion = 0,
+  accessVersion,
 }: Props) => {
   const [currentTime, setCurrentTime] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
@@ -254,68 +257,75 @@ const VideoProgressBar = ({
   useEffect(() => {
   if (!isActive || duration <= 0 || !hasPerformedInitialSeek) return;
 
-  // Determine if this is a free video or premium video
-  const isFreeVideo = initialStartTime === 0 && (endTime >= duration || endTime === 0);
-  
-  let percentWatched = 0;
-  
-  if (isFreeVideo) {
-    // For free videos: calculate percentage from 0 to full duration
-    percentWatched = (currentTime / duration) * 100;
-  } else {
-    // For premium videos: calculate percentage from start_time to end_time (existing logic)
-    const effectiveDuration = duration - initialStartTime;
-    const effectiveCurrentTime = currentTime - initialStartTime;
-    percentWatched = effectiveDuration > 0 ? (effectiveCurrentTime / effectiveDuration) * 100 : 0;
-  }
+    // Determine if this is a free video or premium video
+    const isFreeVideo =
+      initialStartTime === 0 && (endTime >= duration || endTime === 0);
 
-  
+    let percentWatched = 0;
 
-  if (!hasTriggered2Percent.current && percentWatched >= 2) {
-    hasTriggered2Percent.current = true;
-    console.log(`Triggering 2% milestone for video ${videoId}`);
-    saveVideoToHistory();
-    incrementVideoViews();
-  }
-}, [
-  currentTime,
-  duration,
-  isActive,
-  hasPerformedInitialSeek,
-  initialStartTime,
-  endTime,
-  videoId,
-  saveVideoToHistory,
-  incrementVideoViews,
-]);
+    if (isFreeVideo) {
+      // For free videos: calculate percentage from 0 to full duration
+      percentWatched = (currentTime / duration) * 100;
+    } else {
+      // For premium videos: calculate percentage from start_time to end_time (existing logic)
+      const effectiveDuration = duration - initialStartTime;
+      const effectiveCurrentTime = currentTime - initialStartTime;
+      percentWatched =
+        effectiveDuration > 0
+          ? (effectiveCurrentTime / effectiveDuration) * 100
+          : 0;
+    }
+
+    if (!hasTriggered2Percent.current && percentWatched >= 2) {
+      hasTriggered2Percent.current = true;
+      console.log(`Triggering 2% milestone for video ${videoId}`);
+      // saveVideoToHistory();
+      // incrementVideoViews();
+    }
+  }, [
+    currentTime,
+    duration,
+    isActive,
+    hasPerformedInitialSeek,
+    initialStartTime,
+    endTime,
+    videoId,
+    saveVideoToHistory,
+    incrementVideoViews,
+  ]);
 
   useEffect(() => {
     if (!isActive) hasTriggered2Percent.current = false;
   }, [isActive]);
 
   // ✅ FIXED: Improved time tracking that persists across UI hide/show
-// Replace the time tracking useEffect with this version that has better logging:
-useEffect(() => {
-  console.log('Access Debug:', {
-  videoId,
-  hasAccess,
-  isPurchased: access?.isPurchased,
-  isVideoOwner,
-  accessType: access?.accessType,
-  userHasFullAccess: hasAccess || isVideoOwner || access?.isPurchased
-});
-  // Clear any existing interval
-  if (timeTrackingInterval.current) {
-    clearInterval(timeTrackingInterval.current);
-    timeTrackingInterval.current = null;
-  }
+  // Replace the time tracking useEffect with this version that has better logging:
+  useEffect(() => {
+    console.log("Access Debug:", {
+      videoId,
+      hasAccess,
+      isPurchased: access?.isPurchased,
+      isVideoOwner,
+      accessType: access?.accessType,
+      userHasFullAccess: hasAccess || isVideoOwner || access?.isPurchased,
+    });
+    // Clear any existing interval
+    if (timeTrackingInterval.current) {
+      clearInterval(timeTrackingInterval.current);
+      timeTrackingInterval.current = null;
+    }
 
   // Only start tracking if video is active and ready
   if (!isActive || !player) {
     return;
   }
 
-  console.log('Starting time tracking for video:', videoId, 'hasAccess:', hasAccess);
+    console.log(
+      "Starting time tracking for video:",
+      videoId,
+      "hasAccess:",
+      hasAccess
+    );
 
   // Start continuous time tracking
   timeTrackingInterval.current = setInterval(() => {
@@ -323,49 +333,67 @@ useEffect(() => {
       return;
     }
 
-    try {
-      const currentPlayerTime = player.currentTime || 0;
-      
-      // Always update current time, regardless of UI visibility
-      setCurrentTime(currentPlayerTime);
-      
-      // Check if video has reached the end time and user doesn't have access
-      const isPremiumVideo = endTime < duration && endTime > 0;
-      const userHasFullAccess = hasAccess || isVideoOwner || access?.isPurchased;
-      
-      // Enhanced logging
-      if (isPremiumVideo && !userHasFullAccess && currentPlayerTime >= endTime - 0.1) {
-        console.log('Near end time:', {
-          currentTime: currentPlayerTime,
-          endTime,
-          hasShownAccessModal: hasShownAccessModal.current,
-          modalDismissed: modalDismissed.current,
-          hasAccess,
-          isVideoOwner
-        });
-      }
-      
-      // Only show modal if user truly doesn't have access to the full content
-      if (isPremiumVideo && !userHasFullAccess && currentPlayerTime >= endTime - 0.1)  {
-        if (!hasShownAccessModal.current && !modalDismissed.current) {
-          console.log('Video reached end time, showing access modal. Current time:', currentPlayerTime, 'End time:', endTime, 'hasAccess:', hasAccess, 'isVideoOwner:', isVideoOwner);
-          hasShownAccessModal.current = true;
-          player.pause();
-          setShowAccessModal(true);
+      try {
+        const currentPlayerTime = player.currentTime || 0;
+
+        // Always update current time, regardless of UI visibility
+        setCurrentTime(currentPlayerTime);
+
+        // Check if video has reached the end time and user doesn't have access
+        const isPremiumVideo = endTime < duration && endTime > 0;
+        const userHasFullAccess =
+          hasAccess || isVideoOwner || access?.isPurchased;
+
+        // Enhanced logging
+        if (
+          isPremiumVideo &&
+          !userHasFullAccess &&
+          currentPlayerTime >= endTime - 0.1
+        ) {
+          console.log("Near end time:", {
+            currentTime: currentPlayerTime,
+            endTime,
+            hasShownAccessModal: hasShownAccessModal.current,
+            modalDismissed: modalDismissed.current,
+            hasAccess,
+            isVideoOwner,
+          });
         }
+
+        // Only show modal if user truly doesn't have access to the full content
+        if (
+          isPremiumVideo &&
+          !userHasFullAccess &&
+          currentPlayerTime >= endTime - 0.1
+        ) {
+          if (!hasShownAccessModal.current && !modalDismissed.current) {
+            console.log(
+              "Video reached end time, showing access modal. Current time:",
+              currentPlayerTime,
+              "End time:",
+              endTime,
+              "hasAccess:",
+              hasAccess,
+              "isVideoOwner:",
+              isVideoOwner
+            );
+            hasShownAccessModal.current = true;
+            player.pause();
+            setShowAccessModal(true);
+          }
+        }
+      } catch (error) {
+        console.error("Error in time tracking:", error);
       }
-    } catch (error) {
-      console.error('Error in time tracking:', error);
-    }
-  }, 250);
-  
-  return () => {
-    if (timeTrackingInterval.current) {
-      clearInterval(timeTrackingInterval.current);
-      timeTrackingInterval.current = null;
-    }
-  };
-}, [isActive, player, hasAccess, isVideoOwner, endTime, duration, videoId]);
+    }, 250);
+
+    return () => {
+      if (timeTrackingInterval.current) {
+        clearInterval(timeTrackingInterval.current);
+        timeTrackingInterval.current = null;
+      }
+    };
+  }, [isActive, player, hasAccess, isVideoOwner, endTime, duration, videoId]);
 
   // Reset modal state when video changes or becomes inactive
   useEffect(() => {
@@ -376,36 +404,37 @@ useEffect(() => {
     }
   }, [isActive, videoId]);
   useEffect(() => {
-  // Reset modal states when video is back at or near the start time
-  if (currentTime <= initialStartTime + 0.5) { // Add small buffer for precision
-    if (hasShownAccessModal.current || modalDismissed.current) {
-      console.log('Video back at start, resetting modal states');
-      hasShownAccessModal.current = false;
-      modalDismissed.current = false;
+    // Reset modal states when video is back at or near the start time
+    if (currentTime <= initialStartTime + 0.5) {
+      // Add small buffer for precision
+      if (hasShownAccessModal.current || modalDismissed.current) {
+        console.log("Video back at start, resetting modal states");
+        hasShownAccessModal.current = false;
+        modalDismissed.current = false;
+      }
     }
-  }
-}, [currentTime, initialStartTime]);
+  }, [currentTime, initialStartTime]);
 
   // Handle access modal close
-const handleAccessModalClose = () => {
-  setShowAccessModal(false);
-  modalDismissed.current = true; // Mark as dismissed for this session
-  
-  // If user has purchased access, restart from beginning
-  if (hasAccess || isVideoOwner) {
-    player.currentTime = initialStartTime;
-    setCurrentTime(initialStartTime);
-    player.play();
-    hasShownAccessModal.current = false;
-    modalDismissed.current = false; // Reset since they have access now
-  } else {
-    // If not purchased, seek back to start time and pause
-    player.currentTime = initialStartTime;
-    setCurrentTime(initialStartTime);
-    player.pause();
-    // DON'T reset modalDismissed here - let it stay true for this playthrough
-  }
-};
+  const handleAccessModalClose = () => {
+    setShowAccessModal(false);
+    modalDismissed.current = true; // Mark as dismissed for this session
+
+    // If user has purchased access, restart from beginning
+    if (hasAccess || isVideoOwner) {
+      player.currentTime = initialStartTime;
+      setCurrentTime(initialStartTime);
+      player.play();
+      hasShownAccessModal.current = false;
+      modalDismissed.current = false; // Reset since they have access now
+    } else {
+      // If not purchased, seek back to start time and pause
+      player.currentTime = initialStartTime;
+      setCurrentTime(initialStartTime);
+      player.pause();
+      // DON'T reset modalDismissed here - let it stay true for this playthrough
+    }
+  };
 
   // ✅ Layout width
   const handleProgressBarLayout = (event: LayoutChangeEvent) => {
@@ -423,9 +452,11 @@ const handleAccessModalClose = () => {
     }
     
     // Determine if this is a free video (no restrictions) or premium video
-    const isFreeVideo = access?.accessType === 'free' || (initialStartTime === 0 && endTime >= duration);
+    const isFreeVideo =
+      access?.accessType === "free" ||
+      (initialStartTime === 0 && endTime >= duration);
     const userHasAccess = hasAccess || access?.isPurchased; // This includes video purchase or creator pass
-    
+
     // For free videos: allow seeking anywhere
     if (isFreeVideo) {
       return true;
@@ -437,7 +468,7 @@ const handleAccessModalClose = () => {
     }
     
     // For premium videos without access: only allow seeking within free range (start_time to display_till_time)
-    if (!userHasAccess) {
+    if (!userHasAccess && !hasCreatorPassOfVideoOwner) {
       // Check if trying to seek before start time
       if (initialStartTime > 0 && newTimeSeconds < initialStartTime) {
         Alert.alert(
@@ -525,14 +556,14 @@ const handleAccessModalClose = () => {
   return (
     <>
       <View
-  ref={progressBarRef}
-  style={[
-    styles.progressBarContainer,
-    isGlobalPlayer && styles.progressBarContainerGlobal // Apply conditional styling
-  ]}
-  onLayout={handleProgressBarLayout}
-  {...panResponder.panHandlers}
->
+        ref={progressBarRef}
+        style={[
+          styles.progressBarContainer,
+          isGlobalPlayer && styles.progressBarContainerGlobal, // Apply conditional styling
+        ]}
+        onLayout={handleProgressBarLayout}
+        {...panResponder.panHandlers}
+      >
         {/* Background bar */}
         <View style={styles.progressBarBackground} />
         
@@ -613,9 +644,8 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     position: "relative",
   },
-   progressBarContainerGlobal: {
+  progressBarContainerGlobal: {
     marginBottom: 100, // Add bottom margin only for global player
-   
   },
   progressBarBackground: {
     position: "absolute",
