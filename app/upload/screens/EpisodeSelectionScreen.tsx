@@ -5,6 +5,9 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Series } from '../../studio/types';
 import { CONFIG } from '../../../Constants/config';
 import { useAuthStore } from '@/store/useAuthStore';
+import { createSeries } from '../../../api/series/seriesActions';  // Add this import
+
+// ...existing code...
 
 interface EpisodeSelectionScreenProps {
   onBack: () => void;
