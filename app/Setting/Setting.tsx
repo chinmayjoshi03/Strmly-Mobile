@@ -198,7 +198,7 @@ By submitting this request, you confirm that you understand and agree to our`,
           <ProfileTopbar name="Setting" isMore={false} hashtag={false} />
         </View>
 
-        <View className="mt-14 items-start mx-5 gap-5 w-full">
+        <View className="mt-4 items-start mx-5 gap-5 w-full">
           {/* Monetization Toggle */}
          <View className="flex-row items-center justify-between w-full">
             {/* <Text className="text-white text-lg">

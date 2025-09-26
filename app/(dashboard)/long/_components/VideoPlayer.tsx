@@ -713,11 +713,11 @@ const VideoPlayer = ({
           style={
             !isGlobalPlayer
               ? isLandscape
-                ? { bottom: "20%" }
-                : { bottom: "4.8%" }
+                ? { bottom: "22%" }
+                : { bottom: "5%" }
               : isLandscape
-                ? { bottom: "20%" }
-                : { bottom: 10 }
+                ? { bottom: "3%" }
+                : { bottom: 5 }
           }
         >
           {/* ✅ UPDATED: Pass onInitialSeekComplete callback */}

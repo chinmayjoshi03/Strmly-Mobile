@@ -94,14 +94,23 @@ const VideoControls = ({
   // auto-hide logic for landscape
   useEffect(() => {
     if (isLandscape) {
-      resetHideTimer();
+      // In landscape mode, show controls initially
+      setShowControls(true);
+      showWallet(true);
+      // Only start auto-hide timer if video is playing
+      if (playing) {
+        resetHideTimer();
+      } else {
+        // If paused, keep controls visible and clear any existing timer
+        clearHideTimer();
+      }
     } else {
       clearHideTimer();
       setShowControls(true); // portrait → always visible
       showWallet(true);
     }
     return () => clearHideTimer();
-  }, [isLandscape]);
+  }, [isLandscape, playing]);
 
   const clearHideTimer = () => {
     if (hideTimer.current) {
@@ -166,9 +175,19 @@ const VideoControls = ({
       if (playing) {
         await player.pause();
         setPlaying(false);
+        // When paused in landscape, keep controls visible
+        if (isLandscape) {
+          clearHideTimer();
+          setShowControls(true);
+          showWallet(true);
+        }
       } else {
         await player.play();
         setPlaying(true);
+        // When playing in landscape, start auto-hide timer
+        if (isLandscape) {
+          resetHideTimer();
+        }
       }
       setShowPlayPauseIcon(true);
     } catch (e) {
@@ -176,31 +195,34 @@ const VideoControls = ({
     }
   };
 
-  const handleScreenTap = () => {
-    if (isLandscape) {
-      if (showControls) {
-        // If controls are visible, toggle play/pause and reset timer
-        handleTogglePlayPause();
-      } else {
-        // If controls are hidden, just show them
-        resetHideTimer();
-      }
-    } else {
-      // In portrait mode, always toggle play/pause
-      if (haveCreatorPass || haveAccessPass || videoData.amount === 0) {
-        handleTogglePlayPause();
-      }
-    }
-  };
+
 
   return (
     <>
-      {(
-        <Pressable
-          style={styles.fullScreenPressable}
-          onPress={handleTogglePlayPause}
-        />
-      )}
+      <Pressable
+        style={styles.fullScreenPressable}
+        onPress={() => {
+          if (isLandscape) {
+            if (showControls) {
+              // If controls are visible, toggle play/pause
+              handleTogglePlayPause();
+            } else {
+              // If controls are hidden, just show them
+              setShowControls(true);
+              showWallet(true);
+              // Only start auto-hide timer if video is playing
+              if (playing) {
+                resetHideTimer();
+              }
+            }
+          } else {
+            // In portrait mode, always toggle play/pause
+            if (haveCreatorPass || haveAccessPass || videoData.amount === 0) {
+              handleTogglePlayPause();
+            }
+          }
+        }}
+      />
       <View style={styles.iconContainer} pointerEvents="none">
         {showPlayPauseIcon &&
           (!playing ? (
@@ -260,7 +282,7 @@ const VideoControls = ({
             isGlobalPlayer
               ? isLandscape
                 ? styles.detailsFullScreen
-                : { ...styles.detailsGlobal, bottom: bottomOffset - 10 }
+                : { ...styles.detailsGlobal, bottom: bottomOffset + 45 }
               : isLandscape
                 ? styles.detailsFullScreen
                 : styles.details,
@@ -354,7 +376,7 @@ const styles = StyleSheet.create({
   },
   detailsGlobal: {
     position: "absolute",
-    bottom: "2%",
+    bottom: "8%",
     width: "100%",
     paddingHorizontal: 16,
     marginBottom: 40,
