@@ -1,3 +1,4 @@
+// components/AddMoneyModal.tsx
 import React, { useState, useEffect } from "react";
 import {
   View,
@@ -12,16 +13,18 @@ import {
   validateAmount,
   initiateGooglePlayBilling,
 } from "@/utils/paymentUtils";
+import { finishTransaction } from "react-native-iap";
 
 interface AddMoneyModalProps {
   visible: boolean;
   onClose: () => void;
   onSuccess: (amount: number) => void;
   onCreateOrder: (amount: number) => Promise<any>;
+  // change onVerifyPayment to accept platform-agnostic payload
   onVerifyPayment: (
-    orderId: string,
+    orderIdOrTransactionId: string, // either purchaseToken/transactionId depending on platform
     productId: string,
-    purchaseToken: string,
+    receiptOrToken: string, // purchaseToken (android) or transactionReceipt (ios)
     amount: number
   ) => Promise<any>;
   onError?: (error: Error) => void;
@@ -54,7 +57,7 @@ const AddMoneyModal: React.FC<AddMoneyModalProps> = ({
   const handleAddMoney = async () => {
     const validation = validateAmount(amount);
     if (!validation.isValid) {
-      Alert.alert("Error", validation.error);
+      //Alert.alert("Error", validation.error);
       return;
     }
 
@@ -62,38 +65,57 @@ const AddMoneyModal: React.FC<AddMoneyModalProps> = ({
     setIsProcessing(true);
 
     try {
-      const order = await onCreateOrder(numAmount);
-      if (!order) throw new Error("Failed to create wallet load order");
+      // const order = await onCreateOrder(numAmount);
+      // if (!order) throw new Error("Failed to create wallet load order");
 
-      const billingResponse = await initiateGooglePlayBilling({
+      const billingResult = await initiateGooglePlayBilling({
         amount: numAmount,
         currency: "INR",
       });
 
-      // ✅ FIX: check productId instead of signature
-      if (
-        !billingResponse?.purchaseToken ||
-        !billingResponse?.productId
-      ) {
-        throw new Error("Incomplete billing response");
+      if (billingResult.platform === "android") {
+        if (!billingResult.purchaseToken || !billingResult.productId)
+          throw new Error("Incomplete Android purchase response");
+      } else {
+        if (!billingResult.transactionReceipt || !billingResult.productId)
+          throw new Error("Incomplete iOS purchase response");
       }
 
+      // 4. call backend verification API with the right fields
+      // use purchaseToken for Android, transactionReceipt for iOS
       await onVerifyPayment(
-        billingResponse.orderId ?? "",
-        billingResponse.productId,
-        billingResponse.purchaseToken,
+        billingResult.orderIdAndroid ?? billingResult.transactionId ?? "",
+        billingResult.productId,
+        billingResult.purchaseToken ?? billingResult.transactionReceipt ?? "",
         numAmount
       );
 
+      // await onVerifyPayment(
+      //   "TEST_ORDER_ID",
+      //   "add_money_to_wallet_10",
+      //   "TEST_RECEIPT_OR_TOKEN",
+      //   numAmount
+      // );
+
+      try {
+        await finishTransaction({
+          purchase: billingResult.rawPurchase,
+          isConsumable: true,
+        });
+      } catch (finishErr) {
+        console.error("finishTransaction failed:", finishErr);
+      }
+
       onSuccess(numAmount);
-      Alert.alert("Success", `₹${numAmount} added to your wallet successfully!`);
-      setTimeout(() => {
-        onClose();
-      }, 2000);
-    } catch (error: any) {
-      console.error("AddMoneyModal error:", error);
-      Alert.alert("Error", error.message || "Google Play Billing failed");
-      onError?.(error);
+      Alert.alert(
+        "Success",
+        `₹${numAmount} added to your wallet successfully!`
+      );
+      setTimeout(() => onClose(), 1500);
+    } catch (err: any) {
+      console.error("AddMoneyModal error:", err);
+      Alert.alert("Error", err.message || "Payment failed");
+      onError?.(err);
     } finally {
       setIsProcessing(false);
     }
@@ -106,24 +128,73 @@ const AddMoneyModal: React.FC<AddMoneyModalProps> = ({
       animationType="slide"
       onRequestClose={onClose}
     >
-      <View className="flex-1 bg-black bg-opacity-50 justify-end">
-        <View className="border-2 border-gray-600 bg-gray-900 rounded-t-3xl p-6">
-          <Text className="text-white text-xl font-semibold mb-2 text-center">
-            Add Money to Wallet
+      <View
+        style={{
+          flex: 1,
+          backgroundColor: "rgba(0,0,0,0.5)",
+          justifyContent: "flex-end",
+        }}
+      >
+        <View
+          style={{
+            borderTopLeftRadius: 24,
+            borderTopRightRadius: 24,
+            backgroundColor: "#1F2937",
+            padding: 24,
+            shadowColor: "#000",
+            shadowOffset: { width: 0, height: -3 },
+            shadowOpacity: 0.3,
+            shadowRadius: 4,
+          }}
+        >
+          <Text
+            style={{
+              color: "#F9FAFB",
+              fontSize: 20,
+              fontWeight: "700",
+              textAlign: "center",
+              marginBottom: 4,
+            }}
+          >
+            Add Money
           </Text>
-          <Text className="text-gray-400 text-sm mb-6 text-center">
-            Payment via Google Play Billing
+          <Text
+            style={{
+              color: "#9CA3AF",
+              fontSize: 14,
+              textAlign: "center",
+              marginBottom: 20,
+            }}
+          >
+            Recharge your wallet quickly
           </Text>
 
-          <Text className="text-gray-300 text-sm mb-3">Quick Add</Text>
-          <View className="flex-row flex-wrap gap-2 mb-6">
-            {quickAmounts.map((quickAmount) => (
+          <Text
+            style={{ color: "#D1D5DB", marginBottom: 10, fontWeight: "500" }}
+          >
+            Quick Add
+          </Text>
+          <View
+            style={{
+              flexDirection: "row",
+              flexWrap: "wrap",
+              gap: 10,
+              marginBottom: 20,
+            }}
+          >
+            {quickAmounts.map((q) => (
               <TouchableOpacity
-                key={quickAmount}
-                onPress={() => handleQuickAmount(quickAmount)}
-                className="bg-gray-700 px-4 py-2 rounded-lg"
+                key={q}
+                onPress={() => handleQuickAmount(q)}
+                style={{
+                  backgroundColor:
+                    amount == q.toString() ? "#2563EB" : "#374151",
+                  paddingHorizontal: 16,
+                  paddingVertical: 10,
+                  borderRadius: 12,
+                }}
               >
-                <Text className="text-white">₹{quickAmount}</Text>
+                <Text style={{ color: "white", fontWeight: "600" }}>₹{q}</Text>
               </TouchableOpacity>
             ))}
           </View>
@@ -131,20 +202,43 @@ const AddMoneyModal: React.FC<AddMoneyModalProps> = ({
           {amount && (
             <TextInput
               value={amount}
-              editable={false} // keep input non-editable
-              placeholderTextColor="#666"
+              editable={false}
+              placeholder="Enter amount"
+              placeholderTextColor="#9CA3AF"
               keyboardType="numeric"
-              className="bg-gray-800 text-white p-4 rounded-lg mb-6 text-lg"
+              style={{
+                backgroundColor: "#111827",
+                color: "#F9FAFB",
+                padding: 14,
+                borderRadius: 12,
+                marginBottom: 24,
+                borderWidth: 1,
+                borderColor: "#374151",
+                fontSize: 16,
+                fontWeight: "500",
+                textAlign: "center",
+              }}
             />
           )}
 
-          <View className="flex-row justify-center gap-3">
+          <View style={{ flexDirection: "row", gap: 12 }}>
             <TouchableOpacity
               onPress={onClose}
               disabled={isProcessing}
-              className="flex-1 bg-gray-600 justify-center p-4 rounded-xl"
+              style={{
+                flex: 1,
+                backgroundColor: "#4B5563",
+                padding: 14,
+                borderRadius: 12,
+              }}
             >
-              <Text className="text-white text-center font-semibold">
+              <Text
+                style={{
+                  color: "white",
+                  textAlign: "center",
+                  fontWeight: "600",
+                }}
+              >
                 Cancel
               </Text>
             </TouchableOpacity>
@@ -152,20 +246,37 @@ const AddMoneyModal: React.FC<AddMoneyModalProps> = ({
             <TouchableOpacity
               onPress={handleAddMoney}
               disabled={isProcessing || !amount}
-              className={`flex-grow p-4 rounded-xl justify-center ${
-                isProcessing || !amount ? "bg-gray-500" : "bg-white"
-              }`}
+              style={{
+                flex: 1,
+                backgroundColor:
+                  isProcessing || !amount ? "#6B7280" : "#10B981",
+                padding: 14,
+                borderRadius: 12,
+              }}
             >
               {isProcessing ? (
-                <View className="flex-row items-center justify-center gap-2">
-                  <ActivityIndicator size="small" color="#000" />
-                  <Text className="text-black text-center font-semibold">
+                <View
+                  style={{
+                    flexDirection: "row",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: 8,
+                  }}
+                >
+                  <ActivityIndicator size="small" color="#FFF" />
+                  <Text style={{ color: "#FFF", fontWeight: "600" }}>
                     Processing...
                   </Text>
                 </View>
               ) : (
-                <Text className="text-black text-center font-semibold">
-                  Pay ₹{amount || "0"} via Google Play
+                <Text
+                  style={{
+                    color: "#FFF",
+                    textAlign: "center",
+                    fontWeight: "600",
+                  }}
+                >
+                  Pay ₹{amount || "0"}
                 </Text>
               )}
             </TouchableOpacity>
